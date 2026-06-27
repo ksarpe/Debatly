@@ -1,3 +1,7 @@
+# Vendored agent-skill files — kept on disk for local tooling, not tracked.
+.agents/
+skills-lock.json
+
 # Miscellaneous
 *.class
 *.log
