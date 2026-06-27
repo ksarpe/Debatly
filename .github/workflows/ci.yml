@@ -46,6 +46,22 @@ jobs:
       - name: Run tests with coverage
         run: flutter test --coverage
 
+      # Hard gate on line coverage so the suite can't silently rot. The floor is
+      # set just below the coverage at the time it was introduced (46.59% →
+      # floor 46) to leave a small buffer against incidental line-count churn.
+      # Runs entirely in CI — no third-party upload — so it works on this
+      # proprietary repo with zero external setup (no account, no token secret).
+      #
+      # IMPORTANT: only ever RAISE this floor. Do not lower `min_coverage`
+      # without an explicit discussion — a dropping number is the signal we want
+      # this gate to catch. The repo it lives in is archived/read-only, so the v3
+      # tag is immutable.
+      - name: Enforce coverage floor
+        uses: VeryGoodOpenSource/very_good_coverage@v3
+        with:
+          path: coverage/lcov.info
+          min_coverage: 46
+
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4

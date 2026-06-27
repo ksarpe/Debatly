@@ -21,7 +21,7 @@ Future<void> main() async {
   // before anything else runs, so failures during the SDK init sequence below —
   // not just runtime UI errors — are captured too. With no SENTRY_DSN the SDK
   // initialises disabled and still runs `appRunner`, so dev/mock builds are
-  // unaffected. See Monitoring + SENTRY_SETUP.md.
+  // unaffected. See Monitoring + docs/SENTRY_SETUP.md.
   await SentryFlutter.init(Monitoring.configureOptions, appRunner: _startApp);
 }
 

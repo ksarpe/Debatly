@@ -1,6 +1,7 @@
 # Debatly
 
 [![CI](https://github.com/ksarpe/questionapp/actions/workflows/ci.yml/badge.svg)](https://github.com/ksarpe/questionapp/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A546%25-blue)](https://github.com/ksarpe/questionapp/actions/workflows/ci.yml)
 
 A minimalist, modern mobile app designed to spark conversation. It shows a
 single thought-provoking question as styled text, with a fast "wind" animation
@@ -9,7 +10,7 @@ when swiping to the next one.
 > The Dart package is still named `questionapp` (see `pubspec.yaml`); **Debatly**
 > is the product/brand name used in the UI and the stores.
 
-> **Shipping to the stores?** [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) is the
+> **Shipping to the stores?** [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) is the
 > single source of truth for every manual step left to do (Supabase function
 > deploys, AdMob/consent console setup, keys, native config).
 
@@ -103,8 +104,33 @@ flutter analyze
 flutter test
 ```
 
+CI also enforces a **line-coverage floor** (currently 46%) via
+[`very_good_coverage`](https://github.com/VeryGoodOpenSource/very_good_coverage) —
+no third-party upload, so nothing about this proprietary codebase leaves CI. The
+floor is set just below the coverage at the time it was added; **only raise it**,
+never lower it without discussion. Reproduce the measurement locally with:
+
+```bash
+flutter test --coverage
+# overall % = sum(LH) / sum(LF) across coverage/lcov.info
+```
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for conventions (architecture, l10n,
 theming, migrations, commit style).
+
+## Docs
+
+Long-form guides live in [`docs/`](docs/):
+
+- [RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) — every manual,
+  outside-the-code step to ship a store release (signing, RevenueCat/AdMob
+  console setup, Supabase dashboard toggles, store submission).
+- [SENTRY_SETUP.md](docs/SENTRY_SETUP.md) — wiring up crash & error reporting:
+  where the DSN goes, what to configure in the dashboard, and how to verify
+  events land.
+
+`README.md`, [CONTRIBUTING.md](CONTRIBUTING.md), and
+[CHANGELOG.md](CHANGELOG.md) stay at the repo root.
 
 ## Supabase questions
 
@@ -183,3 +209,8 @@ gracefully when SDK keys are absent, so it still runs against mock data.
   (the flag the RLS gate reads). Restore-purchases is reachable from both
   Settings and the reveal-slot paywall (the latter for guests, who can't open
   Settings).
+
+## License
+
+Proprietary — Copyright (c) 2026 Kasper Janowski. All rights reserved. See
+[LICENSE](LICENSE).

@@ -13,6 +13,11 @@ flutter test tool/export_store_screenshots.dart
 Output → `build/store_screenshots/<locale>/01.png, 02.png, …` at **1080×1920**.
 The output folder for each locale is wiped and rewritten on every run.
 
+`build/` is ephemeral and git-ignored. To keep a generated poster as listing
+art, copy the chosen PNG into [`marketing/screenshots/`](../marketing/screenshots)
+— the canonical, committed home for final store art (see
+[`marketing/README.md`](../marketing/README.md)).
+
 ## Change the questions
 
 Edit, one question per line (blank lines and `#` comments are ignored):

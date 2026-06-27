@@ -11,6 +11,8 @@
 //   flutter test tool/export_store_screenshots.dart
 //
 // Output → build/store_screenshots/<locale>/01.png, 02.png, …  (1080×1920)
+// build/ is git-ignored/ephemeral; copy any poster you want to keep into the
+// committed store-art home at marketing/screenshots/ (see marketing/README.md).
 //
 // Edit the question lists in tool/store_screenshots/questions.<locale>.txt
 // (one question per line). See tool/README.md.

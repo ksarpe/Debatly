@@ -61,11 +61,19 @@ dependencies:
   crypto: ^3.0.7
   # Crash + error reporting. Initialised in main() and centralised behind the
   # Monitoring facade (lib/core/monitoring/monitoring.dart); a no-op when no
-  # SENTRY_DSN is provided, so dev/mock builds run untouched. See SENTRY_SETUP.md.
+  # SENTRY_DSN is provided, so dev/mock builds run untouched. See docs/SENTRY_SETUP.md.
   sentry_flutter: 9.0.0
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+
+  # End-to-end smoke test harness (see integration_test/). Pinned to the SDK like
+  # flutter_test. `flutter test` only scans test/ by default, so these never run
+  # in the normal suite (or CI) — invoke them on demand against mock data:
+  #   flutter test integration_test/app_smoke_test.dart
+  # See CONTRIBUTING.md → "Integration smoke test".
+  integration_test:
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to
