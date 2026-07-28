@@ -1,0 +1,117 @@
+[
+  {
+    "id": "27771fe7-97a1-43bb-9cbd-097428493731",
+    "nr": 7,
+    "pl": "Czy jedzenie mięsa jest moralnie złe, skoro można jeść roślinnie?",
+    "en": "Is it morally wrong to eat meat when plant-based food is available?",
+    "smaczki": [
+      {
+        "pos": 1,
+        "pl": "Cierpienie zwierząt?",
+        "en": "Animal suffering?"
+      },
+      {
+        "pos": 2,
+        "pl": "Z czego będą żyć rolnicy?",
+        "en": "What about poor farmers?"
+      },
+      {
+        "pos": 3,
+        "pl": "Twój kotlet miał kiedyś oczy",
+        "en": "Your steak once had eyes"
+      }
+    ]
+  },
+  {
+    "id": "55f83d74-90ea-45e0-8af5-41d3860bddaf",
+    "nr": 11,
+    "pl": "Czy każdy obywatel powinien otrzymywać bezwarunkowy dochód podstawowy?",
+    "en": "Should every citizen receive an unconditional basic income?",
+    "smaczki": [
+      {
+        "pos": 1,
+        "pl": "Kto za to zapłaci?",
+        "en": "Who pays for it?"
+      },
+      {
+        "pos": 2,
+        "pl": "Po co pracować?",
+        "en": "Why work then?"
+      },
+      {
+        "pos": 3,
+        "pl": "Za cudze bezrobocie i tak płacisz",
+        "en": "You already pay for their unemployment"
+      }
+    ]
+  },
+  {
+    "id": "0245de6a-fa5a-4351-997d-d1ac64fc5a05",
+    "nr": 23,
+    "pl": "Czy największa sztuka wymaga cierpienia twórcy?",
+    "en": "Does the greatest art require the artist to suffer?",
+    "smaczki": [
+      {
+        "pos": 1,
+        "pl": "Ból sięga najgłębiej?",
+        "en": "Pain digs deepest?"
+      },
+      {
+        "pos": 2,
+        "pl": "A radość nie tworzy?",
+        "en": "Can't joy create too?"
+      },
+      {
+        "pos": 3,
+        "pl": "Romantyzujesz cudze załamanie",
+        "en": "You're romanticizing someone's breakdown"
+      }
+    ]
+  },
+  {
+    "id": "0446cb4d-d2c7-4a32-ae38-cf1e291fd785",
+    "nr": 25,
+    "pl": "Czy wolność jednostki można poświęcić dla dobra ogółu?",
+    "en": "Should one person's freedom be sacrificed for the good of everyone?",
+    "smaczki": [
+      {
+        "pos": 1,
+        "pl": "Dobro ogółu?",
+        "en": "The greater good?"
+      },
+      {
+        "pos": 2,
+        "pl": "Kto zostanie poświęcony?",
+        "en": "Who gets sacrificed?"
+      },
+      {
+        "pos": 3,
+        "pl": "„Ogół\" nigdy nie płaci — płacą wybrani",
+        "en": "'Everyone' never pays; the chosen few do"
+      }
+    ]
+  },
+  {
+    "id": "0a843403-4f90-4cfc-b898-2f5162ebe9a2",
+    "nr": 27,
+    "pl": "Czy ten, kto skrzywdził wielu, wciąż zasługuje na litość?",
+    "en": "Does someone who harmed many still deserve mercy?",
+    "smaczki": [
+      {
+        "pos": 1,
+        "pl": "Litość bez granic?",
+        "en": "Mercy has no limit?"
+      },
+      {
+        "pos": 2,
+        "pl": "Da się ją odzyskać?",
+        "en": "Can it be earned back?"
+      },
+      {
+        "pos": 3,
+        "pl": "Zapytaj ofiary o litość",
+        "en": "Ask the victims about mercy"
+      }
+    ]
+  }
+]

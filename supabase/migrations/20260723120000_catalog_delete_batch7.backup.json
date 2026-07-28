@@ -1,0 +1,332 @@
+[
+  {
+    "nr": 321,
+    "id": "68e09d0a-bfb6-43f3-ac1b-59fe09dd2c33",
+    "pl": "Czy picie kawy zaraz po przebudzeniu to dobry pomysł?",
+    "en": "Is it fine to drink coffee the moment you wake up?"
+  },
+  {
+    "nr": 324,
+    "id": "6bce7b67-9cd9-4ca9-a977-59d8bd4f3ef1",
+    "pl": "Czy kupowanie luksusu, na który ledwo cię stać, kiedykolwiek się opłaca?",
+    "en": "Is buying a luxury item you can barely afford ever worth it?"
+  },
+  {
+    "nr": 326,
+    "id": "6c6c6c67-82f1-4136-8d64-0e25acccd557",
+    "pl": "Czy rodzice powinni pilnować dzieci co sekundę na placu zabaw?",
+    "en": "Should parents watch their kids every second at the playground?"
+  },
+  {
+    "nr": 328,
+    "id": "6d225fe1-5897-48a8-b9c0-3deb27f27398",
+    "pl": "Czy to złe odchylić oparcie do końca podczas długiej podróży?",
+    "en": "Is it wrong to recline your seat all the way on a long journey?"
+  },
+  {
+    "nr": 330,
+    "id": "6eb1f7f0-40ee-4cdb-a5b0-d5e2c884a523",
+    "pl": "Czy w obecnym stanie świata sprowadzanie na niego nowego dziecka jest w porządku?",
+    "en": "Given the state of the world, is it fair to bring a new child into it?"
+  },
+  {
+    "nr": 331,
+    "id": "70c32aa4-24b6-4409-9e70-f76c36e6efed",
+    "pl": "Czy deser powinien być nagrodą za zjedzenie warzyw?",
+    "en": "Should dessert be a reward for finishing the vegetables?"
+  },
+  {
+    "nr": 332,
+    "id": "714d7c4b-5e91-4a90-862d-2e1b694f0306",
+    "pl": "Czy granie na bezpiecznie z pieniędzmi to tak naprawdę największe ryzyko?",
+    "en": "Is playing it safe with money the biggest risk of all?"
+  },
+  {
+    "nr": 333,
+    "id": "73899fa1-76f1-4dc2-becf-0a73b489cfca",
+    "pl": "Czy nastawienie na same dobre wibracje szkodzi twojej psychice?",
+    "en": "Is a good-vibes-only attitude bad for your mental health?"
+  },
+  {
+    "nr": 337,
+    "id": "7a7c1313-2301-465b-9d1a-ca8c45c7ea45",
+    "pl": "Czy powinieneś zrezygnować z mięsa dla planety, nawet jeśli je uwielbiasz?",
+    "en": "Should you give up eating meat for the planet, even if you love it?"
+  },
+  {
+    "nr": 338,
+    "id": "80907274-bacf-42e7-9038-4b2553fd193a",
+    "pl": "Czy pisanie wiadomości powoli zabija sztukę prawdziwej rozmowy?",
+    "en": "Is texting slowly killing the art of real conversation?"
+  },
+  {
+    "nr": 341,
+    "id": "81afc3b1-5f05-40d8-b8d8-b0ebd8ef492a",
+    "pl": "Czy lodowata kąpiel jest warta szoku za to, co daje w zamian?",
+    "en": "Is a freezing cold plunge worth the shock for what it gives back?"
+  },
+  {
+    "nr": 342,
+    "id": "82129f65-e2df-46b8-a517-bce40faa141b",
+    "pl": "Czy powinieneś być właścicielem wszystkiego, co kiedyś wrzuciłeś, nawet po usunięciu?",
+    "en": "Should you own everything you ever posted, even after you delete it?"
+  },
+  {
+    "nr": 345,
+    "id": "857618af-6afa-4dd1-a17e-038a5dda53bf",
+    "pl": "Czy to niegrzeczne wyjść z imprezy, nie żegnając się z nikim?",
+    "en": "Is it rude to leave a party without saying goodbye to anyone?"
+  },
+  {
+    "nr": 351,
+    "id": "8abaa183-9d36-441f-bd12-e4fb1e2cce86",
+    "pl": "Czy zawsze powinieneś zakładać u obcego dobre intencje?",
+    "en": "Should you always give a stranger the benefit of the doubt?"
+  },
+  {
+    "nr": 353,
+    "id": "8aea226e-a754-46c0-9f52-648f6701338c",
+    "pl": "Czy dzieci powinny być uczone głównie pod kątem zdania egzaminów?",
+    "en": "Should children be taught mainly to pass their exams?"
+  },
+  {
+    "nr": 357,
+    "id": "903d6382-8dc4-4ccf-9d59-30ce3adc5800",
+    "pl": "Czy niemożność funkcjonowania bez kofeiny to prawdziwy problem?",
+    "en": "Is being unable to function without caffeine a real problem?"
+  },
+  {
+    "nr": 358,
+    "id": "90eb692b-a480-4937-9313-16075f7a1b0b",
+    "pl": "Czy powinieneś gonić za każdym awansem, nawet gdy jesteś zadowolony tam, gdzie jesteś?",
+    "en": "Should you chase every promotion, even when you're happy where you are?"
+  },
+  {
+    "nr": 359,
+    "id": "919f9474-6318-4031-a5ee-db2105408057",
+    "pl": "Czy kara to tak naprawdę tylko zemsta w ładniejszej masce?",
+    "en": "Is punishment really just revenge wearing a nicer mask?"
+  },
+  {
+    "nr": 360,
+    "id": "939c15a3-8890-4997-9915-182babdecd9c",
+    "pl": "Czy powinieneś być wierny szefowi, który kiedyś dał ci szansę?",
+    "en": "Should you stay loyal to a boss who once took a chance on you?"
+  },
+  {
+    "nr": 361,
+    "id": "93a19e42-6ea3-4853-9224-c00ae277801e",
+    "pl": "Czy większość suplementów to wyrzucanie pieniędzy?",
+    "en": "Are most supplements just a waste of money?"
+  },
+  {
+    "nr": 362,
+    "id": "93e66801-81a0-4c78-8420-886ec632a387",
+    "pl": "Czy sukces zależy głównie od ciężkiej pracy, a nie od szczęścia?",
+    "en": "Is success mostly down to hard work rather than luck?"
+  },
+  {
+    "nr": 363,
+    "id": "94aed95e-7bcd-4767-8f99-8f487aced91a",
+    "pl": "Czy powinieneś pierwszy wyznać miłość, nie wiedząc, czy jest odwzajemniona?",
+    "en": "Should you be the first to say you love someone without knowing if they feel the same?"
+  },
+  {
+    "nr": 364,
+    "id": "95cd379d-e03e-4243-bc76-9bbc7a9feca8",
+    "pl": "Czy hazard dla zabawy bywa naprawdę niegroźny?",
+    "en": "Is gambling for fun ever truly harmless?"
+  },
+  {
+    "nr": 365,
+    "id": "982c3dea-2c26-4771-8a18-bdcf92f66fdc",
+    "pl": "Czy ciągłe bycie zajętym to naprawdę powód do dumy?",
+    "en": "Is constant busyness really something to brag about?"
+  },
+  {
+    "nr": 368,
+    "id": "9c76dcda-ceeb-40cf-a86a-185743d2b928",
+    "pl": "Czy rzeczy, które posiadasz, w końcu zaczynają posiadać ciebie?",
+    "en": "Do the things you own eventually start to own you?"
+  },
+  {
+    "nr": 369,
+    "id": "9ca7f743-3772-461f-8fc1-c0bafb29a2d1",
+    "pl": "Czy to złe mieć o wiele więcej, niż kiedykolwiek mógłbyś potrzebować?",
+    "en": "Is it wrong to own far more than you could ever need?"
+  },
+  {
+    "nr": 370,
+    "id": "9d7a6658-cd8f-4e77-be09-b12250168634",
+    "pl": "Czy nieskończone przewijanie powinno być zakazane, bo ma cię uzależniać?",
+    "en": "Should infinite-scroll feeds be banned for being designed to addict you?"
+  },
+  {
+    "nr": 375,
+    "id": "a3661ac8-922b-42d5-a1b5-63f31a0dd6bb",
+    "pl": "Czy chęć wzbogacenia się to godny cel w życiu?",
+    "en": "Is wanting to get rich a worthy life goal?"
+  },
+  {
+    "nr": 376,
+    "id": "a3e47ec1-0ba7-4185-9bc4-075ac8f05066",
+    "pl": "Czy w świecie pełnym deepfake'ów da się jeszcze w pełni zaufać nagraniu?",
+    "en": "In a world full of deepfakes, can you ever fully trust a video again?"
+  },
+  {
+    "nr": 378,
+    "id": "a78807bf-f775-4055-8bf4-714aed7750c4",
+    "pl": "Czy jakakolwiek kara jest w stanie naprawdę cofnąć wyrządzoną krzywdę?",
+    "en": "Can any punishment ever truly undo the harm that was done?"
+  },
+  {
+    "nr": 379,
+    "id": "a804169f-9045-4a8d-9578-cc69a6438dd8",
+    "pl": "Czy zawsze powinieneś pomóc przyjacielowi w przeprowadzce, gdy prosi?",
+    "en": "Should you always help a friend move house when they ask?"
+  },
+  {
+    "nr": 382,
+    "id": "abf82a91-aca6-473e-b315-fee7ffa1637a",
+    "pl": "Czy powinieneś być wdzięczny za trudy, które ukształtowały to, kim jesteś?",
+    "en": "Should you feel grateful for the hardships that shaped who you are?"
+  },
+  {
+    "nr": 385,
+    "id": "ae9f59d8-2977-44ea-bc1a-3459ae2264ce",
+    "pl": "Czy cierpienie zwierzęcia zasługuje na tę samą wagę co ludzkie?",
+    "en": "Does an animal's suffering deserve the same weight as a human's?"
+  },
+  {
+    "nr": 386,
+    "id": "afd2253b-0a8b-48b6-9c2d-43709456a674",
+    "pl": "Czy słabi uczniowie powinni powtarzać rok?",
+    "en": "Should failing students be held back to repeat a year?"
+  },
+  {
+    "nr": 387,
+    "id": "afd85002-d565-4993-98da-659dbb8db132",
+    "pl": "Czy nauczyciel powinien móc ukarać dziecko bez informowania rodziców?",
+    "en": "Should a teacher be allowed to discipline a child without telling the parents?"
+  },
+  {
+    "nr": 388,
+    "id": "b01c047b-38d4-4312-957c-1b036518b6b5",
+    "pl": "Czy powinieneś codziennie robić jedną rzecz, która cię przeraża?",
+    "en": "Should you do one thing that scares you every single day?"
+  },
+  {
+    "nr": 392,
+    "id": "b283445b-e820-4843-b039-fac5108f00f4",
+    "pl": "Czy powinieneś porównywać dziecko z bardziej udanym rodzeństwem?",
+    "en": "Should you compare your child to a more successful sibling?"
+  },
+  {
+    "nr": 396,
+    "id": "b4d4798f-d858-4b63-8d09-37431cb87f6d",
+    "pl": "Czy jedzenie tych samych zdrowych posiłków codziennie jest lepsze niż gonienie za urozmaiceniem?",
+    "en": "Is eating the same healthy meals every day better than chasing variety?"
+  },
+  {
+    "nr": 399,
+    "id": "b7575803-21f7-47d1-b068-432d239f7ea4",
+    "pl": "Czy wolno rzucić pracę z dnia na dzień, bez wypowiedzenia?",
+    "en": "Is it ever okay to quit a job on the spot, with no notice?"
+  },
+  {
+    "nr": 401,
+    "id": "b9ccce16-4045-416d-a611-012acc36c2ed",
+    "pl": "Czy na wybaczenie trzeba zasłużyć, zamiast dostać je za darmo?",
+    "en": "Should forgiveness have to be earned rather than freely given?"
+  },
+  {
+    "nr": 404,
+    "id": "bc8f0a85-e46c-48ae-8840-7f39b96a1780",
+    "pl": "Czy muzyka napisana w całości przez AI to prawdziwa sztuka?",
+    "en": "Does music written entirely by an AI count as real art?"
+  },
+  {
+    "nr": 405,
+    "id": "bd37f7b6-e56a-4b53-ab98-bfc8e48d0a85",
+    "pl": "Czy kochanie ciała takim, jakie jest, to tylko wymówka, by przestać próbować?",
+    "en": "Is loving your body as it is just an excuse to stop trying?"
+  },
+  {
+    "nr": 406,
+    "id": "bd9a73a9-f7a1-4ad2-bcc6-046b79fa875c",
+    "pl": "Czy wypada być niegrzecznym dla asystenta głosowego albo chatbota?",
+    "en": "Is it okay to be rude to a voice assistant or chatbot?"
+  },
+  {
+    "nr": 407,
+    "id": "c0e3f63c-682a-4a57-83db-fbe3c998bce1",
+    "pl": "Czy sprawdzanie telefonu, gdy ktoś do ciebie mówi, to brak szacunku?",
+    "en": "Is it disrespectful to check your phone while someone is talking to you?"
+  },
+  {
+    "nr": 411,
+    "id": "c3ba6de4-d539-44b7-9d78-e3542f8bcbc3",
+    "pl": "Czy bezpieczne i wygodne życie to po cichu życie zmarnowane?",
+    "en": "Is a safe and comfortable life secretly a wasted one?"
+  },
+  {
+    "nr": 415,
+    "id": "c4f87280-fa80-4cb6-9367-a640c393762a",
+    "pl": "Czy powinieneś uspokajać płaczące dziecko, dając mu ekran?",
+    "en": "Should you calm a crying child by handing them a screen?"
+  },
+  {
+    "nr": 417,
+    "id": "c6bb4459-efab-4873-bdd2-d981d9a54942",
+    "pl": "Czy stary wpis sprzed lat powinien móc zniszczyć komuś życie?",
+    "en": "Should an old online post be allowed to ruin someone's life years later?"
+  },
+  {
+    "nr": 419,
+    "id": "c8f78afb-a595-4120-b1bb-be35e60e65d5",
+    "pl": "Czy dzieci powinny mieć ścisłą porę snu każdej nocy?",
+    "en": "Should children have a strict bedtime every single night?"
+  },
+  {
+    "nr": 420,
+    "id": "cd7a42e5-45fc-4287-bf49-d3aba6aa6592",
+    "pl": "Czy influencerzy powinni mieć obowiązek przyznać, gdy ich idealne życie jest ustawione?",
+    "en": "Should influencers be forced to admit when their perfect life is staged?"
+  },
+  {
+    "nr": 421,
+    "id": "ceee3d9a-3101-4f6f-9f6d-3dded15bc35e",
+    "pl": "Czy powinieneś siedzieć z dzieckiem każdego wieczoru, aż skończy pracę domową?",
+    "en": "Should you sit with your child every evening until the homework is done?"
+  },
+  {
+    "nr": 426,
+    "id": "d29bdf7c-888b-41e5-8708-57f42b62aef6",
+    "pl": "Czy naprawdę ma znaczenie, jak cię zapamiętają, gdy już cię nie będzie?",
+    "en": "Does it really matter how you are remembered once you are gone?"
+  },
+  {
+    "nr": 430,
+    "id": "d9ffce96-6129-40a6-b894-77abbea9cdf9",
+    "pl": "Czy pozwoliłbyś AI podejmować wszystkie twoje decyzje o pieniądzach?",
+    "en": "Would you let an AI make all your money decisions for you?"
+  },
+  {
+    "nr": 432,
+    "id": "dcccffaf-164e-44ef-b554-f94baf31f4ea",
+    "pl": "Czy powinieneś iść na ślub przyjaciela, z którym się oddaliłeś?",
+    "en": "Should you attend the wedding of a friend you've drifted apart from?"
+  },
+  {
+    "nr": 433,
+    "id": "ded7fbd4-cde2-40f1-ad11-7ddb294b2cf0",
+    "pl": "Czy zwykli ludzie powinni wkładać oszczędności w ryzykowne inwestycje?",
+    "en": "Should ordinary people put their savings into risky investments?"
+  },
+  {
+    "nr": 438,
+    "id": "e243292f-b932-4077-a4c5-3a8a8b2ff7c9",
+    "pl": "Czy lojalność wciąż jest cnotą, gdy osłania winnego?",
+    "en": "Is loyalty still a virtue when it shields someone who is guilty?"
+  }
+]

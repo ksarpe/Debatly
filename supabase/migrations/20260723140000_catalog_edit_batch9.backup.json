@@ -1,0 +1,596 @@
+[
+  {
+    "nr": 530,
+    "id": "7dc5db30-839f-4d14-8eec-030cc5886c95",
+    "pl": "Czy macocha lub ojczym powinni mieć taki sam głos jak rodzic?",
+    "en": "Should a stepparent have the same authority as a birth parent?"
+  },
+  {
+    "nr": 531,
+    "id": "7e8a142f-5e4b-43a6-bf8e-aeadfebb729c",
+    "pl": "Czy tortury wobec jednej osoby bywają słuszne, jeśli mogą ocalić miasto?",
+    "en": "Is torturing one person ever right if it could save a city?"
+  },
+  {
+    "nr": 536,
+    "id": "88a4c160-0cc2-47c7-8611-96268faef632",
+    "pl": "Czy da się szczerze przyjaźnić z kimś, z kim bezpośrednio rywalizujesz?",
+    "en": "Can you stay true friends with someone you directly compete with?"
+  },
+  {
+    "nr": 538,
+    "id": "8bbe89f3-b725-40a8-8fda-031aad5e494f",
+    "pl": "Czy podsłuchiwanie, gdy mówią o tobie, to fair play?",
+    "en": "Is listening in when people talk about you fair game?"
+  },
+  {
+    "nr": 541,
+    "id": "9de27eec-05cf-4cf3-8954-7772df29dead",
+    "pl": "Czy można zakończyć przyjaźń bez słowa wyjaśnienia?",
+    "en": "Is it okay to end a friendship without any explanation?"
+  },
+  {
+    "nr": 545,
+    "id": "a6472189-e97c-42da-99cc-13323a75e8c6",
+    "pl": "Czy jesteś winien rodzeństwu bliskość tylko dlatego, że łączy was krew?",
+    "en": "Do you owe a sibling closeness just because you share blood?"
+  },
+  {
+    "nr": 547,
+    "id": "ad436399-1cde-4ba8-8cd4-586c0e523c42",
+    "pl": "Czy komplement, w który nie wierzysz, to wciąż życzliwość?",
+    "en": "Is a compliment you don't mean still a kindness?"
+  },
+  {
+    "nr": 548,
+    "id": "ad93ff0f-fe2b-49d5-a5ea-f30f301cb742",
+    "pl": "Czy po rozstaniu pary da się zostać blisko z obojgiem?",
+    "en": "Can you stay close to both people after their breakup?"
+  },
+  {
+    "nr": 552,
+    "id": "b491345a-4ee0-49ce-badd-3ff784f52253",
+    "pl": "Jeśli los dał ci nieuczciwą przewagę, czy korzystanie z niej w pełni jest złe?",
+    "en": "If life dealt you an unfair advantage, is it wrong to use it fully?"
+  },
+  {
+    "nr": 553,
+    "id": "b49d42f0-e441-4a12-b320-86cc5b891dea",
+    "pl": "Czy istnieje dokładnie jedna właściwa osoba dla ciebie?",
+    "en": "Is there exactly one right person out there for you?"
+  },
+  {
+    "nr": 557,
+    "id": "b7139359-3b20-40c0-ab17-b2880077887e",
+    "pl": "Czy small talk to strata czasu?",
+    "en": "Is small talk a waste of time?"
+  },
+  {
+    "nr": 558,
+    "id": "b8028b59-c592-4e05-b83d-d87955f4ce10",
+    "pl": "Czy wynajmowanie mieszkania to naprawdę wyrzucanie pieniędzy?",
+    "en": "Is renting your home really throwing money away?"
+  },
+  {
+    "nr": 559,
+    "id": "bbf0a758-8b1f-4ab0-8c01-043b544ad64e",
+    "pl": "Czy rodzic może być najlepszym przyjacielem swojego dziecka?",
+    "en": "Can a parent be their child's best friend?"
+  },
+  {
+    "nr": 563,
+    "id": "c1c86351-e71e-45f6-9254-519fa6b3f073",
+    "pl": "Czy całe życie dobrych uczynków powinno łagodzić karę za jeden zły?",
+    "en": "Should a lifetime of good deeds soften the punishment for one bad one?"
+  },
+  {
+    "nr": 564,
+    "id": "c5c145e0-952d-40ac-90c4-376b85f6b95f",
+    "pl": "Czy dorastanie z rodzeństwem jest lepsze niż bycie jedynakiem?",
+    "en": "Is growing up with siblings better than growing up as an only child?"
+  },
+  {
+    "nr": 566,
+    "id": "ca94ee28-4bae-429f-826f-368f4eefc492",
+    "pl": "Czy wspólny rodzinny posiłek codziennie jest wart poświęcenia innych planów?",
+    "en": "Is a shared family dinner every day worth sacrificing other plans for?"
+  },
+  {
+    "nr": 568,
+    "id": "d57624e6-b901-4055-b905-35d5fc135af9",
+    "pl": "Czy ojcowie powinni brać tyle samo urlopu rodzicielskiego co matki?",
+    "en": "Should fathers take as much parental leave as mothers?"
+  },
+  {
+    "nr": 569,
+    "id": "d752385d-1ff6-4c0b-8ee8-b1871dabb672",
+    "pl": "Czy puste obietnice w stylu „musimy się spotkać\" są niewinne?",
+    "en": "Are empty phrases like \"let's catch up soon\" harmless?"
+  },
+  {
+    "nr": 572,
+    "id": "dfcd5e34-7c10-4bab-a3b0-b5c9d140c967",
+    "pl": "Czy oddalenie się od siebie wystarczy, by zakończyć dobry związek?",
+    "en": "Is growing apart a good enough reason to end a good relationship?"
+  },
+  {
+    "nr": 575,
+    "id": "e3b31915-201a-4999-8820-063b6d18a8e4",
+    "pl": "Czy miłość od pierwszego wejrzenia to prawdziwa miłość?",
+    "en": "Is love at first sight real love?"
+  },
+  {
+    "nr": 576,
+    "id": "e4c4fd65-a7fd-4289-a403-ed1b2be96d4a",
+    "pl": "Czy partner powinien być też twoim najlepszym przyjacielem?",
+    "en": "Should your partner also be your best friend?"
+  },
+  {
+    "nr": 577,
+    "id": "e661c104-f6d3-49cd-b6d0-351cbf929317",
+    "pl": "Czy wpadanie do przyjaciela bez zapowiedzi jest dziś w porządku?",
+    "en": "Is showing up at a friend's door unannounced okay these days?"
+  },
+  {
+    "nr": 578,
+    "id": "e6bae5e1-abc8-421f-be33-0245527750b5",
+    "pl": "Czy prawdziwa miłość to akceptacja partnera dokładnie takim, jaki jest?",
+    "en": "Does real love mean accepting your partner exactly as they are?"
+  },
+  {
+    "nr": 580,
+    "id": "ebb1f6d1-2a4a-4cd3-ac8a-62fa0f6f2ad8",
+    "pl": "Czy dorosłe dzieci powinny odebrać kluczyki niebezpiecznie jeżdżącemu starszemu rodzicowi?",
+    "en": "Should adult children take the car keys from an unsafe elderly parent?"
+  },
+  {
+    "nr": 582,
+    "id": "f141e7dc-57c1-4eea-9d9c-353ef17428d8",
+    "pl": "Czy głoszenie dobra i czynienie zła jest gorsze niż jawne zło?",
+    "en": "Is preaching good while doing wrong worse than openly doing wrong?"
+  },
+  {
+    "nr": 584,
+    "id": "f67f1701-879b-4583-9ada-811e3067817a",
+    "pl": "Jeśli ktoś włamuje się do twojego domu, czy wszystko, co mu zrobisz, jest usprawiedliwione?",
+    "en": "If someone breaks into your home, is anything you do to them justified?"
+  },
+  {
+    "nr": 589,
+    "id": "ff0078b6-c11f-40d9-8b15-8925ac1fd4d7",
+    "pl": "Czy osobne łóżka oznaczają kłopoty w związku?",
+    "en": "Do separate beds mean a relationship is in trouble?"
+  },
+  {
+    "nr": 591,
+    "id": "0c203d0a-b96a-4a5c-9626-72474b5bfefe",
+    "pl": "Czy odsprzedaż biletów z wielką przebitką to po prostu sprytny biznes?",
+    "en": "Is reselling scarce tickets at a huge markup just smart business?"
+  },
+  {
+    "nr": 592,
+    "id": "11ef1b20-2a2d-4919-803b-0d4b1a4d9cab",
+    "pl": "Czy zagłuszanie każdej cichej chwili odbiera ci własne myśli?",
+    "en": "Is filling every quiet moment with sound robbing you of your thoughts?"
+  },
+  {
+    "nr": 594,
+    "id": "144b0fce-4346-4a2a-8c2e-6a149f955287",
+    "pl": "Czy medytacja jest przereklamowana jako lek na stres?",
+    "en": "Is meditation overrated as a cure for modern stress?"
+  },
+  {
+    "nr": 595,
+    "id": "1632a454-1e85-494c-a147-e61f1850d7a6",
+    "pl": "Czy większość dorosłych wciąż czuje, że tylko udaje dorosłość?",
+    "en": "Do most adults still feel like they're just pretending to be adults?"
+  },
+  {
+    "nr": 597,
+    "id": "1beae3f0-7d54-40c5-90d6-ec5fe6684b16",
+    "pl": "Czy potajemne nagrywanie rozmowy, w której uczestniczysz, bywa fair?",
+    "en": "Is secretly recording a conversation you're part of ever fair?"
+  },
+  {
+    "nr": 598,
+    "id": "1dbc36e1-f86c-43d3-92e2-f0e2fa33b7bf",
+    "pl": "Czy znasz swoje ciało lepiej niż twój lekarz?",
+    "en": "Do you know your own body better than your doctor does?"
+  },
+  {
+    "nr": 603,
+    "id": "216a719b-6e13-40bc-a529-2ed1fb7c8f81",
+    "pl": "Czy spoilery naprawdę psują dobrą historię?",
+    "en": "Do spoilers really ruin a good story?"
+  },
+  {
+    "nr": 605,
+    "id": "26263240-518f-4153-b9b2-ca8fb747120b",
+    "pl": "Czy życie bez stałego domu może być pełne?",
+    "en": "Could a life with no fixed home be a full life?"
+  },
+  {
+    "nr": 606,
+    "id": "2709dc4f-916a-4e71-8f39-bfdc2c1c97cb",
+    "pl": "Czy powinniśmy wskrzeszać wymarłe gatunki, skoro potrafimy?",
+    "en": "Should we bring extinct species back to life if we can?"
+  },
+  {
+    "nr": 607,
+    "id": "2950d1f5-5844-444e-8ca3-6c516b321d77",
+    "pl": "Czy przekleństwa na co dzień to nic, za co trzeba przepraszać?",
+    "en": "Is swearing in everyday speech nothing to apologize for?"
+  },
+  {
+    "nr": 609,
+    "id": "2de2eecb-ce26-4089-892b-20e544fea324",
+    "pl": "Czy mądrzej trzymać współpracowników na dystans, niż się z nimi przyjaźnić?",
+    "en": "Is it wiser to keep coworkers at arm's length than befriend them?"
+  },
+  {
+    "nr": 611,
+    "id": "3631474c-cbdc-49f2-a3eb-2ff542b79f3d",
+    "pl": "Czy potajemna praca na dwóch zdalnych etatach jest zła, jeśli oba dowozisz?",
+    "en": "Is secretly working two full-time remote jobs wrong if you deliver both?"
+  },
+  {
+    "nr": 617,
+    "id": "46f5cbf0-519e-45a9-915c-22f14fcc64c5",
+    "pl": "Czy telefony powinny być zamykane na koncertach?",
+    "en": "Should phones be locked away at concerts?"
+  },
+  {
+    "nr": 620,
+    "id": "4e7832e2-4c29-4f3f-b623-2505bdfcc9d9",
+    "pl": "Czy realizować plan, o którym wiesz, że jest zły, bo tak zdecydował szef?",
+    "en": "Should you follow a plan you know is bad because the boss decided?"
+  },
+  {
+    "nr": 621,
+    "id": "50e1e09f-4f3e-43dd-b996-3e6156fbc222",
+    "pl": "Czy blokowanie reklam na darmowych stronach to forma kradzieży?",
+    "en": "Is blocking ads on free websites a form of theft?"
+  },
+  {
+    "nr": 622,
+    "id": "51d2f5ee-5e70-42d9-a3fc-7e294f91272d",
+    "pl": "Czy piracenie filmu od wielkiej korporacji to naprawdę kradzież?",
+    "en": "Is pirating a film from a giant corporation really theft?"
+  },
+  {
+    "nr": 623,
+    "id": "57ce9fe6-67d3-4611-9c2e-7851411be60e",
+    "pl": "Czy zakładanie najgorszego to najmądrzejszy sposób na życie?",
+    "en": "Is expecting the worst the smartest way to live?"
+  },
+  {
+    "nr": 624,
+    "id": "57d5cbd4-3867-486e-bdf6-e05745632f55",
+    "pl": "Czy fotografowanie obcych w miejscach publicznych bez pytania jest złe?",
+    "en": "Is photographing strangers in public without asking wrong?"
+  },
+  {
+    "nr": 625,
+    "id": "59b75d2e-3ddf-4820-adab-6264b2b00794",
+    "pl": "Czy prestiżowa firma w CV jest warta niższej pensji?",
+    "en": "Is a prestigious company name on your CV worth a smaller paycheck?"
+  },
+  {
+    "nr": 627,
+    "id": "5f3ab678-5a27-435c-a4ef-639311591645",
+    "pl": "Czy w trudnych czasach sztuka jest równie potrzebna jak chleb?",
+    "en": "In hard times, is art as necessary as bread?"
+  },
+  {
+    "nr": 629,
+    "id": "6409ca56-e73d-42a3-bbfe-13b92ae9d28d",
+    "pl": "Czy kolację urodzinową powinni opłacić goście?",
+    "en": "Should the birthday person's dinner be paid for by the guests?"
+  },
+  {
+    "nr": 631,
+    "id": "64a7474e-ae72-40fc-ab9d-80ef6d6cd032",
+    "pl": "Czy robot-zwierzak mógłby ci dać to, co prawdziwe zwierzę?",
+    "en": "Could a robot pet ever give you what a real animal does?"
+  },
+  {
+    "nr": 632,
+    "id": "69cb4878-0c56-4121-ab9c-99f8a30853c7",
+    "pl": "Czy trwała miłość to bardziej wybór niż uczucie?",
+    "en": "Is lasting love more a choice than a feeling?"
+  },
+  {
+    "nr": 634,
+    "id": "6aec2e85-424d-48fc-bbe1-d0ece0670582",
+    "pl": "Czy zbyt szybko nazywamy zwykły smutek chorobą?",
+    "en": "Are we too quick to call ordinary sadness an illness?"
+  },
+  {
+    "nr": 636,
+    "id": "6c2eba48-4180-4f69-b963-fa7717d79489",
+    "pl": "Czy picie w pojedynkę w domu to sygnał ostrzegawczy?",
+    "en": "Is drinking alone at home a warning sign?"
+  },
+  {
+    "nr": 637,
+    "id": "6ef197e4-9e08-4830-afaf-3453ce8861c1",
+    "pl": "Czy nieumiejętność gotowania w dorosłości to wstyd?",
+    "en": "Is not knowing how to cook as an adult embarrassing?"
+  },
+  {
+    "nr": 639,
+    "id": "768fa565-a819-4c71-b75c-766b6d15bfc4",
+    "pl": "Czy oczekiwanie, że praca nada życiu sens, to za dużo?",
+    "en": "Is expecting your job to give life meaning asking too much?"
+  },
+  {
+    "nr": 640,
+    "id": "78f7cf87-c17f-4830-bf5d-b9e981671746",
+    "pl": "Czy brak jakichkolwiek żali oznacza, że grałeś zbyt ostrożnie?",
+    "en": "Does having no regrets mean you played it too safe?"
+  },
+  {
+    "nr": 646,
+    "id": "84cf7494-ead3-4c21-8193-3fc221ec2059",
+    "pl": "Czy przeczucie jest zwykle mądrzejsze niż rozum?",
+    "en": "Is your gut feeling usually smarter than your reasoning?"
+  },
+  {
+    "nr": 649,
+    "id": "88e1fd57-de94-4901-a5de-0af952a7c884",
+    "pl": "Czy dawanie pieniędzy prosto potrzebującemu jest lepsze niż wpłata na organizacje?",
+    "en": "Is giving money straight to a person in need better than giving to charities?"
+  },
+  {
+    "nr": 654,
+    "id": "91175581-1fd0-4a26-97f8-9574063cc40c",
+    "pl": "Czy pieniądze w prezencie to troska, a nie lenistwo?",
+    "en": "Is giving cash as a gift thoughtful rather than lazy?"
+  },
+  {
+    "nr": 655,
+    "id": "9252c3d5-708b-4b16-afde-057483272104",
+    "pl": "Czy wszystko dzieje się z jakiegoś powodu?",
+    "en": "Does everything happen for a reason?"
+  },
+  {
+    "nr": 656,
+    "id": "96263303-3192-45b1-9b83-a7500021affa",
+    "pl": "Czy przemęczać się w pracy przy lekkiej chorobie?",
+    "en": "Should you push through and work when you're mildly sick?"
+  },
+  {
+    "nr": 659,
+    "id": "9c13f95f-4b11-452f-b07d-09cb3dcc44b1",
+    "pl": "Czy powiedzieć szefowi, że szukasz innej pracy?",
+    "en": "Should you tell your boss you're looking for another job?"
+  },
+  {
+    "nr": 662,
+    "id": "a5a5c83a-8b1c-4023-bd4e-ae18c6d5e751",
+    "pl": "Czy czytanie horoskopów to niewinna zabawa?",
+    "en": "Is reading horoscopes harmless fun?"
+  },
+  {
+    "nr": 664,
+    "id": "a81e62c5-bc8d-4b4a-a40a-3438d85af403",
+    "pl": "Czy szacunek jest wart więcej niż sympatia?",
+    "en": "Is being respected worth more than being liked?"
+  },
+  {
+    "nr": 665,
+    "id": "aab7f5b7-0a64-45a1-8052-260523474723",
+    "pl": "Czy wymarzona praca jest warta znoszenia okropnego szefa?",
+    "en": "Is a dream job worth enduring a terrible boss?"
+  },
+  {
+    "nr": 666,
+    "id": "ad5df2ff-8674-4ab5-8136-37a41e8dd1e5",
+    "pl": "Czy stare tradycje powinny trwać, nawet gdy wyrządzają krzywdę?",
+    "en": "Should old traditions be kept alive even when they cause harm?"
+  },
+  {
+    "nr": 667,
+    "id": "ade1ce86-d909-40f1-abec-837deb8e2c3b",
+    "pl": "Czy zabicie pająka w domu to małe zło?",
+    "en": "Is killing a spider in your home a small wrong?"
+  },
+  {
+    "nr": 668,
+    "id": "b046c69e-5baa-4bbe-bc99-5e717f1aa1ad",
+    "pl": "Czy można cieszyć się wielką sztuką stworzoną przez okropnego człowieka?",
+    "en": "Can you enjoy great art made by a terrible person?"
+  },
+  {
+    "nr": 669,
+    "id": "b193511b-fae5-4ede-91f6-7fc7cd53c974",
+    "pl": "Czy wysyłanie ukochanej osobie wiadomości napisanych przez AI to nieszczerość?",
+    "en": "Is sending AI-written messages to someone you love dishonest?"
+  },
+  {
+    "nr": 670,
+    "id": "b1d5b385-15d5-4ae1-a305-33c1ef85f17f",
+    "pl": "Czy cokolwiek naprawdę wybieramy sami?",
+    "en": "Do we truly choose anything freely?"
+  },
+  {
+    "nr": 672,
+    "id": "ba5d1571-7092-4420-bf2b-33ef70219f68",
+    "pl": "Czy wyłączenie potwierdzeń odczytu to drobna nieszczerość?",
+    "en": "Is turning off read receipts a small act of dishonesty?"
+  },
+  {
+    "nr": 679,
+    "id": "c21571d4-8e27-451a-9f27-4a967ec8fe84",
+    "pl": "Czy mówić rekruterowi o swoich prawdziwych słabościach?",
+    "en": "Should you tell an interviewer your real weaknesses?"
+  },
+  {
+    "nr": 680,
+    "id": "c2d30b5a-a69a-4f80-9f02-8faf202cbaac",
+    "pl": "Czy kłótnie z obcymi w internecie bywają coś warte?",
+    "en": "Is arguing with strangers on the internet ever worth it?"
+  },
+  {
+    "nr": 681,
+    "id": "c3a23d16-eaff-4620-a236-2f541ec89c21",
+    "pl": "Czy zmienianie klasycznej potrawy to obraza jej tradycji?",
+    "en": "Is changing a classic dish an insult to its origins?"
+  },
+  {
+    "nr": 682,
+    "id": "c5e8c488-d800-4a02-95ad-fa29bb554dfa",
+    "pl": "Czy uzależnienie to choroba, a nie wybór?",
+    "en": "Is addiction an illness rather than a choice?"
+  },
+  {
+    "nr": 684,
+    "id": "c7207bee-de67-4632-bb3e-afe354a3fb35",
+    "pl": "Czy śmianie się z cudzych wpadek w sieci to niewinna rozrywka?",
+    "en": "Is laughing at strangers' fail videos harmless fun?"
+  },
+  {
+    "nr": 686,
+    "id": "c7fba7c5-d4c0-4013-827b-694f1fe3409d",
+    "pl": "Czy ludzie naprawdę mogą zmienić to, kim są?",
+    "en": "Can people truly change who they are?"
+  },
+  {
+    "nr": 687,
+    "id": "c9e1232c-3719-4030-ba5b-1f7500bc2008",
+    "pl": "Czy przestać czcić wielkich ludzi, gdy poznajemy ich zbrodnie?",
+    "en": "Should we stop honoring great people once we learn of their crimes?"
+  },
+  {
+    "nr": 688,
+    "id": "c9fe7c50-ab87-4e26-8fdf-9d8badeb2913",
+    "pl": "Czy zmiana klubu, któremu kibicujesz, to zdrada?",
+    "en": "Is switching the team you support a betrayal?"
+  },
+  {
+    "nr": 689,
+    "id": "cb867236-141b-4487-94f5-ebf978afc04b",
+    "pl": "Czy masz obowiązek codziennie śledzić wiadomości?",
+    "en": "Do you have a duty to follow the news every day?"
+  },
+  {
+    "nr": 690,
+    "id": "cd093aac-2979-4cad-b678-0a7fda3f5872",
+    "pl": "Czy odmawianie próbowania nowych potraw w dorosłości to wada charakteru?",
+    "en": "Is refusing to try new foods as an adult a character flaw?"
+  },
+  {
+    "nr": 692,
+    "id": "d0f42db8-785c-4a4b-9a36-e671e8b22b73",
+    "pl": "Czy przyjąć awans na menedżera, jeśli sama praca będzie ci się mniej podobać?",
+    "en": "Should you take a promotion into management if you'd enjoy the work less?"
+  },
+  {
+    "nr": 693,
+    "id": "d35712e2-2666-4a05-9184-5332323f330a",
+    "pl": "Czy zerwanie wszystkich więzi i start od zera gdzie indziej to prawo każdego z nas?",
+    "en": "Is cutting all ties and starting over somewhere new a right everyone has?"
+  },
+  {
+    "nr": 694,
+    "id": "d6ebf7dc-83f0-4de0-98f6-5ecd094b95c4",
+    "pl": "Czy dokarmianie dzikich zwierząt w parkach to dobroć?",
+    "en": "Is feeding wild animals in parks a kindness?"
+  },
+  {
+    "nr": 696,
+    "id": "d71f8984-8ea7-436e-a2fd-836fae33c0e4",
+    "pl": "Czy jesteś coś winien miejscu, w którym dorastałeś?",
+    "en": "Do you owe anything to the place you grew up in?"
+  },
+  {
+    "nr": 697,
+    "id": "dae679cc-991f-46d6-a1c5-566a811e06e6",
+    "pl": "Czy bycie bogatszym od sąsiadów znaczy więcej niż bycie bogatym?",
+    "en": "Does being richer than your neighbors matter more than being rich?"
+  },
+  {
+    "nr": 698,
+    "id": "dbf2b0c2-ec9e-40e1-95ef-8e1167c5bdbe",
+    "pl": "Czy lepiej być mistrzem jednej rzeczy niż dobrym w wielu?",
+    "en": "Is mastering one thing better than being good at many?"
+  },
+  {
+    "nr": 699,
+    "id": "dbf70431-99e8-4042-b27f-efed710d7fbe",
+    "pl": "Czy to, że nie posiadasz już muzyki i filmów na własność, to zły interes?",
+    "en": "Is never truly owning your music and films a bad deal?"
+  },
+  {
+    "nr": 700,
+    "id": "decb78a5-6c35-402d-a823-4944d3e0e2b6",
+    "pl": "Czy płacz w pracy jest nieprofesjonalny?",
+    "en": "Is crying at work unprofessional?"
+  },
+  {
+    "nr": 704,
+    "id": "e436137b-9d6d-4033-907e-c1d1cc5480e4",
+    "pl": "Czy ludzkość powinna zlikwidować komary, gdyby mogła?",
+    "en": "Should humanity wipe out the mosquito if it could?"
+  },
+  {
+    "nr": 705,
+    "id": "e993f9fa-cc26-423a-b8f5-37d40cf2d310",
+    "pl": "Czy oglądanie filmów w domu jest już po prostu lepsze niż kino?",
+    "en": "Is watching films at home simply better than the cinema now?"
+  },
+  {
+    "nr": 706,
+    "id": "ea57ca51-2196-481c-9ef9-7372a4e33d1d",
+    "pl": "Czy nagrywanie zła jest bardziej przydatne niż interwencja?",
+    "en": "Is filming wrongdoing more useful than stepping in?"
+  },
+  {
+    "nr": 707,
+    "id": "ebbc39fe-7f77-4a9e-8ba7-b63cad6adc1c",
+    "pl": "Czy kinowy hit może być wart tyle, co sztuka wysoka?",
+    "en": "Can a popcorn blockbuster be worth as much as high art?"
+  },
+  {
+    "nr": 708,
+    "id": "ed5c7fcf-499e-4133-803d-34bc3fd1ddb6",
+    "pl": "Czy długie wiadomości głosowe to egoistyczna forma kontaktu?",
+    "en": "Are long voice messages a selfish way to communicate?"
+  },
+  {
+    "nr": 709,
+    "id": "edd7401b-4d2d-43ac-ab1a-609041dd7813",
+    "pl": "Czy nielegalne graffiti to wciąż wandalizm?",
+    "en": "Is uncommissioned street art still vandalism?"
+  },
+  {
+    "nr": 710,
+    "id": "f27b0638-bb16-4e8e-aa60-20d3e5f32331",
+    "pl": "Czy zazdrość może być paliwem, a nie trucizną?",
+    "en": "Can envy be good fuel rather than poison?"
+  },
+  {
+    "nr": 711,
+    "id": "f30a1323-aa9f-4ea8-ac47-cc5fbba2d105",
+    "pl": "Czy przeżyłbyś jeszcze raz dokładnie to samo życie?",
+    "en": "Would you live your exact same life again from the start?"
+  },
+  {
+    "nr": 714,
+    "id": "f99ffcdb-2edc-4bac-839f-deefe684964c",
+    "pl": "Czy wziąłbyś tabletkę, która usuwa cały strach?",
+    "en": "Would you take a pill that erased all your fear?"
+  },
+  {
+    "nr": 715,
+    "id": "00d969dc-ba8e-4970-a4a0-5ba174052ccb",
+    "pl": "Czy w miłości ten, kto kocha mocniej, przegrywa?",
+    "en": "In love, is the one who loves more the one who loses?"
+  },
+  {
+    "nr": 716,
+    "id": "0112dde5-e816-4ed1-b2fd-2b9bee6c635b",
+    "pl": "Czy opowiadanie przyjaciołom o kłótniach w związku to zdrada?",
+    "en": "Is telling your friends about your relationship fights a betrayal?"
+  }
+]

@@ -1,0 +1,308 @@
+[
+  {
+    "nr": 720,
+    "id": "043a138a-941c-466e-a366-57f9195c1030",
+    "pl": "Czy imię od rodziców jest twoje na tyle, by móc je porzucić?",
+    "en": "Is the name your parents gave you yours to discard?"
+  },
+  {
+    "nr": 721,
+    "id": "04a28993-3e6a-451f-9fef-4fd6bc7d006d",
+    "pl": "Czy chciałbyś wiedzieć, co twoje dziecko naprawdę o tobie myśli?",
+    "en": "Would you want to know what your child really thinks of you?"
+  },
+  {
+    "nr": 722,
+    "id": "04d06e74-bab1-4311-ae47-b3370a48567f",
+    "pl": "Czy płacenie komuś za obowiązki, które możesz zrobić sam, to najlepiej wydane pieniądze?",
+    "en": "Is paying someone for chores you could do yourself the smartest money you spend?"
+  },
+  {
+    "nr": 723,
+    "id": "0bfed230-2483-451a-ab72-8c506361d15b",
+    "pl": "Czy najlepsi sąsiedzi to ci, których ledwo znasz?",
+    "en": "Are the best neighbors the ones you barely know?"
+  },
+  {
+    "nr": 728,
+    "id": "190935a8-1f7c-4e5b-89de-99e9be4ee1c7",
+    "pl": "Czy śmierć osiedlowego sklepiku to uczciwa cena za wygodę?",
+    "en": "Is the death of the local shop a fair price for convenience?"
+  },
+  {
+    "nr": 729,
+    "id": "1a70dabc-1867-481e-b435-32b9fcde6771",
+    "pl": "Czy oddawanie rzeczy, których już nie chcesz, to naprawdę hojność?",
+    "en": "Is giving away things you no longer want really generosity?"
+  },
+  {
+    "nr": 730,
+    "id": "1af7d72c-bb3b-4584-a185-65783bfd8fdc",
+    "pl": "Czy wstrzymanie złych wieści do końca czyjegoś wielkiego dnia to dobra decyzja?",
+    "en": "Is sparing someone bad news until after their big day the right call?"
+  },
+  {
+    "nr": 731,
+    "id": "1cce1527-55e2-47f1-a434-401e0442e7d1",
+    "pl": "Czy można mieć za dużo książek?",
+    "en": "Can you own too many books?"
+  },
+  {
+    "nr": 732,
+    "id": "1cf2e6df-365c-40d0-b8c3-157184852e87",
+    "pl": "Czy powinieneś mieć prawo naprawić wszystko, co posiadasz?",
+    "en": "Should you have the right to repair anything you own?"
+  },
+  {
+    "nr": 733,
+    "id": "242f76e6-a585-4c50-a71e-f4bc39f85164",
+    "pl": "Czy rodzinne tradycje powinny uginać się pod najmłodsze pokolenie?",
+    "en": "Should family traditions bend to the youngest generation?"
+  },
+  {
+    "nr": 734,
+    "id": "28ca3573-b027-44d6-8856-fa85f9803252",
+    "pl": "Czy bałagan na biurku to znak kreatywnego umysłu?",
+    "en": "Is a messy desk a sign of a creative mind?"
+  },
+  {
+    "nr": 735,
+    "id": "2b6e7460-ef6e-46d0-8b3e-5eec705ee223",
+    "pl": "Czy słuchać ciała bardziej niż planu treningowego?",
+    "en": "Should you trust your body over your training plan?"
+  },
+  {
+    "nr": 736,
+    "id": "2b80e965-11e8-4059-8e78-b257e2c1af01",
+    "pl": "Czy branie ostatniego kawałka bez zapytania innych to małe przestępstwo?",
+    "en": "Is taking the last piece of food without offering it around a small crime?"
+  },
+  {
+    "nr": 737,
+    "id": "2dfeb0e1-aae7-4c0c-b370-b8f586870e8b",
+    "pl": "Czy udawana uprzejmość jest lepsza niż szczera nieuprzejmość?",
+    "en": "Is fake politeness better than honest rudeness?"
+  },
+  {
+    "nr": 738,
+    "id": "2e49d45b-940d-4a89-a657-5cf0252bdbd9",
+    "pl": "Czy podkupienie najlepszego pracownika przyjaciela to zdrada?",
+    "en": "Is hiring away your friend's best employee a betrayal?"
+  },
+  {
+    "nr": 739,
+    "id": "2f7dc8d1-e4f7-4ec9-8c33-7a5d0e51d027",
+    "pl": "Czy powinno się wychodzić ze spotkań, które marnują twój czas?",
+    "en": "Should you walk out of meetings that waste your time?"
+  },
+  {
+    "nr": 740,
+    "id": "30810951-7228-47c7-b567-11ffa42e6bc7",
+    "pl": "Czy lepiej być ekspertem niż szefem?",
+    "en": "Is being the expert better than being the boss?"
+  },
+  {
+    "nr": 745,
+    "id": "4567a5da-a4d3-4d59-b759-2c579e672709",
+    "pl": "Czy mówienie do siebie na głos to znak zdrowego umysłu?",
+    "en": "Is talking to yourself out loud a sign of a healthy mind?"
+  },
+  {
+    "nr": 746,
+    "id": "4a2ad90b-9680-44f0-a2af-18b1bb940520",
+    "pl": "Czy każdy powinien raz w życiu popracować w obsłudze klienta?",
+    "en": "Should everyone work a customer-service job once in their life?"
+  },
+  {
+    "nr": 747,
+    "id": "4bbcfc87-ee7a-4641-8ba0-55317d7b6d21",
+    "pl": "Czy pochłanianie historii true crime to robienie sobie rozrywki z prawdziwych tragedii?",
+    "en": "Is bingeing true-crime stories treating real tragedy as entertainment?"
+  },
+  {
+    "nr": 749,
+    "id": "58e41c2f-89f9-4b62-9291-71171ce17239",
+    "pl": "Czy karać za zbrodnię, której sprawca już nie pamięta?",
+    "en": "Should someone be punished for a crime they can no longer remember committing?"
+  },
+  {
+    "nr": 750,
+    "id": "5b3e9dd9-6e04-49cc-9e27-0555a099c5c8",
+    "pl": "Czy anonimowe skarżenie na sąsiada to tchórzostwo?",
+    "en": "Is reporting a neighbor anonymously an act of cowardice?"
+  },
+  {
+    "nr": 754,
+    "id": "6936d4fa-cebb-488f-98d0-b4630d68e7fe",
+    "pl": "Czy słuchawki w miejscu publicznym to uczciwy znak „nie przeszkadzać\"?",
+    "en": "Are headphones in public a fair \"do not disturb\" sign?"
+  },
+  {
+    "nr": 755,
+    "id": "6e65162c-e16b-4983-a648-c0628c742984",
+    "pl": "Czy przeczytanie streszczenia to w zasadzie przeczytanie książki?",
+    "en": "Is reading a summary of a book basically reading the book?"
+  },
+  {
+    "nr": 756,
+    "id": "6efc88f5-0b5d-42f3-a150-0804a1f1c564",
+    "pl": "Czy zamartwianie się zdrowiem to najbardziej niezdrowy nawyk ze wszystkich?",
+    "en": "Is worrying about your health the unhealthiest habit of all?"
+  },
+  {
+    "nr": 758,
+    "id": "789a4f7d-42f2-41dd-a732-fb7f9da879d9",
+    "pl": "Czy emerytura z dnia na dzień jest gorsza niż stopniowe zwalnianie tempa?",
+    "en": "Is retiring overnight worse than slowly fading out of work?"
+  },
+  {
+    "nr": 760,
+    "id": "79c4daae-f485-40e4-8e2a-43c17e2594b0",
+    "pl": "Czy bycie niezastąpionym w pracy to pułapka, a nie triumf?",
+    "en": "Is being irreplaceable at work a trap rather than a triumph?"
+  },
+  {
+    "nr": 762,
+    "id": "7a7ae81b-5e95-4780-a8f2-deef6d74c306",
+    "pl": "Czy można sprzedać rodzinną pamiątkę, by rozwiązać prawdziwe problemy?",
+    "en": "Should you ever sell a family heirloom to fix real problems?"
+  },
+  {
+    "nr": 765,
+    "id": "7fde4f2d-b522-400e-8760-9332abe4486b",
+    "pl": "Czy oglądanie filmów i wykładów na podwójnej prędkości to oszukiwanie samego siebie?",
+    "en": "Is watching films and lectures at double speed cheating yourself?"
+  },
+  {
+    "nr": 766,
+    "id": "81daf510-2f8a-40ef-ba0c-bca1838db5d8",
+    "pl": "Czy dzielenie się hasłami do streamingu z przyjaciółmi to forma kradzieży?",
+    "en": "Is sharing streaming passwords with friends a form of stealing?"
+  },
+  {
+    "nr": 767,
+    "id": "81fa382a-35a0-476c-90eb-57383b6159f7",
+    "pl": "Czy bogactwo głównie odsłania, kim ktoś był naprawdę?",
+    "en": "Does getting rich mostly reveal who someone already was?"
+  },
+  {
+    "nr": 768,
+    "id": "842344a3-ee9f-4243-a561-97bbd46f0404",
+    "pl": "Czy cała drużyna powinna odpowiadać za oszustwo jednego zawodnika?",
+    "en": "Should a whole team be punished for one member's cheating?"
+  },
+  {
+    "nr": 769,
+    "id": "854dfbb2-dfc6-4e43-bd6e-477898269801",
+    "pl": "Czy umowa „bez prezentów\" między dorosłymi to najuczciwsze wyjście?",
+    "en": "Is a \"no gifts\" pact between adults the honest way to go?"
+  },
+  {
+    "nr": 771,
+    "id": "87877972-c051-4145-a61d-5fd727af9677",
+    "pl": "Czy musisz dokończyć danie, które gospodarz z dumą ugotował, nawet gdy ci nie smakuje?",
+    "en": "Must you finish a meal your host proudly cooked, even if you hate it?"
+  },
+  {
+    "nr": 772,
+    "id": "8e6be412-c00d-447c-8be0-2f61b0066935",
+    "pl": "Czy miasto powinno wyburzać brzydkie budynki, które dobrze służą?",
+    "en": "Should a city tear down ugly buildings that work perfectly well?"
+  },
+  {
+    "nr": 773,
+    "id": "8f1aeb86-31f3-4088-a3dc-6196d609b18a",
+    "pl": "Czy miłość do bardzo ostrego jedzenia to masochizm w przebraniu?",
+    "en": "Is loving very spicy food just masochism in disguise?"
+  },
+  {
+    "nr": 776,
+    "id": "932e0f56-0858-46b7-b01d-eaa5773c4bb1",
+    "pl": "Czy okazja, której nie potrzebowałeś, to wciąż wyrzucone pieniądze?",
+    "en": "Is a bargain you didn't need still wasted money?"
+  },
+  {
+    "nr": 777,
+    "id": "953f3615-a290-4dd0-8fc9-94499ede19b8",
+    "pl": "Czy można być naprawdę wolnym, mając długi?",
+    "en": "Can you truly be free while in debt?"
+  },
+  {
+    "nr": 780,
+    "id": "978c57b8-3661-4261-a6bf-775d8e2fc45a",
+    "pl": "Czy współpracownik, który zawsze pyta „po co?\", jest najcenniejszy w zespole?",
+    "en": "Is the colleague who always asks \"why?\" the most valuable one in the room?"
+  },
+  {
+    "nr": 781,
+    "id": "982bbbb6-92eb-4217-868a-25f5bb2d4f29",
+    "pl": "Czy umiejętność nicnierobienia trzeba ćwiczyć jak mięsień?",
+    "en": "Is doing nothing a skill that has to be practiced?"
+  },
+  {
+    "nr": 782,
+    "id": "9d881f58-1820-410b-bde4-e664e124bd32",
+    "pl": "Czy koncert na żywo jest wart dziesięć razy więcej niż słuchanie w domu?",
+    "en": "Is a live concert worth ten times the price of listening at home?"
+  },
+  {
+    "nr": 783,
+    "id": "9dcaaba8-bf8a-4ca9-a8ad-98251de3be97",
+    "pl": "Czy muzea powinny być darmowe dla wszystkich?",
+    "en": "Should museums be free for everyone?"
+  },
+  {
+    "nr": 784,
+    "id": "9e612283-ce96-4566-85e5-ac1c7db2a9b0",
+    "pl": "Czy nadużycie zaufania czyni krzywdę gorszą niż ta sama krzywda wobec obcego?",
+    "en": "Does betraying someone's trust make the harm worse than harming a stranger?"
+  },
+  {
+    "nr": 785,
+    "id": "a3812e42-dfd0-4f23-8633-c5f2d93b6ada",
+    "pl": "Czy papierowa książka jest lepsza od e-booka?",
+    "en": "Is a paper book better than an e-book?"
+  },
+  {
+    "nr": 786,
+    "id": "a3b99e21-2528-4d97-8159-57db8b543816",
+    "pl": "Czy na służbowych wideorozmowach kamera powinna być obowiązkowa?",
+    "en": "Should cameras be mandatory in work video calls?"
+  },
+  {
+    "nr": 788,
+    "id": "a744323e-5107-498a-a3f4-f4c2eaf59130",
+    "pl": "Czy „wstydliwe przyjemności\" naprawdę potrzebują wstydu?",
+    "en": "Do guilty pleasures really need the guilt?"
+  },
+  {
+    "nr": 791,
+    "id": "a91f8cab-3ede-4341-9a8a-c92bb99c4593",
+    "pl": "Czy powrót do ukochanej książki jest lepszy niż ryzyko z nową?",
+    "en": "Is rereading an old favorite better than risking a new book?"
+  },
+  {
+    "nr": 792,
+    "id": "aacff73a-42ad-4bf9-92d3-40917db66d69",
+    "pl": "Czy nosiłbyś okulary pokazujące imię każdego mijanego przechodnia?",
+    "en": "Would you wear glasses that showed you every stranger's name?"
+  },
+  {
+    "nr": 793,
+    "id": "abd8ae51-bf6c-4ff3-a560-ae1b640c896a",
+    "pl": "Czy fikcja potrafi nauczyć więcej prawdy niż fakty?",
+    "en": "Can fiction teach more truth than facts?"
+  },
+  {
+    "nr": 797,
+    "id": "b7a26c3c-e0d6-466d-88af-52f36da31654",
+    "pl": "Czy punktualność jest przeceniana wobec tego, co faktycznie dostarczasz?",
+    "en": "Is punctuality overrated compared to what you actually deliver?"
+  },
+  {
+    "nr": 799,
+    "id": "b87ac3fc-210c-4f54-93f4-fdd45bdf42ad",
+    "pl": "Czy plan kariery ma sens w świecie, który zmienia się tak szybko?",
+    "en": "Is a career plan pointless in a world that changes this fast?"
+  }
+]
