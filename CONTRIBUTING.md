@@ -52,7 +52,6 @@ flutter test
   `test:`, `style:`). Keep commits atomic — a mechanical reformat does not belong
   in the same commit as a behavior change.
 - Branch off `master`; open a PR using the template; keep it focused.
-- Update `CHANGELOG.md` under `[Unreleased]` for any user-facing change.
 
 ## Releasing
 

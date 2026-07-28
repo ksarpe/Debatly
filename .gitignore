@@ -54,3 +54,7 @@ env/*.json
 *.keystore
 
 /exports
+
+# Claude Code — local per-machine files (launch.json stays committed)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock

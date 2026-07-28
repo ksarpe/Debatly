@@ -6,8 +6,8 @@ A minimalist, modern mobile app designed to spark conversation. It shows a
 single thought-provoking question as styled text, with a fast "wind" animation
 when swiping to the next one.
 
-> Only the GitHub repository is still named `questionapp` (the badge above and
-> the CHANGELOG links point at it); the Dart package, application id and bundle
+> Only the GitHub repository is still named `questionapp` (the badge above
+> points at it); the Dart package, application id and bundle
 > id are all **debatly** / `com.aknsoftware.debatly`.
 
 > **Shipping to the stores?** [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) is the
