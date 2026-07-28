@@ -13,7 +13,7 @@ import '../../account/screens/auth_screen.dart';
 import '../../account/widgets/restore_sign_in_prompt.dart';
 import '../../account/widgets/save_pro_prompt.dart';
 import '../../monetization/providers/monetization_providers.dart';
-import '../../paywall/pro_paywall_sheet.dart';
+import '../../monetization/widgets/pro_paywall_sheet.dart';
 import '../providers/question_providers.dart';
 import '../providers/swipe_hint_providers.dart';
 import 'falling_words_text.dart';

@@ -8,7 +8,7 @@ import '../../../core/widgets/sub_screen_chrome.dart';
 import '../../../data/models/vote_history_entry.dart';
 import '../../../data/models/vote_result.dart';
 import '../../account/providers/session_providers.dart';
-import '../../paywall/pro_paywall_sheet.dart';
+import '../../monetization/widgets/pro_paywall_sheet.dart';
 import '../providers/question_providers.dart';
 
 /// Gold accent for the PRO upsell, matching the "go Premium" hooks elsewhere.

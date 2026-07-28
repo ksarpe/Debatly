@@ -8,7 +8,7 @@ import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/network_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../account/providers/session_providers.dart';
-import '../../paywall/pro_paywall_sheet.dart';
+import '../../monetization/widgets/pro_paywall_sheet.dart';
 import '../providers/favorites_providers.dart';
 
 /// Gold accent for the favorite star, matching the "go Premium" upsell elsewhere.

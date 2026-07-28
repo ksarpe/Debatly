@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
-import '../../questions/widgets/history_screen.dart';
+import '../../questions/screens/history_screen.dart';
 import 'offline_download_row.dart';
 import 'settings_nav_row.dart';
 import 'settings_primitives.dart';

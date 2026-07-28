@@ -1,4 +1,4 @@
-import 'package:debatly/features/paywall/pro_paywall_sheet.dart';
+import 'package:debatly/features/monetization/widgets/pro_paywall_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -4,13 +4,13 @@ import 'package:purchases_flutter/purchases_flutter.dart'
     show Package, PackageType;
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/config/app_config.dart';
-import '../../core/feedback/app_toast.dart';
-import '../../core/locale/l10n_extension.dart';
-import '../../core/theme/app_theme.dart';
-import '../../services/analytics.dart';
-import '../../services/purchases_service.dart';
-import '../account/widgets/restore_sign_in_prompt.dart';
+import '../../../core/config/app_config.dart';
+import '../../../core/feedback/app_toast.dart';
+import '../../../core/locale/l10n_extension.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../services/analytics.dart';
+import '../../../services/purchases_service.dart';
+import '../../account/widgets/restore_sign_in_prompt.dart';
 
 /// Where the user opened the paywall from. Each entry point leads with the
 /// headline and benefit that match the desire that brought them here (the

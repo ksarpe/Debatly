@@ -182,7 +182,7 @@ gracefully when SDK keys are absent, so it still runs against mock data.
   the ad-dismiss callback) and a live session is ensured before the RPC, so a
   watched ad never resolves to a generic error.
 - **Premium.** RevenueCat handles billing; the paywall itself is in-app
-  ([`ProPaywallSheet`](lib/features/paywall/pro_paywall_sheet.dart)) — packages
+  ([`ProPaywallSheet`](lib/features/monetization/widgets/pro_paywall_sheet.dart)) — packages
   and localized prices come live from the current RevenueCat offering, the
   purchase goes through `Purchases.purchase`. A Supabase edge function
   (`revenue-cat-webhook`) reflects entitlement changes onto `profiles.is_premium`

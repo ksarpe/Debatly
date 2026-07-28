@@ -9,7 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../data/models/smaczek.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/widgets/save_pro_prompt.dart';
-import '../../paywall/pro_paywall_sheet.dart';
+import '../../monetization/widgets/pro_paywall_sheet.dart';
 import '../providers/question_providers.dart';
 
 /// Opens the "Smaczki" panel as a modal sheet that slides up from the bottom.

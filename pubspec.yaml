@@ -182,7 +182,7 @@ flutter_launcher_icons:
 # full-bleed "D" gets its edges chopped. splash_icon_android12.png is icon.png with
 # the "D" scaled to ~45% and re-centred on the same orange so the whole letter sits
 # inside that safe circle — the orange padding is invisible (same #FF751F).
-# Regenerate it with scripts/gen_android12_splash.py, not by hand. SparkLogo takes
+# Regenerate it with tool/gen_android12_splash.py, not by hand. SparkLogo takes
 # over once Flutter is up.
 flutter_native_splash:
   color: "#FF751F"

@@ -12,7 +12,7 @@ flutter_native_splash uses the android_12 image as-is (it does NOT add safe-zone
 padding), so the padding has to live in the source PNG.
 
 Run from the repo root:
-    python scripts/gen_android12_splash.py
+    python tool/gen_android12_splash.py
 then regenerate the drawables:
     dart run flutter_native_splash:create
 
