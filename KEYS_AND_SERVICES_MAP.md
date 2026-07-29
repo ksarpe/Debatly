@@ -1,10 +1,10 @@
 # Debatly — mapa kluczy, produktów i połączeń
 
 Kto z kim gada, jaki klucz gdzie powstaje i gdzie ląduje. Jedna prawda o
-"web zależności" między konsolami. Uzupełnia (nie zastępuje)
-[RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) i
-[IOS_RELEASE_CHECKLIST.md](IOS_RELEASE_CHECKLIST.md) — tam są kroki „kliknij tu”,
-tu jest obraz całości.
+"web zależności" między konsolami. Krokowe checklisty wydaniowe
+(`RELEASE_CHECKLIST.md`, `IOS_RELEASE_CHECKLIST.md` — „kliknij tu, wklej tam")
+zostały wycofane po wydaniu obu sklepów i siedzą w historii gita; tu jest
+obraz całości.
 
 ## Legenda
 

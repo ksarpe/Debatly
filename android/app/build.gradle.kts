@@ -56,13 +56,13 @@ android {
 
     signingConfigs {
         // Only wired up when android/key.properties exists. The values come from
-        // the upload keystore you generate with keytool (see RELEASE_PLAN.md).
+        // the upload keystore generated with keytool (see KEYS_AND_SERVICES_MAP.md).
         if (keystorePropertiesFile.exists()) {
             create("release") {
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["keyPassword"] as String
-                // storeFile in key.properties is relative to android/ (see
-                // RELEASE_CHECKLIST.md: android/keys/upload-keystore.jks), so
+                // storeFile in key.properties is relative to android/ (the
+                // keystore lives at android/keys/upload-keystore.jks), so
                 // resolve against the root project, not this app module.
                 storeFile = rootProject.file(keystoreProperties["storeFile"] as String)
                 storePassword = keystoreProperties["storePassword"] as String

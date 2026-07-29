@@ -19,4 +19,4 @@
 - [ ] `flutter test` passes
 - [ ] User-facing strings go through the ARB files (`lib/l10n/`), not hard-coded
 - [ ] DB / RLS / RPC changes ship as a new `supabase/migrations/` file
-- [ ] `RELEASE_CHECKLIST.md` updated if this adds a manual release step
+- [ ] `KEYS_AND_SERVICES_MAP.md` updated if this adds/changes a key, console setting or service connection

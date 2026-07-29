@@ -9,9 +9,8 @@
   APP's own first-party posture so the binary is never flagged with ITMS-91053
   ("missing privacy manifest") for statically-linked required-reason API symbols.
 
-  Keep this consistent with the App Store Connect "App Privacy" nutrition labels
-  (see IOS_RELEASE_CHECKLIST.md §13): Tracking = Yes (AdMob/IDFA), plus email,
-  purchase history and crash data.
+  Keep this consistent with the App Store Connect "App Privacy" nutrition labels:
+  Tracking = Yes (AdMob/IDFA), plus email, purchase history and crash data.
 -->
 <plist version="1.0">
 <dict>

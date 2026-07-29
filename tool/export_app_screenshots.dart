@@ -2,8 +2,8 @@
 // sizes (phone / 7" tablet / 10" tablet), for the Play Store & App Store.
 //
 // Unlike tool/export_store_screenshots.dart (which renders only the branded
-// share poster), this renders the actual app UI — the daily question with the
-// TAK/NIE vote, a feed question, the rank ladder, the shareable rank poster and
+// share poster), this renders the actual app UI — a question with the TAK/NIE
+// vote, a feed question, the rank ladder, the shareable rank poster and
 // the PRO history — using the app's real presentational widgets
 // (StyledQuestionText, VoteButtonsRow/VoteResultsRow, RankShareCard) plus
 // faithful, provider-free reconstructions of the surrounding chrome. Rendering
@@ -66,8 +66,8 @@ class _Screen {
 }
 
 const _screens = <_Screen>[
-  _Screen('01_daily_vote', _dailyPreVoteScreen),
-  _Screen('02_daily_result', _dailyVotedScreen),
+  _Screen('01_question_vote', _preVoteScreen),
+  _Screen('02_vote_result', _votedScreen),
   _Screen('03_feed_question', _feedQuestionScreen),
   _Screen('04_rank_ladder', _rankLadderScreen),
   _Screen('05_rank_share', _rankShareScreen),
@@ -207,22 +207,22 @@ class _Harness extends StatelessWidget {
 
 String _q(String lang, String pl, String en) => lang == 'pl' ? pl : en;
 
-const _kDailyQuestionPl = 'Czy zdrada myślami jest zdradą?';
-const _kDailyQuestionEn = 'Is emotional cheating still cheating?';
+const _kVoteQuestionPl = 'Czy zdrada myślami jest zdradą?';
+const _kVoteQuestionEn = 'Is emotional cheating still cheating?';
 const _kFeedQuestionPl = 'Czy pieniądze potrafią kupić szczęście?';
 const _kFeedQuestionEn = 'Can money buy happiness?';
 
-Widget _dailyPreVoteScreen(String lang) => _QuestionCanvas(
+Widget _preVoteScreen(String lang) => _QuestionCanvas(
   lang: lang,
-  isDaily: true,
-  question: _q(lang, _kDailyQuestionPl, _kDailyQuestionEn),
+  showGoDeeper: false,
+  question: _q(lang, _kVoteQuestionPl, _kVoteQuestionEn),
   belowQuestion: VoteButtonsRow(busy: false, onVote: (_) {}),
 );
 
-Widget _dailyVotedScreen(String lang) => _QuestionCanvas(
+Widget _votedScreen(String lang) => _QuestionCanvas(
   lang: lang,
-  isDaily: true,
-  question: _q(lang, _kDailyQuestionPl, _kDailyQuestionEn),
+  showGoDeeper: false,
+  question: _q(lang, _kVoteQuestionPl, _kVoteQuestionEn),
   belowQuestion: const VoteResultsRow(
     result: VoteResult(yesCount: 63, noCount: 37, myChoice: VoteResult.yes),
   ),
@@ -230,7 +230,7 @@ Widget _dailyVotedScreen(String lang) => _QuestionCanvas(
 
 Widget _feedQuestionScreen(String lang) => _QuestionCanvas(
   lang: lang,
-  isDaily: false,
+  showGoDeeper: true,
   question: _q(lang, _kFeedQuestionPl, _kFeedQuestionEn),
   belowQuestion: null,
 );
@@ -241,21 +241,21 @@ Widget _rankShareScreen(String lang) => _RankShareCanvas(lang: lang);
 
 Widget _historyScreen(String lang) => _HistoryCanvas(lang: lang);
 
-// ─── question canvas (daily + feed) ──────────────────────────────────────────
+// ─── question canvas ─────────────────────────────────────────────────────────
 
 /// A faithful hand-composition of the main [QuestionScreen]: the top status
-/// chips, the styled question centred on the canvas, and — on the daily — the
-/// vote right under it, with share/history pills and a swipe hint.
+/// chips, the styled question centred on the canvas, the vote right under it,
+/// with share/history pills and a swipe hint.
 class _QuestionCanvas extends StatelessWidget {
   const _QuestionCanvas({
     required this.lang,
-    required this.isDaily,
+    required this.showGoDeeper,
     required this.question,
     required this.belowQuestion,
   });
 
   final String lang;
-  final bool isDaily;
+  final bool showGoDeeper;
   final String question;
   final Widget? belowQuestion;
 
@@ -278,10 +278,6 @@ class _QuestionCanvas extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (isDaily) ...[
-                          _DailyBadge(lang: lang),
-                          const SizedBox(height: 18),
-                        ],
                         StyledQuestionText(question),
                         if (belowQuestion != null) ...[
                           const SizedBox(height: 28),
@@ -295,13 +291,11 @@ class _QuestionCanvas extends StatelessWidget {
                               icon: Icons.ios_share_rounded,
                               label: _q(lang, 'Udostępnij', 'Share'),
                             ),
-                            if (isDaily) ...[
-                              const SizedBox(width: 12),
-                              _ActionPill(
-                                icon: Icons.history_rounded,
-                                label: _q(lang, 'Historia', 'History'),
-                              ),
-                            ],
+                            const SizedBox(width: 12),
+                            _ActionPill(
+                              icon: Icons.history_rounded,
+                              label: _q(lang, 'Historia', 'History'),
+                            ),
                           ],
                         ),
                       ],
@@ -310,7 +304,7 @@ class _QuestionCanvas extends StatelessWidget {
                 ),
               ),
             ),
-            if (!isDaily)
+            if (showGoDeeper)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: _GoDeeperPill(lang: lang),
@@ -401,38 +395,6 @@ class _ChipPill extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// The spark-washed "PYTANIE DNIA" / "DAILY" pill (mirrors [DailyBadge]).
-class _DailyBadge extends StatelessWidget {
-  const _DailyBadge({required this.lang});
-  final String lang;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: const Color(0x14F97316),
-        border: Border.all(color: const Color(0x40F97316)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x33F97316), blurRadius: 14, spreadRadius: -4),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Text(
-          _q(lang, 'PYTANIE DNIA', 'DAILY'),
-          style: TextStyle(
-            color: context.colors.ink,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.0,
-          ),
-        ),
       ),
     );
   }
@@ -869,8 +831,9 @@ class _HistoryCanvas extends StatelessWidget {
                   Text(
                     _q(
                       lang,
-                      'Każde minione pytanie dnia i jak zagłosowała społeczność.',
-                      'Every past daily question and how the community voted.',
+                      'Wszystkie pytania, na które oddałeś głos — razem '
+                      'z wynikami głosowania.',
+                      'Every question you voted on, with how people voted.',
                     ),
                     style: TextStyle(
                       color: context.colors.subtle,

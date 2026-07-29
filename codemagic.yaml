@@ -1,6 +1,6 @@
 # Codemagic CI — build iOS bez Maca i publikacja do TestFlight.
 #
-# Wymagana jednorazowa konfiguracja w UI Codemagic (szczegóły: IOS_RELEASE_CHECKLIST.md, sekcja 11):
+# Wymagana jednorazowa konfiguracja w UI Codemagic (wykonana; kroki poniżej):
 #
 # 1. codemagic.io → zaloguj przez GitHub → Add application → wybierz to repo → Flutter App.
 # 2. Team settings (ikona zębatki przy teamie) → Integrations → Developer Portal →

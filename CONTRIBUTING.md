@@ -55,5 +55,7 @@ flutter test
 
 ## Releasing
 
-`RELEASE_CHECKLIST.md` is the single source of truth for the manual steps
-(Supabase deploys, store console setup, native config, signing).
+The one-time store bring-up is done. [KEYS_AND_SERVICES_MAP.md](KEYS_AND_SERVICES_MAP.md)
+maps the consoles, keys and connections between services; the retired
+step-by-step checklists (`RELEASE_CHECKLIST.md`, `IOS_RELEASE_CHECKLIST.md`)
+live in git history.

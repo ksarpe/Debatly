@@ -10,9 +10,10 @@ when swiping to the next one.
 > points at it); the Dart package, application id and bundle
 > id are all **debatly** / `com.aknsoftware.debatly`.
 
-> **Shipping to the stores?** [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) is the
-> single source of truth for every manual step left to do (Supabase function
-> deploys, AdMob/consent console setup, keys, native config).
+> **Store / console setup:** [KEYS_AND_SERVICES_MAP.md](KEYS_AND_SERVICES_MAP.md)
+> maps every console, key and connection between services. The step-by-step
+> release checklists were retired once both stores shipped; they live in git
+> history (`RELEASE_CHECKLIST.md`, `IOS_RELEASE_CHECKLIST.md`).
 
 ## Tech stack
 
@@ -119,8 +120,10 @@ Initial setup:
 2. Open SQL Editor in Supabase.
 3. Run `supabase/schema.sql`.
 4. Add question rows to `questions`.
-5. Add daily schedule rows to `daily_questions` by linking `publish_date` to a
-   `question_id`.
+5. Apply the migrations in `supabase/migrations/` (see its README for drift
+   notes). No manual scheduling is needed — each user's free question is drawn
+   server-side from questions they haven't voted on (`user_daily_questions`;
+   the global `daily_questions` calendar is only a legacy fallback).
 6. Run the app with `--dart-define-from-file=env/dev.json`.
 
 The mobile app should only use the public anon key. Insert/update/delete access
@@ -165,11 +168,13 @@ gracefully when SDK keys are absent, so it still runs against mock data.
   if `currentUser` is null. Every guest gets a stable Supabase UUID — no email,
   no password — and that UUID is also passed to RevenueCat (`Purchases.logIn`)
   so entitlements follow the same identity.
-- **The reveal feed.** Today's daily question is free for everyone. Beyond it
+- **The reveal feed.** Every readable question is votable (TAK/NIE) and shows
+  the live community split. Each user gets one free question per day, drawn
+  server-side from questions they haven't voted on. Beyond it
   the tiers diverge in `WindQuestionView`
   ([wind_question_view.dart](lib/features/questions/widgets/wind_question_view.dart)):
   *premium* walks the whole catalog (every question reads); a *free* user walks
-  a forward feed — the daily, then the questions they reveal one at a time.
+  a forward feed — the free pick, then the questions they reveal one at a time.
   Swiping past the last item lands on the **reveal slot**: a free user with the
   daily credit auto-reveals one new question (once per day), otherwise a paywall
   offers a rewarded ad or PRO. Revealed text is held in session memory only
