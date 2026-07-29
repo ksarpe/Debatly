@@ -9,6 +9,15 @@ import Diff from '../../../components/Diff';
 const empty = {
   category: 'Reflection', is_premium: false, is_active: true,
   pl: '', en: '', smaczki: [{ pl: '', en: '' }],
+  en_review: null, // null = automatycznie; true/false = ręczna decyzja
+};
+
+const HIST_LABEL = {
+  create: 'create', update: 'update', delete: 'delete',
+  en_review: 'EN do weryfikacji', en_verified: 'EN zweryfikowany',
+};
+const HIST_BADGE = {
+  delete: 'rejected', en_review: 'enreview', en_verified: 'approved',
 };
 
 export default function QuestionEditor() {
@@ -17,6 +26,7 @@ export default function QuestionEditor() {
   const isNew = id === 'new';
 
   const [live, setLive] = useState(null);       // snapshot currently on prod
+  const [enReview, setEnReview] = useState(false); // live "EN do weryfikacji" flag
   const [draft, setDraft] = useState(null);     // open draft row, if any
   const [form, setForm] = useState(empty);
   const [role, setRole] = useState(null);
@@ -39,6 +49,7 @@ export default function QuestionEditor() {
         const q = res?.question ?? null;
         const d = res?.open_draft ?? null;
         setLive(q);
+        setEnReview(res?.en_review_needed ?? false);
         setDraft(d);
         // Continue an existing editable draft, otherwise start from the live text.
         const src = d && d.payload && ['draft', 'rejected'].includes(d.status) ? d.payload : q;
@@ -49,6 +60,7 @@ export default function QuestionEditor() {
           pl: src?.pl ?? '',
           en: src?.en ?? '',
           smaczki: (src?.smaczki ?? []).map((s) => ({ pl: s.pl ?? '', en: s.en ?? '' })),
+          en_review: src?.en_review ?? null,
         });
         api.history(id).then((h) => !cancelled && setHistory(h ?? [])).catch(() => {});
       } catch (e) {
@@ -71,6 +83,27 @@ export default function QuestionEditor() {
       .map((s) => ({ pl: s.pl.trim(), en: (s.en ?? '').trim() })),
   }), [form]);
 
+  // Auto-propozycja flagi "EN do weryfikacji": zmieniono coś po polsku,
+  // a angielski został nietknięty. Serwer liczy to samo przy zatwierdzaniu,
+  // checkbox pozwala ręcznie nadpisać (np. literówka bez wpływu na EN).
+  const autoEnReview = useMemo(() => {
+    if (!live) return payload.en === '';
+    const glue = '\u0001';
+    const plChanged = (live.pl ?? '').trim() !== payload.pl
+      || (live.smaczki ?? []).map((s) => (s.pl ?? '').trim()).join(glue)
+         !== payload.smaczki.map((s) => s.pl).join(glue);
+    const enChanged = (live.en ?? '').trim() !== payload.en
+      || (live.smaczki ?? []).map((s) => (s.en ?? '').trim()).join(glue)
+         !== payload.smaczki.map((s) => s.en).join(glue);
+    if (enChanged) return false;
+    if (plChanged) return true;
+    return enReview;
+  }, [live, payload, enReview]);
+
+  const effEnReview = form.en_review ?? autoEnReview;
+  const fullPayload = useMemo(() => ({ ...payload, en_review: effEnReview }),
+    [payload, effEnReview]);
+
   const pending = draft?.status === 'pending';
   const canApprove = role === 'approver';
 
@@ -91,7 +124,7 @@ export default function QuestionEditor() {
   const saveDraft = () => run(async () => {
     const draftId = await api.saveDraft({
       action: isNew ? 'create' : 'update',
-      payload,
+      payload: fullPayload,
       questionId: isNew ? null : id,
       draftId: draft && ['draft', 'rejected'].includes(draft.status) ? draft.id : null,
       title: payload.pl.slice(0, 80),
@@ -107,7 +140,7 @@ export default function QuestionEditor() {
     if (!dId || !['draft', 'rejected'].includes(draft?.status)) {
       dId = await api.saveDraft({
         action: isNew ? 'create' : 'update',
-        payload,
+        payload: fullPayload,
         questionId: isNew ? null : id,
         draftId: null,
         title: payload.pl.slice(0, 80),
@@ -115,7 +148,7 @@ export default function QuestionEditor() {
     } else {
       await api.saveDraft({
         action: isNew ? 'create' : 'update',
-        payload, questionId: isNew ? null : id, draftId: dId,
+        payload: fullPayload, questionId: isNew ? null : id, draftId: dId,
         title: payload.pl.slice(0, 80),
       });
     }
@@ -130,10 +163,20 @@ export default function QuestionEditor() {
     else {
       const fresh = await api.getQuestion(id);
       setLive(fresh.question); setDraft(fresh.open_draft);
+      setEnReview(fresh.en_review_needed ?? false);
+      setForm((f) => ({ ...f, en_review: null }));
       api.history(id).then((h) => setHistory(h ?? [])).catch(() => {});
     }
     return res;
   }, 'Zatwierdzone i opublikowane.');
+
+  // Bezpośredni toggle flagi na żywej wersji (bez draftu).
+  const setFlag = (flag) => run(async () => {
+    await api.setEnReview(id, flag);
+    setEnReview(flag);
+    setForm((f) => ({ ...f, en_review: null }));
+    api.history(id).then((h) => setHistory(h ?? [])).catch(() => {});
+  }, flag ? 'Oznaczone: EN do weryfikacji.' : 'Flaga zdjęta — EN zweryfikowany.');
 
   const requestDelete = () => run(async () => {
     const dId = await api.saveDraft({
@@ -185,6 +228,28 @@ export default function QuestionEditor() {
               </div>
             </div>
 
+            {!isNew && (
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+                {enReview ? (
+                  <>
+                    <span className="badge enreview">EN do weryfikacji</span>
+                    {canApprove ? (
+                      <button className="btn sm ok" disabled={busy} onClick={() => setFlag(false)}>
+                        EN zweryfikowany ✓
+                      </button>
+                    ) : (
+                      <span className="faint">flagę zdejmuje approver po weryfikacji tłumaczenia</span>
+                    )}
+                  </>
+                ) : (
+                  <button className="btn sm ghost" disabled={busy} onClick={() => setFlag(true)}
+                          title="Oznacz od razu, bez wersji roboczej">
+                    🇬🇧 Oznacz EN do weryfikacji
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="toolbar" style={{ marginBottom: 0 }}>
               <select value={form.category} disabled={pending} style={{ width: 'auto' }}
                       onChange={(e) => setForm({ ...form, category: e.target.value })}>
@@ -195,10 +260,11 @@ export default function QuestionEditor() {
                        onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
                 aktywne
               </label>
-              <label className="faint" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={form.is_premium} disabled={pending} style={{ width: 'auto' }}
-                       onChange={(e) => setForm({ ...form, is_premium: e.target.checked })} />
-                premium
+              <label className="faint" style={{ display: 'flex', gap: 6, alignItems: 'center' }}
+                     title="Po zatwierdzeniu pytanie dostanie flagę „EN do weryfikacji”. Zaznacza się samo, gdy zmieniasz tylko polski tekst.">
+                <input type="checkbox" checked={effEnReview} disabled={pending} style={{ width: 'auto' }}
+                       onChange={(e) => setForm({ ...form, en_review: e.target.checked })} />
+                🇬🇧 EN do weryfikacji
               </label>
             </div>
           </div>
@@ -248,7 +314,7 @@ export default function QuestionEditor() {
             {history.length === 0 && <div className="faint">Brak zapisanych zmian.</div>}
             {history.map((h) => (
               <div className="hist" key={h.id}>
-                <span className={`badge ${h.action === 'delete' ? 'rejected' : 'approved'}`}>{h.action}</span>{' '}
+                <span className={`badge ${HIST_BADGE[h.action] ?? 'approved'}`}>{HIST_LABEL[h.action] ?? h.action}</span>{' '}
                 <span className="faint">{new Date(h.at).toLocaleString('pl-PL')}</span>
                 {h.before?.pl && h.after?.pl && h.before.pl !== h.after.pl && (
                   <div className="faint" style={{ marginTop: 4 }}>

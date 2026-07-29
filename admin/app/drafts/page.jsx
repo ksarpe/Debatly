@@ -85,6 +85,7 @@ export default function Drafts() {
             <div className="toolbar" style={{ marginBottom: 12 }}>
               <span className={`badge ${d.status}`}>{d.status}</span>
               <span className="badge">{d.action}</span>
+              {d.payload?.en_review && <span className="badge enreview">EN do weryfikacji</span>}
               <b>{d.title || '(bez tytułu)'}</b>
               <div style={{ flex: 1 }} />
               <span className="faint">{new Date(d.updated_at).toLocaleString('pl-PL')}</span>

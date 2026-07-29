@@ -33,15 +33,20 @@ export const api = {
   me: () => rpc('admin_me'),
   claimInvite: () => rpc('admin_claim_invite'),
 
-  listQuestions: ({ search = null, onlyActive = true, limit = 50, offset = 0 } = {}) =>
+  listQuestions: ({ search = null, onlyActive = true, onlyEnReview = false, limit = 50, offset = 0 } = {}) =>
     rpc('admin_list_questions', {
       p_search: search,
       p_only_active: onlyActive,
+      p_only_en_review: onlyEnReview,
       p_limit: limit,
       p_offset: offset,
     }),
 
   getQuestion: (id) => rpc('admin_get_question', { p_id: id }),
+
+  // true = "EN do weryfikacji" (każdy admin); false = zweryfikowane (tylko approver)
+  setEnReview: (questionId, flag) =>
+    rpc('admin_set_en_review', { p_question_id: questionId, p_flag: flag }),
 
   listDrafts: (status = null) => rpc('admin_list_drafts', { p_status: status }),
 

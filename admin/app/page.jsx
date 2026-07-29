@@ -11,17 +11,19 @@ export default function QuestionList() {
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState('');
   const [onlyActive, setOnlyActive] = useState(true);
+  const [onlyEnReview, setOnlyEnReview] = useState(false);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
 
-  const load = useCallback(async (q, active, p) => {
+  const load = useCallback(async (q, active, enReview, p) => {
     setLoading(true); setErr(null);
     try {
       const data = await api.listQuestions({
         search: q.trim() === '' ? null : q.trim(),
         onlyActive: active,
+        onlyEnReview: enReview,
         limit: PAGE,
         offset: p * PAGE,
       });
@@ -36,11 +38,11 @@ export default function QuestionList() {
 
   // debounce search
   useEffect(() => {
-    const t = setTimeout(() => { setPage(0); load(search, onlyActive, 0); }, 250);
+    const t = setTimeout(() => { setPage(0); load(search, onlyActive, onlyEnReview, 0); }, 250);
     return () => clearTimeout(t);
-  }, [search, onlyActive, load]);
+  }, [search, onlyActive, onlyEnReview, load]);
 
-  useEffect(() => { load(search, onlyActive, page); /* eslint-disable-next-line */ }, [page]);
+  useEffect(() => { load(search, onlyActive, onlyEnReview, page); /* eslint-disable-next-line */ }, [page]);
 
   const pages = Math.ceil(total / PAGE) || 1;
 
@@ -63,6 +65,11 @@ export default function QuestionList() {
           <input type="checkbox" checked={onlyActive}
                  onChange={(e) => setOnlyActive(e.target.checked)} style={{ width: 'auto' }} />
           tylko aktywne
+        </label>
+        <label className="faint" style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
+          <input type="checkbox" checked={onlyEnReview}
+                 onChange={(e) => setOnlyEnReview(e.target.checked)} style={{ width: 'auto' }} />
+          🇬🇧 EN do weryfikacji
         </label>
       </div>
 
@@ -94,6 +101,7 @@ export default function QuestionList() {
                   <td className="muted">{r.smaczki_count}</td>
                   <td>
                     {r.open_draft_id && <span className="badge draft">wersja robocza</span>}
+                    {r.en_review_needed && <span className="badge enreview">EN do weryfikacji</span>}
                     {!r.is_active && <span className="badge">nieaktywne</span>}
                     {r.is_premium && <span className="badge premium">premium</span>}
                   </td>

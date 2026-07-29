@@ -133,6 +133,10 @@ td.en { color: var(--text-dim); font-size: 13.5px; }
 .badge.approved { color: var(--ok); border-color: var(--ok); }
 .badge.rejected { color: var(--danger); border-color: var(--danger); }
 .badge.premium { color: var(--warn); border-color: var(--warn); }
+.badge.enreview {
+  color: var(--danger); border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
 
 /* ---------- input with leading flag ---------- */
 .fx {

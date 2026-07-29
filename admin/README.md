@@ -53,6 +53,24 @@ Konta nadaje się w tabeli `admin_users`. Nowe osoby można dodać z wyprzedzeni
 przez `admin_invites` (po e-mailu) — uprawnienie aktywuje się samo przy pierwszym
 logowaniu, pod warunkiem **potwierdzonego adresu e-mail**.
 
+## Flaga „EN do weryfikacji"
+
+Edytorzy mogą poprawiać polski tekst bez ruszania angielskiego — wtedy pytanie
+dostaje flagę **EN do weryfikacji**:
+
+- przy zatwierdzaniu zmiany baza sama wykrywa edycję „tylko PL" (pytanie lub
+  smaczki) i ustawia flagę; edycja angielskiego zdejmuje ją automatycznie,
+- checkbox w edytorze zaznacza się sam i pozwala ręcznie nadpisać decyzję
+  (np. literówka w PL, która nie zmienia sensu — można odznaczyć),
+- flagę można też przełączyć od razu, bez wersji roboczej (przycisk pod
+  polami PL/EN); **zdjąć flagę może tylko `approver`** — zdjęcie = „tłumaczenie
+  zweryfikowane",
+- lista pytań ma filtr „🇬🇧 EN do weryfikacji" i czerwoną odznakę przy
+  oflagowanych pytaniach; oba przełączenia widać też w historii zmian.
+
+Flaga żyje poza hashem treści, więc jej przełączanie nie unieważnia otwartych
+wersji roboczych.
+
 ## Historia
 
 Każda zatwierdzona zmiana trafia do `admin_audit_log` ze stanem przed i po —
