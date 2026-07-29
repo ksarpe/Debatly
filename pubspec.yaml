@@ -62,6 +62,11 @@ dependencies:
   # Monitoring facade (lib/core/monitoring/monitoring.dart); a no-op when no
   # SENTRY_DSN is provided, so dev/mock builds run untouched. See SENTRY_SETUP.md.
   sentry_flutter: 9.24.0
+  # Play Install Referrer API (Android-only plugin, no iOS code): reads the
+  # store link's `referrer` param (utm_source etc.) once on first launch so
+  # InstallReferrerService can log `install_attributed` — install-source →
+  # revenue attribution in our own app_events, which Play Console can't do.
+  play_install_referrer: ^0.5.0
 
 dev_dependencies:
   flutter_test:

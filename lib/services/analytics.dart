@@ -51,10 +51,22 @@ class Analytics {
   /// lean — the server caps the jsonb at 2 KB). Safe to call from anywhere,
   /// anytime: no-ops without [init] or Supabase, never throws, never awaited.
   static void log(String event, [Map<String, Object?> properties = const {}]) {
+    unawaited(tryLog(event, properties));
+  }
+
+  /// Same as [log] but reports whether the insert actually landed. Still never
+  /// throws. For the rare events that must not be lost (e.g. the one-shot
+  /// `install_attributed` from [InstallReferrerService]) the caller can retry
+  /// on a later launch until this returns true; everything else should keep
+  /// using the fire-and-forget [log].
+  static Future<bool> tryLog(
+    String event, [
+    Map<String, Object?> properties = const {},
+  ]) async {
     final installId = _installId;
     if (installId == null || !SupabaseService.isInitialised) {
       debugPrint('Analytics (not sent): $event $properties');
-      return;
+      return false;
     }
 
     final row = <String, Object?>{
@@ -67,17 +79,15 @@ class Analytics {
       'app_locale': _prefs?.getString(kLocalePrefKey),
     };
 
-    unawaited(
-      SupabaseService.client
-          .from('app_events')
-          .insert(row)
-          .then<void>((_) {})
-          .catchError((Object e) {
-            // Losing an event (offline, RLS hiccup) is fine; losing the user's
-            // flow over analytics is not.
-            debugPrint('Analytics.log("$event") failed: $e');
-          }),
-    );
+    try {
+      await SupabaseService.client.from('app_events').insert(row);
+      return true;
+    } catch (e) {
+      // Losing an event (offline, RLS hiccup) is fine; losing the user's
+      // flow over analytics is not.
+      debugPrint('Analytics.log("$event") failed: $e');
+      return false;
+    }
   }
 
   /// Random (version 4) UUID from a CSPRNG — matches the `uuid` column type

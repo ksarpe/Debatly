@@ -12,6 +12,7 @@ import 'core/startup/guarded_init.dart';
 import 'features/settings/providers/reminder_providers.dart';
 import 'l10n/gen/app_localizations.dart';
 import 'services/analytics.dart';
+import 'services/install_referrer_service.dart';
 import 'services/notification_service.dart';
 import 'services/purchases_service.dart';
 import 'services/reminder_scheduler.dart';
@@ -89,6 +90,14 @@ Future<void> _initBackgroundServices(SharedPreferences prefs) async {
   // notification text to the user's current language. Runs after the
   // notification plugin is up (it no-ops otherwise).
   await guardedInit('reminder', () => _rescheduleReminderIfEnabled(prefs));
+
+  // One-shot install attribution: read the Play Install Referrer (utm_source
+  // et al.) and log `install_attributed` to app_events. Deliberately NOT under
+  // guardedInit — the insert legitimately needs the network and may outlive
+  // kInitTimeout on a flaky first launch, which must not raise a bogus
+  // StartupInitException. The service does its own bounding (platform-channel
+  // read timeout, retry-next-launch on failure) and never throws.
+  await InstallReferrerService.reportIfNeeded(prefs);
 }
 
 /// Re-schedules the daily reminder from persisted prefs, in the user's current

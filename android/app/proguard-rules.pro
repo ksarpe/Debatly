@@ -56,3 +56,11 @@
 -keep class com.google.gson.** { *; }
 -keep class * extends com.google.gson.reflect.TypeToken
 -dontwarn com.dexterous.**
+
+# Play Install Referrer (play_install_referrer → com.android.installreferrer).
+# Backs the one-shot install attribution (InstallReferrerService): the referrer
+# is only readable for 90 days per install, so if R8 breaks this channel the
+# attribution burns its retry budget and is lost for good. The library is tiny —
+# keep it wholesale.
+-keep class com.android.installreferrer.** { *; }
+-dontwarn com.android.installreferrer.**
