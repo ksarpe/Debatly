@@ -44,7 +44,10 @@ void main() {
     test('never throws on garbage, null, or empty input', () {
       expect(InstallReferrerService.parseUtm(null), isEmpty);
       expect(InstallReferrerService.parseUtm(''), isEmpty);
-      expect(InstallReferrerService.parseUtm('not a query string %%%'), isEmpty);
+      expect(
+        InstallReferrerService.parseUtm('not a query string %%%'),
+        isEmpty,
+      );
       expect(InstallReferrerService.parseUtm('organic'), isEmpty);
     });
   });

@@ -832,7 +832,7 @@ class _HistoryCanvas extends StatelessWidget {
                     _q(
                       lang,
                       'Wszystkie pytania, na które oddałeś głos — razem '
-                      'z wynikami głosowania.',
+                          'z wynikami głosowania.',
                       'Every question you voted on, with how people voted.',
                     ),
                     style: TextStyle(

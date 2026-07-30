@@ -76,8 +76,9 @@ class InstallReferrerService {
     var properties = _cachedProperties(prefs);
     if (properties == null) {
       try {
-        final details =
-            await (fetch ?? _fetchFromPlay)().timeout(_fetchTimeout);
+        final details = await (fetch ?? _fetchFromPlay)().timeout(
+          _fetchTimeout,
+        );
         properties = propertiesFrom(details);
       } catch (e) {
         final attempts = (prefs.getInt(kReferrerAttemptsPrefKey) ?? 0) + 1;
