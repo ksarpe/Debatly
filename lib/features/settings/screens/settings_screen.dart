@@ -336,10 +336,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   /// one-tap "Open settings" action; we remember the intent so returning with
   /// permission granted finishes the job. Disabling cancels the schedule.
   Future<void> _onReminderToggled(bool enabled) async {
+    // Read the notifier up front: cancelling/arming the loop is ~20 sequential
+    // platform calls, and a user who flips the switch and immediately leaves
+    // Settings unmounts this widget mid-flight — after which `ref` throws.
+    final reminder = ref.read(reminderControllerProvider.notifier);
     if (!enabled) {
       _pendingEnable = false;
       await NotificationService.cancelDailyReminder();
-      await ref.read(reminderControllerProvider.notifier).setEnabled(false);
+      await reminder.setEnabled(false);
       return;
     }
 
@@ -362,12 +366,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   /// builder reads the local state itself, so a day the user already voted on
   /// gets a post-vote nudge rather than a "go vote" one.
   Future<void> _scheduleAndEnable() async {
+    // Everything that needs `context` or `ref` is read before the first await —
+    // both are unsafe once the user leaves Settings mid-schedule.
     final l10n = context.l10n;
-    await ref.read(reminderControllerProvider.notifier).setEnabled(true);
-    await rescheduleReminderLoop(
-      prefs: ref.read(sharedPreferencesProvider),
-      l10n: l10n,
-    );
+    final reminder = ref.read(reminderControllerProvider.notifier);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await reminder.setEnabled(true);
+    await rescheduleReminderLoop(prefs: prefs, l10n: l10n);
     _pendingEnable = false;
   }
 
@@ -383,13 +388,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     final enabledOs = await NotificationService.areNotificationsEnabled();
     if (!mounted) return;
     final pref = ref.read(reminderControllerProvider);
+    final reminder = ref.read(reminderControllerProvider.notifier);
     if (_pendingEnable && enabledOs) {
       await _scheduleAndEnable();
       return;
     }
     if (pref.enabled && !enabledOs) {
       await NotificationService.cancelDailyReminder();
-      await ref.read(reminderControllerProvider.notifier).setEnabled(false);
+      await reminder.setEnabled(false);
     }
   }
 
@@ -418,14 +424,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       initialTime: current.time,
     );
     if (picked == null || !mounted) return;
-    // Capture the localizations before the next await — using `context` after an
-    // async gap is unsafe.
+    // Capture the localizations and the providers before the next await — both
+    // `context` and `ref` are unsafe to use after an async gap.
     final l10n = context.l10n;
-    await ref.read(reminderControllerProvider.notifier).setTime(picked);
-    await rescheduleReminderLoop(
-      prefs: ref.read(sharedPreferencesProvider),
-      l10n: l10n,
-    );
+    final reminder = ref.read(reminderControllerProvider.notifier);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await reminder.setTime(picked);
+    await rescheduleReminderLoop(prefs: prefs, l10n: l10n);
   }
 
   /// 24-hour `HH:MM` for the reminder-time row — matches the app's clean numeric
@@ -493,18 +498,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       ),
     );
 
-    if (picked != null) {
-      await ref.read(localeControllerProvider.notifier).setLocale(picked);
+    if (picked == null || !mounted) return;
 
-      // Keep the scheduled reminders' text in the newly chosen language. Load
-      // the strings for `picked` directly rather than via `context.l10n`, which
-      // won't reflect the switch until the next frame.
-      final l10n = await AppLocalizations.delegate.load(picked);
-      await rescheduleReminderLoop(
-        prefs: ref.read(sharedPreferencesProvider),
-        l10n: l10n,
-      );
-    }
+    final locale = ref.read(localeControllerProvider.notifier);
+    final prefs = ref.read(sharedPreferencesProvider);
+    await locale.setLocale(picked);
+
+    // Keep the scheduled reminders' text in the newly chosen language. Load
+    // the strings for `picked` directly rather than via `context.l10n`, which
+    // won't reflect the switch until the next frame.
+    final l10n = await AppLocalizations.delegate.load(picked);
+    await rescheduleReminderLoop(prefs: prefs, l10n: l10n);
   }
 
   /// Icon mirroring the chosen appearance, shown as the row's leading glyph.
@@ -572,9 +576,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       ),
     );
 
-    if (picked != null) {
-      await ref.read(themeControllerProvider.notifier).setMode(picked);
-    }
+    if (picked == null || !mounted) return;
+    await ref.read(themeControllerProvider.notifier).setMode(picked);
   }
 
   /// Pushes the Privacy & data screen — document links plus a plain-language

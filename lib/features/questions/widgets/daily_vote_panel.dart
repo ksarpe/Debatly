@@ -118,13 +118,13 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       final disagreePct = result.myChoice == VoteResult.yes
           ? result.noPct
           : result.yesPct;
-      await ref
-          .read(reminderControllerProvider.notifier)
-          .markVotedToday(disagreePct: disagreePct);
-      await rescheduleReminderLoop(
-        prefs: ref.read(sharedPreferencesProvider),
-        l10n: l10n,
-      );
+      // Read both providers before the awaits: this panel unmounts the moment
+      // the user swipes to the next question, and the upkeep should still
+      // finish rather than throw on a dead `ref`.
+      final reminder = ref.read(reminderControllerProvider.notifier);
+      final prefs = ref.read(sharedPreferencesProvider);
+      await reminder.markVotedToday(disagreePct: disagreePct);
+      await rescheduleReminderLoop(prefs: prefs, l10n: l10n);
     } catch (_) {
       // Non-critical: the vote already counted; the reminder will self-correct
       // on the next launch / vote.
@@ -142,6 +142,9 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
   Future<void> _maybeAskForReview() async {
     try {
       final stats = await ref.read(userStatsProvider.future);
+      // Swiping away unmounts this panel; skipping the ask is always acceptable,
+      // so bail rather than reach through a `ref` that's no longer usable.
+      if (!mounted) return;
       final streak = stats?.currentStreak ?? 0;
 
       // On the day the streak crosses into a new rank, the rank-up celebration

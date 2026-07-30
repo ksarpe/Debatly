@@ -98,15 +98,20 @@ class OfflineDownloadRow extends ConsumerWidget {
   }
 
   Future<void> _download(BuildContext context, WidgetRef ref) async {
-    // Capture the overlay + strings before the (long) await so the completion
-    // toast survives even if the user leaves Settings mid-download.
+    // Capture the overlay, the strings AND the controller before the (long)
+    // await so the completion toast survives even if the user leaves Settings
+    // mid-download — which is the expected case, since the walk takes minutes
+    // and keeps running in the background. `ref` is tied to this widget's
+    // element, so reading it after the await would throw once that happens; the
+    // download reports its own terminal state instead.
     final overlay = AppToast.capture(context);
     final completeMsg = context.l10n.offlineDownloadComplete;
     final failMsg = context.l10n.offlineDownloadFailed;
+    final controller = ref.read(offlineDownloadControllerProvider.notifier);
 
-    await ref.read(offlineDownloadControllerProvider.notifier).download();
+    final result = await controller.download();
 
-    switch (ref.read(offlineDownloadControllerProvider).status) {
+    switch (result.status) {
       case OfflineDownloadStatus.done:
         AppToast.showOn(overlay, completeMsg, type: ToastType.success);
       case OfflineDownloadStatus.error:

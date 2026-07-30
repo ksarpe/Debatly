@@ -55,8 +55,13 @@ class OfflineDownloadController extends Notifier<OfflineDownloadState> {
   /// Fetches and caches the entire premium-accessible content set. Smaczki are
   /// per-question RPCs, so this is the slow part — we surface progress as
   /// done/total over the catalog. Safe to call again to refresh.
-  Future<void> download() async {
-    if (state.isRunning) return;
+  ///
+  /// Returns the terminal state so the caller can report the outcome without
+  /// reading it back through `ref`: this runs for minutes and the user is
+  /// expected to leave Settings while it works, by which point the widget that
+  /// started it is gone and its `ref` would throw (see [OfflineDownloadRow]).
+  Future<OfflineDownloadState> download() async {
+    if (state.isRunning) return state;
     final repo = ref.read(questionRepositoryProvider);
     final cache = ref.read(questionCacheProvider);
 
@@ -99,6 +104,7 @@ class OfflineDownloadController extends Notifier<OfflineDownloadState> {
         lastSyncAt: cache.lastSyncAt,
       );
     }
+    return state;
   }
 }
 

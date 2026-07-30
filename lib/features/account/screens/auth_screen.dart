@@ -410,6 +410,9 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
 
     setState(() => _isSubmitting = true);
 
+    // Read before the network calls: dismissing the sheet mid-request unmounts
+    // this widget, and the session still has to be refreshed afterwards.
+    final session = ref.read(sessionProvider.notifier);
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text;
@@ -420,7 +423,7 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
             email: email,
             password: password,
           );
-          await ref.read(sessionProvider.notifier).refresh();
+          await session.refresh();
           if (!mounted) return;
           Navigator.of(context).maybePop();
         case AuthMode.register:
@@ -428,7 +431,7 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
             email: email,
             password: password,
           );
-          await ref.read(sessionProvider.notifier).refresh();
+          await session.refresh();
           if (!mounted) return;
           final created = SupabaseService.currentUserHasAccount;
           _showMessage(
@@ -454,10 +457,11 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     if (_isSubmitting) return;
     setState(() => _isSubmitting = true);
 
+    final session = ref.read(sessionProvider.notifier);
     try {
       final user = await SupabaseService.signInWithGoogle();
       if (user == null) return; // user cancelled the picker
-      await ref.read(sessionProvider.notifier).refresh();
+      await session.refresh();
       if (!mounted) return;
       Navigator.of(context).maybePop();
     } on AuthException catch (error) {
@@ -473,10 +477,11 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     if (_isSubmitting) return;
     setState(() => _isSubmitting = true);
 
+    final session = ref.read(sessionProvider.notifier);
     try {
       final user = await SupabaseService.signInWithApple();
       if (user == null) return; // user cancelled the sheet
-      await ref.read(sessionProvider.notifier).refresh();
+      await session.refresh();
       if (!mounted) return;
       Navigator.of(context).maybePop();
     } on AuthException catch (error) {

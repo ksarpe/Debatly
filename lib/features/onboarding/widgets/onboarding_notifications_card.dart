@@ -43,6 +43,13 @@ class _OnboardingNotificationsCardState
     if (_busy) return;
     setState(() => _busy = true);
     // Capture l10n before the awaits — `context` is unsafe to read across them.
+    //
+    // The provider reads below deliberately stay inside the granted branch
+    // rather than being hoisted above the awaits (the usual guard against a
+    // disposed `ref`): reading them unconditionally would touch providers on the
+    // denied path too, and nothing here may throw — the finally is what
+    // guarantees the user is never trapped on this card. The card can't be
+    // dismissed while `_busy`, so there is no unmount to race here anyway.
     final l10n = context.l10n;
     try {
       var granted = await NotificationService.areNotificationsEnabled();
