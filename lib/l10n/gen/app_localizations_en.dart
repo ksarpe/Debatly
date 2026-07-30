@@ -663,6 +663,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get watchAdToReveal => 'Watch an ad to reveal a new question.';
 
   @override
+  String get adLimitReachedInfo =>
+      'Today\'s free unlocks are used up. Come back tomorrow — or unlock everything with PRO.';
+
+  @override
+  String get adLimitReachedToast => 'You\'ve hit today\'s ad unlock limit.';
+
+  @override
   String get orSignInFreeQuestion => 'Or sign in to get one free question.';
 
   @override
@@ -867,6 +874,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paywallTitleReadingLimit => 'Keep reading — no limits, no waiting';
+
+  @override
+  String get paywallTitleAdLimit =>
+      'Don\'t wait until tomorrow — unlock everything';
 
   @override
   String get paywallTitleSmaczki => 'Unlock every argument, for every question';

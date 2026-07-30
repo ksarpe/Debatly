@@ -1250,6 +1250,18 @@ abstract class AppLocalizations {
   /// **'Watch an ad to reveal a new question.'**
   String get watchAdToReveal;
 
+  /// No description provided for @adLimitReachedInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s free unlocks are used up. Come back tomorrow — or unlock everything with PRO.'**
+  String get adLimitReachedInfo;
+
+  /// No description provided for @adLimitReachedToast.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve hit today\'s ad unlock limit.'**
+  String get adLimitReachedToast;
+
   /// No description provided for @orSignInFreeQuestion.
   ///
   /// In en, this message translates to:
@@ -1537,6 +1549,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Keep reading — no limits, no waiting'**
   String get paywallTitleReadingLimit;
+
+  /// No description provided for @paywallTitleAdLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t wait until tomorrow — unlock everything'**
+  String get paywallTitleAdLimit;
 
   /// No description provided for @paywallTitleSmaczki.
   ///

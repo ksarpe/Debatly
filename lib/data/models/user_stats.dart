@@ -15,6 +15,7 @@ class UserStats {
     this.nextRankStreak,
     this.graceDaysLeft,
     this.isPremium = false,
+    this.adRevealsLeftToday,
   });
 
   /// Consecutive days the user voted on the daily. The server applies the streak
@@ -46,6 +47,12 @@ class UserStats {
 
   final bool isPremium;
 
+  /// Ad reveals left before today's daily cap (server-enforced, UTC day).
+  /// Null = unknown: premium (never hits the ad wall), an old server without
+  /// the field, or a pre-sync/offline snapshot — the paywall then keeps the ad
+  /// button and lets the server be the judge.
+  final int? adRevealsLeftToday;
+
   factory UserStats.fromJson(Map<String, dynamic> json) {
     int asInt(Object? v) => v is int ? v : int.tryParse('$v') ?? 0;
     return UserStats(
@@ -61,6 +68,9 @@ class UserStats {
           ? null
           : asInt(json['grace_days_left']),
       isPremium: json['is_premium'] as bool? ?? false,
+      adRevealsLeftToday: json['ad_reveals_left_today'] == null
+          ? null
+          : asInt(json['ad_reveals_left_today']),
     );
   }
 
@@ -76,6 +86,7 @@ class UserStats {
     'next_rank_streak': nextRankStreak,
     'grace_days_left': graceDaysLeft,
     'is_premium': isPremium,
+    'ad_reveals_left_today': adRevealsLeftToday,
   };
 
   /// A zeroed state used as the offline/mock baseline and before the first sync.

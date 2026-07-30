@@ -5,6 +5,7 @@ import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/network_error.dart';
 import '../../../data/models/question.dart';
+import '../../../services/analytics.dart';
 import '../../../services/purchases_service.dart';
 import '../../../services/supabase_service.dart';
 import '../../account/providers/session_providers.dart';
@@ -79,6 +80,11 @@ class _WindQuestionViewState extends ConsumerState<WindQuestionView>
 
   /// A reveal came back empty — the user has seen everything eligible for now.
   bool _exhausted = false;
+
+  /// The `ad_cap_hit` analytics event fired for this stay on the reveal slot —
+  /// build() runs repeatedly while the capped paywall is on screen, so the
+  /// event is logged once per slot visit and re-armed on leaving the slot.
+  bool _capHitLogged = false;
 
   /// The next question peeked for the paywall teaser ({id, teaser}), or null
   /// before it's fetched. Its id is passed to the ad reveal so the ad reveals the
@@ -427,6 +433,15 @@ class _WindQuestionViewState extends ConsumerState<WindQuestionView>
     if (!mounted) return;
     if (error != null) {
       debugPrint('reveal failed: $error');
+      // The server refused because today's ad-reveal cap is spent (the synced
+      // count was stale, or the client was tampered with). Re-sync so the
+      // paywall re-renders in its capped, PRO-only variant.
+      if (error.toString().contains('daily ad reveal limit')) {
+        _notify(context.l10n.adLimitReachedToast, type: ToastType.error);
+        ref.invalidate(userStatsProvider);
+        setState(() => _revealing = false);
+        return;
+      }
       // Offline: a reveal needs the server (and, for ads, the ad network), so it
       // simply can't happen now — say "no connection" rather than the generic
       // "try again", which implies a retry would help.
@@ -463,7 +478,9 @@ class _WindQuestionViewState extends ConsumerState<WindQuestionView>
     }
 
     ref.read(revealedFeedProvider.notifier).append(q);
-    if (!viaAd) ref.invalidate(userStatsProvider); // a credit was spent
+    // Re-sync server state: a credit was spent, or an ad-cap slot was consumed
+    // (the count decides whether the next paywall still offers an ad).
+    ref.invalidate(userStatsProvider);
     setState(() {
       _revealing = false;
       _lockRevealing = false;
@@ -475,6 +492,9 @@ class _WindQuestionViewState extends ConsumerState<WindQuestionView>
   /// Watches a rewarded video, then reveals the next unseen question.
   Future<void> _watchAdReveal() async {
     if (_unlocking || _revealing) return;
+    // Capped: the button is hidden, so only a stale rebuild can get here —
+    // never start an ad whose reveal the server is guaranteed to refuse.
+    if (ref.read(adCapReachedProvider)) return;
     setState(() => _unlocking = true);
 
     final ads = ref.read(rewardedAdServiceProvider);
@@ -539,7 +559,11 @@ class _WindQuestionViewState extends ConsumerState<WindQuestionView>
 
     final purchased = await showProPaywall(
       context,
-      source: PaywallSource.readingLimit,
+      // At the daily ad cap PRO is the only way forward — funnel it separately
+      // so conversion at this highest-intent wall is measurable on its own.
+      source: ref.read(adCapReachedProvider)
+          ? PaywallSource.adLimit
+          : PaywallSource.readingLimit,
     );
     if (!mounted) return;
 
@@ -635,6 +659,7 @@ class _WindQuestionViewState extends ConsumerState<WindQuestionView>
       _revealing = false;
       _exhausted = false;
       _peeking = false;
+      _capHitLogged = false;
     }
 
     // Warm the next teaser while the user lingers on the last feed item, so the
@@ -660,8 +685,16 @@ class _WindQuestionViewState extends ConsumerState<WindQuestionView>
         final hasAccount = ref.watch(
           sessionProvider.select((s) => s.value?.hasAccount ?? false),
         );
+        // Today's ad allowance spent: the paywall drops the ad button and
+        // pitches PRO as the only way to keep going (until tomorrow).
+        final adCapReached = ref.watch(adCapReachedProvider);
+        if (adCapReached && !_capHitLogged) {
+          _capHitLogged = true;
+          Analytics.log('ad_cap_hit');
+        }
         child = RevealPaywall(
           teaser: _peeked?.teaser,
+          adCapReached: adCapReached,
           onWatchAd: _watchAdReveal,
           onGetPremium: _goPremium,
           onBackToDaily: _backToDaily,

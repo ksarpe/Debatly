@@ -28,6 +28,10 @@ enum PaywallSource {
   /// The reveal wall: the user wanted to read the next question.
   readingLimit,
 
+  /// The reveal wall AFTER today's ad-reveal cap: PRO is the only way forward
+  /// until tomorrow — the highest-intent entry point, tracked separately.
+  adLimit,
+
   /// The locked PRO argument on the smaczki panel.
   smaczki,
 
@@ -231,6 +235,8 @@ class _ProPaywallSheetState extends ConsumerState<ProPaywallSheet> {
     switch (widget.source) {
       case PaywallSource.readingLimit:
         return l10n.paywallTitleReadingLimit;
+      case PaywallSource.adLimit:
+        return l10n.paywallTitleAdLimit;
       case PaywallSource.smaczki:
         return l10n.paywallTitleSmaczki;
       case PaywallSource.favorites:
@@ -272,6 +278,7 @@ class _ProPaywallSheetState extends ConsumerState<ProPaywallSheet> {
       // already leads with.
       case PaywallSource.general:
       case PaywallSource.readingLimit:
+      case PaywallSource.adLimit:
         return [unlimited, noAds, smaczki, favorites];
       case PaywallSource.smaczki:
         return [smaczki, unlimited, noAds, favorites];

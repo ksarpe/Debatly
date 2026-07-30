@@ -670,6 +670,14 @@ class AppLocalizationsPl extends AppLocalizations {
   String get watchAdToReveal => 'Obejrzyj reklamę, aby odsłonić nowe pytanie.';
 
   @override
+  String get adLimitReachedInfo =>
+      'Dzisiejsze darmowe odblokowania wykorzystane. Wróć jutro — albo odblokuj wszystko z PRO.';
+
+  @override
+  String get adLimitReachedToast =>
+      'Dzienny limit odblokowań za reklamy został osiągnięty.';
+
+  @override
   String get orSignInFreeQuestion =>
       'Albo zaloguj się po jedno darmowe pytanie.';
 
@@ -888,6 +896,9 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get paywallTitleReadingLimit =>
       'Czytaj dalej — bez limitów i czekania';
+
+  @override
+  String get paywallTitleAdLimit => 'Nie czekaj do jutra — odblokuj wszystko';
 
   @override
   String get paywallTitleSmaczki =>

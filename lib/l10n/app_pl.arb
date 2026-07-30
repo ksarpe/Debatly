@@ -232,6 +232,8 @@
   "backToFreeQuestion": "Wróć do darmowego pytania",
   "nextQuestionWaiting": "Kolejne pytanie czeka",
   "watchAdToReveal": "Obejrzyj reklamę, aby odsłonić nowe pytanie.",
+  "adLimitReachedInfo": "Dzisiejsze darmowe odblokowania wykorzystane. Wróć jutro — albo odblokuj wszystko z PRO.",
+  "adLimitReachedToast": "Dzienny limit odblokowań za reklamy został osiągnięty.",
   "orSignInFreeQuestion": "Albo zaloguj się po jedno darmowe pytanie.",
   "unlockWithAd": "Odblokuj reklamą",
 
@@ -306,6 +308,7 @@
   "onboardingNotifySkip": "Nie teraz",
   "paywallTitle": "Zyskaj dostęp do wszystkich pytań i głosów",
   "paywallTitleReadingLimit": "Czytaj dalej — bez limitów i czekania",
+  "paywallTitleAdLimit": "Nie czekaj do jutra — odblokuj wszystko",
   "paywallTitleSmaczki": "Poznaj wszystkie argumenty do każdego pytania",
   "paywallTitleFavorites": "Zachowaj ulubione pytania na zawsze",
   "paywallTitleHistory": "Wszystkie Twoje głosy w jednym miejscu",

@@ -80,6 +80,29 @@ void main() {
     expect(s.nextRankStreak, isNull);
   });
 
+  test('ad_reveals_left_today parses; absent (old server) stays null', () {
+    final capped = UserStats.fromJson(const {
+      'current_streak': 1,
+      'longest_streak': 1,
+      'free_unlock_credits': 0,
+      'rank_tier': 0,
+      'rank_name': 'Nowicjusz',
+      'is_premium': false,
+      'ad_reveals_left_today': 0,
+    });
+    expect(capped.adRevealsLeftToday, 0);
+
+    final unknown = UserStats.fromJson(const {
+      'current_streak': 1,
+      'longest_streak': 1,
+      'free_unlock_credits': 0,
+      'rank_tier': 0,
+      'rank_name': 'Nowicjusz',
+      'is_premium': false,
+    });
+    expect(unknown.adRevealsLeftToday, isNull);
+  });
+
   test('a signed-in user syncs state once', () async {
     final repo = _CountingRepo(stats);
     final c = container(
@@ -132,6 +155,55 @@ void main() {
 
       expect(c.read(freeUnlockCreditsProvider), 1);
       expect(c.read(currentStreakProvider), 4);
+    },
+  );
+
+  test('adCapReachedProvider: spent cap => true, unknown => false', () async {
+    const cappedStats = UserStats(
+      currentStreak: 1,
+      longestStreak: 1,
+      freeUnlockCredits: 0,
+      rankTier: 0,
+      rankName: 'Nowicjusz',
+      adRevealsLeftToday: 0,
+    );
+    final c = container(
+      session: const SessionState(userId: 'u1', isAnonymous: false),
+      repo: _CountingRepo(cappedStats),
+    );
+    await c.read(sessionProvider.future);
+    await c.read(userStatsProvider.future);
+    expect(c.read(adCapReachedProvider), isTrue);
+
+    // Null (pre-sync / old server / premium row) must NOT read as capped: the
+    // paywall keeps its ad button and the reveal RPC stays the authority.
+    final c2 = container(
+      session: const SessionState(userId: 'u1', isAnonymous: false),
+      repo: _CountingRepo(stats),
+    );
+    await c2.read(sessionProvider.future);
+    await c2.read(userStatsProvider.future);
+    expect(c2.read(adCapReachedProvider), isFalse);
+  });
+
+  test(
+    'adCapReachedProvider is false for premium regardless of stats',
+    () async {
+      const cappedStats = UserStats(
+        currentStreak: 1,
+        longestStreak: 1,
+        freeUnlockCredits: 0,
+        rankTier: 0,
+        rankName: 'Nowicjusz',
+        adRevealsLeftToday: 0,
+      );
+      final c = container(
+        session: const SessionState(userId: 'u1', isPremium: true),
+        repo: _CountingRepo(cappedStats),
+      );
+      await c.read(sessionProvider.future);
+      await c.read(userStatsProvider.future);
+      expect(c.read(adCapReachedProvider), isFalse);
     },
   );
 

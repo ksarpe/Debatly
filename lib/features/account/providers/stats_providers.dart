@@ -35,6 +35,18 @@ final freeUnlockCreditsProvider = Provider<int>((ref) {
   return ref.watch(userStatsValueProvider).freeUnlockCredits;
 });
 
+/// Whether today's ad-reveal cap is exhausted (server-synced, UTC day).
+///
+/// False while unknown (premium, pre-sync, offline snapshot from an older
+/// server) — the paywall then keeps its ad button and the reveal RPC stays the
+/// authority. The server enforces the cap regardless; this only decides
+/// whether the "watch an ad" button is even offered.
+final adCapReachedProvider = Provider<bool>((ref) {
+  if (ref.watch(sessionProvider).value?.isPremium ?? false) return false;
+  final left = ref.watch(userStatsValueProvider).adRevealsLeftToday;
+  return left != null && left <= 0;
+});
+
 /// The current streak length (decayed server-side by the streak "freeze": one
 /// rank per 3 missed days, instead of snapping to 0).
 final currentStreakProvider = Provider<int>(

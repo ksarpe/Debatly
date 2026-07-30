@@ -18,6 +18,7 @@ class RevealPaywall extends StatelessWidget {
     required this.busy,
     this.onSignIn,
     this.teaser,
+    this.adCapReached = false,
   });
 
   final VoidCallback onWatchAd;
@@ -34,6 +35,11 @@ class RevealPaywall extends StatelessWidget {
   /// First couple of words of the next question (from `peek_next_question`),
   /// teased above the CTAs. Falls back to a generic line when absent.
   final String? teaser;
+
+  /// Today's ad-reveal cap (server-enforced) is exhausted: the ad button is
+  /// dropped and PRO becomes the only unlock, under "come back tomorrow" copy.
+  /// The teaser stays — the wall should still show what's being missed.
+  final bool adCapReached;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +61,9 @@ class RevealPaywall extends StatelessWidget {
           ),
         const SizedBox(height: 10),
         Text(
-          context.l10n.watchAdToReveal,
+          adCapReached
+              ? context.l10n.adLimitReachedInfo
+              : context.l10n.watchAdToReveal,
           textAlign: TextAlign.center,
           style: TextStyle(color: context.colors.subtle, fontSize: 14),
         ),
@@ -86,12 +94,14 @@ class RevealPaywall extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _UnlockButton(
-                icon: Icons.play_circle_outline,
-                label: context.l10n.unlockWithAd,
-                onTap: busy ? null : onWatchAd,
-              ),
-              const SizedBox(height: 12),
+              if (!adCapReached) ...[
+                _UnlockButton(
+                  icon: Icons.play_circle_outline,
+                  label: context.l10n.unlockWithAd,
+                  onTap: busy ? null : onWatchAd,
+                ),
+                const SizedBox(height: 12),
+              ],
               _UnlockButton(
                 icon: Icons.workspace_premium_outlined,
                 label: context.l10n.goPro,
