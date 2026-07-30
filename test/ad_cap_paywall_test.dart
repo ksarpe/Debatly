@@ -104,8 +104,16 @@ void main() {
       find.textContaining('Dzisiejsze darmowe odblokowania wykorzystane'),
       findsOneWidget,
     );
+    // The countdown to the UTC-midnight reset tells the user WHEN new free
+    // unlocks arrive (exact digits depend on the wall clock, so match the
+    // stable prefix).
+    expect(find.textContaining('Nowe odblokowania za'), findsOneWidget);
     // The escape hatch back to the free daily must survive the capped variant.
     expect(find.text('Wróć do darmowego pytania'), findsOneWidget);
+
+    // Tear the tree down so the countdown's periodic timer is cancelled —
+    // otherwise the test would end with a pending timer and fail.
+    await tester.pumpWidget(const SizedBox());
   });
 }
 

@@ -695,6 +695,9 @@ class _WindQuestionViewState extends ConsumerState<WindQuestionView>
         child = RevealPaywall(
           teaser: _peeked?.teaser,
           adCapReached: adCapReached,
+          // Midnight UTC passed while the capped wall was on screen — re-sync
+          // so the fresh allowance brings the ad button back immediately.
+          onAdCapExpired: () => ref.invalidate(userStatsProvider),
           onWatchAd: _watchAdReveal,
           onGetPremium: _goPremium,
           onBackToDaily: _backToDaily,

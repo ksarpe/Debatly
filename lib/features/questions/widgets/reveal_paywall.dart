@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
@@ -19,6 +21,7 @@ class RevealPaywall extends StatelessWidget {
     this.onSignIn,
     this.teaser,
     this.adCapReached = false,
+    this.onAdCapExpired,
   });
 
   final VoidCallback onWatchAd;
@@ -37,9 +40,15 @@ class RevealPaywall extends StatelessWidget {
   final String? teaser;
 
   /// Today's ad-reveal cap (server-enforced) is exhausted: the ad button is
-  /// dropped and PRO becomes the only unlock, under "come back tomorrow" copy.
+  /// dropped and PRO becomes the only unlock, under "come back tomorrow" copy
+  /// plus a live countdown to the UTC-midnight reset.
   /// The teaser stays — the wall should still show what's being missed.
   final bool adCapReached;
+
+  /// Fired once when the countdown crosses the UTC-midnight reset while the
+  /// capped wall is on screen — the caller re-syncs the server state so the ad
+  /// button comes back without the user restarting the app.
+  final VoidCallback? onAdCapExpired;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +76,10 @@ class RevealPaywall extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(color: context.colors.subtle, fontSize: 14),
         ),
+        if (adCapReached) ...[
+          const SizedBox(height: 8),
+          _AdCapCountdown(onExpired: onAdCapExpired),
+        ],
         if (onSignIn != null) ...[
           const SizedBox(height: 2),
           TextButton(
@@ -141,6 +154,90 @@ class RevealPaywall extends StatelessWidget {
             textStyle: const TextStyle(fontSize: 13),
           ),
           child: Text(context.l10n.restorePurchase),
+        ),
+      ],
+    );
+  }
+}
+
+/// "Nowe odblokowania za X godz. Y min" — counts down to the next UTC midnight,
+/// the moment the server's daily ad-reveal cap lazily resets (the cap counts
+/// the SERVER's UTC day, so local midnight would show the wrong time). Ticks
+/// once a minute; display is hours+minutes so that's plenty. When the boundary
+/// passes it fires [onExpired] (once) and stops — the owner re-syncs the stats,
+/// which flips the paywall back to its ad-button variant and disposes this.
+class _AdCapCountdown extends StatefulWidget {
+  const _AdCapCountdown({this.onExpired});
+
+  final VoidCallback? onExpired;
+
+  @override
+  State<_AdCapCountdown> createState() => _AdCapCountdownState();
+}
+
+class _AdCapCountdownState extends State<_AdCapCountdown> {
+  Timer? _timer;
+  Duration _remaining = _untilUtcMidnight();
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) => _tick());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  static Duration _untilUtcMidnight() {
+    final now = DateTime.now().toUtc();
+    // DateTime.utc normalises day+1 across month/year ends.
+    return DateTime.utc(now.year, now.month, now.day + 1).difference(now);
+  }
+
+  void _tick() {
+    if (!mounted) return;
+    final left = _untilUtcMidnight();
+    if (left > _remaining) {
+      // Remaining only ever shrinks — a jump UP (back to ~24h) means the
+      // midnight reset just passed. Fire once and stop; the owner's re-sync
+      // swaps the paywall back to its ad variant, which disposes this widget.
+      _timer?.cancel();
+      widget.onExpired?.call();
+      return;
+    }
+    setState(() => _remaining = left);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final left = _remaining;
+    final hours = left.inHours;
+    // Under an hour, never show "0 min" — the reset is at most a minute away.
+    final minutes = hours > 0
+        ? left.inMinutes % 60
+        : left.inMinutes.clamp(1, 59);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.schedule, size: 14, color: context.colors.subtle),
+        const SizedBox(width: 5),
+        // Flexible so the line wraps instead of overflowing on narrow screens
+        // or large accessibility text scales.
+        Flexible(
+          child: Text(
+            hours > 0
+                ? context.l10n.adLimitResetInHM(hours, minutes)
+                : context.l10n.adLimitResetInM(minutes),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.colors.subtle,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ],
     );

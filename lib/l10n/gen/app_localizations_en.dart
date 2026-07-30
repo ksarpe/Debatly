@@ -670,6 +670,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adLimitReachedToast => 'You\'ve hit today\'s ad unlock limit.';
 
   @override
+  String adLimitResetInHM(int hours, int minutes) {
+    return 'New unlocks in $hours hr $minutes min';
+  }
+
+  @override
+  String adLimitResetInM(int minutes) {
+    return 'New unlocks in $minutes min';
+  }
+
+  @override
   String get orSignInFreeQuestion => 'Or sign in to get one free question.';
 
   @override

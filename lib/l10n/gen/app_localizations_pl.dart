@@ -678,6 +678,16 @@ class AppLocalizationsPl extends AppLocalizations {
       'Dzienny limit odblokowań za reklamy został osiągnięty.';
 
   @override
+  String adLimitResetInHM(int hours, int minutes) {
+    return 'Nowe odblokowania za $hours godz. $minutes min';
+  }
+
+  @override
+  String adLimitResetInM(int minutes) {
+    return 'Nowe odblokowania za $minutes min';
+  }
+
+  @override
   String get orSignInFreeQuestion =>
       'Albo zaloguj się po jedno darmowe pytanie.';
 

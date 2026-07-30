@@ -1262,6 +1262,18 @@ abstract class AppLocalizations {
   /// **'You\'ve hit today\'s ad unlock limit.'**
   String get adLimitReachedToast;
 
+  /// No description provided for @adLimitResetInHM.
+  ///
+  /// In en, this message translates to:
+  /// **'New unlocks in {hours} hr {minutes} min'**
+  String adLimitResetInHM(int hours, int minutes);
+
+  /// No description provided for @adLimitResetInM.
+  ///
+  /// In en, this message translates to:
+  /// **'New unlocks in {minutes} min'**
+  String adLimitResetInM(int minutes);
+
   /// No description provided for @orSignInFreeQuestion.
   ///
   /// In en, this message translates to:

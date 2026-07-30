@@ -287,6 +287,19 @@
   "watchAdToReveal": "Watch an ad to reveal a new question.",
   "adLimitReachedInfo": "Today's free unlocks are used up. Come back tomorrow — or unlock everything with PRO.",
   "adLimitReachedToast": "You've hit today's ad unlock limit.",
+  "adLimitResetInHM": "New unlocks in {hours} hr {minutes} min",
+  "@adLimitResetInHM": {
+    "placeholders": {
+      "hours": { "type": "int" },
+      "minutes": { "type": "int" }
+    }
+  },
+  "adLimitResetInM": "New unlocks in {minutes} min",
+  "@adLimitResetInM": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
   "orSignInFreeQuestion": "Or sign in to get one free question.",
   "unlockWithAd": "Unlock with an ad",
   "proActiveTitle": "PRO active 🎉",

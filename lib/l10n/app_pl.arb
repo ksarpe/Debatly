@@ -234,6 +234,19 @@
   "watchAdToReveal": "Obejrzyj reklamę, aby odsłonić nowe pytanie.",
   "adLimitReachedInfo": "Dzisiejsze darmowe odblokowania wykorzystane. Wróć jutro — albo odblokuj wszystko z PRO.",
   "adLimitReachedToast": "Dzienny limit odblokowań za reklamy został osiągnięty.",
+  "adLimitResetInHM": "Nowe odblokowania za {hours} godz. {minutes} min",
+  "@adLimitResetInHM": {
+    "placeholders": {
+      "hours": { "type": "int" },
+      "minutes": { "type": "int" }
+    }
+  },
+  "adLimitResetInM": "Nowe odblokowania za {minutes} min",
+  "@adLimitResetInM": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
   "orSignInFreeQuestion": "Albo zaloguj się po jedno darmowe pytanie.",
   "unlockWithAd": "Odblokuj reklamą",
 
