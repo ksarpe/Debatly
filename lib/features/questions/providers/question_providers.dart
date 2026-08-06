@@ -46,7 +46,8 @@ final questionRepositoryProvider = Provider<QuestionRepository>((ref) {
   );
 });
 
-/// Loads the full list of questions once.
+/// Loads the full question catalog once — for PREMIUM users only. Free users
+/// get an empty list without any fetch: their deck never reads the catalog.
 final questionsProvider = FutureProvider<List<Question>>((ref) async {
   // Hold the first fetch until the session's initial load has resolved, so the
   // catalog is fetched ONCE with the final identity + premium tier — not once on
@@ -58,6 +59,12 @@ final questionsProvider = FutureProvider<List<Question>>((ref) async {
   if (ref.watch(sessionProvider.select((s) => s.isLoading))) {
     return const <Question>[];
   }
+  // A free user's deck is only the daily + this session's reveals (see
+  // [questionDeckProvider]) — the locked catalog is never rendered for them, so
+  // don't ship ~1000 locked rows (and jsonEncode them into the cache on the UI
+  // thread) on every launch. Watching the flag here (not just via the repo)
+  // makes the pool load the moment premium flips true.
+  if (!ref.watch(isPremiumProvider)) return const <Question>[];
   final repo = ref.watch(questionRepositoryProvider);
   return repo.fetchQuestions();
 });
