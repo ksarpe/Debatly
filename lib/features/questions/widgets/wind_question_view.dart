@@ -44,11 +44,26 @@ class WindQuestionView extends ConsumerStatefulWidget {
   const WindQuestionView({super.key});
 
   @override
-  ConsumerState<WindQuestionView> createState() => _WindQuestionViewState();
+  ConsumerState<WindQuestionView> createState() => WindQuestionViewState();
 }
 
-class _WindQuestionViewState extends ConsumerState<WindQuestionView>
+/// The one live instance sits on the home screen under this key, so
+/// [QuestionBody]'s full-screen gesture layer can forward swipes made anywhere
+/// on the feed (not just over the question text) into [WindQuestionViewState].
+final GlobalKey<WindQuestionViewState> windQuestionViewKey =
+    GlobalKey<WindQuestionViewState>(debugLabel: 'wind_question_view');
+
+/// A slow, deliberate drag ends with ~zero velocity and would never pass the
+/// velocity gate, so total finger travel past this many logical pixels commits
+/// the swipe too. Tablet users in particular drag slowly (App Review swiped on
+/// an iPad and "the app did not react").
+const double _kSwipeCommitDistance = 64;
+
+class WindQuestionViewState extends ConsumerState<WindQuestionView>
     with TickerProviderStateMixin {
+  /// Accumulated horizontal finger travel of the drag in progress, in logical
+  /// pixels — the distance fallback used when the release velocity is ~zero.
+  double _dragDx = 0;
   late final AnimationController _controller;
 
   /// Drives the lock-opening flourish played over the canvas right before a
@@ -131,6 +146,27 @@ class _WindQuestionViewState extends ConsumerState<WindQuestionView>
     _controller.dispose();
     _lockController.dispose();
     super.dispose();
+  }
+
+  /// Entry points for the horizontal swipe, public so [QuestionBody]'s
+  /// full-screen gesture layer can drive them through [windQuestionViewKey].
+  /// A swipe commits on release velocity (a flick) OR on total travel (a slow
+  /// drag, see [_kSwipeCommitDistance]) — velocity wins when both are present.
+  void handleDragStart(DragStartDetails details) {
+    _dragDx = 0;
+  }
+
+  void handleDragUpdate(DragUpdateDetails details) {
+    _dragDx += details.delta.dx;
+  }
+
+  void handleDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity.abs() > 100) {
+      _advance(velocity > 0 ? 1 : -1);
+    } else if (_dragDx.abs() > _kSwipeCommitDistance) {
+      _advance(_dragDx > 0 ? 1 : -1);
+    }
   }
 
   /// [direction] is the sign of the swipe: -1 leftward, +1 rightward.
@@ -713,12 +749,16 @@ class _WindQuestionViewState extends ConsumerState<WindQuestionView>
       );
     }
 
+    // This detector only spans the question text's own bounds — the rest of
+    // the screen is covered by [QuestionBody]'s full-screen gesture layer,
+    // which forwards into the same handlers via [windQuestionViewKey]. Kept
+    // here as well so a drag that starts on the text (and the widget tests
+    // that fling this widget directly) work without the outer layer.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onHorizontalDragEnd: (details) {
-        final velocity = details.primaryVelocity ?? 0;
-        if (velocity.abs() > 100) _advance(velocity > 0 ? 1 : -1);
-      },
+      onHorizontalDragStart: handleDragStart,
+      onHorizontalDragUpdate: handleDragUpdate,
+      onHorizontalDragEnd: handleDragEnd,
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
