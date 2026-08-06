@@ -1,9 +1,0 @@
-# Questions for Play Store / App Store screenshots (English).
-# One line = one screenshot. Blank lines and lines starting with "#" are skipped.
-# Render: see tool/README.md  (flutter test tool/export_store_screenshots.dart)
-
-Is cheating in your thoughts still cheating?
-If you could know the exact date of your death, would you want to?
-Would you tell a friend a hard truth at the risk of the friendship?
-Can money actually buy happiness?
-Can you love two people at once?

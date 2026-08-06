@@ -1,9 +1,0 @@
-# Pytania do screenów Sklepu Play / App Store (wersja polska).
-# Jedna linia = jeden screen. Puste linie i linie zaczynające się od "#" są pomijane.
-# Render: zob. tool/README.md  (flutter test tool/export_store_screenshots.dart)
-
-Czy zdrada myślami jest zdradą?
-Gdybyś mógł poznać dokładną datę swojej śmierci, chciałbyś ją znać?
-Czy powiedziałbyś przyjacielowi gorzką prawdę, ryzykując przyjaźń?
-Czy pieniądze potrafią kupić szczęście?
-Czy można kochać dwie osoby naraz?
