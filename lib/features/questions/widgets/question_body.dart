@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -62,6 +64,12 @@ class QuestionBody extends ConsumerWidget {
       ref.watch(smaczkiProvider(questionId));
     }
 
+    // Whether the bottom overlay (swipe hint / "go deeper" / back-to-daily) is
+    // on screen. Drives both the overlay itself and the space the centred group
+    // above has to stay clear of.
+    final showOverlay =
+        (isReadable && questionId != null || !isDaily) && !atRevealSlot;
+
     // Centred group: the question, and — under every readable one — the TAK/NIE
     // vote right beneath it, so the buttons sit by the question rather than
     // pinned to the screen bottom. Only the swipe hint + "go deeper" stay in the
@@ -84,51 +92,83 @@ class QuestionBody extends ConsumerWidget {
       child: Stack(
         children: [
           Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // GlobalKey does double duty: keeps the State stable across
-                    // unrelated rebuilds (so the peeked teaser survives a
-                    // sibling toggling), and gives the outer gesture layer above
-                    // its handle into the swipe handlers.
-                    WindQuestionView(key: windQuestionViewKey),
-                    // Vote under EVERY readable question — casting reveals the
-                    // community split, the feed's core hook, and any vote can
-                    // move the streak (server: once per UTC day). Keyed by
-                    // (user, id) so it resets both when swiping to a new question
-                    // and when the account changes. `isDaily` only picks the
-                    // analytics event.
-                    if (isReadable && questionId != null) ...[
-                      const SizedBox(height: 28),
-                      DailyVotePanel(
-                        key: ValueKey('${userId ?? ''}:$questionId'),
-                        questionId: questionId,
-                        isDaily: isDaily,
+            child: LayoutBuilder(
+              builder: (context, constraints) => Padding(
+                // Narrow side margins: the question is the widest thing here,
+                // and every pixel of line width is a word that doesn't wrap onto
+                // another line. Everything below it is centred and much
+                // narrower, so only the text feels the difference.
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Center(
+                  child: ConstrainedBox(
+                    // The group stays centred on the true midpoint (the app bar
+                    // floats over the body), so capping its height symmetrically
+                    // is what keeps a tall one from reaching either the status
+                    // chips above or the bottom overlay below. Anything that
+                    // doesn't fit is absorbed by the question, which shrinks to
+                    // the space it actually has — see QuestionTextStyles.
+                    constraints: BoxConstraints(
+                      maxHeight: _centredGroupMaxHeight(
+                        context,
+                        boxHeight: constraints.maxHeight,
+                        showOverlay: showOverlay,
                       ),
-                    ],
-                    // A visible share pill sitting right under the question (and
-                    // under its vote panel), so it's an obvious action rather
-                    // than the faint icon it used to be down in the bottom
-                    // overlay. Readable questions only — never a teaser. Paired
-                    // with the "Historia" pill — every question is votable now,
-                    // so the PRO history of your votes is one tap away anywhere.
-                    if (isReadable && questionId != null) ...[
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ShareQuestionButton(
-                            questionText: current.questionText,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // GlobalKey does double duty: keeps the State stable
+                        // across unrelated rebuilds (so the peeked teaser survives
+                        // a sibling toggling), and gives the outer gesture layer
+                        // above its handle into the swipe handlers.
+                        //
+                        // Flexible on the question ONLY: it hands the leftover
+                        // height to the text (which shrinks to fit), while the
+                        // reveal slot's paywall — a taller, self-contained column
+                        // — keeps sizing itself freely.
+                        if (atRevealSlot)
+                          WindQuestionView(key: windQuestionViewKey)
+                        else
+                          Flexible(
+                            child: WindQuestionView(key: windQuestionViewKey),
                           ),
-                          const SizedBox(width: 12),
-                          const HistoryButton(),
+                        // Vote under EVERY readable question — casting reveals the
+                        // community split, the feed's core hook, and any vote can
+                        // move the streak (server: once per UTC day). Keyed by
+                        // (user, id) so it resets both when swiping to a new
+                        // question and when the account changes. `isDaily` only
+                        // picks the analytics event.
+                        if (isReadable && questionId != null) ...[
+                          const SizedBox(height: 28),
+                          DailyVotePanel(
+                            key: ValueKey('${userId ?? ''}:$questionId'),
+                            questionId: questionId,
+                            isDaily: isDaily,
+                          ),
                         ],
-                      ),
-                    ],
-                  ],
+                        // A visible share pill sitting right under the question
+                        // (and under its vote panel), so it's an obvious action
+                        // rather than the faint icon it used to be down in the
+                        // bottom overlay. Readable questions only — never a
+                        // teaser. Paired with the "Historia" pill — every question
+                        // is votable now, so the PRO history of your votes is one
+                        // tap away anywhere.
+                        if (isReadable && questionId != null) ...[
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ShareQuestionButton(
+                                questionText: current.questionText,
+                              ),
+                              const SizedBox(width: 12),
+                              const HistoryButton(),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -138,7 +178,7 @@ class QuestionBody extends ConsumerWidget {
           // readable OR locked — it also offers a borderless "← Daily" return, so
           // a free user who landed on a locked teaser and doesn't want to watch an
           // ad can get back to the free daily in one tap instead of being stuck.
-          if ((isReadable && questionId != null || !isDaily) && !atRevealSlot)
+          if (showOverlay)
             SafeArea(
               child: Align(
                 alignment: Alignment.bottomCenter,
@@ -197,6 +237,40 @@ class QuestionBody extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Height the bottom overlay claims at the foot of the screen — the swipe hint,
+/// its gap, the "go deeper" pill and the 20px bottom padding — plus a little
+/// breathing room. Text-scaled, since the hint and the pill's label grow with
+/// the system font.
+double _bottomOverlayReserve(BuildContext context) {
+  final scale = MediaQuery.textScalerOf(context).scale(1);
+  return 20 + 14 + (17 + 63) * scale + 12;
+}
+
+/// The height cap for the centred question group inside a [boxHeight]-tall body.
+///
+/// The group is centred against the whole body — the app bar floats over it —
+/// so it grows equally in both directions and the cap has to be symmetric:
+/// whichever end claims more space (the app bar with the status chips, or the
+/// bottom overlay) sets the reserve for both. Whatever is left is the group's
+/// budget, and the question inside it shrinks to whatever remains once the vote
+/// panel and the pills have taken theirs.
+double _centredGroupMaxHeight(
+  BuildContext context, {
+  required double boxHeight,
+  required bool showOverlay,
+}) {
+  if (!boxHeight.isFinite || boxHeight <= 0) return double.infinity;
+  final padding = MediaQuery.paddingOf(context);
+  final top = padding.top + kToolbarHeight;
+  final bottom =
+      padding.bottom + (showOverlay ? _bottomOverlayReserve(context) : 24);
+  final height = boxHeight - 2 * math.max(top, bottom);
+  // Never squeeze the group below half the body: on a very short or heavily
+  // scaled display it's better to let the two ends touch than to crush the
+  // question into nothing.
+  return math.max(height, boxHeight / 2);
 }
 
 /// A borderless link pinned at the bottom of the screen, shown only when a FREE

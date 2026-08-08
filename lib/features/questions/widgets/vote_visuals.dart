@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
@@ -19,6 +21,15 @@ const double _kSkew = 16;
 
 /// Shared height of the slanted buttons and result panels.
 const double _kVoteHeight = 56;
+
+/// [_kVoteHeight] grown for the system font, so the label + percentage inside a
+/// result panel don't clip at a large accessibility text size. Capped: past
+/// ~1.6× the panels would start crowding the question above them, and the text
+/// stays legible without the box following it all the way up.
+double _voteHeight(BuildContext context) {
+  final scale = MediaQuery.textScalerOf(context).scale(1);
+  return _kVoteHeight * math.min(1.6, math.max(1, scale));
+}
 
 /// The pre-vote state: the two slanted TAK / NIE buttons. [onVote] is handed the
 /// chosen side ([VoteResult.yes] / [VoteResult.no]); [busy] dims + disables them
@@ -94,7 +105,7 @@ class VoteResultsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     // The two slanted panels plus a "VS" badge floating over the seam.
     final panels = SizedBox(
-      height: _kVoteHeight,
+      height: _voteHeight(context),
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -220,7 +231,7 @@ class _VoteButton extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: SizedBox(
-            height: _kVoteHeight,
+            height: _voteHeight(context),
             child: Stack(
               children: [
                 Center(
@@ -280,7 +291,7 @@ class _ResultPanel extends StatelessWidget {
     return ClipPath(
       clipper: _SkewClipper(slant),
       child: Container(
-        height: _kVoteHeight,
+        height: _voteHeight(context),
         color: color.withValues(alpha: mine ? 0.42 : 0.12),
         alignment: Alignment.center,
         child: Column(

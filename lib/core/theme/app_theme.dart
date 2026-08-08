@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// The semantic, brightness-dependent colours — everything that must flip
@@ -218,6 +220,118 @@ class QuestionTextStyles {
     if (len >= _longLen) return minFontSize;
     final t = (len - _shortLen) / (_longLen - _shortLen);
     return maxFontSize - t * (maxFontSize - minFontSize);
+  }
+
+  /// Floor used when the length-based size genuinely does not fit the space it
+  /// is given — a small screen, a large system font, or an unusually long
+  /// question. [minFontSize] stays the *design* floor for a comfortable screen;
+  /// this one only exists so the question shrinks rather than growing into the
+  /// vote panel and the share / history pills below it.
+  static const double hardMinFontSize = 18;
+
+  /// Horizontal gap between two words on the same line, kept proportional to
+  /// the (possibly reduced) size — 14px at the 42px base. Lives here so the
+  /// `FallingWordsText` layout and [fitFontSize]'s simulation of it can never
+  /// drift apart.
+  static double wordSpacingFor(double fontSize) =>
+      fontSize * (14 / maxFontSize);
+
+  /// Vertical gap between two lines of the assembled question.
+  static const double lineSpacing = 2;
+
+  /// Step (in px) the fit search walks down by.
+  static const double _fitStep = 1;
+
+  /// Last few fit results, keyed by (text, box, text scale). The question is
+  /// re-laid-out on every rebuild of the feed, and the search below costs a
+  /// handful of [TextPainter] passes — with one question on screen at a time a
+  /// tiny cache turns all but the first into a map lookup.
+  static final Map<String, double> _fitCache = {};
+
+  /// The largest size at or below [fontSizeFor] at which [text], laid out as
+  /// centred words exactly the way `FallingWordsText` lays them out, still fits
+  /// a [maxWidth] × [maxHeight] box — never going below [hardMinFontSize].
+  ///
+  /// [fontSizeFor] alone only knows the character count, so on a short screen
+  /// (or with a large system font) a long question grew past the space it had
+  /// and ran into the vote panel and the pills underneath. This keeps the
+  /// length-based size as the intended look and only shrinks further when the
+  /// box demands it. An unbounded box returns the length-based size unchanged.
+  static double fitFontSize(
+    String text, {
+    required double maxWidth,
+    required double maxHeight,
+    TextScaler textScaler = TextScaler.noScaling,
+  }) {
+    final preferred = fontSizeFor(text);
+    if (maxWidth <= 0 ||
+        maxHeight <= 0 ||
+        !maxWidth.isFinite ||
+        !maxHeight.isFinite) {
+      return preferred;
+    }
+
+    final key =
+        '${maxWidth.round()}x${maxHeight.round()}'
+        '@${textScaler.scale(100).round()}|$text';
+    final cached = _fitCache[key];
+    if (cached != null) return cached;
+
+    final words = text.trim().split(RegExp(r'\s+'));
+    var size = preferred;
+    while (size > hardMinFontSize &&
+        _blockHeight(words, size, maxWidth, textScaler) > maxHeight) {
+      size = math.max(hardMinFontSize, size - _fitStep);
+    }
+
+    // Bounded so a long session of varied questions can't grow it forever.
+    if (_fitCache.length >= 32) _fitCache.clear();
+    return _fitCache[key] = size;
+  }
+
+  /// Height the assembled question occupies at [fontSize], replaying the greedy
+  /// line-breaking of the `Wrap` that lays the words out.
+  static double _blockHeight(
+    List<String> words,
+    double fontSize,
+    double maxWidth,
+    TextScaler textScaler,
+  ) {
+    final spacing = wordSpacingFor(fontSize);
+    final style = fillFor(fontSize);
+    var total = 0.0;
+    var runWidth = 0.0;
+    var runHeight = 0.0;
+
+    void closeRun() {
+      total += runHeight + (total > 0 ? lineSpacing : 0);
+    }
+
+    for (final word in words) {
+      final size = _measure(word.toUpperCase(), style, textScaler);
+      if (runWidth > 0 && runWidth + spacing + size.width > maxWidth) {
+        closeRun();
+        runWidth = size.width;
+        runHeight = size.height;
+      } else {
+        runWidth = runWidth > 0 ? runWidth + spacing + size.width : size.width;
+        runHeight = math.max(runHeight, size.height);
+      }
+    }
+    if (runWidth > 0) closeRun();
+    return total;
+  }
+
+  static Size _measure(String text, TextStyle style, TextScaler textScaler) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: textScaler,
+      maxLines: 1,
+    )..layout();
+    final size = painter.size;
+    painter.dispose();
+    return size;
   }
 
   /// Bottom layer: the black outline, drawn slightly wider, with a drop shadow.

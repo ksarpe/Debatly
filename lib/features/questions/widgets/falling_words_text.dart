@@ -91,26 +91,39 @@ class _FallingWordsTextState extends State<FallingWordsText>
 
   @override
   Widget build(BuildContext context) {
-    // One size for the whole question; long ones shrink so they don't overflow.
-    final fontSize = QuestionTextStyles.fontSizeFor(widget.text);
-    // Keep the gap between words proportional to the (possibly reduced) size.
-    final spacing = fontSize * (14 / QuestionTextStyles.maxFontSize);
-    return Wrap(
-      alignment: WrapAlignment.center,
-      runAlignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: spacing,
-      runSpacing: 2,
-      children: [
-        for (var i = 0; i < _words.length; i++)
-          _FallingWord(
-            word: _words[i],
-            fontSize: fontSize,
-            controller: _controller,
-            window: _window(i),
-            dropDistance: _dropDistance,
-          ),
-      ],
+    // One size for the whole question. The length-based size is the intended
+    // look; when the box it's given can't hold it — short screen, big system
+    // font, long question — it shrinks further so the text never grows into the
+    // vote panel and the share / history pills sitting below it.
+    // Read outside the builder: it runs during layout, where depending on an
+    // inherited widget is best avoided.
+    final textScaler = MediaQuery.textScalerOf(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fontSize = QuestionTextStyles.fitFontSize(
+          widget.text,
+          maxWidth: constraints.maxWidth,
+          maxHeight: constraints.maxHeight,
+          textScaler: textScaler,
+        );
+        return Wrap(
+          alignment: WrapAlignment.center,
+          runAlignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: QuestionTextStyles.wordSpacingFor(fontSize),
+          runSpacing: QuestionTextStyles.lineSpacing,
+          children: [
+            for (var i = 0; i < _words.length; i++)
+              _FallingWord(
+                word: _words[i],
+                fontSize: fontSize,
+                controller: _controller,
+                window: _window(i),
+                dropDistance: _dropDistance,
+              ),
+          ],
+        );
+      },
     );
   }
 }
