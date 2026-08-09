@@ -925,7 +925,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get paywallBenefitUnlimitedBody =>
-      'Czytaj całą bibliotekę 1000 pytań — bez dziennych limitów i czekania.';
+      'Czytaj całą bibliotekę ponad 500 pytań — bez dziennych limitów i czekania.';
 
   @override
   String get paywallBenefitNoAdsTitle => 'Zero reklam';

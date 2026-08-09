@@ -1595,7 +1595,7 @@ abstract class AppLocalizations {
   /// No description provided for @paywallBenefitUnlimitedBody.
   ///
   /// In en, this message translates to:
-  /// **'Browse the whole library of 1000 questions — no daily limits, no waiting.'**
+  /// **'Browse the whole library of 500+ questions — no daily limits, no waiting.'**
   String get paywallBenefitUnlimitedBody;
 
   /// No description provided for @paywallBenefitNoAdsTitle.

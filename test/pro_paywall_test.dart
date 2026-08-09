@@ -331,6 +331,44 @@ void main() {
     },
   );
 
+  testWidgets('footer links clear the bottom system inset', (tester) async {
+    // Regression: the sheet route uses `useSafeArea: true`, which is
+    // `SafeArea(bottom: false)` — so the restore/terms/privacy row ended up
+    // under the Android gesture bar, unreadable and untappable.
+    const inset = 64.0;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: LocalizedTestApp(
+          home: Builder(
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                viewPadding: const EdgeInsets.only(bottom: inset),
+                padding: const EdgeInsets.only(bottom: inset),
+              ),
+              child: Scaffold(
+                body: ProPaywallSheet(
+                  loadPackages: () async => [lifetime, monthly],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Scroll the sheet to its very end — the worst case for the footer.
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -2000),
+    );
+    await tester.pumpAndSettle();
+
+    final sheetBottom = tester.getRect(find.byType(ProPaywallSheet)).bottom;
+    final restoreBottom = tester.getBottomLeft(find.text('Przywróć zakup')).dy;
+    expect(restoreBottom, lessThanOrEqualTo(sheetBottom - inset));
+  });
+
   testWidgets('offering failure shows a retryable error state', (tester) async {
     var calls = 0;
     await pumpSheet(

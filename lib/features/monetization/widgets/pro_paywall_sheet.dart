@@ -292,6 +292,11 @@ class _ProPaywallSheetState extends ConsumerState<ProPaywallSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    // `useSafeArea: true` on the route is `SafeArea(bottom: false)` — it keeps
+    // the sheet below the status bar but leaves the BOTTOM inset to us. Without
+    // this the footer (restore / terms / privacy) sits under the Android
+    // gesture bar and can't be read or tapped.
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -300,7 +305,7 @@ class _ProPaywallSheetState extends ConsumerState<ProPaywallSheet> {
       child: Stack(
         children: [
           SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+            padding: EdgeInsets.fromLTRB(24, 16, 24, 20 + bottomInset),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

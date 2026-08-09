@@ -903,7 +903,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paywallBenefitUnlimitedBody =>
-      'Browse the whole library of 1000 questions — no daily limits, no waiting.';
+      'Browse the whole library of 500+ questions — no daily limits, no waiting.';
 
   @override
   String get paywallBenefitNoAdsTitle => 'Zero ads';
