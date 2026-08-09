@@ -1,442 +1,447 @@
 # -*- coding: utf-8 -*-
-"""Generuje regionalny cennik PPP (iOS + Android) do Excela dla aplikacji Debatly.
+"""Cennik Debatly — ZAPIS STANU FAKTYCZNEGO z Google Play (nie propozycja).
 
-Model: skalowanie w gorę i w dół wokół Polski jako punktu środkowego,
-US = Tier 1 (100%), zniżka PPP umiarkowana. Lifetime ~= 2.8x ceny miesięcznej
-w każdym kraju (spójny podpis "mniej niż N miesięcy").
-Wszystkie ceny to WARTOSCI STATYCZNE gotowe do wpisania w sklepie.
+Do 2026-08-09 ten plik generowal PROPOZYCJE cen z kotwic tierowych (US 8,99/24,99,
+PL 24,99/69,99, lifetime ~2,8x miesiecznej). Ta propozycja zostala ODRZUCONA —
+w Google Play stoi inny, docelowy cennik. Plik trzyma teraz TEN cennik, zeby
+zaden pozniejszy "fix" nie cofnal sklepu do nieaktualnego planu.
+
+Zrodlo: Google Play Console, ceny brutto (z VAT tam, gdzie kraj go nalicza),
+stan na 2026-08-09. Poprzedni arkusz (exports/cennik_regionalny_2026-07-13.xlsx)
+jest NIEAKTUALNY.
+
+Arkusz liczy trzy rzeczy, ktorych w konsoli nie widac:
+  * mnoznik lifetime/miesieczna i wynikajacy z niego podpis na paywallu
+    ("Mniej niz N miesiecy subskrypcji" — patrz _lifetimeSubline w
+    lib/features/monetization/widgets/paywall_offer_section.dart),
+  * kwote, ktora realnie zostaje po VAT i 15% prowizji sklepu,
+  * liste rynkow, gdzie mnoznik odstaje od reszty swiata.
+
+Uruchomienie:  python tool/gen_regional_pricing.py
 """
-import math
 import datetime
+import math
+import os
+
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-TODAY = "2026-07-13"
+TODAY = "2026-08-09"
 
-# ---------------------------------------------------------------------------
-# 1. KOTWICE CENOWE PER POZIOM (w USD). US = Tier 1.
-#    Lifetime ~ 2.8x miesięcznej (jak Twoje 69,99 / 24,99 PLN = 2.80x).
-# ---------------------------------------------------------------------------
-TIERS = {
-    "T1": {"label": "Premium",    "m": 8.99, "l": 24.99},
-    "T2": {"label": "Wysoki",     "m": 6.99, "l": 19.99},
-    "T3": {"label": "Sredni-wyz", "m": 4.99, "l": 13.99},
-    "T4": {"label": "Sredni-niz", "m": 3.99, "l": 10.99},
-    "T5": {"label": "Niski",      "m": 3.49, "l":  9.99},
-}
-US_M = TIERS["T1"]["m"]  # baza do % ceny US
+# Prowizja Google Play: 15% na pierwszy 1 mln USD rocznego przychodu oraz na
+# subskrypcje od pierwszego dnia. Zmien, jesli przekroczysz prog.
+STORE_FEE = 0.15
 
-# ---------------------------------------------------------------------------
-# 2. WALUTY: kod -> (kurs za 1 USD [orientacyjny, ~sty 2026], miejsca_dziesietne)
-#    Kursy sa przyblizeniem - sluza tylko do wyznaczenia ceny lokalnej.
-# ---------------------------------------------------------------------------
-CUR = {
-    "USD": (1.00,   2), "EUR": (0.92,   2), "GBP": (0.79,   2), "PLN": (3.65,  2),
-    "CHF": (0.88,   2), "CAD": (1.38,   2), "AUD": (1.52,   2), "NZD": (1.66,  2),
-    "SEK": (10.5,   0), "NOK": (10.8,   0), "DKK": (6.90,   2), "ISK": (138.0, 0),
-    "CZK": (22.5,   0), "HUF": (355.0,  0), "RON": (4.60,   2), "BGN": (1.80,  2),
-    "JPY": (152.0,  0), "KRW": (1360.0, 0), "TWD": (32.0,   0), "HKD": (7.80,  2),
-    "SGD": (1.34,   2), "CNY": (7.20,   0), "INR": (86.0,   0), "IDR": (16000.0,0),
-    "PHP": (58.0,   0), "VND": (25000.0,0), "THB": (34.0,   0), "MYR": (4.50,  2),
-    "TRY": (34.0,   0), "BRL": (5.50,   2), "MXN": (18.5,   2), "CLP": (950.0, 0),
-    "COP": (4100.0, 0), "PEN": (3.75,   2), "ZAR": (18.5,   2), "NGN": (1550.0,0),
-    "EGP": (49.0,   0), "PKR": (278.0,  0), "BDT": (118.0,  0), "KES": (129.0, 0),
-    "MAD": (9.90,   2), "UAH": (41.0,   0), "AED": (3.67,   2), "SAR": (3.75,  2),
-    "QAR": (3.64,   2), "KWD": (0.307,  3), "ILS": (3.70,   2), "DZD": (134.0, 0),
+# Podpis na karcie lifetime liczy sie tak samo jak w apce: floor(L/M) + 1.
+# Wartosc dominujaca w cenniku (patrz zakladka "Mnoznik") — odchylenia raportujemy.
+TARGET_MONTHS = 4
+
+# Waluty o innej niz 2 liczbie miejsc dziesietnych.
+DECIMALS = {
+    "JOD": 3,
+    "JPY": 0, "KRW": 0, "CLP": 0, "COP": 0, "IDR": 0, "IQD": 0, "MMK": 0,
+    "PKR": 0, "PYG": 0, "VND": 0, "XOF": 0, "XAF": 0, "HUF": 0, "RSD": 0,
 }
 
 # ---------------------------------------------------------------------------
-# 3. KRAJE: (nazwa PL, ISO2, waluta, poziom, uwaga)
+# CENNIK: (kraj, waluta, miesieczna, dozywotnia, VAT % lub None, uwaga)
+# Ceny dokladnie tak, jak stoja w Play Console (brutto).
 # ---------------------------------------------------------------------------
-COUNTRIES = [
-    # ---- T1 Premium ----
-    ("Stany Zjednoczone", "US", "USD", "T1", "Baza dla auto-przeliczenia Apple/Google"),
-    ("Kanada",            "CA", "CAD", "T1", ""),
-    ("Australia",         "AU", "AUD", "T1", ""),
-    ("Nowa Zelandia",     "NZ", "NZD", "T1", ""),
-    ("Szwajcaria",        "CH", "CHF", "T1", ""),
-    ("Norwegia",          "NO", "NOK", "T1", ""),
-    ("Dania",             "DK", "DKK", "T1", ""),
-    ("Szwecja",           "SE", "SEK", "T1", ""),
-    ("Islandia",          "IS", "ISK", "T1", ""),
-    ("Irlandia",          "IE", "EUR", "T1", ""),
-    ("Luksemburg",        "LU", "EUR", "T1", ""),
-    ("Singapur",          "SG", "SGD", "T1", ""),
-    ("Hongkong",          "HK", "HKD", "T1", ""),
-    ("Izrael",            "IL", "ILS", "T1", ""),
-    ("Zj. Emiraty Arab.", "AE", "AED", "T1", ""),
-    ("Katar",             "QA", "QAR", "T1", ""),
-    ("Kuwejt",            "KW", "KWD", "T1", ""),
-    ("Arabia Saudyjska",  "SA", "SAR", "T1", ""),
-    # ---- T2 Wysoki ----
-    ("Wielka Brytania",   "GB", "GBP", "T2", ""),
-    ("Niemcy",            "DE", "EUR", "T2", ""),
-    ("Francja",           "FR", "EUR", "T2", ""),
-    ("Holandia",          "NL", "EUR", "T2", ""),
-    ("Belgia",            "BE", "EUR", "T2", ""),
-    ("Austria",           "AT", "EUR", "T2", ""),
-    ("Finlandia",         "FI", "EUR", "T2", ""),
-    ("Wlochy",            "IT", "EUR", "T2", ""),
-    ("Hiszpania",         "ES", "EUR", "T2", ""),
-    ("Japonia",           "JP", "JPY", "T2", ""),
-    ("Korea Poludniowa",  "KR", "KRW", "T2", ""),
-    ("Tajwan",            "TW", "TWD", "T2", ""),
-    ("Polska",            "PL", "PLN", "T2", "TWOJA CENA BAZOWA (24,99 / 69,99)"),
-    ("Czechy",            "CZ", "CZK", "T2", ""),
-    ("Slowenia",          "SI", "EUR", "T2", ""),
-    ("Estonia",           "EE", "EUR", "T2", ""),
-    ("Litwa",             "LT", "EUR", "T2", ""),
-    ("Lotwa",             "LV", "EUR", "T2", ""),
-    ("Slowacja",          "SK", "EUR", "T2", ""),
-    ("Portugalia",        "PT", "EUR", "T2", ""),
-    ("Grecja",            "GR", "EUR", "T2", ""),
-    ("Cypr",              "CY", "EUR", "T2", ""),
-    ("Malta",             "MT", "EUR", "T2", ""),
-    ("Chorwacja",         "HR", "EUR", "T2", ""),
-    # ---- T3 Sredni-wyzszy ----
-    ("Wegry",             "HU", "HUF", "T3", ""),
-    ("Rumunia",           "RO", "RON", "T3", ""),
-    ("Bulgaria",          "BG", "BGN", "T3", ""),
-    ("Chile",             "CL", "CLP", "T3", ""),
-    ("Chiny",             "CN", "CNY", "T3", "App Store CN: punkty cenowe calkowite"),
-    ("Meksyk",            "MX", "MXN", "T3", ""),
-    ("Malezja",           "MY", "MYR", "T3", ""),
-    # ---- T4 Sredni-nizszy ----
-    ("Brazylia",          "BR", "BRL", "T4", ""),
-    ("RPA",               "ZA", "ZAR", "T4", ""),
-    ("Tajlandia",         "TH", "THB", "T4", ""),
-    ("Kolumbia",          "CO", "COP", "T4", ""),
-    ("Peru",              "PE", "PEN", "T4", ""),
-    ("Ukraina",           "UA", "UAH", "T4", ""),
-    # ---- T5 Niski (poziom Indii) ----
-    ("Indie",             "IN", "INR", "T5", ""),
-    ("Indonezja",         "ID", "IDR", "T5", ""),
-    ("Filipiny",          "PH", "PHP", "T5", ""),
-    ("Wietnam",           "VN", "VND", "T5", ""),
-    ("Nigeria",           "NG", "NGN", "T5", "Waluta zmienna - przegladaj kwartalnie"),
-    ("Pakistan",          "PK", "PKR", "T5", ""),
-    ("Egipt",             "EG", "EGP", "T5", ""),
-    ("Turcja",            "TR", "TRY", "T5", "Waluta zmienna - przegladaj kwartalnie"),
-    ("Bangladesz",        "BD", "BDT", "T5", ""),
-    ("Kenia",             "KE", "KES", "T5", ""),
-    ("Maroko",            "MA", "MAD", "T5", ""),
-    ("Algieria",          "DZ", "DZD", "T5", ""),
+PRICES = [
+    ("Albania",                        "USD",  6.40,   22.08, 20.0,  ""),
+    ("Algieria",                       "DZD",  479.00, 2450.00, None, ""),
+    ("Angola",                         "USD",  5.33,   18.40, None,  ""),
+    ("Antigua i Barbuda",              "USD",  5.33,   18.40, None,  ""),
+    ("Arabia Saudyjska",               "SAR",  22.99,  78.99, 15.0,  ""),
+    ("Argentyna",                      "USD",  5.33,   18.40, None,  ""),
+    ("Armenia",                        "USD",  5.33,   18.40, None,  ""),
+    ("Aruba",                          "USD",  5.33,   18.40, None,  ""),
+    ("Australia",                      "AUD",  8.49,   31.99, 10.0,  ""),
+    ("Austria",                        "EUR",  5.49,   18.99, 20.0,  ""),
+    ("Azerbejdzan",                    "USD",  5.33,   18.40, None,  ""),
+    ("Bahamy",                         "USD",  5.33,   18.40, None,  ""),
+    ("Bahrajn",                        "USD",  5.99,   19.99, 10.0,  ""),
+    ("Bangladesz",                     "BDT",  750.00, 2600.00, 15.0, ""),
+    ("Belgia",                         "EUR",  5.49,   18.99, 21.0,  ""),
+    ("Belize",                         "USD",  5.33,   18.40, None,  ""),
+    ("Benin",                          "EUR",  4.66,   16.09, None,  ""),
+    ("Bermudy",                        "USD",  5.49,   17.99, None,  ""),
+    ("Bialorus",                       "USD",  6.40,   22.08, 20.0,  ""),
+    ("Boliwia",                        "BOB",  36.99,  124.99, None, ""),
+    ("Botswana",                       "USD",  5.33,   18.40, None,  ""),
+    ("Bosnia i Hercegowina",           "USD",  5.33,   18.40, None,  ""),
+    ("Brazylia",                       "BRL",  21.99,  59.99, None,  ""),
+    ("Brytyjskie Wyspy Dziewicze",     "USD",  5.49,   17.99, None,  ""),
+    ("Bulgaria",                       "EUR",  4.49,   18.99, 20.0,  "miesieczna nizsza niz reszta strefy EUR"),
+    ("Burkina Faso",                   "EUR",  4.66,   16.09, None,  ""),
+    ("Chile",                          "CLP",  4990,   20200, 19.0,  ""),
+    ("Chorwacja",                      "EUR",  5.99,   19.99, 25.0,  ""),
+    ("Côte d'Ivoire",                  "XOF",  3600,   12500, 18.0,  ""),
+    ("Cypr",                           "EUR",  5.49,   18.99, 19.0,  ""),
+    ("Czad",                           "USD",  5.33,   18.40, None,  ""),
+    ("Czechy",                         "CZK",  139.99, 469.99, 21.0, ""),
+    ("Dania",                          "DKK",  44.00,  159.00, 25.0, "+ korekty dla 2 terytoriow"),
+    ("Demokratyczna Republika Konga",  "USD",  5.33,   18.40, None,  ""),
+    ("Dominika",                       "USD",  5.33,   18.40, None,  ""),
+    ("Dominikana",                     "USD",  5.33,   18.40, None,  ""),
+    ("Dzibuti",                        "USD",  5.33,   18.40, None,  ""),
+    ("Egipt",                          "EGP",  299.99, 1049.99, 14.0, ""),
+    ("Ekwador",                        "USD",  5.49,   17.99, None,  ""),
+    ("Erytrea",                        "USD",  5.33,   18.40, None,  ""),
+    ("Estonia",                        "EUR",  5.99,   19.99, 24.0,  ""),
+    ("Fidzi",                          "USD",  5.33,   18.40, None,  ""),
+    ("Filipiny",                       "PHP",  365.00, 1250.00, 12.0, ""),
+    ("Finlandia",                      "EUR",  5.99,   19.99, 25.5, "+ korekta dla 1 terytorium"),
+    ("Francja",                        "EUR",  5.49,   18.99, 20.0, "+ korekty dla 11 terytoriow"),
+    ("Gabon",                          "EUR",  4.66,   16.09, None,  ""),
+    ("Gambia",                         "USD",  5.33,   18.40, None,  ""),
+    ("Ghana",                          "GHS",  75.00,  250.00, 20.0, ""),
+    ("Gibraltar",                      "GBP",  3.99,   13.99, None,  ""),
+    ("Grecja",                         "EUR",  5.99,   19.99, 24.0,  ""),
+    ("Grenada",                        "USD",  5.33,   18.40, None,  ""),
+    ("Gruzja",                         "GEL",  19.00,  59.00, 18.0,  ""),
+    ("Gwatemala",                      "USD",  5.33,   18.40, None,  ""),
+    ("Gwinea",                         "USD",  5.49,   17.99, None,  ""),
+    ("Gwinea Bissau",                  "EUR",  4.66,   16.09, None,  ""),
+    ("Haiti",                          "USD",  5.33,   18.40, None,  ""),
+    ("Hiszpania",                      "EUR",  5.49,   18.99, 21.0, "+ korekty dla 4 terytoriow"),
+    ("Holandia",                       "EUR",  5.49,   18.99, 21.0,  ""),
+    ("Honduras",                       "USD",  5.33,   18.40, None,  ""),
+    ("Hongkong",                       "HKD",  43.00,  148.00, None, ""),
+    ("Indie",                          "INR",  350.00, 849.00, 18.0, ""),
+    ("Indonezja",                      "IDR",  96000,  329000, None, ""),
+    ("Irak",                           "IQD",  7000,   24100, None,  ""),
+    ("Irlandia",                       "EUR",  5.49,   19.99, 23.0,  ""),
+    ("Islandia",                       "EUR",  5.78,   19.95, 24.0,  ""),
+    ("Izrael",                         "ILS",  16.00,  55.00, None,  ""),
+    ("Jamajka",                        "USD",  5.33,   18.40, None,  ""),
+    ("Japonia",                        "JPY",  950,    3260,  10.0,  ""),
+    ("Jemen",                          "USD",  5.33,   18.40, None,  ""),
+    ("Jordania",                       "JOD",  3.800,  13.050, None, ""),
+    ("Kajmany",                        "USD",  5.49,   17.99, None,  ""),
+    ("Kambodza",                       "USD",  5.49,   17.99, None,  ""),
+    ("Kamerun",                        "XAF",  3600,   12600, 19.25, ""),
+    ("Kanada",                         "CAD",  7.49,   29.99, None,  ""),
+    ("Katar",                          "QAR",  19.00,  67.00, None,  ""),
+    ("Kazachstan",                     "KZT",  2890.00, 9990.00, 16.0, ""),
+    ("Kenia",                          "KES",  800.00, 2800.00, 16.0, ""),
+    ("Kirgistan",                      "USD",  5.33,   18.40, None,  ""),
+    ("Kolumbia",                       "COP",  18000,  61000, None,  ""),
+    ("Komory",                         "USD",  5.33,   18.40, None,  ""),
+    ("Kongo",                          "USD",  5.33,   18.40, None,  ""),
+    ("Korea Poludniowa",               "KRW",  9000,   31000, 10.0,  ""),
+    ("Kostaryka",                      "CRC",  2400.00, 8300.00, None, ""),
+    ("Kuwejt",                         "USD",  5.49,   17.99, None,  ""),
+    ("Laos",                           "USD",  5.33,   18.40, None,  ""),
+    ("Liban",                          "USD",  5.33,   18.40, None,  ""),
+    ("Liberia",                        "USD",  5.33,   18.40, None,  ""),
+    ("Libia",                          "USD",  5.33,   18.40, None,  ""),
+    ("Liechtenstein",                  "CHF",  4.60,   16.00, 8.1,   ""),
+    ("Litwa",                          "EUR",  5.49,   18.99, 21.0,  ""),
+    ("Luksemburg",                     "EUR",  5.49,   18.99, 17.0,  ""),
+    ("Lotwa",                          "EUR",  5.49,   18.99, 21.0,  ""),
+    ("Macedonia Polnocna",             "USD",  5.33,   18.40, None,  ""),
+    ("Makau",                          "MOP",  42.99,  149.00, None, ""),
+    ("Malediwy",                       "USD",  5.33,   18.40, None,  ""),
+    ("Malezja",                        "MYR",  21.99,  80.99, 8.0,   ""),
+    ("Mali",                           "EUR",  4.66,   16.09, None,  ""),
+    ("Malta",                          "EUR",  5.50,   18.99, 18.0,  ""),
+    ("Maroko",                         "MAD",  59.99,  204.99, 20.0, ""),
+    ("Mauritius",                      "USD",  5.33,   18.40, None,  ""),
+    ("Meksyk",                         "MXN",  89.00,  375.00, 16.0, ""),
+    ("Mikronezja",                     "USD",  5.49,   17.99, None,  ""),
+    ("Mjanma (Birma)",                 "MMK",  11000,  39000, None,  ""),
+    ("Moldawia",                       "USD",  6.40,   22.08, 20.0,  ""),
+    ("Monako",                         "EUR",  5.49,   18.99, 20.0,  ""),
+    ("Mongolia",                       "MNT",  19100.00, 65900.00, None, ""),
+    ("Mozambik",                       "USD",  5.33,   18.40, None,  ""),
+    ("Namibia",                        "USD",  5.33,   18.40, None,  ""),
+    ("Nepal",                          "USD",  6.02,   20.79, 13.0,  ""),
+    ("Niemcy",                         "EUR",  5.49,   18.99, 19.0,  ""),
+    ("Niger",                          "EUR",  4.66,   16.09, None,  ""),
+    ("Nigeria",                        "NGN",  7850.00, 27000.00, 7.5, ""),
+    ("Nikaragua",                      "USD",  5.33,   18.40, None,  ""),
+    ("Norwegia",                       "NOK",  65.00,  269.00, 25.0, "+ korekta dla 1 terytorium"),
+    ("Nowa Zelandia",                  "NZD",  10.99,  36.99, 15.0,  ""),
+    ("Oman",                           "USD",  5.49,   18.99, 5.0,   ""),
+    ("Pakistan",                       "PKR",  1500,   5100,  None,  ""),
+    ("Panama",                         "USD",  5.49,   17.99, None,  ""),
+    ("Papua-Nowa Gwinea",              "USD",  5.33,   18.40, None,  ""),
+    ("Paragwaj",                       "PYG",  30000,  100000, None, ""),
+    ("Peru",                           "PEN",  17.99,  62.99, None,  ""),
+    ("Polska",                         "PLN",  19.99,  69.99, 23.0,  "RYNEK BAZOWY"),
+    ("Portugalia",                     "EUR",  5.49,   19.99, 23.0,  ""),
+    ("Republika Poludniowej Afryki",   "ZAR",  74.99,  199.99, 15.0, ""),
+    ("Republika Srodkowoafrykanska",   "EUR",  4.66,   16.09, None,  ""),
+    ("Republika Zielonego Przyladka",  "USD",  5.33,   18.40, None,  ""),
+    ("Rosja",                          "RUB",  409.00, 1399.00, None, ""),
+    ("Rumunia",                        "RON",  22.99,  69.99, 21.0,  ""),
+    ("Rwanda",                         "USD",  5.33,   18.40, None,  ""),
+    ("Saint Kitts i Nevis",            "USD",  5.33,   18.40, None,  ""),
+    ("Saint Lucia",                    "USD",  5.33,   18.40, None,  ""),
+    ("Salwador",                       "USD",  5.49,   17.99, None,  ""),
+    ("Samoa",                          "USD",  5.33,   18.40, None,  ""),
+    ("San Marino",                     "EUR",  4.69,   15.99, None,  ""),
+    ("Senegal",                        "XOF",  3600,   12500, 18.0,  ""),
+    ("Serbia",                         "RSD",  649,    2299,  20.0,  ""),
+    ("Seszele",                        "USD",  5.33,   18.40, None,  ""),
+    ("Sierra Leone",                   "USD",  5.33,   18.40, None,  ""),
+    ("Singapur",                       "SGD",  7.49,   25.98, 9.0,   ""),
+    ("Slowacja",                       "EUR",  5.49,   19.99, 23.0,  ""),
+    ("Slowenia",                       "EUR",  5.49,   19.99, 22.0,  ""),
+    ("Somalia",                        "USD",  5.33,   18.40, None,  ""),
+    ("Sri Lanka",                      "LKR",  1775.00, 6175.00, None, ""),
+    ("Stany Zjednoczone",              "USD",  5.49,   22.99, None, "+ korekty dla 7 terytoriow"),
+    ("Surinam",                        "USD",  5.33,   18.40, None,  ""),
+    ("Szwajcaria",                     "CHF",  4.30,   19.00, None,  ""),
+    ("Szwecja",                        "SEK",  65.00,  225.00, 25.0, ""),
+    ("Tadzykistan",                    "USD",  5.33,   18.40, None,  ""),
+    ("Tajlandia",                      "THB",  139.00, 379.00, 7.0,  ""),
+    ("Tajwan",                         "TWD",  180.00, 620.00, 5.0,  ""),
+    ("Tanzania",                       "TZS",  14000.00, 48000.00, None, ""),
+    ("Togo",                           "EUR",  4.66,   16.09, None,  ""),
+    ("Tonga",                          "USD",  5.33,   18.40, None,  ""),
+    ("Trynidad i Tobago",              "USD",  5.33,   18.40, None,  ""),
+    ("Tunezja",                        "USD",  5.33,   18.40, None,  ""),
+    ("Turcja",                         "TRY",  299.99, 1029.99, 20.0, ""),
+    ("Turkmenistan",                   "USD",  5.33,   18.40, None,  ""),
+    ("Turks i Caicos",                 "USD",  5.49,   17.99, None,  ""),
+    ("Uganda",                         "USD",  6.29,   21.71, 18.0,  ""),
+    ("Ukraina",                        "UAH",  159.99, 979.99, 20.0, ""),
+    ("Urugwaj",                        "USD",  5.33,   18.40, None,  ""),
+    ("Uzbekistan",                     "USD",  5.97,   20.61, 12.0,  ""),
+    ("Vanuatu",                        "USD",  5.33,   18.40, None,  ""),
+    ("Watykan",                        "EUR",  4.69,   15.99, None,  ""),
+    ("Wenezuela",                      "USD",  5.33,   18.40, None,  ""),
+    ("Wielka Brytania",                "GBP",  4.79,   16.49, 20.0,  ""),
+    ("Wietnam",                        "VND",  140000, 484000, None, ""),
+    ("Wlochy",                         "EUR",  5.49,   19.99, 22.0,  ""),
+    ("Wyspy Salomona",                 "USD",  5.33,   18.40, None,  ""),
+    ("Wegry",                          "HUF",  1790,   4999,  27.0,  ""),
+    ("Zambia",                         "USD",  5.33,   18.40, None,  ""),
+    ("Zimbabwe",                       "USD",  5.33,   18.40, None,  ""),
+    ("Zjednoczone Emiraty Arabskie",   "AED",  20.99,  70.99, 5.0,   ""),
+    ("Pozostale / nowe kraje",         "USD",  5.33,   18.40, None, "domyslna cena Google dla nieobsadzonych rynkow"),
 ]
 
 # ---------------------------------------------------------------------------
-# 4. ZAOKRAGLANIE "CHARM" (koncowki .99 / ...9)
+# Wyliczenia
 # ---------------------------------------------------------------------------
-DEC_LADDER = [0.99,1.49,1.99,2.49,2.99,3.49,3.99,4.49,4.99,5.99,6.99,7.99,8.99,
-              9.99,10.99,11.99,12.99,13.99,14.99,15.99,16.99,17.99,18.99,19.99,
-              20.99,21.99,22.99,23.99,24.99,26.99,27.99,29.99,32.99,34.99,37.99,
-              39.99,44.99,49.99,54.99,59.99,64.99,69.99,74.99,79.99,89.99,99.99,
-              109.99,119.99,129.99,149.99,169.99,199.99,249.99,299.99,349.99,399.99]
 
-INT_LADDER = [9,19,29,39,49,59,69,79,89,99,
-              119,129,139,149,159,169,179,189,199,
-              229,249,269,279,299,329,349,379,399,
-              429,449,479,499,549,599,649,699,749,799,849,899,949,999,
-              1090,1190,1290,1390,1490,1590,1690,1790,1890,1990,
-              2290,2490,2690,2990,3290,3490,3990,4290,4490,4990,
-              5490,5990,6490,6990,7490,7990,8490,8990,9490,9900,9990,
-              10900,11900,12900,13900,14900,16900,18900,19900,
-              22900,24900,26900,29900,32900,34900,39900,44900,49000,
-              54000,59000,64000,69000,74000,79000,84000,89000,94000,99000,
-              119000,129000,149000,169000,199000,229000,249000,299000,349000,
-              399000,449000,499000,590000,690000,790000,890000,990000]
 
-KWD_LADDER = [round(n + f, 3) for n in range(0, 40) for f in (0.490, 0.990)]
+def months_label(monthly, lifetime):
+    """Ile pokaze paywall: floor(L/M) + 1, dokladnie jak _lifetimeSubline."""
+    if monthly <= 0:
+        return None
+    return math.floor(lifetime / monthly) + 1
 
-def nearest(raw, ladder):
-    return min(ladder, key=lambda c: abs(math.log(c) - math.log(raw)))
 
-def charm(usd, cur):
-    fx, dec = CUR[cur]
-    raw = usd * fx
-    if cur == "KWD":
-        return nearest(raw, KWD_LADDER)
-    if dec == 0:
-        return float(nearest(raw, INT_LADDER))
-    return nearest(raw, DEC_LADDER)
+def net_of(price, vat):
+    """Ile zostaje po VAT i prowizji sklepu."""
+    base = price / (1 + vat / 100.0) if vat else price
+    return base * (1 - STORE_FEE)
 
-def price_for(cur, tier):
-    m = charm(TIERS[tier]["m"], cur)
-    l = charm(TIERS[tier]["l"], cur)
-    return m, l
 
-# Polska = dokladnie Twoje ustawione ceny (override).
-PL_OVERRIDE = {"PLN": (24.99, 69.99)}
+def fmt(value, currency):
+    dec = DECIMALS.get(currency, 2)
+    return f"{value:,.{dec}f}".replace(",", " ").replace(".", ",")
+
+
+ROWS = []
+for country, cur, monthly, lifetime, vat, note in PRICES:
+    ratio = lifetime / monthly
+    ROWS.append({
+        "kraj": country,
+        "waluta": cur,
+        "m": monthly,
+        "l": lifetime,
+        "vat": vat,
+        "ratio": ratio,
+        "months": months_label(monthly, lifetime),
+        "m_net": net_of(monthly, vat),
+        "l_net": net_of(lifetime, vat),
+        "uwaga": note,
+    })
 
 # ---------------------------------------------------------------------------
-# 5. STYLE
+# Excel
 # ---------------------------------------------------------------------------
-FONT = "Arial"
-C_HEAD   = PatternFill("solid", fgColor="1F2937")   # granatowa szarosc
-C_TITLE  = PatternFill("solid", fgColor="111827")
-TIER_FILL = {
-    "T1": PatternFill("solid", fgColor="E8F0FE"),
-    "T2": PatternFill("solid", fgColor="EAF7EE"),
-    "T3": PatternFill("solid", fgColor="FEF7E0"),
-    "T4": PatternFill("solid", fgColor="FDEEE3"),
-    "T5": PatternFill("solid", fgColor="FCE8E6"),
-}
-PL_FILL = PatternFill("solid", fgColor="FFF3B0")     # zolty - Twoja baza
-US_FILL = PatternFill("solid", fgColor="DDE7FB")
-thin = Side(style="thin", color="D0D0D0")
-BORDER = Border(left=thin, right=thin, top=thin, bottom=thin)
+HEAD_FILL = PatternFill("solid", fgColor="1F2937")
+HEAD_FONT = Font(color="FFFFFF", bold=True, size=10)
+WARN_FILL = PatternFill("solid", fgColor="FEF3C7")
+GOOD_FILL = PatternFill("solid", fgColor="DCFCE7")
+BASE_FILL = PatternFill("solid", fgColor="DBEAFE")
+THIN = Side(style="thin", color="D1D5DB")
+BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
-def numfmt(cur):
-    _, dec = CUR[cur]
-    if dec == 0:
-        return "#,##0"
-    if dec == 3:
-        return "#,##0.000"
-    return "#,##0.00"
 
-HEADERS = ["Kraj / Region", "ISO", "Waluta", "Poziom PPP", "% ceny USA",
-           "Miesieczna (lokalna)", "Lifetime (lokalna)", "≈ USD/mies (cel)", "Uwagi"]
+def write_header(ws, headers, widths):
+    for i, (title, width) in enumerate(zip(headers, widths), start=1):
+        cell = ws.cell(row=1, column=i, value=title)
+        cell.fill = HEAD_FILL
+        cell.font = HEAD_FONT
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        ws.column_dimensions[get_column_letter(i)].width = width
+    ws.row_dimensions[1].height = 30
+    ws.freeze_panes = "A2"
 
-def build_store_sheet(ws, store_name, intro_lines):
-    ws.sheet_view.showGridLines = False
-    widths = [22, 6, 8, 14, 11, 20, 20, 15, 40]
-    for i, w in enumerate(widths, start=1):
-        ws.column_dimensions[get_column_letter(i)].width = w
 
-    # Tytul
-    ws.merge_cells("A1:I1")
-    t = ws["A1"]
-    t.value = f"CENNIK REGIONALNY (PPP) - {store_name}   |   Debatly   |   {TODAY}"
-    t.font = Font(name=FONT, size=14, bold=True, color="FFFFFF")
-    t.fill = C_TITLE
-    t.alignment = Alignment(horizontal="left", vertical="center", indent=1)
-    ws.row_dimensions[1].height = 26
+def sheet_cennik(wb):
+    ws = wb.create_sheet("Cennik")
+    write_header(
+        ws,
+        ["Kraj", "Waluta", "Miesieczna", "Dozywotnia", "Mnoznik L/M",
+         "Paywall pokaze", "VAT", "Netto / mies.", "Netto / lifetime", "Uwaga"],
+        [30, 8, 14, 14, 12, 16, 8, 14, 16, 42],
+    )
+    for r, row in enumerate(ROWS, start=2):
+        ws.cell(row=r, column=1, value=row["kraj"])
+        ws.cell(row=r, column=2, value=row["waluta"])
+        ws.cell(row=r, column=3, value=fmt(row["m"], row["waluta"]))
+        ws.cell(row=r, column=4, value=fmt(row["l"], row["waluta"]))
+        ws.cell(row=r, column=5, value=round(row["ratio"], 2))
+        ws.cell(row=r, column=6, value=f'mniej niz {row["months"]} mies.')
+        ws.cell(row=r, column=7, value="—" if row["vat"] is None else f'{row["vat"]}%')
+        ws.cell(row=r, column=8, value=fmt(row["m_net"], row["waluta"]))
+        ws.cell(row=r, column=9, value=fmt(row["l_net"], row["waluta"]))
+        ws.cell(row=r, column=10, value=row["uwaga"])
+        for c in range(1, 11):
+            ws.cell(row=r, column=c).border = BORDER
+            if c >= 3:
+                ws.cell(row=r, column=c).alignment = Alignment(horizontal="right")
+        if row["kraj"] == "Polska":
+            for c in range(1, 11):
+                ws.cell(row=r, column=c).fill = BASE_FILL
+        elif row["months"] != TARGET_MONTHS:
+            ws.cell(row=r, column=6).fill = (
+                WARN_FILL if row["months"] > TARGET_MONTHS else GOOD_FILL
+            )
+    ws.auto_filter.ref = f"A1:J{len(ROWS) + 1}"
 
-    # Intro
-    r = 2
-    for line in intro_lines:
-        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=9)
-        c = ws.cell(row=r, column=1, value=line)
-        c.font = Font(name=FONT, size=9, italic=line.startswith("•") is False and False or False)
-        c.font = Font(name=FONT, size=9, color="374151")
-        c.alignment = Alignment(horizontal="left", vertical="center", indent=1, wrap_text=False)
-        r += 1
-    r += 1
 
-    # Naglowek tabeli
-    head_row = r
-    for j, h in enumerate(HEADERS, start=1):
-        c = ws.cell(row=head_row, column=j, value=h)
-        c.font = Font(name=FONT, size=10, bold=True, color="FFFFFF")
-        c.fill = C_HEAD
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        c.border = BORDER
-    ws.row_dimensions[head_row].height = 30
-
-    # Wiersze
-    row = head_row + 1
-    for (name, iso, cur, tier, note) in COUNTRIES:
-        if iso == "PL" and cur in PL_OVERRIDE:
-            m, l = PL_OVERRIDE[cur]
+def sheet_mnoznik(wb):
+    ws = wb.create_sheet("Mnoznik")
+    write_header(
+        ws,
+        ["Kraj", "Waluta", "Miesieczna", "Dozywotnia", "Mnoznik", "Paywall pokaze",
+         "Ocena", "Min. miesieczna dla 'mniej niz 4'"],
+        [30, 8, 14, 14, 10, 16, 34, 30],
+    )
+    odd = [r for r in ROWS if r["months"] != TARGET_MONTHS]
+    odd.sort(key=lambda r: (-r["months"], r["kraj"]))
+    for r, row in enumerate(odd, start=2):
+        if row["months"] > TARGET_MONTHS:
+            verdict = "slabszy anchor — lifetime drogi wzgledem miesiecznej"
+            need = fmt(row["l"] / TARGET_MONTHS, row["waluta"]) + " (powyzej tej kwoty)"
         else:
-            m, l = price_for(cur, tier)
-        pct = TIERS[tier]["m"] / US_M
-        vals = [name, iso, cur, f"{tier} · {TIERS[tier]['label']}", pct, m, l,
-                TIERS[tier]["m"], note]
-        for j, v in enumerate(vals, start=1):
-            c = ws.cell(row=row, column=j, value=v)
-            c.border = BORDER
-            c.font = Font(name=FONT, size=10)
-            if j == 1:
-                c.alignment = Alignment(horizontal="left", vertical="center", indent=1)
-            elif j == 9:
-                c.alignment = Alignment(horizontal="left", vertical="center", indent=1)
-                c.font = Font(name=FONT, size=8, color="6B7280")
-            else:
-                c.alignment = Alignment(horizontal="center", vertical="center")
-            # formaty liczb
-            if j == 5:
-                c.number_format = "0%"
-            elif j in (6, 7):
-                c.number_format = numfmt(cur)
-            elif j == 8:
-                c.number_format = '"$"#,##0.00'
-        # kolorowanie
-        fill = TIER_FILL[tier]
-        if iso == "PL":
-            fill = PL_FILL
-        elif iso == "US":
-            fill = US_FILL
-        for j in range(1, 10):
-            if ws.cell(row=row, column=j).fill.fgColor.rgb in (None, "00000000"):
-                ws.cell(row=row, column=j).fill = fill
-            else:
-                ws.cell(row=row, column=j).fill = fill
-        row += 1
+            verdict = "mocniejszy anchor — zostawic"
+            need = "—"
+        ws.cell(row=r, column=1, value=row["kraj"])
+        ws.cell(row=r, column=2, value=row["waluta"])
+        ws.cell(row=r, column=3, value=fmt(row["m"], row["waluta"]))
+        ws.cell(row=r, column=4, value=fmt(row["l"], row["waluta"]))
+        ws.cell(row=r, column=5, value=round(row["ratio"], 2))
+        ws.cell(row=r, column=6, value=f'mniej niz {row["months"]} mies.')
+        ws.cell(row=r, column=7, value=verdict)
+        ws.cell(row=r, column=8, value=need)
+        for c in range(1, 9):
+            ws.cell(row=r, column=c).border = BORDER
+            ws.cell(row=r, column=c).fill = (
+                WARN_FILL if row["months"] > TARGET_MONTHS else GOOD_FILL
+            )
+    note = ws.cell(row=len(odd) + 3, column=1)
+    note.value = (
+        f"Reszta swiata ({len(ROWS) - len(odd)} z {len(ROWS)} rynkow) pokazuje "
+        f'"mniej niz {TARGET_MONTHS} mies." — to jest norma, wzgledem ktorej '
+        "liczona jest ta lista."
+    )
+    note.font = Font(italic=True, size=9)
 
-    ws.freeze_panes = ws.cell(row=head_row + 1, column=1)
-    ws.auto_filter.ref = f"A{head_row}:I{row-1}"
-    return row
 
-# ---------------------------------------------------------------------------
-# 6. BUDOWA WORKBOOKA
-# ---------------------------------------------------------------------------
-wb = Workbook()
+def sheet_ios(wb):
+    ws = wb.create_sheet("iOS do wpisania")
+    write_header(
+        ws,
+        ["Kraj", "Waluta", "Miesieczna (cel)", "Dozywotnia (cel)", "Wpisane w ASC?"],
+        [30, 8, 18, 18, 16],
+    )
+    for r, row in enumerate(ROWS, start=2):
+        ws.cell(row=r, column=1, value=row["kraj"])
+        ws.cell(row=r, column=2, value=row["waluta"])
+        ws.cell(row=r, column=3, value=fmt(row["m"], row["waluta"]))
+        ws.cell(row=r, column=4, value=fmt(row["l"], row["waluta"]))
+        ws.cell(row=r, column=5, value="")
+        for c in range(1, 6):
+            ws.cell(row=r, column=c).border = BORDER
+    ws.auto_filter.ref = f"A1:E{len(ROWS) + 1}"
 
-# --- Zakladka: Instrukcja ---
-wsi = wb.active
-wsi.title = "Instrukcja"
-wsi.sheet_view.showGridLines = False
-wsi.column_dimensions["A"].width = 3
-wsi.column_dimensions["B"].width = 110
 
-INSTR = [
-    ("H", "Cennik regionalny (PPP) - Debatly"),
-    ("S", f"Wygenerowano: {TODAY}.  Waluta bazowa: PLN.  Produkty: subskrypcja miesieczna + Lifetime (jednorazowo)."),
-    ("", ""),
-    ("H2", "Po co ten plik"),
-    ("P", "Apple i Google domyslnie przeliczaja Twoja cene bazowa TYLKO po kursie walutowym (FX), a nie po sile"),
-    ("P", "nabywczej (PPP). Efekt: w Indiach, Nigerii czy Turcji cena wychodzi za wysoka i konwersja spada."),
-    ("P", "Ten arkusz daje gotowe ceny per kraj, obnizone tam gdzie trzeba, a podniesione na bogatych rynkach."),
-    ("", ""),
-    ("H2", "Zalozony model"),
-    ("P", "• Polska = punkt srodkowy (Twoje 24,99 / 69,99 zl zostaja bez zmian)."),
-    ("P", "• USA = Tier 1 (100%). Bogate rynki (USA, AU, DACH, Skandynawia, Zatoka) placa wiecej."),
-    ("P", "• Znizka PPP: UMIARKOWANA. Indie/Nigeria ~39% ceny USA."),
-    ("P", "• Lifetime = ~2,8x ceny miesiecznej w kazdym kraju (spojny podpis 'mniej niz 3 miesiace')."),
-    ("P", "• 5 poziomow PPP (T1-T5). Przypisanie kraju -> poziom w kolumnie 'Poziom PPP'."),
-    ("", ""),
-    ("H2", "Jak wpisac ceny - iOS (App Store Connect)"),
-    ("P", "1. Monetization -> Subscriptions (miesieczna) oraz In-App Purchases (Lifetime jako Non-Consumable)."),
-    ("P", "2. Ustaw cene BAZOWA dla USA wg zakladki 'iOS - App Store' (Tier 1)."),
-    ("P", "3. Apple zaproponuje ceny dla 175 rynkow po FX. Nie zostawiaj tak - wejdz w 'All Prices and Currencies'."),
-    ("P", "4. Dla krajow z listy USTAW RECZNIE cene z tabeli (wybierz najblizszy dostepny punkt cenowy Apple)."),
-    ("P", "5. Apple ma stala siatke punktow cenowych - jesli nie ma dokladnie tej liczby, wybierz najblizsza."),
-    ("", ""),
-    ("H2", "Jak wpisac ceny - Android (Google Play Console)"),
-    ("P", "1. Monetize -> Products -> Subscriptions (miesieczna) i In-app products (Lifetime)."),
-    ("P", "2. Ustaw cene domyslna (USA/EUR), potem 'Set prices' / 'Manage prices' per kraj."),
-    ("P", "3. Google pozwala na niemal dowolna cene lokalna - wpisz wartosci z zakladki 'Android - Google Play'."),
-    ("P", "4. Dla produktow jednorazowych (Lifetime) mozesz uzyc importu CSV cen w Play Console."),
-    ("P", "5. Wlacz 'Automatically convert' TYLKO dla krajow spoza tej listy (reszta swiata)."),
-    ("", ""),
-    ("H2", "Kraje spoza listy (reszta swiata)"),
-    ("P", "Lista pokrywa ~65 najwazniejszych rynkow. Dla pozostalych: niech sklep przeliczy po FX z bazy USA,"),
-    ("P", "a rynki wyraznie ubozsze (Afryka, Azja Pd.) potraktuj jak poziom T5."),
-    ("", ""),
-    ("H2", "Wazne zastrzezenia"),
-    ("P", "• Kursy walut (zakladka 'Konfiguracja') to PRZYBLIZENIA ze stycznia 2026. Zweryfikuj przed wpisaniem."),
-    ("P", "• Waluty zmienne (TRY, NGN, ARS) przegladaj kwartalnie - inflacja zjada cene realna."),
-    ("P", "• To sa wartosci statyczne. Chcesz inna strategie/kursy? Popros o ponowne wygenerowanie."),
-    ("P", "• Ceny to zaokraglenia 'charm' (.99 / ...9). W sklepie wybierz najblizszy dozwolony punkt cenowy."),
-]
-rr = 2
-for kind, text in INSTR:
-    c = wsi.cell(row=rr, column=2, value=text)
-    if kind == "H":
-        c.font = Font(name=FONT, size=16, bold=True, color="111827")
-        wsi.row_dimensions[rr].height = 24
-    elif kind == "S":
-        c.font = Font(name=FONT, size=10, italic=True, color="6B7280")
-    elif kind == "H2":
-        c.font = Font(name=FONT, size=12, bold=True, color="1F4E79")
-        wsi.row_dimensions[rr].height = 20
-    else:
-        c.font = Font(name=FONT, size=10, color="222222")
-    c.alignment = Alignment(horizontal="left", vertical="center", wrap_text=False)
-    rr += 1
-
-# --- Zakladka: iOS ---
-ws_ios = wb.create_sheet("iOS - App Store")
-build_store_sheet(
-    ws_ios, "iOS / App Store",
-    [
-        "Ustaw cene bazowa dla USA, potem NADPISZ recznie ceny krajow z listy (Apple domyslnie liczy tylko po kursie FX).",
-        "Kolumny 'Miesieczna' i 'Lifetime' = cena w walucie lokalnej. Wybierz najblizszy dostepny punkt cenowy Apple.",
-        "Zolty = Twoja cena bazowa (Polska).  Niebieski = USA (baza auto-przeliczenia).",
-    ],
-)
-
-# --- Zakladka: Android ---
-ws_and = wb.create_sheet("Android - Google Play")
-build_store_sheet(
-    ws_and, "Android / Google Play",
-    [
-        "Ustaw cene domyslna, potem wpisz ceny lokalne per kraj (Google pozwala na niemal dowolna cene).",
-        "Kolumny 'Miesieczna' i 'Lifetime' = cena w walucie lokalnej. Dla Lifetime mozesz uzyc importu CSV.",
-        "Zolty = Twoja cena bazowa (Polska).  Niebieski = USA (baza auto-przeliczenia).",
-    ],
-)
-
-# --- Zakladka: Konfiguracja (referencja: kotwice + kursy) ---
-wsc = wb.create_sheet("Konfiguracja")
-wsc.sheet_view.showGridLines = False
-wsc.column_dimensions["A"].width = 3
-for col, w in zip("BCDEFG", [16, 16, 14, 14, 14, 14]):
-    wsc.column_dimensions[col].width = w
-
-wsc.merge_cells("B2:G2")
-h = wsc["B2"]; h.value = "Konfiguracja modelu (wartosci referencyjne, statyczne)"
-h.font = Font(name=FONT, size=14, bold=True, color="FFFFFF"); h.fill = C_TITLE
-h.alignment = Alignment(horizontal="left", vertical="center", indent=1)
-wsc.row_dimensions[2].height = 24
-
-# Tabela kotwic
-wsc.cell(row=4, column=2, value="Kotwice cenowe (USD) per poziom PPP").font = Font(name=FONT, size=12, bold=True, color="1F4E79")
-kh = ["Poziom", "Nazwa", "Mies. (USD)", "Lifetime (USD)", "% ceny USA"]
-for j, t in enumerate(kh, start=2):
-    c = wsc.cell(row=5, column=j, value=t)
-    c.font = Font(name=FONT, size=10, bold=True, color="FFFFFF"); c.fill = C_HEAD
-    c.alignment = Alignment(horizontal="center"); c.border = BORDER
-rr = 6
-for tk, tv in TIERS.items():
-    vals = [tk, tv["label"], tv["m"], tv["l"], tv["m"]/US_M]
-    for j, v in enumerate(vals, start=2):
-        c = wsc.cell(row=rr, column=j, value=v)
-        c.border = BORDER; c.font = Font(name=FONT, size=10)
-        c.alignment = Alignment(horizontal="center")
-        c.fill = TIER_FILL[tk]
-        if j in (4, 5):
-            c.number_format = '"$"#,##0.00'
-        if j == 6:
-            c.number_format = "0%"
-    wsc.cell(row=rr, column=6).number_format = "0%"
-    rr += 1
-
-# Tabela kursow
-rr += 1
-wsc.cell(row=rr, column=2, value="Kursy walut uzyte (za 1 USD, orientacyjne ~sty 2026)").font = Font(name=FONT, size=12, bold=True, color="1F4E79")
-rr += 1
-fh = ["Waluta", "Kurs / 1 USD", "Miejsca dz."]
-for j, t in enumerate(fh, start=2):
-    c = wsc.cell(row=rr, column=j, value=t)
-    c.font = Font(name=FONT, size=10, bold=True, color="FFFFFF"); c.fill = C_HEAD
-    c.alignment = Alignment(horizontal="center"); c.border = BORDER
-rr += 1
-for code in sorted(CUR):
-    fx, dec = CUR[code]
-    for j, v in enumerate([code, fx, dec], start=2):
-        c = wsc.cell(row=rr, column=j, value=v)
-        c.border = BORDER; c.font = Font(name=FONT, size=9)
-        c.alignment = Alignment(horizontal="center")
-        if j == 3:
-            c.number_format = "#,##0.####"
-    rr += 1
-
-# --- zapis ---
-import os
-out_dir = r"F:\ProjektyAKNSoftware\questionapp\exports"
-os.makedirs(out_dir, exist_ok=True)
-out = os.path.join(out_dir, f"cennik_regionalny_{TODAY}.xlsx")
-wb.save(out)
-print("Zapisano:", out)
-
-# szybki podglad kluczowych rynkow
-print("\n--- Podglad (miesieczna / lifetime, lokalnie) ---")
-for (name, iso, cur, tier, note) in COUNTRIES:
-    if iso in ("US","PL","GB","DE","AU","JP","IN","BR","TR","NG","ID","MX","SA","KW"):
-        if iso == "PL":
-            m,l = PL_OVERRIDE[cur]
+def sheet_info(wb):
+    ws = wb.create_sheet("Info", 0)
+    ws.column_dimensions["A"].width = 4
+    ws.column_dimensions["B"].width = 118
+    lines = [
+        ("H", f"Cennik Debatly — stan Google Play na {TODAY}"),
+        ("", ""),
+        ("H", "Co to jest"),
+        ("", "Zapis CEN, KTORE STOJA W SKLEPIE — nie propozycja. Google Play jest zrodlem prawdy."),
+        ("", "Ceny sa brutto (z VAT tam, gdzie kraj go nalicza), dokladnie jak w Play Console."),
+        ("", "Arkusz exports/cennik_regionalny_2026-07-13.xlsx (propozycja tierowa 8,99/24,99 USD,"),
+        ("", "PL 24,99/69,99) jest NIEAKTUALNY — zostal odrzucony, nie wracaj do niego."),
+        ("", ""),
+        ("H", "Zakladki"),
+        ("", "Cennik — pelna lista + mnoznik, podpis paywalla i kwota netto po VAT i prowizji."),
+        ("", "Mnoznik — rynki, gdzie podpis odstaje od reszty swiata (i o ile trzeba ruszyc cene)."),
+        ("", "iOS do wpisania — ta sama lista jako checklista dla App Store Connect."),
+        ("", ""),
+        ("H", "Dlaczego mnoznik ma znaczenie"),
+        ("", "Karta lifetime na paywallu pokazuje 'Mniej niz N miesiecy subskrypcji', gdzie"),
+        ("", "N = floor(lifetime / miesieczna) + 1 — liczone w apce z cen zwroconych przez"),
+        ("", "RevenueCat, wiec zmiana ceny w sklepie NATYCHMIAST zmienia ten podpis."),
+        ("", "Kod: _lifetimeSubline w lib/features/monetization/widgets/paywall_offer_section.dart."),
+        ("", "Nizsze N = mocniejszy argument za lifetime. Podpis znika przy N < 2."),
+        ("", ""),
+        ("H", "Netto"),
+        ("", f"cena / (1 + VAT) x (1 - {STORE_FEE:.0%} prowizji sklepu)."),
+        ("", "15% to stawka Google na pierwszy 1 mln USD rocznie oraz na subskrypcje od 1. dnia."),
+        ("", "Podatek dochodowy NIE jest tu uwzgledniony."),
+        ("", ""),
+        ("H", "Aktualizacja"),
+        ("", "Zmien tablice PRICES w tool/gen_regional_pricing.py i uruchom:"),
+        ("", "    python tool/gen_regional_pricing.py"),
+    ]
+    for i, (kind, text) in enumerate(lines, start=2):
+        cell = ws.cell(row=i, column=2, value=text)
+        if kind == "H":
+            cell.font = Font(bold=True, size=12 if i == 2 else 11, color="1F2937")
         else:
-            m,l = price_for(cur,tier)
-        print(f"{name:20s} {iso}  {cur}  {tier}  mies={m:>10}  life={l:>10}")
+            cell.alignment = Alignment(wrap_text=False)
+
+
+def main():
+    wb = Workbook()
+    wb.remove(wb.active)
+    sheet_cennik(wb)
+    sheet_mnoznik(wb)
+    sheet_ios(wb)
+    sheet_info(wb)
+
+    out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "exports")
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, f"cennik_google_play_{TODAY}.xlsx")
+    wb.save(path)
+
+    odd = [r for r in ROWS if r["months"] != TARGET_MONTHS]
+    print(f"Zapisano: {path}")
+    print(f"Rynkow: {len(ROWS)}  |  odstajacy mnoznik: {len(odd)}")
+    for row in sorted(odd, key=lambda r: -r["ratio"]):
+        print(
+            f'  {row["kraj"]:<32} {row["waluta"]}  '
+            f'{fmt(row["m"], row["waluta"])} / {fmt(row["l"], row["waluta"])}  '
+            f'= {row["ratio"]:.2f}x  -> "mniej niz {row["months"]} mies."'
+        )
+
+
+if __name__ == "__main__":
+    main()

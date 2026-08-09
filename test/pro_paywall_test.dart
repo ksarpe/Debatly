@@ -31,8 +31,10 @@ void main() {
     const PresentedOfferingContext('default', null, null),
   );
 
-  final lifetime = fakePackage(PackageType.lifetime, r'$19.99', price: 19.99);
-  final monthly = fakePackage(PackageType.monthly, r'$4.99', price: 4.99);
+  // The live US prices in Google Play, so the fixtures double as a record of
+  // what the sheet actually renders in production.
+  final lifetime = fakePackage(PackageType.lifetime, r'$22.99', price: 22.99);
+  final monthly = fakePackage(PackageType.monthly, r'$5.49', price: 5.49);
 
   Future<void> pumpSheet(
     WidgetTester tester, {
@@ -73,9 +75,9 @@ void main() {
 
     // Both plans with their store-formatted prices; monthly gets the suffix.
     expect(find.text('Dożywotni'), findsOneWidget);
-    expect(find.text(r'$19.99'), findsOneWidget);
+    expect(find.text(r'$22.99'), findsOneWidget);
     expect(find.text('Miesięczny'), findsOneWidget);
-    expect(find.text(r'$4.99/mies.'), findsOneWidget);
+    expect(find.text(r'$5.49/mies.'), findsOneWidget);
     expect(find.text('NAJLEPSZA OFERTA'), findsOneWidget);
 
     // Lifetime is preselected, so the reassurance line is the one-time one.
@@ -154,8 +156,34 @@ void main() {
   ) async {
     await pumpSheet(tester, loadPackages: () async => [lifetime, monthly]);
 
-    // 19.99 / 4.99 -> floor + 1 = 5, so the anchor line is always true.
+    // US store prices: 22.99 / 5.49 -> floor + 1 = 5, so the anchor line is
+    // always true.
     expect(find.text('Mniej niż 5 miesięcy subskrypcji'), findsOneWidget);
+  });
+
+  testWidgets('Polish store prices render the few-plural comparison', (
+    tester,
+  ) async {
+    // 69,99 / 19,99 zł -> floor + 1 = 4, which hits the Polish `few` plural
+    // ("miesiące", not "miesięcy") — the form the base market actually shows.
+    final lifetimePln = fakePackage(
+      PackageType.lifetime,
+      '69,99 zł',
+      price: 69.99,
+      currencyCode: 'PLN',
+    );
+    final monthlyPln = fakePackage(
+      PackageType.monthly,
+      '19,99 zł',
+      price: 19.99,
+      currencyCode: 'PLN',
+    );
+    await pumpSheet(
+      tester,
+      loadPackages: () async => [lifetimePln, monthlyPln],
+    );
+
+    expect(find.text('Mniej niż 4 miesiące subskrypcji'), findsOneWidget);
   });
 
   testWidgets('comparison line is omitted without a monthly plan to compare', (
@@ -325,7 +353,7 @@ void main() {
     await tester.tap(find.text('Spróbuj ponownie'));
     await tester.pumpAndSettle();
 
-    expect(find.text(r'$19.99'), findsOneWidget);
+    expect(find.text(r'$22.99'), findsOneWidget);
     expect(find.text('Odblokuj pełny dostęp'), findsOneWidget);
   });
 }
