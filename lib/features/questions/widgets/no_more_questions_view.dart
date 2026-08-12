@@ -2,16 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
-import 'back_to_daily_link.dart';
 
 /// Shown on the reveal slot when the user has run out of eligible questions.
-/// Carries its own "back to the daily" action so it is never a dead end — the
-/// user has consumed every ad/credit-revealable question, so the only forward
-/// path left is PRO, and the only sideways path is back to today's free daily.
+/// Not a dead end even without an explicit link: a rightward swipe steps back
+/// through the session's questions, same as everywhere else in the feed.
 class NoMoreQuestions extends StatelessWidget {
-  const NoMoreQuestions({super.key, required this.onBackToDaily});
-
-  final VoidCallback onBackToDaily;
+  const NoMoreQuestions({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +35,6 @@ class NoMoreQuestions extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(color: context.colors.subtle, fontSize: 14),
         ),
-        const SizedBox(height: 28),
-        BackToDailyLink(onTap: onBackToDaily),
       ],
     );
   }

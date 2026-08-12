@@ -10,9 +10,8 @@ import '../../../data/models/vote_result.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../../services/analytics.dart';
 import '../../../services/reminder_scheduler.dart';
-import '../../account/providers/session_providers.dart';
 import '../../account/providers/stats_providers.dart';
-import '../../account/screens/auth_screen.dart';
+import '../../account/widgets/secure_streak_prompt.dart';
 import '../../settings/providers/reminder_providers.dart';
 import '../../settings/providers/review_providers.dart';
 import '../providers/question_providers.dart';
@@ -32,8 +31,11 @@ import 'vote_visuals.dart';
 /// [isDaily] only distinguishes the analytics event (the activation funnel
 /// counts a vote on the served daily).
 ///
-/// Guests see the buttons too, but may neither vote nor see the community split:
-/// tapping either side sends them to the sign-in sheet instead of casting a vote.
+/// Guests vote too: every user — anonymous or not — has a stable Supabase UUID
+/// (silent sign-in at launch), so the vote and the streak it advances are
+/// recorded server-side either way. Signing in "secures" that identity rather
+/// than gating the core mechanic; after a vote a guest with a streak worth
+/// protecting is nudged to create an account (see [maybePromptSecureStreak]).
 class DailyVotePanel extends ConsumerStatefulWidget {
   const DailyVotePanel({
     required this.questionId,
@@ -60,6 +62,19 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
 
   Future<void> _vote(int choice) async {
     if (_busy) return;
+    // The DEV tools' custom pin isn't a server row — the cast RPC takes a uuid
+    // and would just error. Fake a plausible split locally instead, so a tester
+    // can preview the result bars too. Panel-local only; nothing is recorded.
+    if (widget.questionId == kDevCustomQuestionId) {
+      setState(
+        () => _local = VoteResult(
+          yesCount: choice == VoteResult.yes ? 61 : 60,
+          noCount: choice == VoteResult.no ? 41 : 40,
+          myChoice: choice,
+        ),
+      );
+      return;
+    }
     setState(() => _busy = true);
     // Captured before the await so we never read context across an async gap.
     final l10n = context.l10n;
@@ -88,7 +103,7 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       // today's reminder to a post-vote message, maybe ask for a review.
       ref.invalidate(userStatsProvider);
       await _refreshReminderAfterVote(result, l10n);
-      await _maybeAskForReview();
+      await _maybeNudgeAfterVote();
     } catch (e) {
       if (!mounted) return;
       // Offline gets the calmer "no connection" line — the vote isn't lost, it
@@ -131,15 +146,17 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
     }
   }
 
-  /// After a successful vote — a natural high point, especially when it
-  /// just extended a streak — consider asking for a store rating. The streak is
-  /// read from the now-refreshed stats; the controller enforces the milestone +
-  /// weekly cooldown, so the vast majority of votes ask for nothing.
+  /// After a successful vote — a natural high point, especially when it just
+  /// extended a streak — run at most ONE follow-up prompt: first offer a guest
+  /// the "secure your streak" account nudge; only when that doesn't show,
+  /// consider the store-review ask. One dialog per vote, so the moment never
+  /// turns into a gauntlet. Each prompt enforces its own milestone + cooldown,
+  /// so the vast majority of votes ask for nothing.
   ///
-  /// Best-effort and fired last: a rating ask must never interfere with the vote
+  /// Best-effort and fired last: a prompt must never interfere with the vote
   /// that already counted, so any failure (offline stats refetch, missing prefs
   /// in tests) is swallowed.
-  Future<void> _maybeAskForReview() async {
+  Future<void> _maybeNudgeAfterVote() async {
     try {
       final stats = await ref.read(userStatsProvider.future);
       // Swiping away unmounts this panel; skipping the ask is always acceptable,
@@ -148,16 +165,20 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       final streak = stats?.currentStreak ?? 0;
 
       // On the day the streak crosses into a new rank, the rank-up celebration
-      // (confetti + share card) owns the moment — don't stack the OS review
-      // sheet on top of it. The very first review milestone (streak 3) lines up
-      // exactly with the first promotion, so this collision is the common case,
-      // not an edge one. The review ask comes around again on the next eligible
-      // day per its own cooldown.
+      // (confetti + share card) owns the moment — neither prompt fires on top
+      // of it. Both come around again on the next eligible day.
       final ladder = ref.read(ranksProvider).value ?? kDefaultRanks;
       final isPromotionDay = ladder.any(
         (r) => r.tier > 0 && r.minStreak == streak,
       );
-      if (isPromotionDay) return;
+
+      final nudged = await maybePromptSecureStreak(
+        context,
+        ref,
+        streak: streak,
+        isPromotionDay: isPromotionDay,
+      );
+      if (nudged || isPromotionDay) return;
 
       await ref
           .read(reviewPromptControllerProvider.notifier)
@@ -169,18 +190,6 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
 
   @override
   Widget build(BuildContext context) {
-    final hasAccount = ref.watch(
-      sessionProvider.select((s) => s.value?.hasAccount ?? false),
-    );
-
-    // Guests: show the buttons but never the split. Tapping either side opens the
-    // sign-in sheet rather than casting a vote — so no community % leaks out and
-    // a vote is only ever recorded for a real account. (No provider read here, so
-    // we don't even fetch the split for a guest.)
-    if (!hasAccount) {
-      return VoteButtonsRow(busy: false, onVote: (_) => showAuthSheet(context));
-    }
-
     final async = ref.watch(dailyVoteStateProvider(widget.questionId));
     final result = _local ?? async.value;
 

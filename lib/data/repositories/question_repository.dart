@@ -128,6 +128,14 @@ abstract class QuestionRepository {
   /// gate — a question the user merely saw but never voted on has no row. See
   /// the `get_vote_history` RPC.
   Future<List<VoteHistoryEntry>> fetchVoteHistory();
+
+  /// The ids of active questions added to the catalog at or after [since].
+  ///
+  /// Drives the small "Nowe" badge on the feed: a question younger than the
+  /// freshness window gets flagged so a thin vote count reads as "just added",
+  /// not "nobody cares". Ids only (no text), so it's one cheap indexed read of
+  /// the public `questions` table — the RPC return shapes stay untouched.
+  Future<Set<String>> fetchRecentQuestionIds({required DateTime since});
 }
 
 /// Default implementation backed by the in-memory mock list.
@@ -323,6 +331,14 @@ class MockQuestionRepository implements QuestionRepository {
         ),
     ];
   }
+
+  @override
+  Future<Set<String>> fetchRecentQuestionIds({required DateTime since}) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    // Offline preview: mark the first couple of pool questions "new" so the
+    // badge can be eyeballed in dev without a backend.
+    return {for (final q in kMockQuestions.take(2)) q.id};
+  }
 }
 
 /// Process-local favorites for the offline/dev mock repository.
@@ -334,7 +350,7 @@ final Set<String> _mockFavorites = <String>{};
 
 /// Supabase-backed implementation used in production builds.
 ///
-/// Matches the schema in `supabase/migrations/20260618120000_init.sql`:
+/// Matches the schema in `supabase/migrations/schema/20260618120000_init.sql`:
 /// question text lives in `question_translations` (one row per locale) and is
 /// gated by RLS, so a free user only receives the text they may read (today's
 /// daily + unlocked) while a premium user receives all of it. Writes never
@@ -599,6 +615,22 @@ class SupabaseQuestionRepository implements QuestionRepository {
         .cast<Map<String, dynamic>>()
         .map(VoteHistoryEntry.fromJson)
         .toList();
+  }
+
+  @override
+  Future<Set<String>> fetchRecentQuestionIds({required DateTime since}) async {
+    // A plain table read, not an RPC: `questions` is granted to anon +
+    // authenticated with RLS limiting rows to active questions, and ids carry
+    // no gated content — the text stays behind the SECURITY DEFINER RPCs.
+    final data = await _db
+        .from('questions')
+        .select('id')
+        .gte('created_at', since.toUtc().toIso8601String());
+
+    return (data as List)
+        .cast<Map<String, dynamic>>()
+        .map((row) => row['id'].toString())
+        .toSet();
   }
 
   static String _dateOnly(DateTime date) {

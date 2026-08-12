@@ -12,8 +12,8 @@ const double kTabletShortestSide = 600;
 /// The feed is one full-bleed question with the vote row, the share / history
 /// pills and the bottom overlay stacked beneath it. A phone in landscape offers
 /// ~375pt of height for roughly 500pt of that chrome, so something always had to
-/// give: the reveal wall's "restore purchase" and "back to the free question"
-/// ended up below the fold, painted but out of reach. The app has advertised
+/// give: the reveal wall's bottom links ("restore purchase") ended up below the
+/// fold, painted but out of reach. The app has advertised
 /// landscape on iPhone since 1.0 without a single layout designed for it.
 ///
 /// Tablets keep all four orientations — they have the room, and iPadOS

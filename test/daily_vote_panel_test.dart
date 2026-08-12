@@ -10,10 +10,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/localized_test_app.dart';
 
 /// The daily TAK/NIE panel. Two guarantees matter for release:
-///   * a guest may neither vote nor see the community split — tapping a side
-///     sends them to sign-in, and no percentage ever renders for them;
-///   * an account that votes is shown the split (green %, red %, with "VS"
-///     between) with its own side marked.
+///   * ANY user — guest or account — can vote: the vote rides the (anonymous)
+///     Supabase identity, so a tap records it and reveals the community split
+///     (green %, red %, with "VS" between) with their own side marked;
+///   * the split never leaks before a vote, and returning to a voted question
+///     shows the split again rather than allowing a second vote.
 void main() {
   SessionState guest() => const SessionState(userId: 'anon', isAnonymous: true);
   SessionState account() =>
@@ -48,32 +49,38 @@ void main() {
     return repo;
   }
 
-  testWidgets('a guest sees the buttons but tapping opens sign-in, no vote', (
+  testWidgets('a guest votes like anyone else — recorded, split revealed', (
     tester,
   ) async {
     final repo = await pumpPanel(
       tester,
       session: guest(),
       initial: VoteResult.empty,
+      castReturns: const VoteResult(
+        yesCount: 60,
+        noCount: 40,
+        myChoice: VoteResult.yes,
+      ),
     );
 
+    // Before the vote no split leaks — buttons only.
     expect(find.text('TAK'), findsOneWidget);
     expect(find.text('NIE'), findsOneWidget);
-    // A guest must never see a community percentage.
     expect(find.textContaining('%'), findsNothing);
-    expect(find.text('VS'), findsNothing);
 
     await tester.tap(find.text('TAK'));
-    await tester.pumpAndSettle(); // run the sign-in sheet transition
+    await tester.pumpAndSettle();
 
-    // The sign-in card opened (its email/password fields), not a vote.
+    // The tap voted — it did NOT open the sign-in sheet.
+    expect(repo.castCalls, 1, reason: 'a guest vote is a real vote');
     expect(
       find.byType(TextField),
-      findsWidgets,
-      reason: 'a guest tap is a login prompt, not a vote',
+      findsNothing,
+      reason: 'no sign-in gate on voting',
     );
-    expect(repo.castCalls, 0, reason: 'no vote is recorded for a guest');
-    expect(find.textContaining('%'), findsNothing);
+    expect(find.text('60%'), findsOneWidget);
+    expect(find.text('40%'), findsOneWidget);
+    expect(find.text('VS'), findsOneWidget);
   });
 
   testWidgets(

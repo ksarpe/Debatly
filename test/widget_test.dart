@@ -61,13 +61,22 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
 
-    // Mock mode resolves to a guest: the quiet "Zaloguj" button replaces the
-    // person/settings icon, and the streak chip is hidden. The "go deeper"
-    // action is still present.
-    expect(find.text('Zaloguj'), findsOneWidget);
-    expect(find.byIcon(Icons.person_outline), findsNothing);
-    expect(find.byIcon(Icons.local_fire_department_rounded), findsNothing);
+    // Mock mode resolves to a guest: the person icon opens the profile hub for
+    // everyone now — there is no separate "Zaloguj" affordance in the top bar.
+    // The streak chip shows for guests too (their streak rides the anonymous
+    // identity) — muted at 0 before the first vote. The "go deeper" action is
+    // still present.
+    expect(find.text('Zaloguj'), findsNothing);
+    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(find.byIcon(Icons.local_fire_department_rounded), findsOneWidget);
     expect(find.text(_goDeeperLabelPl), findsOneWidget);
+
+    // A guest's profile leads with the secure-account action right under the
+    // guest-session header — signing in is a labelled fix, not a gate.
+    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.pumpAndSettle();
+    expect(find.text('Sesja gościa'), findsOneWidget);
+    expect(find.text('Zabezpiecz konto'), findsOneWidget);
   });
 
   testWidgets('First launch shows onboarding; skip leads to the account choice', (
@@ -191,10 +200,11 @@ void main() {
     expect(find.text('USTAWIENIA APLIKACJI'), findsOneWidget);
     expect(find.text('KONTO'), findsOneWidget);
     expect(find.text('Przypomnienia'), findsOneWidget);
-    // Mock mode resolves to a guest, free session.
+    // Mock mode resolves to a guest, free session: the secure-account action
+    // leads the page, right under the guest-session header.
     expect(find.text('Sesja gościa'), findsOneWidget);
     expect(find.text('Przejdź na Premium'), findsOneWidget);
-    expect(find.text('Zaloguj się'), findsOneWidget);
+    expect(find.text('Zabezpiecz konto'), findsOneWidget);
   });
 
   testWidgets('Premium user can open the Manage subscription sheet', (

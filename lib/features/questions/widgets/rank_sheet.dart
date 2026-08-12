@@ -48,14 +48,20 @@ IconData rankIcon(String? key) {
       return Icons.bolt_rounded;
     case 'whatshot':
       return Icons.whatshot_rounded;
+    case 'wind':
+      return Icons.air_rounded;
     case 'shield':
       return Icons.shield_rounded;
+    case 'medal':
+      return Icons.military_tech_rounded;
     case 'star':
       return Icons.stars_rounded;
     case 'diamond':
       return Icons.diamond_rounded;
     case 'crown':
       return Icons.workspace_premium_rounded;
+    case 'trophy':
+      return Icons.emoji_events_rounded;
     case 'rocket':
       return Icons.rocket_launch_rounded;
     default:
@@ -129,14 +135,13 @@ class _RankSheet extends ConsumerWidget {
                             lang: lang,
                             unlocked: streak >= r.minStreak,
                             isCurrent: r.tier == current.tier,
-                            // Locked ranks past the immediate next one are kept a
-                            // blurred mystery, so the ladder teases what's ahead
-                            // without spoiling it. The current rank and the next
-                            // target (already named in the progress line above)
-                            // stay sharp. Purely a local visual effect — the row
-                            // data is still loaded, just obscured client-side.
-                            obscured:
-                                streak < r.minStreak && r.tier != next?.tier,
+                            // Every locked rank — including the very next one —
+                            // is kept a blurred mystery, so a promotion is a
+                            // full surprise. Only the streak threshold and the
+                            // lock badge stay sharp, so the goal is still clear.
+                            // Purely a local visual effect — the row data is
+                            // still loaded, just obscured client-side.
+                            obscured: streak < r.minStreak,
                           ),
                       ],
                     ),
@@ -293,8 +298,6 @@ class _Progress extends StatelessWidget {
       );
     }
 
-    final lang = Localizations.localeOf(context).languageCode;
-
     final span = (next!.minStreak - current.minStreak).clamp(1, 1 << 30);
     final done = (streak - current.minStreak).clamp(0, span);
     final fraction = done / span;
@@ -313,8 +316,10 @@ class _Progress extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
+        // The next rank is deliberately not named here — it stays blurred in
+        // the ladder below until the streak actually unlocks it.
         Text(
-          context.l10n.daysToRank(remaining, next!.nameFor(lang)),
+          context.l10n.daysToNextRank(remaining),
           style: TextStyle(color: context.colors.subtle, fontSize: 13),
         ),
       ],

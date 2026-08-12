@@ -89,14 +89,40 @@ final smaczkiProvider = FutureProvider.family<List<Smaczek>, String>((
   ref,
   questionId,
 ) async {
+  // The DEV custom pin has no server row and the RPC's uuid param would choke
+  // on its synthetic id — an empty list renders the "no smaczki" sheet.
+  if (questionId == kDevCustomQuestionId) return const <Smaczek>[];
   final repo = ref.watch(questionRepositoryProvider);
   return repo.fetchSmaczki(questionId);
 });
 
+/// The highest deck index reached this session — how far forward the user has
+/// ever been, regardless of where they've since swiped back to. Drives the
+/// "back to the latest" jump (see [canJumpToLatestProvider] and
+/// [QuestionDeckNotifier.toLatest]), so someone who stepped back five questions
+/// returns in one tap instead of five forward swipes. Only [QuestionDeckNotifier]
+/// bumps it; reset alongside the index on an identity switch.
+class FurthestIndexNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump(int index) {
+    if (index > state) state = index;
+  }
+
+  void reset() => state = 0;
+}
+
+final furthestIndexProvider = NotifierProvider<FurthestIndexNotifier, int>(
+  FurthestIndexNotifier.new,
+);
+
 /// Tracks which question in the loaded list is currently shown.
 ///
 /// The "wind" swipe simply advances this index; the view animates the text
-/// transition in response to the change. Wraps around at both ends.
+/// transition in response to the change. Forward wraps for premium (the catalog
+/// is a loop); backward is clamped at the daily for BOTH tiers, so a right
+/// swipe steps back through what was already on screen and stops at index 0.
 class QuestionDeckNotifier extends Notifier<int> {
   @override
   int build() => 0;
@@ -108,18 +134,14 @@ class QuestionDeckNotifier extends Notifier<int> {
   // instead of leaving them on the question they just unlocked.
   int get _length => ref.read(questionDeckProvider).length;
 
+  void _bumpFurthest() => ref.read(furthestIndexProvider.notifier).bump(state);
+
   /// Premium-only wrap-around forward (the full catalog is a loop).
   void next() {
     final length = _length;
     if (length == 0) return;
     state = (state + 1) % length;
-  }
-
-  /// Premium-only wrap-around backward.
-  void previous() {
-    final length = _length;
-    if (length == 0) return;
-    state = (state - 1 + length) % length;
+    _bumpFurthest();
   }
 
   /// Free-feed forward: advance by one WITHOUT wrapping, allowing exactly one
@@ -128,10 +150,13 @@ class QuestionDeckNotifier extends Notifier<int> {
   void forwardLinear() {
     final length = _length;
     if (state < length) state = state + 1;
+    _bumpFurthest();
   }
 
-  /// Free-feed backward: step back through this session's revealed questions,
-  /// clamped at the daily (index 0). Also the way back off the reveal slot.
+  /// Step back by one, clamped at the daily (index 0) — BOTH tiers. For a free
+  /// user this walks back through this session's revealed questions (also the
+  /// way back off the reveal slot); for premium it retraces the stable
+  /// per-launch deck order, which IS the order they just read.
   void backLinear() {
     if (state > 0) state = state - 1;
   }
@@ -141,6 +166,25 @@ class QuestionDeckNotifier extends Notifier<int> {
   /// swiped onto the reveal slot and doesn't want to watch an ad: instead of
   /// being stuck on the paywall, they can return to the free daily in one tap.
   void toDaily() => state = 0;
+
+  /// Jumps forward to the furthest question reached this session — the "undo"
+  /// for a run of back swipes. Clamped to the last real question so it never
+  /// lands on a free user's reveal slot (the paywall), even when the furthest
+  /// position recorded WAS the slot.
+  void toLatest() {
+    final length = _length;
+    if (length == 0) return;
+    final furthest = ref.read(furthestIndexProvider);
+    state = min(furthest, length - 1);
+  }
+
+  /// DEV tools only: shows the question at [index], clamped to the deck.
+  void jumpTo(int index) {
+    final length = _length;
+    if (length == 0) return;
+    state = index.clamp(0, length - 1);
+    _bumpFurthest();
+  }
 }
 
 /// Index of the currently displayed question.
@@ -163,6 +207,39 @@ final todaysDailyQuestionProvider = FutureProvider<Question?>((ref) async {
   return repo.fetchDailyQuestion(DateTime.now());
 });
 
+/// How long a question counts as "new" after being added to the catalog.
+///
+/// Two weeks: long enough for the community split to firm up, after which a
+/// thin vote count no longer needs the "it's just new" explanation.
+const Duration kNewQuestionWindow = Duration(days: 14);
+
+/// Ids of active questions added within [kNewQuestionWindow] — the questions
+/// that wear the small "Nowe" badge over the feed.
+///
+/// One cheap ids-only read per session (per repo rebuild). Best-effort by
+/// design: the badge is decoration, so any failure degrades to an empty set
+/// rather than surfacing an error anywhere.
+final newQuestionIdsProvider = FutureProvider<Set<String>>((ref) async {
+  final repo = ref.watch(questionRepositoryProvider);
+  try {
+    return await repo.fetchRecentQuestionIds(
+      since: DateTime.now().subtract(kNewQuestionWindow),
+    );
+  } catch (_) {
+    return const <String>{};
+  }
+});
+
+/// Whether the question currently on screen is fresh enough to wear the
+/// "Nowe" badge. False for locked teasers (the badge would date the paywalled
+/// text) and while the id set is still loading.
+final currentQuestionIsNewProvider = Provider<bool>((ref) {
+  final current = ref.watch(currentQuestionProvider);
+  if (current == null || current.isLocked == true) return false;
+  final ids = ref.watch(newQuestionIdsProvider).asData?.value;
+  return ids != null && ids.contains(current.id);
+});
+
 /// The community vote split (TAK/NIE) plus the caller's own vote for a question.
 ///
 /// Keyed by question id so each question caches its own state. The daily vote
@@ -174,6 +251,9 @@ final dailyVoteStateProvider = FutureProvider.family<VoteResult, String>((
   ref,
   questionId,
 ) async {
+  // The DEV custom pin has no server row and the RPC's uuid param would choke
+  // on its synthetic id — "not voted" shows the vote buttons for the preview.
+  if (questionId == kDevCustomQuestionId) return VoteResult.empty;
   final repo = ref.watch(questionRepositoryProvider);
   return repo.getDailyVoteState(questionId);
 });
@@ -228,6 +308,31 @@ final revealedFeedProvider =
       RevealedFeedNotifier.new,
     );
 
+/// Id of the synthetic "własne pytanie" pin from the DEV tools screen. Never a
+/// real catalog row: the vote/smaczki RPCs take `uuid` params, so this id must
+/// be short-circuited client-side (see [dailyVoteStateProvider],
+/// [smaczkiProvider] and the vote cast in DailyVotePanel) rather than sent to
+/// the server, where it fails the uuid cast outright instead of returning
+/// "no rows".
+const String kDevCustomQuestionId = 'dev-custom';
+
+/// DEV tools only: a question pinned from the settings DEV screen so a tester
+/// can put any question on the home screen. Null in normal use — the deck is
+/// untouched then. In-memory only; gone on restart.
+class DevPinnedQuestionNotifier extends Notifier<Question?> {
+  @override
+  Question? build() => null;
+
+  void pin(Question q) => state = q;
+
+  void unpin() => state = null;
+}
+
+final devPinnedQuestionProvider =
+    NotifierProvider<DevPinnedQuestionNotifier, Question?>(
+      DevPinnedQuestionNotifier.new,
+    );
+
 /// The ordered deck the home screen walks through.
 ///
 /// Position 0 is always today's daily. PREMIUM gets the whole catalog after it,
@@ -243,6 +348,17 @@ final questionDeckProvider = Provider<List<Question>>((ref) {
   final dailyAsync = ref.watch(todaysDailyQuestionProvider);
   if (dailyAsync.isLoading) return const [];
   final daily = dailyAsync.asData?.value;
+
+  // DEV tools only: a pinned question slots in right after the daily, so index
+  // 0 stays the daily and toDaily()/isShowingDaily keep their meaning. Null in
+  // normal use, leaving the deck exactly as built below.
+  List<Question> withDevPin(List<Question> deck) {
+    final pinned = ref.watch(devPinnedQuestionProvider);
+    if (pinned == null) return deck;
+    final rest = deck.where((q) => q.id != pinned.id).toList();
+    final at = rest.isEmpty ? 0 : 1;
+    return [...rest.take(at), pinned, ...rest.skip(at)];
+  }
 
   if (ref.watch(isPremiumProvider)) {
     final pool =
@@ -264,13 +380,16 @@ final questionDeckProvider = Provider<List<Question>>((ref) {
       return [...unseen, ...seen];
     }
 
-    if (daily == null) return orderedUnseenFirst(pool);
-    return [daily, ...orderedUnseenFirst(pool.where((q) => q.id != daily.id))];
+    if (daily == null) return withDevPin(orderedUnseenFirst(pool));
+    return withDevPin([
+      daily,
+      ...orderedUnseenFirst(pool.where((q) => q.id != daily.id)),
+    ]);
   }
 
   final revealed = ref.watch(revealedFeedProvider);
-  if (daily == null) return revealed;
-  return [daily, ...revealed];
+  if (daily == null) return withDevPin(revealed);
+  return withDevPin([daily, ...revealed]);
 });
 
 /// The single question to render, or null when there is nothing to show.
@@ -294,6 +413,21 @@ final isAtRevealSlotProvider = Provider<bool>((ref) {
   final deck = ref.watch(questionDeckProvider);
   if (deck.isEmpty) return false;
   return ref.watch(questionIndexProvider) >= deck.length;
+});
+
+/// True when the user has swiped back from the furthest question they reached
+/// this session — i.e. a one-tap "back to the latest" jump would move them
+/// forward. Hidden on the reveal slot (the paywall carries its own links).
+/// The furthest position is clamped to the last real question the same way
+/// [QuestionDeckNotifier.toLatest] clamps its jump, so a recorded slot visit
+/// alone never shows the link.
+final canJumpToLatestProvider = Provider<bool>((ref) {
+  final deck = ref.watch(questionDeckProvider);
+  if (deck.isEmpty) return false;
+  if (ref.watch(isAtRevealSlotProvider)) return false;
+  final index = ref.watch(questionIndexProvider);
+  final furthest = min(ref.watch(furthestIndexProvider), deck.length - 1);
+  return index < furthest;
 });
 
 /// Whether the question currently on screen is today's free (personal) daily.

@@ -146,8 +146,8 @@ void main() {
 
   group('the reveal wall never hides its exits', () {
     // "Restore purchase" is the only restore path a guest has (Settings is
-    // account-only), so App Review has to be able to reach it, and the "back to
-    // the free question" link is the user's way out of the wall.
+    // account-only), so App Review has to be able to reach it. (The way back to
+    // the free daily is a plain right swipe now, not a link.)
     const viewports = <String, (Size, double)>{
       'short window': (Size(812, 375), 1.0),
       'phone': (Size(375, 667), 1.0),
@@ -156,7 +156,7 @@ void main() {
     };
 
     viewports.forEach((name, spec) {
-      testWidgets('restore + back-to-daily reachable — $name', (tester) async {
+      testWidgets('restore reachable — $name', (tester) async {
         final (size, scale) = spec;
         await pumpFeed(
           tester,
@@ -183,10 +183,7 @@ void main() {
           reason: 'the wall must fit or scroll, never overflow its box',
         );
 
-        for (final label in const [
-          'Przywróć zakup',
-          'Wróć do darmowego pytania',
-        ]) {
+        for (final label in const ['Przywróć zakup']) {
           final finder = find.text(label);
           expect(finder, findsOneWidget, reason: label);
           // Scrolling it into view is allowed; being unreachable is not.

@@ -4,8 +4,8 @@ import '../../../core/theme/app_theme.dart';
 
 /// The paywall hero: "PRO" as a brand sticker — the question text's signature
 /// Anton stroke-and-fill treatment, but with a spark-gradient fill — slightly
-/// tilted, glowing from behind, with a counter-tilted bolt badge pinned to its
-/// corner. Pops in once when the sheet opens (one-shot, so tests can settle).
+/// tilted and glowing from behind. Pops in once when the sheet opens
+/// (one-shot, so tests can settle).
 class PaywallHero extends StatefulWidget {
   const PaywallHero({super.key});
 
@@ -81,23 +81,6 @@ class _PaywallHeroState extends State<PaywallHero>
                       shaderCallback: _fillGradient.createShader,
                       child: Text('PRO', style: _fill),
                     ),
-                    Positioned(
-                      top: -8,
-                      right: -26,
-                      child: Transform.rotate(
-                        angle: 0.30,
-                        child: const _BoltSticker(),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: -2,
-                      left: -26,
-                      child: Icon(
-                        Icons.auto_awesome,
-                        size: 18,
-                        color: AppTheme.spark.withValues(alpha: 0.75),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -105,33 +88,6 @@ class _PaywallHeroState extends State<PaywallHero>
           ),
         ),
       ),
-    );
-  }
-}
-
-/// The little round bolt badge riding the corner of the "PRO" sticker. The
-/// background-coloured ring separates it from the letters underneath.
-class _BoltSticker extends StatelessWidget {
-  const _BoltSticker();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 38,
-      height: 38,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.spark, Color(0xFFEA580C)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        shape: BoxShape.circle,
-        border: Border.all(color: context.colors.background, width: 3),
-        boxShadow: const [
-          BoxShadow(color: Color(0x55F97316), blurRadius: 14, spreadRadius: 1),
-        ],
-      ),
-      child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 20),
     );
   }
 }

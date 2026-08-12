@@ -8,6 +8,61 @@ import '../core/monitoring/monitoring.dart';
 import 'ads_service.dart';
 import 'consent_service.dart';
 
+/// The slice of a loaded [RewardedAd] that [RewardedAdService.showRewardedAd]
+/// drives. A seam: [RewardedAd] has no public constructor, so the reward /
+/// dismiss ordering logic (the part that has regressed before) could not be
+/// tested against the plugin class directly. Production wraps the real ad in
+/// [_PluginRewardedAd]; tests inject a fake via
+/// [RewardedAdService.debugSetLoadedAd].
+abstract class LoadedRewardedAd {
+  /// Tags the impression for Server-Side Verification. May throw — the caller
+  /// treats SSV as audit-only and continues regardless.
+  Future<void> setServerSideOptions(ServerSideVerificationOptions options);
+
+  /// Presents the ad. AdMob does NOT guarantee [onUserEarnedReward] fires
+  /// before [onDismissed] / [onFailedToShow] — mediation adapters differ.
+  Future<void> show({
+    required VoidCallback onUserEarnedReward,
+    required VoidCallback onDismissed,
+    required void Function(AdError error) onFailedToShow,
+  });
+
+  void dispose();
+}
+
+/// Production adapter over the real plugin ad.
+class _PluginRewardedAd implements LoadedRewardedAd {
+  _PluginRewardedAd(this._ad);
+
+  final RewardedAd _ad;
+
+  @override
+  Future<void> setServerSideOptions(ServerSideVerificationOptions options) =>
+      _ad.setServerSideOptions(options);
+
+  @override
+  Future<void> show({
+    required VoidCallback onUserEarnedReward,
+    required VoidCallback onDismissed,
+    required void Function(AdError error) onFailedToShow,
+  }) {
+    _ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        onDismissed();
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        ad.dispose();
+        onFailedToShow(error);
+      },
+    );
+    return _ad.show(onUserEarnedReward: (_, _) => onUserEarnedReward());
+  }
+
+  @override
+  void dispose() => _ad.dispose();
+}
+
 /// Manages the lifecycle of a single Google AdMob *rewarded* ad: pre-loading one
 /// in the background, showing it on demand, surfacing the
 /// `onUserEarnedReward` callback, and immediately pre-loading the next.
@@ -18,11 +73,18 @@ import 'consent_service.dart';
 class RewardedAdService {
   RewardedAdService();
 
-  RewardedAd? _ad;
+  LoadedRewardedAd? _ad;
   bool _isLoading = false;
 
   /// Whether an ad is loaded and ready to [showRewardedAd] right now.
   bool get isReady => _ad != null;
+
+  /// Hands the service a pre-loaded (fake) ad, standing in for a completed
+  /// [preload] — which tests can't run (no AdMob SDK).
+  @visibleForTesting
+  void debugSetLoadedAd(LoadedRewardedAd ad) {
+    _ad = ad;
+  }
 
   /// Starts loading a rewarded ad if one isn't already loaded or in flight.
   ///
@@ -42,7 +104,7 @@ class RewardedAdService {
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
-          _ad = ad;
+          _ad = _PluginRewardedAd(ad);
           _isLoading = false;
         },
         onAdFailedToLoad: (error) {
@@ -115,26 +177,23 @@ class RewardedAdService {
       if (!completer.isCompleted) completer.complete(earned);
     }
 
-    ad.fullScreenContentCallback = FullScreenContentCallback(
-      onAdDismissedFullScreenContent: (ad) {
-        ad.dispose();
+    await ad.show(
+      onUserEarnedReward: () => earned = true,
+      onDismissed: () {
         preload();
         finish();
       },
-      onAdFailedToShowFullScreenContent: (ad, error) {
+      onFailedToShow: (error) {
         debugPrint('RewardedAdService: failed to show — $error');
         Monitoring.addBreadcrumb(
           'Rewarded ad failed to show',
           category: 'ads',
           data: {'code': error.code, 'message': error.message},
         );
-        ad.dispose();
         preload();
         finish();
       },
     );
-
-    await ad.show(onUserEarnedReward: (_, _) => earned = true);
     return completer.future;
   }
 

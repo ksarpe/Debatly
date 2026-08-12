@@ -215,4 +215,8 @@ class _FakeRepo implements QuestionRepository {
 
   @override
   Future<List<VoteHistoryEntry>> fetchVoteHistory() async => const [];
+
+  @override
+  Future<Set<String>> fetchRecentQuestionIds({required DateTime since}) async =>
+      const {};
 }

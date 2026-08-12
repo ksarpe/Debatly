@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/fit_or_scroll.dart';
 import '../../../services/analytics.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/reminder_scheduler.dart';
@@ -77,59 +78,78 @@ class _OnboardingNotificationsCardState
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const OnboardingGlyphBubble(
-            icon: Icons.notifications_active_rounded,
-            color: AppTheme.spark,
-          ),
-          const SizedBox(height: 40),
-          Text(
-            l10n.onboardingNotifyTitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.colors.ink,
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              height: 1.15,
+    // Both buttons out of this card must stay tappable on short viewports —
+    // an overflowed Column still paints its spilled children but they stop
+    // receiving taps, which would trap the user here.
+    return FitOrScroll(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const OnboardingGlyphBubble(
+              icon: Icons.notifications_active_rounded,
+              color: AppTheme.spark,
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            l10n.onboardingNotifyBody,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.colors.subtle,
-              fontSize: 16,
-              height: 1.45,
+            const SizedBox(height: 40),
+            Text(
+              l10n.onboardingNotifyTitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.ink,
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                height: 1.15,
+              ),
             ),
-          ),
-          const SizedBox(height: 36),
-          _busy
-              ? const SizedBox(
-                  height: 56,
-                  child: Center(
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2.4),
+            const SizedBox(height: 16),
+            Text(
+              l10n.onboardingNotifyBody,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.subtle,
+                fontSize: 16,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 36),
+            _busy
+                ? const SizedBox(
+                    height: 56,
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2.4),
+                      ),
                     ),
+                  )
+                : OnboardingPrimaryButton(
+                    label: l10n.onboardingNotifyEnable,
+                    onPressed: _enable,
                   ),
-                )
-              : OnboardingPrimaryButton(
-                  label: l10n.onboardingNotifyEnable,
-                  onPressed: _enable,
-                ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: _busy ? null : _decline,
-            style: TextButton.styleFrom(foregroundColor: context.colors.subtle),
-            child: Text(l10n.onboardingNotifySkip),
-          ),
-        ],
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _busy ? null : _decline,
+              style: TextButton.styleFrom(
+                foregroundColor: context.colors.subtle,
+              ),
+              child: Text(l10n.onboardingNotifySkip),
+            ),
+            const SizedBox(height: 12),
+            // Defuses the "am I signing up for spam forever?" hesitation right at
+            // the ask — the escape hatch is what makes the yes cheap.
+            Text(
+              l10n.onboardingNotifyFootnote,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.subtle.withValues(alpha: 0.7),
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

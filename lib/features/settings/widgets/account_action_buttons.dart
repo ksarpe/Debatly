@@ -1,70 +1,63 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
-import '../../../core/theme/app_theme.dart';
 import 'settings_primitives.dart';
 
-/// Full-width bordered "Sign out" action. Shows a spinner and ignores taps
-/// while a sign-out is in flight, so a slow token revoke never looks like a
-/// dead button or fires twice.
-class SignOutButton extends StatelessWidget {
-  const SignOutButton({super.key, required this.onTap, this.loading = false});
+/// "Sign out" row for the bottom of the "Account" card: red label, no chevron
+/// (it's an action, not navigation). Shows a spinner and ignores taps while a
+/// sign-out is in flight, so a slow token revoke never looks like a dead row
+/// or fires twice.
+class SignOutRow extends StatelessWidget {
+  const SignOutRow({super.key, required this.onTap, this.loading = false});
 
   final VoidCallback onTap;
   final bool loading;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: context.colors.cardSurface,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: loading ? null : onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          height: 54,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.colors.hairline),
-          ),
-          child: loading
-              ? SizedBox(
-                  width: 22,
-                  height: 22,
+    return InkWell(
+      onTap: loading ? null : onTap,
+      child: Padding(
+        // Matches SettingsNavRow's metrics so the card reads as one list.
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Row(
+          children: [
+            if (loading)
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: Padding(
+                  padding: EdgeInsets.all(2),
                   child: CircularProgressIndicator(
-                    strokeWidth: 2.4,
-                    color: context.colors.ink,
+                    strokeWidth: 2,
+                    color: kDanger,
                   ),
-                )
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.logout_rounded,
-                      color: context.colors.ink,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      context.l10n.signOut,
-                      style: TextStyle(
-                        color: context.colors.ink,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
                 ),
+              )
+            else
+              const Icon(Icons.logout_rounded, color: kDanger, size: 22),
+            const SizedBox(width: 16),
+            Text(
+              context.l10n.signOut,
+              style: const TextStyle(
+                color: kDanger,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Full-width gradient "Sign in" action, shown to guests reaching this screen.
-class SignInButton extends StatelessWidget {
-  const SignInButton({super.key, required this.onTap});
+/// Full-width gradient "Secure account" action, shown to guests right under the
+/// profile header. Opens the sign-in sheet: registering upgrades the anonymous
+/// user in place (same UUID), which is what "securing" means — the streak,
+/// votes and any PRO purchase survive a reinstall or a new phone.
+class SecureAccountButton extends StatelessWidget {
+  const SecureAccountButton({super.key, required this.onTap});
 
   final VoidCallback onTap;
 
@@ -84,15 +77,24 @@ class SignInButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: SizedBox(
             height: 54,
-            child: Center(
-              child: Text(
-                context.l10n.signIn,
-                style: const TextStyle(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.shield_outlined,
                   color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  size: 20,
                 ),
-              ),
+                const SizedBox(width: 10),
+                Text(
+                  context.l10n.secureAccount,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

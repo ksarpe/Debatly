@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/question_search_field.dart';
 import '../../../core/widgets/sub_screen_chrome.dart';
 import '../../../data/models/question.dart';
 import '../../questions/providers/favorites_providers.dart';
@@ -72,15 +73,7 @@ class FavoritesScreen extends ConsumerWidget {
                               body: l10n.favoritesEmptyBody,
                             );
                           }
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              for (final q in visible) ...[
-                                _FavoriteCard(question: q),
-                                const SizedBox(height: 14),
-                              ],
-                            ],
-                          );
+                          return _FavoritesList(questions: visible);
                         },
                       ),
                     ],
@@ -91,6 +84,57 @@ class FavoritesScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The non-empty favorites list. Once the collection is long enough
+/// (≥ [kQuestionSearchMinItems] cards) a search field appears above it,
+/// filtering cards by question text accent-insensitively; while a query is
+/// active the field stays even if removals shrink the list below the threshold.
+class _FavoritesList extends StatefulWidget {
+  const _FavoritesList({required this.questions});
+
+  final List<Question> questions;
+
+  @override
+  State<_FavoritesList> createState() => _FavoritesListState();
+}
+
+class _FavoritesListState extends State<_FavoritesList> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final matching = widget.questions
+        .where((q) => matchesQuestionQuery(q.questionText, _query))
+        .toList();
+    final showSearch =
+        widget.questions.length >= kQuestionSearchMinItems ||
+        _query.trim().isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showSearch) ...[
+          QuestionSearchField(
+            onChanged: (value) => setState(() => _query = value),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (matching.isEmpty)
+          _FavoritesEmpty(
+            icon: Icons.search_off_rounded,
+            title: l10n.searchNoResultsTitle,
+            body: l10n.searchNoResultsBody,
+          )
+        else
+          for (final q in matching) ...[
+            _FavoriteCard(question: q),
+            const SizedBox(height: 14),
+          ],
+      ],
     );
   }
 }
@@ -159,13 +203,19 @@ class _FavoriteCard extends ConsumerWidget {
   }
 }
 
-/// Empty/error state for the favorites screen: a muted star and a one-line
-/// nudge toward the home-screen star.
+/// Empty/error/no-results state for the favorites screen: a muted icon (star by
+/// default, a crossed-out magnifier for empty search results) and a one-line
+/// nudge.
 class _FavoritesEmpty extends StatelessWidget {
-  const _FavoritesEmpty({required this.title, required this.body});
+  const _FavoritesEmpty({
+    required this.title,
+    required this.body,
+    this.icon = Icons.star_border_rounded,
+  });
 
   final String title;
   final String body;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -173,11 +223,7 @@ class _FavoritesEmpty extends StatelessWidget {
       padding: const EdgeInsets.only(top: 64),
       child: Column(
         children: [
-          Icon(
-            Icons.star_border_rounded,
-            size: 48,
-            color: context.colors.subtle,
-          ),
+          Icon(icon, size: 48, color: context.colors.subtle),
           const SizedBox(height: 16),
           Text(
             title,

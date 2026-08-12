@@ -3,11 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/connectivity_providers.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../services/question_cache.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/providers/stats_providers.dart';
-import '../../account/screens/auth_screen.dart';
 import '../../monetization/providers/monetization_providers.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../providers/question_providers.dart';
@@ -30,7 +28,7 @@ class QuestionScreen extends ConsumerWidget {
     // pre-loading a rewarded ad so the unlock sheet is responsive the first time
     // a free user is gated. Reading them here is enough to instantiate them; the
     // daily question every user opens to is free.
-    final hasAccount = ref.watch(sessionProvider).value?.hasAccount ?? false;
+    ref.watch(sessionProvider);
     ref.watch(rewardedAdServiceProvider);
 
     // Sync the user's engagement state once the session resolves. This drives
@@ -63,6 +61,7 @@ class QuestionScreen extends ConsumerWidget {
       // user's feed.
       ref.read(revealedFeedProvider.notifier).clear();
       ref.read(questionIndexProvider.notifier).toDaily();
+      ref.read(furthestIndexProvider.notifier).reset();
     });
 
     // Premium walks the whole catalog, so record each question it lands on in the
@@ -110,6 +109,13 @@ class QuestionScreen extends ConsumerWidget {
       if (wasPremium == true && isPremium == false) {
         ref.read(questionCacheProvider).clearContent();
       }
+      // Either flip rebuilds the deck into a different shape (free feed vs full
+      // catalog), so the furthest-reached position no longer refers to the same
+      // questions — drop it rather than let "back to the latest" jump to an
+      // arbitrary index of the new deck. It re-arms on the next forward swipe.
+      if (wasPremium != null && wasPremium != isPremium) {
+        ref.read(furthestIndexProvider.notifier).reset();
+      }
     });
 
     // Drives the offline strip under the app bar. A hint only — the cached
@@ -138,9 +144,10 @@ class QuestionScreen extends ConsumerWidget {
       // true midpoint; the (transparent) app bar floats over the top.
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        // Status cluster centred at the top. The streak flame is only meaningful
-        // for a real account (a guest's progress isn't saved), so it's hidden for
-        // guests; the free-unlock chip self-hides off the daily / for guests.
+        // Status cluster centred at the top. The streak flame shows for everyone
+        // — guests vote and build a streak on their anonymous identity too (the
+        // account nudge, not a hidden chip, is what argues for signing in); the
+        // free-unlock chip self-hides off the daily / for guests.
         automaticallyImplyLeading: false,
         // The offline strip rides in the app bar's `bottom` slot so it grows the
         // bar when offline and reserves no space when connected (rather than
@@ -153,44 +160,24 @@ class QuestionScreen extends ConsumerWidget {
               )
             : null,
         centerTitle: true,
-        title: Row(
+        title: const Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            if (hasAccount) const StreakChip(),
-            const FreeUnlockChip(),
-          ],
+          children: [StreakChip(), FreeUnlockChip()],
         ),
-        // Top-right action. A signed-in user gets the person/settings icon; a
-        // guest gets a quiet "Zaloguj" text button instead, opening the sign-in
-        // sheet.
+        // Top-right action: the person icon opens the profile hub for everyone.
+        // A guest has a profile too (streak, rank, preferences ride the
+        // anonymous identity); securing the account is a clearly-labelled
+        // action INSIDE the profile, not a gate in front of it.
         actions: [
-          if (hasAccount)
-            IconButton(
-              icon: const Icon(Icons.person_outline),
-              tooltip: context.l10n.settingsTooltip,
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const SettingsScreen(),
-                  ),
-                );
-              },
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: TextButton(
-                onPressed: () => showAuthSheet(context),
-                style: TextButton.styleFrom(
-                  foregroundColor: context.colors.subtle,
-                  textStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                child: Text(context.l10n.signInShort),
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: context.l10n.settingsTooltip,
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
         ],
       ),
       // Only treat a load error as fatal when there's genuinely nothing to show:

@@ -1,0 +1,34 @@
+-- ============================================================================
+-- Grant SELECT on public.subscriptions to service_role — completes the fix
+-- started by 20260705120000_grant_service_role_edge_function_writes.sql.
+--
+-- ROOT CAUSE
+--   The revenue-cat-webhook edge function writes the per-entitlement row with a
+--   PostgREST UPSERT:
+--     supabase.from("subscriptions").upsert(..., { onConflict: "user_id,entitlement" })
+--   which compiles to `INSERT ... ON CONFLICT (user_id, entitlement) DO UPDATE`.
+--   Postgres requires SELECT privilege (on top of INSERT + UPDATE) for the
+--   DO UPDATE arm, because the conflicting row is read to arbitrate/update it.
+--   The 20260705 migration granted service_role only INSERT + UPDATE, so every
+--   webhook delivery kept failing with 42501 "permission denied for table
+--   subscriptions" (Postgres logs 2026-08-11: 24 ERRORs, all the same PostgREST
+--   upsert via `authenticator` SET ROLE service_role) and RevenueCat kept
+--   retrying → renewals/cancellations never landed in `subscriptions`.
+--   Reproduced 1:1 on prod (SET ROLE service_role + the same upsert → 42501)
+--   before applying this grant; the same statement succeeds after it.
+--
+-- WHY THIS IS SAFE
+--   service_role is a server-only role (its key never ships to the client), so
+--   letting it read `subscriptions` does not widen client access at all.
+--   anon/authenticated are untouched (authenticated keeps SELECT gated by the
+--   "read own subscription" RLS policy). Reversible via REVOKE.
+--
+--   `profiles.is_premium` was NOT corrupted by this bug: the webhook applies the
+--   premium flag through the SECURITY DEFINER RPC `apply_store_entitlement`
+--   (which worked), and `sync-entitlement` reconciles on every app launch — but
+--   the webhook aborted (500) on the failed `subscriptions` upsert BEFORE
+--   reaching that RPC, so cross-device renewals/expiries only healed when the
+--   app next called sync-entitlement.
+-- ============================================================================
+
+grant select on public.subscriptions to service_role;

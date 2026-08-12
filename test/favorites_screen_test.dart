@@ -99,6 +99,72 @@ void main() {
     expect(find.text('Brak ulubionych'), findsOneWidget);
   });
 
+  testWidgets('a long favorites list grows a search field that filters cards', (
+    tester,
+  ) async {
+    await pumpFavorites(
+      tester,
+      favorites: [
+        q('q1', 'Czy pieniądze dają szczęście?'),
+        q('q2', 'Czy sztuka musi być piękna?'),
+        q('q3', 'Czy praca zdalna jest lepsza?'),
+        q('q4', 'Czy warto studiować?'),
+        q('q5', 'Czy kara śmierci powinna istnieć?'),
+        q('q6', 'Czy żołnierz może odmówić rozkazu?'),
+      ],
+    );
+
+    expect(find.byType(TextField), findsOneWidget);
+
+    // Accent-insensitive: "szczescie" finds "szczęście".
+    await tester.enterText(find.byType(TextField), 'szczescie');
+    await tester.pumpAndSettle();
+    expect(find.text('Czy pieniądze dają szczęście?'), findsOneWidget);
+    expect(find.text('Czy sztuka musi być piękna?'), findsNothing);
+
+    // No match → the no-results state, not an empty hole.
+    await tester.enterText(find.byType(TextField), 'xyz nie ma');
+    await tester.pumpAndSettle();
+    expect(find.text('Brak wyników'), findsOneWidget);
+  });
+
+  testWidgets('a short favorites list stays search-free', (tester) async {
+    await pumpFavorites(
+      tester,
+      favorites: [q('q1', 'Czy pieniądze dają szczęście?')],
+    );
+
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets('removing a card while searching keeps the search field', (
+    tester,
+  ) async {
+    await pumpFavorites(
+      tester,
+      favorites: [
+        q('q1', 'Czy pieniądze dają szczęście?'),
+        q('q2', 'Czy sztuka musi być piękna?'),
+        q('q3', 'Czy praca zdalna jest lepsza?'),
+        q('q4', 'Czy warto studiować?'),
+        q('q5', 'Czy kara śmierci powinna istnieć?'),
+        q('q6', 'Czy żołnierz może odmówić rozkazu?'),
+      ],
+    );
+
+    await tester.enterText(find.byType(TextField), 'sztuka');
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.star_rounded), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.star_rounded));
+    await tester.pumpAndSettle();
+
+    // The card is gone, but the field (with its query) survives the removal.
+    expect(find.text('Czy sztuka musi być piękna?'), findsNothing);
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.text('Brak wyników'), findsOneWidget);
+  });
+
   testWidgets('no favorites yet shows the nudge toward the home star', (
     tester,
   ) async {

@@ -83,9 +83,11 @@ void main() {
       // The streak itself, and the longest-streak secondary stat.
       expect(find.text('Seria: 5 dni'), findsOneWidget);
       expect(find.textContaining('Najdłuższa seria: 9 dni'), findsOneWidget);
-      // Progress towards Legenda (minStreak 7): 2 days to go.
+      // Progress towards the next rank (minStreak 7): 2 days to go — and the
+      // line must NOT name it, the promotion stays a surprise.
       expect(find.byType(LinearProgressIndicator), findsOneWidget);
-      expect(find.textContaining('Jeszcze 2 dni do rangi'), findsOneWidget);
+      expect(find.text('Jeszcze 2 dni do kolejnej rangi'), findsOneWidget);
+      expect(find.textContaining('Legenda'), findsOneWidget);
       // The full ladder renders with its thresholds…
       expect(find.text('od 0'), findsOneWidget);
       expect(find.text('od 2'), findsOneWidget);
@@ -97,6 +99,31 @@ void main() {
     },
   );
 
+  testWidgets('every locked rank is blurred — including the very next one', (
+    tester,
+  ) async {
+    await pumpSheet(tester, stats: stats(streak: 5));
+
+    // The single locked row (Legenda) has both its icon and its name blurred,
+    // so the coming promotion stays a surprise…
+    expect(
+      find.ancestor(
+        of: find.text('Legenda'),
+        matching: find.byType(ImageFiltered),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(ImageFiltered), findsNWidgets(2));
+    // …while the ranks already earned stay readable.
+    expect(
+      find.ancestor(
+        of: find.text('Adept'),
+        matching: find.byType(ImageFiltered),
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets('at the top rank the progress bar yields to the respect line', (
     tester,
   ) async {
@@ -106,6 +133,8 @@ void main() {
     expect(find.textContaining('szacun'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNothing);
     expect(find.byIcon(Icons.lock_outline_rounded), findsNothing);
+    // Nothing left to hide once the whole ladder is unlocked.
+    expect(find.byType(ImageFiltered), findsNothing);
   });
 
   testWidgets('a server-flagged grace period surfaces the warning banner', (

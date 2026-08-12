@@ -19,12 +19,6 @@ import 'services/reminder_scheduler.dart';
 import 'services/supabase_service.dart';
 
 Future<void> main() async {
-  // Initialise Sentry FIRST and run the whole app inside its `appRunner`. That
-  // installs the Flutter + zone error handlers and the native crash handler
-  // before anything else runs, so failures during the SDK init sequence below —
-  // not just runtime UI errors — are captured too. With no SENTRY_DSN the SDK
-  // initialises disabled and still runs `appRunner`, so dev/mock builds are
-  // unaffected. See Monitoring + SENTRY_SETUP.md.
   await SentryFlutter.init(Monitoring.configureOptions, appRunner: _startApp);
 }
 

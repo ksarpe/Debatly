@@ -120,7 +120,8 @@ Initial setup:
 2. Open SQL Editor in Supabase.
 3. Run `supabase/schema.sql`.
 4. Add question rows to `questions`.
-5. Apply the migrations in `supabase/migrations/` (see its README for drift
+5. Apply the migrations in `supabase/migrations/schema/`, then the content in
+   `supabase/migrations/data/` (see the folder's README for drift
    notes). No manual scheduling is needed — each user's free question is drawn
    server-side from questions they haven't voted on (`user_daily_questions`;
    the global `daily_questions` calendar is only a legacy fallback).

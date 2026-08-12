@@ -30,8 +30,14 @@ import 'revealing_indicator.dart';
 /// assembles itself word by word, each word dropping in from above (see
 /// [FallingWordsText]). No cards, no flips: just text in motion.
 ///
+/// Swiping LEFT always goes forward; swiping RIGHT always steps back through
+/// what was already on screen, stopping at the daily (index 0) with a small
+/// bounce — identical on both tiers, so the "go back" reflex never skips ahead.
+///
 /// Navigation depends on the tier:
-///   * PREMIUM walks the whole catalog, wrapping around; every question reads.
+///   * PREMIUM walks the whole catalog forward, wrapping around; every question
+///     reads. Backward retraces the stable per-launch deck order — exactly the
+///     questions just read, clamped at the daily.
 ///   * A FREE user walks a forward "feed": the daily, then the questions they
 ///     reveal one at a time. Swiping LEFT goes forward; once past the last
 ///     revealed question they hit the "reveal slot" — if they hold the daily
@@ -182,7 +188,31 @@ class WindQuestionViewState extends ConsumerState<WindQuestionView>
       ref.read(swipeDiscoveredControllerProvider.notifier).markDiscovered();
     }
 
-    // PREMIUM: any swipe advances forward through the wrapped catalog.
+    // RIGHT swipe — step back through what was already on screen, BOTH tiers
+    // (premium retraces its stable per-launch deck order; a free user walks
+    // back through this session's revealed questions). At the daily there is
+    // nothing behind: a small bounce says "this is the edge" instead of the
+    // swipe silently doing nothing — or worse, skipping forward, which is what
+    // premium used to do and what made "go back" overshoot.
+    if (direction > 0) {
+      final notifier = ref.read(questionIndexProvider.notifier);
+      if (ref.read(questionIndexProvider) == 0) {
+        await _bounce(direction);
+        return;
+      }
+      _animating = true;
+      await _animateOut(direction);
+      if (!mounted) {
+        _animating = false;
+        return;
+      }
+      notifier.backLinear();
+      _settleIn(ref.read(currentQuestionProvider));
+      _animating = false;
+      return;
+    }
+
+    // PREMIUM: a leftward swipe advances forward through the wrapped catalog.
     if (ref.read(isPremiumProvider)) {
       _animating = true;
       await _animateOut(direction);
@@ -196,26 +226,11 @@ class WindQuestionViewState extends ConsumerState<WindQuestionView>
       return;
     }
 
-    // FREE FEED.
+    // FREE FEED, going forward.
     final notifier = ref.read(questionIndexProvider.notifier);
     final idx = ref.read(questionIndexProvider);
     final deckLen = ref.read(questionDeckProvider).length;
     final atSlot = idx >= deckLen;
-
-    // RIGHT swipe — step back through this session's revealed questions.
-    if (direction > 0) {
-      if (idx == 0) return; // already on the daily
-      _animating = true;
-      await _animateOut(direction);
-      if (!mounted) {
-        _animating = false;
-        return;
-      }
-      notifier.backLinear();
-      _settleIn(ref.read(currentQuestionProvider));
-      _animating = false;
-      return;
-    }
 
     // LEFT swipe while already on the slot — reveal with the credit if we have
     // one; otherwise the paywall buttons drive it.
@@ -389,6 +404,27 @@ class WindQuestionViewState extends ConsumerState<WindQuestionView>
       if (!mounted) return;
       setState(() => _peeking = false); // paywall shows without a teaser
     }
+  }
+
+  /// A short "there's nothing that way" nudge: the text leans a little toward
+  /// the swiped edge and springs back. Played instead of a transition when a
+  /// back swipe hits the daily (index 0) — feedback that the gesture registered
+  /// but the feed ends here, without silently ignoring it or moving anywhere.
+  Future<void> _bounce(int direction) async {
+    _animating = true;
+    _offset = Tween(
+      begin: Offset.zero,
+      end: Offset(0.06 * direction, 0),
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _opacity = const AlwaysStoppedAnimation(1);
+    await _controller.animateTo(1, duration: const Duration(milliseconds: 110));
+    await _controller.animateBack(
+      0,
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOut,
+    );
+    if (mounted) _settleIn(null);
+    _animating = false;
   }
 
   /// Accelerates the current text off the swiped edge, fading as it goes, then
@@ -618,13 +654,6 @@ class WindQuestionViewState extends ConsumerState<WindQuestionView>
     }
   }
 
-  /// Escape hatch from the reveal slot back to the free daily — wired into both
-  /// the paywall and the "no more questions" state so neither is a dead end.
-  void _backToDaily() {
-    if (_unlocking || _revealing) return;
-    ref.read(questionIndexProvider.notifier).toDaily();
-  }
-
   /// Restores a previous purchase — the store-required path for someone who
   /// already bought PRO (reinstalled, or a guest now on a fresh anonymous
   /// identity) so they aren't charged twice. Surfaced on the paywall because the
@@ -713,7 +742,7 @@ class WindQuestionViewState extends ConsumerState<WindQuestionView>
       if (_revealing || _peeking) {
         child = const RevealingIndicator();
       } else if (_exhausted) {
-        child = NoMoreQuestions(onBackToDaily: _backToDaily);
+        child = const NoMoreQuestions();
       } else {
         // Guests only: signing in earns the daily free-unlock credit, so the
         // paywall offers the sign-in path next to the ad. A signed-in user
@@ -736,7 +765,6 @@ class WindQuestionViewState extends ConsumerState<WindQuestionView>
           onAdCapExpired: () => ref.invalidate(userStatsProvider),
           onWatchAd: _watchAdReveal,
           onGetPremium: _goPremium,
-          onBackToDaily: _backToDaily,
           onRestore: _restorePurchases,
           onSignIn: hasAccount ? null : () => showAuthSheet(context),
           busy: _unlocking,

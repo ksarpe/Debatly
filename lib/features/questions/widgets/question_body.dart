@@ -11,6 +11,7 @@ import '../providers/swipe_hint_providers.dart';
 import '../screens/history_screen.dart';
 import 'daily_vote_panel.dart';
 import 'go_deeper_button.dart';
+import 'new_question_badge.dart';
 import 'share_question_button.dart';
 import 'smaczki_panel.dart';
 import 'swipe_hand_hint.dart';
@@ -43,18 +44,11 @@ class QuestionBody extends ConsumerWidget {
     final isReadable = current != null && current.isLocked != true;
 
     // Whether the visible question is the served daily (deck position 0) —
-    // drives the analytics split in the vote panel and hides the "back to the
-    // free question" link while already on it.
+    // drives the analytics split in the vote panel.
     final isDaily = ref.watch(isShowingDailyProvider);
 
-    // The "back to the free question" escape hatch is only meaningful to a free
-    // user: premium has no paywall to escape and its feed just wraps, so "start"
-    // is meaningless there. Used to hide _BackToDailyButton for premium below.
-    final isPremium = ref.watch(isPremiumProvider);
-
-    // On the reveal slot the paywall / "no more questions" body carries its own
-    // visible "back to daily" link, so suppress the faint bottom one here to
-    // avoid showing two competing back actions.
+    // The reveal slot renders the paywall / "no more questions" body, which
+    // brings its own CTAs — the swipe hint and "go deeper" pill don't apply.
     final atRevealSlot = ref.watch(isAtRevealSlotProvider);
 
     // Whether the user has ever swiped forward. Until they have, a gentle
@@ -82,12 +76,21 @@ class QuestionBody extends ConsumerWidget {
     // teaser and on the reveal slot.
     final hasRows = isReadable && questionId != null;
 
+    // The small "NOWE" pill over a question added within the freshness window
+    // — pre-empts reading its thin vote count as disinterest. The provider is
+    // already false for locked teasers and the reveal slot (current == null).
+    final showNewBadge = ref.watch(currentQuestionIsNewProvider);
+
     // What the bottom overlay carries. The swipe hint and the "go deeper" pill
-    // belong to a readable question; the "← back to the free question" link
-    // appears whenever a FREE user has swiped off the daily.
+    // belong to a readable question; the "back to the latest →" link (BOTH
+    // tiers) appears whenever back swipes have left the user behind the
+    // furthest question reached this session, so a run of back swipes is
+    // undone in one tap instead of re-swiped forward one by one. (Going the
+    // other way needs no link: a back swipe steps back one question at a time,
+    // paywall included.)
     final showHintAndDeeper = hasRows && !atRevealSlot;
-    final showBackToDaily = !isDaily && !isPremium && !atRevealSlot;
-    final showOverlay = showHintAndDeeper || showBackToDaily;
+    final showJumpToLatest = ref.watch(canJumpToLatestProvider);
+    final showOverlay = showHintAndDeeper || showJumpToLatest;
 
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
@@ -126,6 +129,7 @@ class QuestionBody extends ConsumerWidget {
                       questionId: hasRows ? questionId : null,
                       questionText: hasRows ? current.questionText : null,
                       isDaily: isDaily,
+                      showNewBadge: showNewBadge,
                     ),
                   ),
                   // The bottom overlay is a SIBLING of the group above, not a
@@ -137,12 +141,12 @@ class QuestionBody extends ConsumerWidget {
                   if (showOverlay)
                     _BottomOverlay(
                       showHintAndDeeper: showHintAndDeeper,
-                      showBackToDaily: showBackToDaily,
+                      showJumpToLatest: showJumpToLatest,
                       onGoDeeper: questionId == null
                           ? null
                           : () => showSmaczkiSheet(context, questionId),
-                      onBackToDaily: () =>
-                          ref.read(questionIndexProvider.notifier).toDaily(),
+                      onJumpToLatest: () =>
+                          ref.read(questionIndexProvider.notifier).toLatest(),
                     )
                   else
                     SizedBox(height: bottomInset + 24),
@@ -179,6 +183,7 @@ class _CentredGroup extends StatelessWidget {
     required this.questionId,
     required this.questionText,
     required this.isDaily,
+    required this.showNewBadge,
   });
 
   final bool atRevealSlot;
@@ -192,6 +197,10 @@ class _CentredGroup extends StatelessWidget {
 
   /// Only picks the analytics event inside the vote panel.
   final bool isDaily;
+
+  /// Whether the visible question wears the "NOWE" pill (added to the catalog
+  /// within the freshness window — see `newQuestionIdsProvider`).
+  final bool showNewBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -217,6 +226,13 @@ class _CentredGroup extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // "NOWE" sits above the question, not inside the wind
+                      // canvas, so the falling-words animation stays untouched
+                      // — the pill just appears with the question it labels.
+                      if (showNewBadge) ...[
+                        const NewQuestionBadge(),
+                        const SizedBox(height: 16),
+                      ],
                       // The GlobalKey does double duty: it keeps the State
                       // stable across unrelated rebuilds (so the peeked teaser
                       // survives a sibling toggling), and it gives the
@@ -278,21 +294,22 @@ double _minGroupHeight(BuildContext context, {required bool withRows}) {
 }
 
 /// The strip at the foot of the feed: the swipe hint and the "go deeper" pill on
-/// a readable question, plus — whenever a FREE user has swiped off the daily —
-/// a borderless "← back to the free question" link, so someone who landed on a
-/// locked teaser and doesn't want to watch an ad isn't cornered.
+/// a readable question, plus the borderless "back to the latest →" link (BOTH
+/// tiers), whenever back swipes have left the user behind the furthest question
+/// reached this session — the one-tap undo for a run of back swipes. (The
+/// mirror direction needs no link: a back swipe already steps backwards.)
 class _BottomOverlay extends StatelessWidget {
   const _BottomOverlay({
     required this.showHintAndDeeper,
-    required this.showBackToDaily,
+    required this.showJumpToLatest,
     required this.onGoDeeper,
-    required this.onBackToDaily,
+    required this.onJumpToLatest,
   });
 
   final bool showHintAndDeeper;
-  final bool showBackToDaily;
+  final bool showJumpToLatest;
   final VoidCallback? onGoDeeper;
-  final VoidCallback onBackToDaily;
+  final VoidCallback onJumpToLatest;
 
   @override
   Widget build(BuildContext context) {
@@ -315,11 +332,13 @@ class _BottomOverlay extends StatelessWidget {
               // now, not down here.)
               GoDeeperButton(onTap: onGoDeeper ?? () {}),
             ],
-            if (showBackToDaily) ...[
+            if (showJumpToLatest) ...[
               if (showHintAndDeeper) const SizedBox(height: 12),
-              _BackToDailyButton(
-                label: context.l10n.backToFreeQuestion,
-                onTap: onBackToDaily,
+              _FeedLinkButton(
+                label: context.l10n.backToLatestQuestion,
+                icon: Icons.arrow_forward,
+                iconAfterLabel: true,
+                onTap: onJumpToLatest,
               ),
             ],
           ],
@@ -329,21 +348,28 @@ class _BottomOverlay extends StatelessWidget {
   }
 }
 
-/// A borderless link at the foot of the feed, shown only when a FREE user has
-/// swiped off the first question — the escape hatch from a locked pool teaser
-/// back to the free question. Hidden for premium (no paywall to escape, and its
-/// wrapping feed has no meaningful "start").
-class _BackToDailyButton extends StatelessWidget {
-  const _BackToDailyButton({required this.label, required this.onTap});
+/// A borderless link at the foot of the feed — the quiet navigation escape
+/// hatch ("back to the latest →"). The arrow sits on the side it points to, so
+/// the icon itself says which way the jump goes.
+class _FeedLinkButton extends StatelessWidget {
+  const _FeedLinkButton({
+    required this.label,
+    required this.icon,
+    required this.iconAfterLabel,
+    required this.onTap,
+  });
 
   final String label;
+  final IconData icon;
+  final bool iconAfterLabel;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return TextButton.icon(
       onPressed: onTap,
-      icon: Icon(Icons.arrow_back, size: 18, color: context.colors.subtle),
+      icon: Icon(icon, size: 18, color: context.colors.subtle),
+      iconAlignment: iconAfterLabel ? IconAlignment.end : IconAlignment.start,
       label: Text(
         label,
         textAlign: TextAlign.center,

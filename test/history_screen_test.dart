@@ -109,6 +109,49 @@ void main() {
     expect(find.text('Brak historii'), findsOneWidget);
   });
 
+  testWidgets(
+    'a long history grows a search field that filters accent-insensitively',
+    (tester) async {
+      await pumpHistory(
+        tester,
+        premium: true,
+        entries: [
+          entry(id: 'q-1', text: 'Czy kara śmierci powinna istnieć?'),
+          entry(id: 'q-2', text: 'Czy pieniądze dają szczęście?'),
+          entry(id: 'q-3', text: 'Czy sztuka musi być piękna?'),
+          entry(id: 'q-4', text: 'Czy praca zdalna jest lepsza?'),
+          entry(id: 'q-5', text: 'Czy warto studiować?'),
+          entry(id: 'q-6', text: 'Czy żołnierz może odmówić rozkazu?'),
+        ],
+      );
+
+      expect(find.byType(TextField), findsOneWidget);
+
+      // Plain-letter query finds the diacritic text: "smierc" → "śmierci".
+      await tester.enterText(find.byType(TextField), 'smierc');
+      await tester.pumpAndSettle();
+      expect(find.text('Czy kara śmierci powinna istnieć?'), findsOneWidget);
+      expect(find.text('Czy pieniądze dają szczęście?'), findsNothing);
+
+      // A query nothing matches lands on the no-results state.
+      await tester.enterText(find.byType(TextField), 'xyz nie ma');
+      await tester.pumpAndSettle();
+      expect(find.text('Brak wyników'), findsOneWidget);
+
+      // The clear button restores the full list.
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+      expect(find.text('Czy kara śmierci powinna istnieć?'), findsOneWidget);
+      expect(find.text('Czy pieniądze dają szczęście?'), findsOneWidget);
+    },
+  );
+
+  testWidgets('a short history stays search-free', (tester) async {
+    await pumpHistory(tester, premium: true, entries: [entry()]);
+
+    expect(find.byType(TextField), findsNothing);
+  });
+
   testWidgets('a failed fetch offers retry, and retry actually reloads', (
     tester,
   ) async {

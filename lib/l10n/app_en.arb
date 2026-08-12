@@ -1,6 +1,5 @@
 {
   "@@locale": "en",
-  "ok": "OK",
   "later": "Later",
   "cancel": "Cancel",
   "tryAgain": "Try again",
@@ -15,17 +14,17 @@
   "restoreOnThisDevice": "Restore on this device",
   "goPro": "Go PRO",
   "signIn": "Sign in",
-  "signInShort": "Sign in",
   "authCreateAccount": "Create account",
+  "authWelcomeBackTitle": "Good to see you again",
+  "authWelcomeBackSubtitle": "Sign in to get back to your debates.",
+  "authRegisterTitle": "Join Debatly",
+  "authRegisterSubtitle": "Create an account and take a side in the debate.",
   "authEmailLabel": "EMAIL",
   "authPasswordLabel": "PASSWORD",
   "authConfirmPasswordLabel": "REPEAT PASSWORD",
   "authShowPassword": "Show password",
   "authHidePassword": "Hide password",
   "authForgotPassword": "Forgot your password?",
-  "authNoAccount": "Don't have an account? ",
-  "authHaveAccount": "Already have an account? ",
-  "authSignUpFree": "Sign up free",
   "authTabSignIn": "SIGN IN",
   "authTabSignUp": "SIGN UP",
   "authEnterEmail": "Enter your email.",
@@ -115,7 +114,6 @@
   "offlineDownloadComplete": "Questions saved for offline.",
   "offlineDownloadFailed": "Download failed. Check your connection and try again.",
   "settingsPrivacy": "Privacy & data",
-  "settingsAbout": "About",
   "settingsFavorites": "Favorite questions",
   "favoritesTitle": "Favorites",
   "favoritesEmptyTitle": "No favorites yet",
@@ -128,7 +126,6 @@
   "favoriteError": "Couldn't update favorites.",
   "historyTitle": "Question history",
   "historySubtitle": "Every question you voted on, with how people voted.",
-  "historyLabel": "History",
   "historyTooltip": "Question history",
   "historyEmptyTitle": "Nothing here yet",
   "historyEmptyBody": "Vote on a question and it will show up here.",
@@ -136,18 +133,10 @@
   "historyPremiumTitle": "History is a PRO feature",
   "historyPremiumBody": "Go PRO to look back at every question you voted on and see how others voted.",
   "historyNoVotes": "No votes",
-  "aboutVersion": "Version {version} ({build})",
-  "@aboutVersion": {
-    "placeholders": {
-      "version": {
-        "type": "String"
-      },
-      "build": {
-        "type": "String"
-      }
-    }
-  },
-  "aboutTagline": "Thought-provoking questions to spark real conversation.",
+  "searchQuestionsHint": "Search questions…",
+  "searchClearTooltip": "Clear search",
+  "searchNoResultsTitle": "No matches",
+  "searchNoResultsBody": "No questions match your search. Try a different word.",
   "privacyDocsSection": "DOCUMENTS",
   "privacyPolicy": "Privacy policy",
   "privacyTerms": "Terms of service",
@@ -203,18 +192,11 @@
   "deleteAccountSuccess": "Your account has been deleted.",
   "deleteAccountError": "Couldn't delete your account. Please check your connection and try again.",
   "guestSession": "Guest session",
-  "signInToSaveProgress": "Sign in to save your progress",
+  "accountUnsecuredNote": "Your progress is saved only on this phone",
+  "secureAccount": "Secure account",
   "yourAccount": "Your account",
   "signOut": "Sign out",
   "deleteAccount": "Delete account",
-  "comingSoonNamed": "{label} — coming soon",
-  "@comingSoonNamed": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
   "daysInARow": "DAYS IN A ROW",
   "streakRecord": "{count, plural, one{Record: {count} day} other{Record: {count} days}}",
   "@streakRecord": {
@@ -234,6 +216,10 @@
         "type": "int"
       }
     }
+  },
+  "rankCardTapHint": "TAP",
+  "@rankCardTapHint": {
+    "description": "Affordance on the rank stat card telling the user it opens the rank ladder."
   },
   "settingsTooltip": "Settings",
   "swipeHint": "Swipe to see the next question",
@@ -265,26 +251,25 @@
   "streakTooltip": "Your streak",
   "freeUnlockTooltip": "Free unlock",
   "freeUnlockExplain": "You have one free unlock — swipe to the next question and it unlocks automatically.",
+  "newQuestionBadge": "New",
+  "@newQuestionBadge": {
+    "description": "Small pill badge shown above a question added to the catalog within the last two weeks."
+  },
+  "newQuestionTooltip": "Freshly added question — the community is just starting to vote.",
+  "@newQuestionTooltip": {
+    "description": "Tooltip shown when tapping the 'New' badge, explaining why the vote count may still be low."
+  },
   "voteYes": "YES",
   "voteNo": "NO",
   "voteFailed": "Could not record your vote.",
-  "votesCount": "{count, plural, one{{count} vote} other{{count} votes}}",
-  "@votesCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "revealFailed": "Couldn't reveal the question — please try again.",
   "adLoading": "The ad is still loading — try again in a moment.",
   "adNoReward": "No reward — watch the whole video to unlock.",
   "noConnection": "No connection — try again in a moment.",
   "noMoreTitle": "That's all the questions for now",
   "noMoreBody": "Come back tomorrow for new questions — or go PRO to read without limits.",
-  "backToFreeQuestion": "Back to the free question",
+  "backToLatestQuestion": "Back to the latest question",
   "nextQuestionWaiting": "The next question is waiting",
-  "watchAdToReveal": "Watch an ad to reveal a new question.",
   "adLimitReachedInfo": "Today's free unlocks are used up. Come back tomorrow — or unlock everything with PRO.",
   "adLimitReachedToast": "You've hit today's ad unlock limit.",
   "adLimitResetInHM": "New unlocks in {hours} hr {minutes} min",
@@ -305,6 +290,11 @@
   "proActiveTitle": "PRO active 🎉",
   "savePromptBody": "Your PRO is currently tied to a guest account. Create an account (email or Google) so you don't lose access after reinstalling or on another device — your progress will be kept.",
   "createAccount": "Create account",
+  "secureStreakTitle": "Secure your streak 🔥",
+  "secureStreakBody": "You're on a {streak}-day streak — but it only lives on this phone. Create an account (email or Google) and it will survive a reinstall or a new device.",
+  "@secureStreakBody": {
+    "placeholders": { "streak": { "type": "int" } }
+  },
   "smaczkiTitle": "Arguments",
   "smaczkiSubtitle": "Tips to deepen the conversation around this question.",
   "smaczkiLoadError": "Couldn't load tidbits.\n{error}",
@@ -336,14 +326,12 @@
       }
     }
   },
-  "daysToRank": "{remaining, plural, one{{remaining} more day to “{rankName}”} other{{remaining} more days to “{rankName}”}}",
-  "@daysToRank": {
+  "daysToNextRank": "{remaining, plural, one{{remaining} more day to the next rank} other{{remaining} more days to the next rank}}",
+  "@daysToNextRank": {
+    "description": "Progress line in the rank sheet. Deliberately does not name the next rank — it stays a surprise until it is unlocked.",
     "placeholders": {
       "remaining": {
         "type": "int"
-      },
-      "rankName": {
-        "type": "String"
       }
     }
   },
@@ -416,7 +404,7 @@
   "onboardingTasteMajority": "You're with the majority. 🙌",
   "onboardingTasteMinority": "You're in the minority. 👀",
   "onboardingTasteContinue": "Continue",
-  "onboardingTasteSmaczekIntro": "Every question also comes with talking points that deepen the conversation. Like this one:",
+  "onboardingTasteSmaczekIntro": "Every question also comes with arguments that deepen the conversation. Like this one:",
   "onboardingTasteSmaczek": "Psychologists talk about “micro-cheating” — hundreds of small secrets and hidden messages. One night or a thousand whispers: which is harder to forgive?",
   "onboardingChoiceTitle": "How do you want to start?",
   "onboardingChoiceBody": "You can sign in anytime later from settings.",
@@ -428,25 +416,21 @@
   "onboardingNotifyBody": "Turn on reminders and we'll nudge you once a day to come and vote. No spam — just one a day.",
   "onboardingNotifyEnable": "Turn on reminders",
   "onboardingNotifySkip": "Not now",
+  "onboardingNotifyFootnote": "You can turn reminders off or change the time in settings.",
   "paywallTitle": "Unlock every question and vote",
   "paywallTitleReadingLimit": "Keep reading — no limits, no waiting",
   "paywallTitleAdLimit": "Don't wait until tomorrow — unlock everything",
   "paywallTitleSmaczki": "Unlock every argument, for every question",
   "paywallTitleFavorites": "Keep your favorite questions forever",
   "paywallTitleHistory": "Every vote you've cast, in one place",
-  "paywallSubtitle": "The whole catalog, every twist, zero ads",
-  "@paywallSubtitle": {
-    "description": "Quiet line under the paywall headline summing up what PRO contains."
-  },
-  "paywallPerkUnlimited": "No limits",
-  "paywallPerkNoAds": "Zero ads",
-  "paywallPerkSmaczki": "Every twist",
-  "paywallPerkFavorites": "Favorites",
-  "paywallPerkHistory": "Vote history",
-  "paywallPerkOffline": "Offline mode",
-  "@paywallPerkOffline": {
-    "description": "Perk tile labels are short — one or two words that fit under a round icon in a three-column grid."
-  },
+  "paywallBenefitUnlimitedTitle": "Unlimited questions",
+  "paywallBenefitUnlimitedBody": "Browse the whole library of 500+ questions — no daily limits, no waiting.",
+  "paywallBenefitNoAdsTitle": "Zero ads",
+  "paywallBenefitNoAdsBody": "No rewarded ads, no interruptions — just the next question.",
+  "paywallBenefitSmaczkiTitle": "Arguments for every question",
+  "paywallBenefitSmaczkiBody": "Unlock all the talking points that deepen the conversation.",
+  "paywallBenefitFavoritesTitle": "Favorites & voting history",
+  "paywallBenefitFavoritesBody": "Save the best questions and look back at every vote you've cast.",
   "paywallLifetime": "Lifetime",
   "paywallAnnual": "Yearly",
   "paywallMonthly": "Monthly",

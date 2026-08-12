@@ -55,6 +55,10 @@ env/*.json
 
 /exports
 
-# Claude Code — local per-machine files (launch.json stays committed)
+# Claude Code — local per-machine files only.
+# launch.json and settings.json (the shared allowlist) stay committed.
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+
+# Node — the admin panel has its own .gitignore, this is the safety net.
+node_modules/

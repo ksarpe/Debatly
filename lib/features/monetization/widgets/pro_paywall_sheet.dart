@@ -62,6 +62,9 @@ Future<bool> showProPaywall(
     backgroundColor: context.colors.background,
     isScrollControlled: true,
     useSafeArea: true,
+    // The standard grabber, same as the app's other sheets — the sheet is
+    // dismissed by dragging it down or tapping outside, there is no close "X".
+    showDragHandle: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
@@ -304,12 +307,13 @@ class _ProPaywallSheetState extends ConsumerState<ProPaywallSheet> {
       ),
       child: Stack(
         children: [
+          // The route's drag handle sits above this content; padding starts
+          // at 0 so the hero lands right under it.
           SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(24, 16, 24, 20 + bottomInset),
+            padding: EdgeInsets.fromLTRB(24, 0, 24, 20 + bottomInset),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 10),
                 const PaywallHero(),
                 const SizedBox(height: 14),
                 Text(
@@ -343,7 +347,7 @@ class _ProPaywallSheetState extends ConsumerState<ProPaywallSheet> {
           ),
           // Close affordance floating over the scrollable content.
           Positioned(
-            top: 8,
+            top: 0,
             right: 8,
             child: IconButton(
               onPressed: _busy ? null : () => Navigator.of(context).pop(false),

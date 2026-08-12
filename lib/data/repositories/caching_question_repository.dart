@@ -176,6 +176,19 @@ class CachingQuestionRepository implements QuestionRepository {
   @override
   Future<List<VoteHistoryEntry>> fetchVoteHistory() => inner.fetchVoteHistory();
 
+  // The "Nowe" badge is decoration, never worth an offline error screen: with
+  // no network the badge simply doesn't show, so a transport failure degrades
+  // to an empty set instead of being cached or rethrown.
+  @override
+  Future<Set<String>> fetchRecentQuestionIds({required DateTime since}) async {
+    try {
+      return await inner.fetchRecentQuestionIds(since: since);
+    } catch (e) {
+      if (!isOfflineError(e)) rethrow;
+      return const <String>{};
+    }
+  }
+
   // ---- Daily vote state (cache-fallback for the user's OWN vote) -------------
 
   /// Network-first with a cache fallback, but only for the user's own vote —

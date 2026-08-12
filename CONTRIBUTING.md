@@ -42,7 +42,10 @@ flutter test
 - **Theming.** Read colors from `context.colors` (the `AppColors` theme
   extension), never hard-coded `Color(...)` in widgets.
 - **Database.** Schema, RLS, and RPC changes ship as a new timestamped file in
-  `supabase/migrations/`. Never edit an already-applied migration.
+  `supabase/migrations/schema/`; question-catalog and copy edits go in
+  `supabase/migrations/data/`. Never edit an already-applied migration, and
+  never run `supabase db push` — see
+  [supabase/migrations/README.md](supabase/migrations/README.md).
 - **Errors.** Report through the `Monitoring` facade
   (`lib/core/monitoring/monitoring.dart`), not bare `print`.
 

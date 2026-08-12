@@ -29,6 +29,15 @@ class OnboardingController extends Notifier<bool> {
         .read(sharedPreferencesProvider)
         .setBool(kOnboardingCompletePrefKey, true);
   }
+
+  /// DEV tools only: clears the persisted flag so the tutorial runs again on
+  /// the next launch ([AppEntry] reads it once at startup).
+  Future<void> reset() async {
+    state = false;
+    await ref
+        .read(sharedPreferencesProvider)
+        .remove(kOnboardingCompletePrefKey);
+  }
 }
 
 final onboardingControllerProvider =

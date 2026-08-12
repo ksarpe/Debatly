@@ -18,16 +18,19 @@ import '../../account/widgets/restore_sign_in_prompt.dart';
 import '../../monetization/widgets/pro_paywall_sheet.dart';
 import '../../questions/providers/favorites_providers.dart';
 import '../providers/app_info_provider.dart';
+import '../providers/dev_tools_providers.dart';
 import '../providers/reminder_providers.dart';
+import '../widgets/account_action_buttons.dart';
 import '../widgets/manage_subscription_sheet.dart';
 import '../widgets/profile_header.dart';
 import '../widgets/rank_card.dart';
 import '../widgets/settings_account_section.dart';
+import '../widgets/settings_nav_row.dart';
 import '../widgets/settings_preferences_section.dart';
 import '../widgets/settings_primitives.dart';
 import '../widgets/settings_session_actions.dart';
 import '../widgets/streak_card.dart';
-import 'about_screen.dart';
+import 'dev_tools_screen.dart';
 import 'favorites_screen.dart';
 import 'privacy_data_screen.dart';
 
@@ -118,6 +121,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                       ),
                       const SizedBox(height: 24),
 
+                      // A guest's single most important action lives at the
+                      // top, right under the "guest session" identity it fixes:
+                      // secure the anonymous account so the streak/votes/PRO
+                      // survive a reinstall or a new phone.
+                      if (!hasAccount) ...[
+                        SecureAccountButton(onTap: _openAuth),
+                        const SizedBox(height: 28),
+                      ],
+
                       // ---- Stats (live from sync_user_state) --------------
                       IntrinsicHeight(
                         child: Row(
@@ -152,21 +164,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                       SettingsAccountSection(
                         isPremium: isPremium,
                         localeCode: localeCode,
-                        appVersion: appInfo?.version,
+                        hasAccount: hasAccount,
+                        signingOut: _signingOut,
                         onManageSubscription: _openManageSubscription,
                         onGoPremium: _openPaywall,
                         onPrivacy: _openPrivacyData,
                         onRestore: _restorePurchases,
-                        onAbout: _openAbout,
+                        onSignOut: _signOut,
                       ),
+
+                      // Tester-only tools (onboarding replay, question pinning).
+                      // Hidden for everyone else — see devToolsEnabledProvider.
+                      if (ref.watch(devToolsEnabledProvider)) ...[
+                        const SizedBox(height: 28),
+                        const SettingsSectionLabel('DEV'),
+                        const SizedBox(height: 12),
+                        SettingsCard(
+                          children: [
+                            SettingsNavRow(
+                              icon: Icons.bug_report_outlined,
+                              title: 'Narzędzia testowe',
+                              subtitle: 'Onboarding, pytania testowe',
+                              onTap: _openDevTools,
+                            ),
+                          ],
+                        ),
+                      ],
 
                       SettingsSessionActions(
                         hasAccount: hasAccount,
-                        signingOut: _signingOut,
                         appInfo: appInfo,
-                        onSignOut: _signOut,
                         onDeleteAccount: _confirmDeleteAccount,
-                        onSignIn: _openAuth,
                       ),
                     ],
                   ),
@@ -598,18 +626,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     ).push(MaterialPageRoute<void>(builder: (_) => const PrivacyDataScreen()));
   }
 
-  /// Pushes the About screen — brand mark, version and a one-line summary.
-  void _openAbout() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const AboutScreen()));
-  }
-
   /// Pushes the Favorites screen — the user's saved questions as cards.
   void _openFavorites() {
     Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const FavoritesScreen()));
+  }
+
+  void _openDevTools() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const DevToolsScreen()));
   }
 
   void _showMessage(String message, {ToastType type = ToastType.info}) {

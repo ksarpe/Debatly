@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/question_search_field.dart';
 import '../../../core/widgets/sub_screen_chrome.dart';
 import '../../../data/models/vote_history_entry.dart';
 import '../../../data/models/vote_result.dart';
@@ -77,11 +78,21 @@ class HistoryScreen extends ConsumerWidget {
 /// The premium view: a short subtitle, then the list of voted questions (or a
 /// loading / error / empty state). The list itself doesn't scroll — the screen's
 /// outer [SingleChildScrollView] does — so rows are laid out as a plain Column.
-class _HistoryBody extends ConsumerWidget {
+///
+/// Long histories (≥ [kQuestionSearchMinItems] rows) grow a search field that
+/// filters rows by question text, accent-insensitively.
+class _HistoryBody extends ConsumerStatefulWidget {
   const _HistoryBody();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_HistoryBody> createState() => _HistoryBodyState();
+}
+
+class _HistoryBodyState extends ConsumerState<_HistoryBody> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
     final historyAsync = ref.watch(voteHistoryProvider);
     final lang = Localizations.localeOf(context).languageCode;
 
@@ -118,13 +129,29 @@ class _HistoryBody extends ConsumerWidget {
                 subtitle: context.l10n.historyEmptyBody,
               );
             }
+            final matching = entries
+                .where((e) => matchesQuestionQuery(e.questionText, _query))
+                .toList();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final entry in entries) ...[
-                  _HistoryRow(entry: entry, lang: lang),
-                  const SizedBox(height: 10),
+                if (entries.length >= kQuestionSearchMinItems) ...[
+                  QuestionSearchField(
+                    onChanged: (value) => setState(() => _query = value),
+                  ),
+                  const SizedBox(height: 14),
                 ],
+                if (matching.isEmpty)
+                  _HistoryMessage(
+                    icon: Icons.search_off_rounded,
+                    title: context.l10n.searchNoResultsTitle,
+                    subtitle: context.l10n.searchNoResultsBody,
+                  )
+                else
+                  for (final entry in matching) ...[
+                    _HistoryRow(entry: entry, lang: lang),
+                    const SizedBox(height: 10),
+                  ],
               ],
             );
           },

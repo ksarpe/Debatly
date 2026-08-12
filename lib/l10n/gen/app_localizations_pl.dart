@@ -9,9 +9,6 @@ class AppLocalizationsPl extends AppLocalizations {
   AppLocalizationsPl([String locale = 'pl']) : super(locale);
 
   @override
-  String get ok => 'OK';
-
-  @override
   String get later => 'Później';
 
   @override
@@ -55,10 +52,20 @@ class AppLocalizationsPl extends AppLocalizations {
   String get signIn => 'Zaloguj się';
 
   @override
-  String get signInShort => 'Zaloguj';
+  String get authCreateAccount => 'Utwórz konto';
 
   @override
-  String get authCreateAccount => 'Utwórz konto';
+  String get authWelcomeBackTitle => 'Miło Cię znów widzieć';
+
+  @override
+  String get authWelcomeBackSubtitle =>
+      'Zaloguj się, żeby wrócić do swoich debat.';
+
+  @override
+  String get authRegisterTitle => 'Dołącz do Debatly';
+
+  @override
+  String get authRegisterSubtitle => 'Załóż konto i zabierz głos w debacie.';
 
   @override
   String get authEmailLabel => 'EMAIL';
@@ -77,15 +84,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get authForgotPassword => 'Nie pamiętasz hasła?';
-
-  @override
-  String get authNoAccount => 'Nie masz konta? ';
-
-  @override
-  String get authHaveAccount => 'Masz już konto? ';
-
-  @override
-  String get authSignUpFree => 'Załóż za darmo';
 
   @override
   String get authTabSignIn => 'ZALOGUJ SIĘ';
@@ -292,9 +290,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get settingsPrivacy => 'Prywatność i dane';
 
   @override
-  String get settingsAbout => 'O aplikacji';
-
-  @override
   String get settingsFavorites => 'Ulubione pytania';
 
   @override
@@ -333,9 +328,6 @@ class AppLocalizationsPl extends AppLocalizations {
       'Wszystkie pytania, na które oddałeś głos — razem z wynikami głosowania.';
 
   @override
-  String get historyLabel => 'Historia';
-
-  @override
   String get historyTooltip => 'Historia pytań';
 
   @override
@@ -358,13 +350,17 @@ class AppLocalizationsPl extends AppLocalizations {
   String get historyNoVotes => 'Brak głosów';
 
   @override
-  String aboutVersion(String version, String build) {
-    return 'Wersja $version ($build)';
-  }
+  String get searchQuestionsHint => 'Szukaj pytania…';
 
   @override
-  String get aboutTagline =>
-      'Przewrotne pytania, które rozpalają prawdziwą rozmowę.';
+  String get searchClearTooltip => 'Wyczyść wyszukiwanie';
+
+  @override
+  String get searchNoResultsTitle => 'Brak wyników';
+
+  @override
+  String get searchNoResultsBody =>
+      'Żadne pytanie nie pasuje do wyszukiwania. Spróbuj innego słowa.';
 
   @override
   String get privacyDocsSection => 'DOKUMENTY';
@@ -508,7 +504,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get guestSession => 'Sesja gościa';
 
   @override
-  String get signInToSaveProgress => 'Zaloguj się, aby zapisać postępy';
+  String get accountUnsecuredNote => 'Postępy zapisane tylko na tym telefonie';
+
+  @override
+  String get secureAccount => 'Zabezpiecz konto';
 
   @override
   String get yourAccount => 'Twoje konto';
@@ -518,11 +517,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get deleteAccount => 'Usuń konto';
-
-  @override
-  String comingSoonNamed(String label) {
-    return '$label — wkrótce';
-  }
 
   @override
   String get daysInARow => 'DNI Z RZĘDU';
@@ -561,6 +555,9 @@ class AppLocalizationsPl extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get rankCardTapHint => 'KLIKNIJ';
 
   @override
   String get settingsTooltip => 'Ustawienia';
@@ -618,6 +615,13 @@ class AppLocalizationsPl extends AppLocalizations {
       'Masz jedno darmowe odblokowanie — przesuń na kolejne pytanie, a odblokuje się automatycznie.';
 
   @override
+  String get newQuestionBadge => 'Nowe';
+
+  @override
+  String get newQuestionTooltip =>
+      'Świeżo dodane pytanie — społeczność dopiero zaczyna głosować.';
+
+  @override
   String get voteYes => 'TAK';
 
   @override
@@ -625,19 +629,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get voteFailed => 'Nie udało się zagłosować.';
-
-  @override
-  String votesCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count głosów',
-      many: '$count głosów',
-      few: '$count głosy',
-      one: '$count głos',
-    );
-    return '$_temp0';
-  }
 
   @override
   String get revealFailed =>
@@ -661,13 +652,10 @@ class AppLocalizationsPl extends AppLocalizations {
       'Wróć jutro po nowe pytania — albo przejdź na PRO, by czytać bez limitu.';
 
   @override
-  String get backToFreeQuestion => 'Wróć do darmowego pytania';
+  String get backToLatestQuestion => 'Wróć do najnowszego pytania';
 
   @override
   String get nextQuestionWaiting => 'Kolejne pytanie czeka';
-
-  @override
-  String get watchAdToReveal => 'Obejrzyj reklamę, aby odsłonić nowe pytanie.';
 
   @override
   String get adLimitReachedInfo =>
@@ -703,6 +691,14 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get createAccount => 'Załóż konto';
+
+  @override
+  String get secureStreakTitle => 'Zabezpiecz swoją passę 🔥';
+
+  @override
+  String secureStreakBody(int streak) {
+    return 'Masz już $streak-dniową passę — ale żyje ona tylko na tym telefonie. Załóż konto (e-mail lub Google), a przetrwa reinstalację i zmianę urządzenia.';
+  }
 
   @override
   String get smaczkiTitle => 'Argumenty';
@@ -758,14 +754,14 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String daysToRank(int remaining, String rankName) {
+  String daysToNextRank(int remaining) {
     String _temp0 = intl.Intl.pluralLogic(
       remaining,
       locale: localeName,
-      other: 'Jeszcze $remaining dni do rangi „$rankName”',
-      many: 'Jeszcze $remaining dni do rangi „$rankName”',
-      few: 'Jeszcze $remaining dni do rangi „$rankName”',
-      one: 'Jeszcze $remaining dzień do rangi „$rankName”',
+      other: 'Jeszcze $remaining dni do kolejnej rangi',
+      many: 'Jeszcze $remaining dni do kolejnej rangi',
+      few: 'Jeszcze $remaining dni do kolejnej rangi',
+      one: 'Jeszcze $remaining dzień do kolejnej rangi',
     );
     return '$_temp0';
   }
@@ -901,6 +897,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get onboardingNotifySkip => 'Nie teraz';
 
   @override
+  String get onboardingNotifyFootnote =>
+      'Przypomnienia wyłączysz lub zmienisz ich godzinę w ustawieniach.';
+
+  @override
   String get paywallTitle => 'Zyskaj dostęp do wszystkich pytań i głosów';
 
   @override
@@ -921,25 +921,32 @@ class AppLocalizationsPl extends AppLocalizations {
   String get paywallTitleHistory => 'Wszystkie Twoje głosy w jednym miejscu';
 
   @override
-  String get paywallSubtitle => 'Cały katalog, wszystkie smaczki, zero reklam';
+  String get paywallBenefitUnlimitedTitle => 'Nieograniczone pytania';
 
   @override
-  String get paywallPerkUnlimited => 'Bez limitu';
+  String get paywallBenefitUnlimitedBody =>
+      'Czytaj całą bibliotekę ponad 500 pytań — bez dziennych limitów i czekania.';
 
   @override
-  String get paywallPerkNoAds => 'Zero reklam';
+  String get paywallBenefitNoAdsTitle => 'Zero reklam';
 
   @override
-  String get paywallPerkSmaczki => 'Wszystkie smaczki';
+  String get paywallBenefitNoAdsBody =>
+      'Bez reklam z nagrodami, bez przerywników — tylko kolejne pytanie.';
 
   @override
-  String get paywallPerkFavorites => 'Ulubione';
+  String get paywallBenefitSmaczkiTitle => 'Argumenty do każdego pytania';
 
   @override
-  String get paywallPerkHistory => 'Historia głosów';
+  String get paywallBenefitSmaczkiBody =>
+      'Odblokuj wszystkie tematy do dyskusji, które pogłębiają rozmowę.';
 
   @override
-  String get paywallPerkOffline => 'Tryb offline';
+  String get paywallBenefitFavoritesTitle => 'Ulubione i historia głosów';
+
+  @override
+  String get paywallBenefitFavoritesBody =>
+      'Zapisuj najlepsze pytania i wracaj do każdego oddanego głosu.';
 
   @override
   String get paywallLifetime => 'Dożywotni';

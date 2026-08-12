@@ -11,6 +11,7 @@ import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/supabase_service.dart';
 import '../providers/session_providers.dart';
+import '../widgets/auth_brand_glyph.dart';
 import '../widgets/auth_circle_icon_button.dart';
 import '../widgets/auth_legal_consent_text.dart';
 import '../widgets/auth_notice.dart';
@@ -82,9 +83,8 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     final media = MediaQuery.of(context);
     final isConfigured = SupabaseService.isInitialised;
     final canUseGoogle = isConfigured && AppConfig.hasGoogleSignIn;
-    // Sign in with Apple is offered on Apple platforms only (where it's an App
-    // Store requirement); everywhere else we show Google. Both never share the
-    // sheet — a user on Android has no use for an Apple button, and vice versa.
+    // Apple platforms get BOTH social buttons, Apple first; Android gets Google
+    // alone. See `_buildSocialButtons` for why.
     final isApplePlatform =
         defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS;
@@ -141,6 +141,11 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                         const SizedBox(height: 14),
                       ] else if (!isApplePlatform &&
                           !AppConfig.hasGoogleSignIn) ...[
+                        // Android only: there Google is the sole social option,
+                        // so a missing client id leaves a dead button and has to
+                        // be explained. On Apple platforms the same build still
+                        // has Sign in with Apple, and the Google button simply
+                        // isn't rendered — nothing to warn about.
                         AuthNotice(
                           icon: Icons.info_outline,
                           text: context.l10n.authMissingGoogleConfig,
@@ -254,33 +259,11 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                       const SizedBox(height: 16),
                       const AuthOrDivider(),
                       const SizedBox(height: 14),
-                      if (isApplePlatform)
-                        AuthSocialButton(
-                          icon: Icon(
-                            Icons.apple,
-                            color: context.colors.ink,
-                            size: 22,
-                          ),
-                          label: context.l10n.authContinueWithApple,
-                          onPressed: isConfigured && !_isSubmitting
-                              ? _signInWithApple
-                              : null,
-                        )
-                      else
-                        AuthSocialButton(
-                          icon: Text(
-                            'G',
-                            style: TextStyle(
-                              color: context.colors.ink,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 17,
-                            ),
-                          ),
-                          label: context.l10n.authContinueWithGoogle,
-                          onPressed: canUseGoogle && !_isSubmitting
-                              ? _signInWithGoogle
-                              : null,
-                        ),
+                      ..._buildSocialButtons(
+                        isApplePlatform: isApplePlatform,
+                        isConfigured: isConfigured,
+                        canUseGoogle: canUseGoogle,
+                      ),
                       // Terms/privacy consent shown at the account-creation
                       // point (register tab). Sign-in is an existing user, so
                       // it doesn't need the line.
@@ -310,6 +293,47 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     );
   }
 
+  /// The social sign-in buttons, in the order the platform calls for.
+  ///
+  /// Apple platforms show BOTH, Apple first. Offering Google there is what makes
+  /// an account portable: one created on Android through Google has no password
+  /// to fall back on, and signing in with Apple instead doesn't reach it —
+  /// Supabase only auto-links identities on a matching verified email, and
+  /// Apple's Hide My Email hands it a `@privaterelay.appleid.com` address that
+  /// matches nothing. Without a Google button on iOS, switching phones quietly
+  /// starts a second, empty account: no favourites, no votes, no streak, no
+  /// rank, and PRO stranded on the old one. App Store Review Guideline 4.8 makes
+  /// Sign in with Apple mandatory next to a third-party login and asks for it to
+  /// be at least as prominent, which is exactly the order below.
+  ///
+  /// Android stays Google-only: Play has no matching rule, and Sign in with
+  /// Apple there would mean the browser redirect flow (an Apple Services ID plus
+  /// a hosted redirect endpoint) instead of a native sheet.
+  List<Widget> _buildSocialButtons({
+    required bool isApplePlatform,
+    required bool isConfigured,
+    required bool canUseGoogle,
+  }) {
+    final google = AuthSocialButton(
+      icon: const GoogleGlyph(),
+      label: context.l10n.authContinueWithGoogle,
+      onPressed: canUseGoogle && !_isSubmitting ? _signInWithGoogle : null,
+    );
+
+    if (!isApplePlatform) return [google];
+
+    return [
+      AuthSocialButton(
+        icon: AppleGlyph(color: context.colors.ink),
+        label: context.l10n.authContinueWithApple,
+        onPressed: isConfigured && !_isSubmitting ? _signInWithApple : null,
+      ),
+      // A build with no Google client id still signs in with Apple here, so the
+      // second button is dropped rather than shown dead.
+      if (canUseGoogle) ...[const SizedBox(height: 10), google],
+    ];
+  }
+
   Widget _buildCloseRow(BuildContext context) {
     return Align(
       alignment: Alignment.centerRight,
@@ -321,33 +345,65 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
   }
 
   /// Brand header shown above the sign-in / sign-up tabs: the app icon in a
-  /// softly glowing rounded tile. It gives the sheet an identity instead of
-  /// opening cold on a form.
+  /// softly glowing rounded tile, with a greeting headline and a one-line
+  /// subtitle underneath. It gives the sheet an identity instead of opening
+  /// cold on a form. The copy follows the active tab (sign-in vs register).
   Widget _buildBrandHeader(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 72,
-        height: 72,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.spark.withValues(alpha: 0.30),
-              blurRadius: 22,
-              offset: const Offset(0, 10),
+    final title = _isLogin
+        ? context.l10n.authWelcomeBackTitle
+        : context.l10n.authRegisterTitle;
+    final subtitle = _isLogin
+        ? context.l10n.authWelcomeBackSubtitle
+        : context.l10n.authRegisterSubtitle;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.spark.withValues(alpha: 0.30),
+                blurRadius: 22,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Image.asset(
+              'assets/images/logo.png',
+              width: 72,
+              height: 72,
+              fit: BoxFit.cover,
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Image.asset(
-            'assets/images/logo.png',
-            width: 72,
-            height: 72,
-            fit: BoxFit.cover,
           ),
         ),
-      ),
+        const SizedBox(height: 18),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: context.colors.ink,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: context.colors.subtle,
+            fontSize: 13.5,
+            height: 1.35,
+          ),
+        ),
+      ],
     );
   }
 

@@ -290,11 +290,17 @@
 		<string>LaunchScreen</string>
 		<key>UIMainStoryboardFile</key>
 		<string>Main</string>
+		<!-- iPhone: portrait only. The feed is one full-bleed question with the
+		     vote row, the pills and the bottom overlay stacked under it, and a
+		     phone in landscape offers ~375pt of height for roughly 500pt of that
+		     chrome. Declaring it here (not just at runtime) is what stops iOS
+		     from LAUNCHING in landscape when the device is held sideways and then
+		     snapping upright a frame later. The ~ipad key below deliberately
+		     keeps all four: iPadOS multitasking expects an app to rotate and
+		     resize, and the layouts are size-driven (see FitOrScroll). -->
 		<key>UISupportedInterfaceOrientations</key>
 		<array>
 			<string>UIInterfaceOrientationPortrait</string>
-			<string>UIInterfaceOrientationLandscapeLeft</string>
-			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
 		<key>UISupportedInterfaceOrientations~ipad</key>
 		<array>

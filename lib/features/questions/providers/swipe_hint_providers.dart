@@ -31,6 +31,13 @@ class SwipeDiscoveredController extends Notifier<bool> {
         .read(sharedPreferencesProvider)
         .setBool(kSwipeDiscoveredPrefKey, true);
   }
+
+  /// DEV tools only: clears the flag so the swipe affordance teaches again,
+  /// matching a fresh install when replaying onboarding.
+  Future<void> reset() async {
+    state = false;
+    await ref.read(sharedPreferencesProvider).remove(kSwipeDiscoveredPrefKey);
+  }
 }
 
 final swipeDiscoveredControllerProvider =

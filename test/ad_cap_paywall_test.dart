@@ -108,8 +108,9 @@ void main() {
     // unlocks arrive (exact digits depend on the wall clock, so match the
     // stable prefix).
     expect(find.textContaining('Nowe odblokowania za'), findsOneWidget);
-    // The escape hatch back to the free daily must survive the capped variant.
-    expect(find.text('Wróć do darmowego pytania'), findsOneWidget);
+    // The restore link must survive the capped variant (the way back to the
+    // daily is a plain right swipe now, not a link — see RevealPaywall).
+    expect(find.text('Przywróć zakup'), findsOneWidget);
 
     // Tear the tree down so the countdown's periodic timer is cancelled —
     // otherwise the test would end with a pending timer and fail.

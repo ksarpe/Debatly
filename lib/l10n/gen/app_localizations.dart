@@ -98,12 +98,6 @@ abstract class AppLocalizations {
     Locale('pl'),
   ];
 
-  /// No description provided for @ok.
-  ///
-  /// In en, this message translates to:
-  /// **'OK'**
-  String get ok;
-
   /// No description provided for @later.
   ///
   /// In en, this message translates to:
@@ -188,17 +182,35 @@ abstract class AppLocalizations {
   /// **'Sign in'**
   String get signIn;
 
-  /// No description provided for @signInShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign in'**
-  String get signInShort;
-
   /// No description provided for @authCreateAccount.
   ///
   /// In en, this message translates to:
   /// **'Create account'**
   String get authCreateAccount;
+
+  /// No description provided for @authWelcomeBackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Good to see you again'**
+  String get authWelcomeBackTitle;
+
+  /// No description provided for @authWelcomeBackSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to get back to your debates.'**
+  String get authWelcomeBackSubtitle;
+
+  /// No description provided for @authRegisterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join Debatly'**
+  String get authRegisterTitle;
+
+  /// No description provided for @authRegisterSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account and take a side in the debate.'**
+  String get authRegisterSubtitle;
 
   /// No description provided for @authEmailLabel.
   ///
@@ -235,24 +247,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Forgot your password?'**
   String get authForgotPassword;
-
-  /// No description provided for @authNoAccount.
-  ///
-  /// In en, this message translates to:
-  /// **'Don\'t have an account? '**
-  String get authNoAccount;
-
-  /// No description provided for @authHaveAccount.
-  ///
-  /// In en, this message translates to:
-  /// **'Already have an account? '**
-  String get authHaveAccount;
-
-  /// No description provided for @authSignUpFree.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign up free'**
-  String get authSignUpFree;
 
   /// No description provided for @authTabSignIn.
   ///
@@ -620,12 +614,6 @@ abstract class AppLocalizations {
   /// **'Privacy & data'**
   String get settingsPrivacy;
 
-  /// No description provided for @settingsAbout.
-  ///
-  /// In en, this message translates to:
-  /// **'About'**
-  String get settingsAbout;
-
   /// No description provided for @settingsFavorites.
   ///
   /// In en, this message translates to:
@@ -698,12 +686,6 @@ abstract class AppLocalizations {
   /// **'Every question you voted on, with how people voted.'**
   String get historySubtitle;
 
-  /// No description provided for @historyLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'History'**
-  String get historyLabel;
-
   /// No description provided for @historyTooltip.
   ///
   /// In en, this message translates to:
@@ -746,17 +728,29 @@ abstract class AppLocalizations {
   /// **'No votes'**
   String get historyNoVotes;
 
-  /// No description provided for @aboutVersion.
+  /// No description provided for @searchQuestionsHint.
   ///
   /// In en, this message translates to:
-  /// **'Version {version} ({build})'**
-  String aboutVersion(String version, String build);
+  /// **'Search questions…'**
+  String get searchQuestionsHint;
 
-  /// No description provided for @aboutTagline.
+  /// No description provided for @searchClearTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Thought-provoking questions to spark real conversation.'**
-  String get aboutTagline;
+  /// **'Clear search'**
+  String get searchClearTooltip;
+
+  /// No description provided for @searchNoResultsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No matches'**
+  String get searchNoResultsTitle;
+
+  /// No description provided for @searchNoResultsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'No questions match your search. Try a different word.'**
+  String get searchNoResultsBody;
 
   /// No description provided for @privacyDocsSection.
   ///
@@ -1004,11 +998,17 @@ abstract class AppLocalizations {
   /// **'Guest session'**
   String get guestSession;
 
-  /// No description provided for @signInToSaveProgress.
+  /// No description provided for @accountUnsecuredNote.
   ///
   /// In en, this message translates to:
-  /// **'Sign in to save your progress'**
-  String get signInToSaveProgress;
+  /// **'Your progress is saved only on this phone'**
+  String get accountUnsecuredNote;
+
+  /// No description provided for @secureAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure account'**
+  String get secureAccount;
 
   /// No description provided for @yourAccount.
   ///
@@ -1027,12 +1027,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete account'**
   String get deleteAccount;
-
-  /// No description provided for @comingSoonNamed.
-  ///
-  /// In en, this message translates to:
-  /// **'{label} — coming soon'**
-  String comingSoonNamed(String label);
 
   /// No description provided for @daysInARow.
   ///
@@ -1069,6 +1063,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, one{{count} day to promotion} other{{count} days to promotion}}'**
   String rankCardDaysToPromotion(int count);
+
+  /// Affordance on the rank stat card telling the user it opens the rank ladder.
+  ///
+  /// In en, this message translates to:
+  /// **'TAP'**
+  String get rankCardTapHint;
 
   /// No description provided for @settingsTooltip.
   ///
@@ -1172,6 +1172,18 @@ abstract class AppLocalizations {
   /// **'You have one free unlock — swipe to the next question and it unlocks automatically.'**
   String get freeUnlockExplain;
 
+  /// Small pill badge shown above a question added to the catalog within the last two weeks.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get newQuestionBadge;
+
+  /// Tooltip shown when tapping the 'New' badge, explaining why the vote count may still be low.
+  ///
+  /// In en, this message translates to:
+  /// **'Freshly added question — the community is just starting to vote.'**
+  String get newQuestionTooltip;
+
   /// No description provided for @voteYes.
   ///
   /// In en, this message translates to:
@@ -1189,12 +1201,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not record your vote.'**
   String get voteFailed;
-
-  /// No description provided for @votesCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, one{{count} vote} other{{count} votes}}'**
-  String votesCount(int count);
 
   /// No description provided for @revealFailed.
   ///
@@ -1232,23 +1238,17 @@ abstract class AppLocalizations {
   /// **'Come back tomorrow for new questions — or go PRO to read without limits.'**
   String get noMoreBody;
 
-  /// No description provided for @backToFreeQuestion.
+  /// No description provided for @backToLatestQuestion.
   ///
   /// In en, this message translates to:
-  /// **'Back to the free question'**
-  String get backToFreeQuestion;
+  /// **'Back to the latest question'**
+  String get backToLatestQuestion;
 
   /// No description provided for @nextQuestionWaiting.
   ///
   /// In en, this message translates to:
   /// **'The next question is waiting'**
   String get nextQuestionWaiting;
-
-  /// No description provided for @watchAdToReveal.
-  ///
-  /// In en, this message translates to:
-  /// **'Watch an ad to reveal a new question.'**
-  String get watchAdToReveal;
 
   /// No description provided for @adLimitReachedInfo.
   ///
@@ -1303,6 +1303,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create account'**
   String get createAccount;
+
+  /// No description provided for @secureStreakTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure your streak 🔥'**
+  String get secureStreakTitle;
+
+  /// No description provided for @secureStreakBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re on a {streak}-day streak — but it only lives on this phone. Create an account (email or Google) and it will survive a reinstall or a new device.'**
+  String secureStreakBody(int streak);
 
   /// No description provided for @smaczkiTitle.
   ///
@@ -1364,11 +1376,11 @@ abstract class AppLocalizations {
   /// **'Longest streak: {count, plural, one{{count} day} other{{count} days}}'**
   String longestStreakDays(int count);
 
-  /// No description provided for @daysToRank.
+  /// Progress line in the rank sheet. Deliberately does not name the next rank — it stays a surprise until it is unlocked.
   ///
   /// In en, this message translates to:
-  /// **'{remaining, plural, one{{remaining} more day to “{rankName}”} other{{remaining} more days to “{rankName}”}}'**
-  String daysToRank(int remaining, String rankName);
+  /// **'{remaining, plural, one{{remaining} more day to the next rank} other{{remaining} more days to the next rank}}'**
+  String daysToNextRank(int remaining);
 
   /// No description provided for @rankFrom.
   ///
@@ -1481,7 +1493,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingTasteSmaczekIntro.
   ///
   /// In en, this message translates to:
-  /// **'Every question also comes with talking points that deepen the conversation. Like this one:'**
+  /// **'Every question also comes with arguments that deepen the conversation. Like this one:'**
   String get onboardingTasteSmaczekIntro;
 
   /// No description provided for @onboardingTasteSmaczek.
@@ -1550,6 +1562,12 @@ abstract class AppLocalizations {
   /// **'Not now'**
   String get onboardingNotifySkip;
 
+  /// No description provided for @onboardingNotifyFootnote.
+  ///
+  /// In en, this message translates to:
+  /// **'You can turn reminders off or change the time in settings.'**
+  String get onboardingNotifyFootnote;
+
   /// No description provided for @paywallTitle.
   ///
   /// In en, this message translates to:
@@ -1586,47 +1604,53 @@ abstract class AppLocalizations {
   /// **'Every vote you\'ve cast, in one place'**
   String get paywallTitleHistory;
 
-  /// Quiet line under the paywall headline summing up what PRO contains.
+  /// No description provided for @paywallBenefitUnlimitedTitle.
   ///
   /// In en, this message translates to:
-  /// **'The whole catalog, every twist, zero ads'**
-  String get paywallSubtitle;
+  /// **'Unlimited questions'**
+  String get paywallBenefitUnlimitedTitle;
 
-  /// No description provided for @paywallPerkUnlimited.
+  /// No description provided for @paywallBenefitUnlimitedBody.
   ///
   /// In en, this message translates to:
-  /// **'No limits'**
-  String get paywallPerkUnlimited;
+  /// **'Browse the whole library of 500+ questions — no daily limits, no waiting.'**
+  String get paywallBenefitUnlimitedBody;
 
-  /// No description provided for @paywallPerkNoAds.
+  /// No description provided for @paywallBenefitNoAdsTitle.
   ///
   /// In en, this message translates to:
   /// **'Zero ads'**
-  String get paywallPerkNoAds;
+  String get paywallBenefitNoAdsTitle;
 
-  /// No description provided for @paywallPerkSmaczki.
+  /// No description provided for @paywallBenefitNoAdsBody.
   ///
   /// In en, this message translates to:
-  /// **'Every twist'**
-  String get paywallPerkSmaczki;
+  /// **'No rewarded ads, no interruptions — just the next question.'**
+  String get paywallBenefitNoAdsBody;
 
-  /// No description provided for @paywallPerkFavorites.
+  /// No description provided for @paywallBenefitSmaczkiTitle.
   ///
   /// In en, this message translates to:
-  /// **'Favorites'**
-  String get paywallPerkFavorites;
+  /// **'Arguments for every question'**
+  String get paywallBenefitSmaczkiTitle;
 
-  /// No description provided for @paywallPerkHistory.
+  /// No description provided for @paywallBenefitSmaczkiBody.
   ///
   /// In en, this message translates to:
-  /// **'Vote history'**
-  String get paywallPerkHistory;
+  /// **'Unlock all the talking points that deepen the conversation.'**
+  String get paywallBenefitSmaczkiBody;
 
-  /// Perk tile labels are short — one or two words that fit under a round icon in a three-column grid.
+  /// No description provided for @paywallBenefitFavoritesTitle.
   ///
   /// In en, this message translates to:
-  /// **'Offline mode'**
-  String get paywallPerkOffline;
+  /// **'Favorites & voting history'**
+  String get paywallBenefitFavoritesTitle;
+
+  /// No description provided for @paywallBenefitFavoritesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the best questions and look back at every vote you\'ve cast.'**
+  String get paywallBenefitFavoritesBody;
 
   /// No description provided for @paywallLifetime.
   ///
