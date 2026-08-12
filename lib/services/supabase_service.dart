@@ -77,8 +77,16 @@ class SupabaseService {
   /// throwing and leaving the user stuck signed in.
   static Future<void> signOut() async {
     if (!_initialised) return;
+    await signOutOn(client.auth);
+  }
+
+  /// The fallback rule itself, on an injectable auth client so the offline
+  /// contract ("Sign out never throws, the device session is always cleared")
+  /// is pinned by a unit test.
+  @visibleForTesting
+  static Future<void> signOutOn(GoTrueClient auth) async {
     try {
-      await client.auth.signOut();
+      await auth.signOut();
     } catch (e) {
       debugPrint(
         'SupabaseService.signOut: global sign-out failed ($e); '
@@ -90,7 +98,7 @@ class SupabaseService {
         'Global sign-out failed; fell back to local',
         category: 'auth',
       );
-      await client.auth.signOut(scope: SignOutScope.local);
+      await auth.signOut(scope: SignOutScope.local);
     }
   }
 
@@ -246,19 +254,33 @@ class SupabaseService {
     if (!_initialised) {
       throw StateError('Supabase is not configured.');
     }
+    return registerWithPasswordOn(
+      client.auth,
+      email: email,
+      password: password,
+    );
+  }
 
-    final current = client.auth.currentUser;
+  /// The branch itself, on an injectable auth client: an anonymous CURRENT user
+  /// is upgraded in place (`updateUser` keeps the same UUID, so their streak,
+  /// votes and reveals survive); only with no anonymous session does a fresh
+  /// `signUp` mint a separate account. Extracted so the "don't lose a guest's
+  /// progress" rule is pinned by a unit test.
+  @visibleForTesting
+  static Future<User?> registerWithPasswordOn(
+    GoTrueClient auth, {
+    required String email,
+    required String password,
+  }) async {
+    final current = auth.currentUser;
     if (current?.isAnonymous == true) {
-      final response = await client.auth.updateUser(
+      final response = await auth.updateUser(
         UserAttributes(email: email.trim(), password: password),
       );
       return response.user;
     }
 
-    final response = await client.auth.signUp(
-      email: email.trim(),
-      password: password,
-    );
+    final response = await auth.signUp(email: email.trim(), password: password);
     return response.user;
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/time/epoch_day.dart';
 import '../../questions/widgets/animated_flame_icon.dart' show flameColor;
 import '../providers/session_providers.dart';
 import '../screens/auth_screen.dart';
@@ -26,14 +27,7 @@ const int kSecureStreakCooldownDays = 7;
 /// The device-local date as a day index (days since the Unix epoch). The nudge
 /// rides an engagement moment the user feels in local time, and the cooldown is
 /// intentionally coarse, so local midnight is the right boundary.
-int _todayEpochDay() {
-  final now = DateTime.now();
-  return DateTime(
-    now.year,
-    now.month,
-    now.day,
-  ).difference(DateTime.utc(1970)).inDays;
-}
+int _todayEpochDay() => epochDay(DateTime.now());
 
 /// Pure decision: should the secure-your-streak nudge show right now?
 ///

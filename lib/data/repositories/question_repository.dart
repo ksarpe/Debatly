@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/monitoring/monitoring.dart';
@@ -143,7 +145,20 @@ abstract class QuestionRepository {
 /// Replace with a `SupabaseQuestionRepository` (querying the `questions` table)
 /// when the backend is ready — the [QuestionRepository] contract stays the same.
 class MockQuestionRepository implements QuestionRepository {
-  const MockQuestionRepository();
+  /// [random] drives the "random pool question" picks (peek / ad reveal); tests
+  /// pass a seeded [Random] for reproducible picks. Defaults to a fresh one.
+  MockQuestionRepository({Random? random}) : _random = random ?? Random();
+
+  final Random _random;
+
+  /// Instance-local favorites for the offline/dev preview.
+  ///
+  /// The real store is the `question_favorites` table; in mock mode there's no
+  /// backend, so a simple mutable set lets the star + favorites screen
+  /// round-trip during development without persistence. Per-INSTANCE on
+  /// purpose: a process-global set leaked favorites between the many tests
+  /// (and dev locale switches) that each build their own repository.
+  final Set<String> _favorites = <String>{};
 
   @override
   Future<List<Question>> fetchQuestions() async {
@@ -197,9 +212,7 @@ class MockQuestionRepository implements QuestionRepository {
   }) async {
     await Future.delayed(const Duration(milliseconds: 150));
     if (kMockQuestions.length < 2) return null;
-    final pick =
-        kMockQuestions[1 +
-            DateTime.now().microsecond % (kMockQuestions.length - 1)];
+    final pick = kMockQuestions[1 + _random.nextInt(kMockQuestions.length - 1)];
     final teaser = pick.questionText
         .trim()
         .split(RegExp(r'\s+'))
@@ -225,7 +238,7 @@ class MockQuestionRepository implements QuestionRepository {
           )
         : kMockQuestions[kMockQuestions.length < 2
               ? 0
-              : 1 + DateTime.now().microsecond % (kMockQuestions.length - 1)];
+              : 1 + _random.nextInt(kMockQuestions.length - 1)];
     return pick.copyWith(isLocked: false);
   }
 
@@ -282,16 +295,15 @@ class MockQuestionRepository implements QuestionRepository {
   }
 
   @override
-  Future<Set<String>> fetchFavoriteIds() async =>
-      Set<String>.from(_mockFavorites);
+  Future<Set<String>> fetchFavoriteIds() async => Set<String>.from(_favorites);
 
   @override
   Future<bool> toggleFavorite(String questionId) async {
     await Future.delayed(const Duration(milliseconds: 120));
-    // Dev/offline preview keeps favorites in a process-local set so the star
+    // Dev/offline preview keeps favorites in an instance-local set so the star
     // and the favorites screen behave; the real premium gate lives server-side.
-    if (_mockFavorites.remove(questionId)) return false;
-    _mockFavorites.add(questionId);
+    if (_favorites.remove(questionId)) return false;
+    _favorites.add(questionId);
     return true;
   }
 
@@ -302,7 +314,7 @@ class MockQuestionRepository implements QuestionRepository {
     // "favorites are never locked" shape.
     return [
       for (final q in kMockQuestions)
-        if (_mockFavorites.contains(q.id)) q.copyWith(isLocked: false),
+        if (_favorites.contains(q.id)) q.copyWith(isLocked: false),
     ];
   }
 
@@ -341,13 +353,6 @@ class MockQuestionRepository implements QuestionRepository {
   }
 }
 
-/// Process-local favorites for the offline/dev mock repository.
-///
-/// The real store is the `question_favorites` table; in mock mode there's no
-/// backend, so a simple mutable set lets the star + favorites screen round-trip
-/// during development without persistence.
-final Set<String> _mockFavorites = <String>{};
-
 /// Supabase-backed implementation used in production builds.
 ///
 /// Matches the schema in `supabase/migrations/schema/20260618120000_init.sql`:
@@ -382,7 +387,7 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // Everything else comes back locked (no text) and renders as a locked card.
     final data = await _db.rpc(
       'get_questions',
-      params: {'p_locale': locale, 'p_date': _dateOnly(DateTime.now())},
+      params: {'p_locale': locale, 'p_date': dateOnlyKey(DateTime.now())},
     );
 
     return (data as List)
@@ -399,7 +404,7 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // fresh, votable question — never a re-run they already answered.
     final data = await _db.rpc(
       'get_daily_question',
-      params: {'p_locale': locale, 'p_date': _dateOnly(date)},
+      params: {'p_locale': locale, 'p_date': dateOnlyKey(date)},
     );
 
     final rows = (data as List).cast<Map<String, dynamic>>();
@@ -436,7 +441,7 @@ class SupabaseQuestionRepository implements QuestionRepository {
       'peek_next_question',
       params: {
         'p_locale': locale,
-        'p_date': _dateOnly(DateTime.now()),
+        'p_date': dateOnlyKey(DateTime.now()),
         'p_exclude_ids': excludeIds,
       },
     );
@@ -459,7 +464,7 @@ class SupabaseQuestionRepository implements QuestionRepository {
       'reveal_ad_question',
       params: {
         'p_locale': locale,
-        'p_date': _dateOnly(DateTime.now()),
+        'p_date': dateOnlyKey(DateTime.now()),
         'p_question_id': ?questionId,
         'p_exclude_ids': excludeIds,
       },
@@ -504,7 +509,7 @@ class SupabaseQuestionRepository implements QuestionRepository {
       params: {
         'p_question_id': questionId,
         'p_choice': choice,
-        'p_date': _dateOnly(DateTime.now()),
+        'p_date': dateOnlyKey(DateTime.now()),
         'p_locale': locale,
       },
     );
@@ -525,7 +530,7 @@ class SupabaseQuestionRepository implements QuestionRepository {
       'reveal_free_question',
       params: {
         'p_locale': locale,
-        'p_date': _dateOnly(DateTime.now()),
+        'p_date': dateOnlyKey(DateTime.now()),
         'p_exclude_ids': excludeIds,
       },
     );
@@ -632,13 +637,18 @@ class SupabaseQuestionRepository implements QuestionRepository {
         .map((row) => row['id'].toString())
         .toSet();
   }
+}
 
-  static String _dateOnly(DateTime date) {
-    final local = date.toLocal();
-    final month = local.month.toString().padLeft(2, '0');
-    final day = local.day.toString().padLeft(2, '0');
-    return '${local.year}-$month-$day';
-  }
+/// The device-local calendar date as the `yyyy-MM-dd` string sent as the
+/// `p_date` RPC param AND used as the daily-question cache key (see
+/// `CachingQuestionRepository`). ONE definition on purpose: if the repo and the
+/// cache ever format this differently, the cached daily can no longer be found
+/// under the date the repo asks for and the offline daily silently breaks.
+String dateOnlyKey(DateTime date) {
+  final local = date.toLocal();
+  final month = local.month.toString().padLeft(2, '0');
+  final day = local.day.toString().padLeft(2, '0');
+  return '${local.year}-$month-$day';
 }
 
 /// The first two words of [text], used as the locked-card teaser in mock mode.

@@ -89,7 +89,7 @@ class _FakeSession extends SessionNotifier {
 /// Serves a configurable recent-ids set, with a voted panel state so the feed
 /// renders its stable post-vote shape.
 class _RecentIdsRepo extends MockQuestionRepository {
-  const _RecentIdsRepo({required this.recentIds});
+  _RecentIdsRepo({required this.recentIds});
 
   final Set<String> recentIds;
 

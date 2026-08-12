@@ -1,0 +1,248 @@
+import 'dart:convert';
+
+import 'package:debatly/services/supabase_service.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// The auth flows that guard a user's progress and their way out:
+///
+///  * `registerWithPassword` — an anonymous session is upgraded IN PLACE
+///    (`updateUser`, same UUID → the guest's streak/votes/reveals survive);
+///    only with no anonymous session does `signUp` mint a separate account.
+///    Losing this branch silently orphans every guest who registers.
+///  * `signOut` — the global sign-out revokes the refresh token server-side,
+///    which needs the network; when that fails the LOCAL fallback must still
+///    log the user out without throwing (sign-out has to work offline).
+///
+/// Run against a real [GoTrueClient] on a [MockClient] transport, like
+/// supabase_question_repository_test does for the data path.
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  String b64(Map<String, dynamic> map) =>
+      base64Url.encode(utf8.encode(jsonEncode(map))).replaceAll('=', '');
+
+  // gotrue only decodes the payload (expiry), so an unsigned token is enough.
+  String fakeJwt(String sub) =>
+      '${b64({'alg': 'none', 'typ': 'JWT'})}.'
+      '${b64({'sub': sub, 'exp': 4102444800, 'role': 'authenticated'})}.sig';
+
+  Map<String, dynamic> userJson({
+    required String id,
+    String? email,
+    required bool anonymous,
+  }) => {
+    'id': id,
+    'aud': 'authenticated',
+    'role': 'authenticated',
+    'email': email,
+    'phone': '',
+    'created_at': '2026-01-01T00:00:00Z',
+    'updated_at': '2026-01-01T00:00:00Z',
+    'is_anonymous': anonymous,
+    'app_metadata': <String, dynamic>{},
+    'user_metadata': <String, dynamic>{},
+    'identities': <dynamic>[],
+  };
+
+  String sessionJson(Map<String, dynamic> user) => jsonEncode({
+    'access_token': fakeJwt(user['id'] as String),
+    'token_type': 'bearer',
+    'expires_in': 3600,
+    'refresh_token': 'rt-1',
+    'user': user,
+  });
+
+  const jsonHeaders = {'content-type': 'application/json; charset=utf-8'};
+
+  /// A Supabase client whose transport is [handler]; requests are recorded
+  /// into [log].
+  SupabaseClient buildClient(
+    List<http.Request> log,
+    http.Response? Function(http.Request request) handler,
+  ) {
+    final mock = MockClient((request) async {
+      log.add(request);
+      final response = handler(request);
+      if (response != null) return response;
+      return http.Response('{}', 404, request: request, headers: jsonHeaders);
+    });
+    final client = SupabaseClient(
+      'https://test.supabase.co',
+      'test-anon-key',
+      httpClient: mock,
+      // implicit: the default PKCE flow asserts on an asyncStorage the tests
+      // don't have (and don't exercise).
+      authOptions: const AuthClientOptions(
+        autoRefreshToken: false,
+        authFlowType: AuthFlowType.implicit,
+      ),
+    );
+    addTearDown(client.dispose);
+    return client;
+  }
+
+  group('registerWithPassword', () {
+    test(
+      'an anonymous session upgrades in place — same UUID, no signUp',
+      () async {
+        final anon = userJson(id: 'anon-1', anonymous: true);
+        final upgraded = userJson(
+          id: 'anon-1',
+          email: 'user@example.com',
+          anonymous: false,
+        );
+        final log = <http.Request>[];
+        final client = buildClient(log, (request) {
+          if (request.url.path.endsWith('/auth/v1/signup')) {
+            return http.Response(
+              sessionJson(anon),
+              200,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          if (request.url.path.endsWith('/auth/v1/user')) {
+            return http.Response(
+              jsonEncode(upgraded),
+              200,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          return null;
+        });
+
+        await client.auth.signInAnonymously();
+        expect(client.auth.currentUser?.isAnonymous, isTrue);
+
+        final user = await SupabaseService.registerWithPasswordOn(
+          client.auth,
+          email: '  user@example.com  ',
+          password: 'secret123',
+        );
+
+        final update = log.last;
+        expect(update.method, 'PUT');
+        expect(update.url.path, endsWith('/auth/v1/user'));
+        final body = jsonDecode(update.body) as Map<String, dynamic>;
+        expect(body['email'], 'user@example.com', reason: 'email is trimmed');
+        expect(body['password'], 'secret123');
+
+        expect(
+          user?.id,
+          'anon-1',
+          reason: 'the UUID must not change — it carries the guest\'s progress',
+        );
+        expect(
+          log.where((r) => r.url.path.endsWith('/auth/v1/signup')).length,
+          1,
+          reason: 'only the anonymous sign-in hit /signup — no second account',
+        );
+      },
+    );
+
+    test(
+      'with no anonymous session a fresh signUp creates the account',
+      () async {
+        final fresh = userJson(
+          id: 'new-1',
+          email: 'user@example.com',
+          anonymous: false,
+        );
+        final log = <http.Request>[];
+        final client = buildClient(log, (request) {
+          if (request.url.path.endsWith('/auth/v1/signup')) {
+            return http.Response(
+              sessionJson(fresh),
+              200,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          return null;
+        });
+
+        final user = await SupabaseService.registerWithPasswordOn(
+          client.auth,
+          email: 'user@example.com',
+          password: 'secret123',
+        );
+
+        expect(log, hasLength(1));
+        expect(log.single.method, 'POST');
+        expect(log.single.url.path, endsWith('/auth/v1/signup'));
+        final body = jsonDecode(log.single.body) as Map<String, dynamic>;
+        expect(body['email'], 'user@example.com');
+        expect(user?.id, 'new-1');
+      },
+    );
+  });
+
+  group('signOut', () {
+    test(
+      'a failed server revocation falls back to local — never throws',
+      () async {
+        final anon = userJson(id: 'anon-1', anonymous: true);
+        final log = <http.Request>[];
+        final client = buildClient(log, (request) {
+          if (request.url.path.endsWith('/auth/v1/signup')) {
+            return http.Response(
+              sessionJson(anon),
+              200,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          if (request.url.path.endsWith('/auth/v1/logout')) {
+            // Offline / server error: the global revocation cannot complete.
+            return http.Response(
+              '{"error":"unreachable"}',
+              500,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          return null;
+        });
+
+        await client.auth.signInAnonymously();
+        expect(client.auth.currentSession, isNotNull);
+
+        // Must complete without throwing, leaving the device signed out.
+        await SupabaseService.signOutOn(client.auth);
+        expect(client.auth.currentSession, isNull);
+      },
+    );
+
+    test('the happy path signs out with a single server revocation', () async {
+      final anon = userJson(id: 'anon-1', anonymous: true);
+      final log = <http.Request>[];
+      final client = buildClient(log, (request) {
+        if (request.url.path.endsWith('/auth/v1/signup')) {
+          return http.Response(
+            sessionJson(anon),
+            200,
+            request: request,
+            headers: jsonHeaders,
+          );
+        }
+        if (request.url.path.endsWith('/auth/v1/logout')) {
+          return http.Response('', 204, request: request, headers: jsonHeaders);
+        }
+        return null;
+      });
+
+      await client.auth.signInAnonymously();
+      await SupabaseService.signOutOn(client.auth);
+
+      expect(client.auth.currentSession, isNull);
+      expect(
+        log.where((r) => r.url.path.endsWith('/auth/v1/logout')).length,
+        1,
+      );
+    });
+  });
+}

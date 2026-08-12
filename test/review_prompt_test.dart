@@ -1,5 +1,6 @@
 import 'package:debatly/core/locale/app_locale.dart'
     show sharedPreferencesProvider;
+import 'package:debatly/core/time/epoch_day.dart';
 import 'package:debatly/features/settings/providers/review_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -84,16 +85,10 @@ void main() {
     // The private SharedPreferences key the controller stamps the ask date into.
     const lastPromptedKey = 'review_last_prompted_day';
 
-    // Mirrors the controller's own local-date day index, so a seeded "last ask"
-    // can be placed a known number of days before today.
-    int todayEpochDay() {
-      final now = DateTime.now();
-      return DateTime(
-        now.year,
-        now.month,
-        now.day,
-      ).difference(DateTime.utc(1970)).inDays;
-    }
+    // Mirrors the controller's own local-date day index (the shared epochDay
+    // helper), so a seeded "last ask" can be placed a known number of days
+    // before today.
+    int todayEpochDay() => epochDay(DateTime.now());
 
     Future<ProviderContainer> containerWith(Map<String, Object> prefs) async {
       SharedPreferences.setMockInitialValues(prefs);

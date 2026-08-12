@@ -61,16 +61,21 @@ class RankCelebrationController extends Notifier<void> {
       lastCelebratedTier: last,
     );
 
-    // Move the baseline to the current tier regardless of the outcome: seeding
-    // on the first observation, advancing on a promotion, and lowering it after
-    // a freeze drop so the re-climb fires again. Done before returning so the
-    // celebration is consumed even if showing it later fails.
-    if (last != current) {
+    final rank = celebrate ? _rankForTier(ladder, current) : null;
+
+    // Move the baseline to the current tier: seeding on the first observation,
+    // advancing on a promotion, and lowering it after a freeze drop so the
+    // re-climb fires again. Done before returning so the celebration is
+    // consumed even if showing it later fails. ONE exception: a promotion whose
+    // tier the ladder can't name yet (stale/partial ranks fetch) keeps the old
+    // baseline — otherwise the promotion would be consumed invisibly and lost
+    // for good; holding it lets the next sync celebrate once the ladder loads.
+    final holdForMissingRank = celebrate && rank == null;
+    if (last != current && !holdForMissingRank) {
       await prefs.setInt(_kCelebratedTierKey, current);
     }
 
-    if (!celebrate) return null;
-    return _rankForTier(ladder, current);
+    return rank;
   }
 
   Rank? _rankForTier(List<Rank> ladder, int tier) {

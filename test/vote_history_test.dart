@@ -45,7 +45,7 @@ void main() {
 
   group('MockQuestionRepository.fetchVoteHistory', () {
     test('returns past-dated entries, newest vote first', () async {
-      const repo = MockQuestionRepository();
+      final repo = MockQuestionRepository();
       final history = await repo.fetchVoteHistory();
 
       expect(history, isNotEmpty);

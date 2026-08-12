@@ -112,7 +112,7 @@ void main() {
 /// Repo serving a fixed smaczki list (or a failure), standing in for the
 /// server-gated `get_question_smaczki` RPC.
 class _SmaczkiRepo extends MockQuestionRepository {
-  const _SmaczkiRepo({required this.smaczki, this.throws});
+  _SmaczkiRepo({required this.smaczki, this.throws});
 
   final List<Smaczek> smaczki;
   final Object? throws;

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
+import '../../../core/time/epoch_day.dart';
 import '../../../services/review_service.dart';
 
 /// SharedPreferences key: the local "epoch day" (days since 1970) we last *asked*
@@ -22,14 +23,7 @@ const int kReviewCooldownDays = 7;
 /// The device-local date as a day index (days since the Unix epoch). The streak
 /// milestone is an engagement moment the user feels in local time, and the
 /// cooldown is intentionally coarse, so local midnight is the right boundary.
-int _todayEpochDay() {
-  final now = DateTime.now();
-  return DateTime(
-    now.year,
-    now.month,
-    now.day,
-  ).difference(DateTime.utc(1970)).inDays;
-}
+int _todayEpochDay() => epochDay(DateTime.now());
 
 /// Pure decision: should we ask for a store review right now?
 ///

@@ -64,7 +64,7 @@ class CachingQuestionRepository implements QuestionRepository {
 
   @override
   Future<Question?> fetchDailyQuestion(DateTime date) async {
-    final dateKey = _dateOnly(date);
+    final dateKey = dateOnlyKey(date);
     try {
       final fresh = await inner.fetchDailyQuestion(date);
       if (fresh != null) await cache.writeDaily(locale, dateKey, fresh);
@@ -246,12 +246,5 @@ class CachingQuestionRepository implements QuestionRepository {
       return null;
     }
     return read();
-  }
-
-  static String _dateOnly(DateTime date) {
-    final local = date.toLocal();
-    final month = local.month.toString().padLeft(2, '0');
-    final day = local.day.toString().padLeft(2, '0');
-    return '${local.year}-$month-$day';
   }
 }

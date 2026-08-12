@@ -161,7 +161,7 @@ class _FakeSession extends SessionNotifier {
 
 /// Repo serving a fixed ladder + stats snapshot (the server's view).
 class _RankRepo extends MockQuestionRepository {
-  const _RankRepo({required this.ranks, required this.stats});
+  _RankRepo({required this.ranks, required this.stats});
 
   final List<Rank> ranks;
   final UserStats stats;

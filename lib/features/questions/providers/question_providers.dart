@@ -33,7 +33,7 @@ import '../../account/providers/session_providers.dart';
 /// premium cache on a lapse. The mock source stays unwrapped — it's already
 /// fully offline.
 final questionRepositoryProvider = Provider<QuestionRepository>((ref) {
-  if (!SupabaseService.isInitialised) return const MockQuestionRepository();
+  if (!SupabaseService.isInitialised) return MockQuestionRepository();
   final locale = ref.watch(localeControllerProvider).languageCode;
   return CachingQuestionRepository(
     inner: SupabaseQuestionRepository(locale: locale),

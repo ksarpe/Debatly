@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:debatly/core/network/network_error.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// `isOfflineError` must classify transport failures as offline (so the caller
 /// falls back to cache) while letting genuine server errors through untouched
@@ -31,6 +32,37 @@ void main() {
           reason: 'should treat "$message" as offline',
         );
       }
+    });
+
+    test('a typed server error is never offline, even with transport-sounding '
+        'words in its message', () {
+      // Postgres cancels a slow query with "statement timeout" — the word
+      // "timeout" used to match the transport keywords and the real server
+      // error was masked by stale cache. Typed = the server responded.
+      expect(
+        isOfflineError(
+          const PostgrestException(
+            message: 'canceling statement due to statement timeout',
+            code: '57014',
+          ),
+        ),
+        isFalse,
+      );
+      expect(
+        isOfflineError(
+          const PostgrestException(message: 'try again, retryable'),
+        ),
+        isFalse,
+      );
+      expect(
+        isOfflineError(
+          const FunctionException(status: 504, reasonPhrase: 'timed out'),
+        ),
+        isFalse,
+      );
+      // gotrue's typed RETRYABLE fetch failure is a genuine transport error
+      // and must stay offline (its name carries the 'retryable' keyword).
+      expect(isOfflineError(AuthRetryableFetchException()), isTrue);
     });
 
     test('does NOT flag a genuine server rejection as offline', () {
