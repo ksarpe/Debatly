@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/fit_or_scroll.dart';
 
 /// The final card: the user picks how to start. Sign-in is the highlighted path
 /// (it saves progress); starting anonymously is the quieter secondary option.
@@ -18,48 +19,54 @@ class OnboardingChoiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            l10n.onboardingChoiceTitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.colors.ink,
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              height: 1.15,
+    // Both paths out of onboarding live on this card, so neither may ever be
+    // pushed past the bottom of a short window or a large-font viewport —
+    // overflowed children are still painted, but they stop being tappable.
+    return FitOrScroll(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.onboardingChoiceTitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.ink,
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                height: 1.15,
+              ),
             ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            l10n.onboardingChoiceBody,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.colors.subtle,
-              fontSize: 15,
-              height: 1.45,
+            const SizedBox(height: 14),
+            Text(
+              l10n.onboardingChoiceBody,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.subtle,
+                fontSize: 15,
+                height: 1.45,
+              ),
             ),
-          ),
-          const SizedBox(height: 36),
-          _ChoiceButton(
-            label: l10n.onboardingSignInCta,
-            hint: l10n.onboardingSignInHint,
-            icon: Icons.person_rounded,
-            primary: true,
-            onTap: onSignIn,
-          ),
-          const SizedBox(height: 14),
-          _ChoiceButton(
-            label: l10n.onboardingStartAnon,
-            hint: l10n.onboardingStartAnonHint,
-            icon: Icons.bolt,
-            primary: false,
-            onTap: onStartAnonymous,
-          ),
-        ],
+            const SizedBox(height: 36),
+            _ChoiceButton(
+              label: l10n.onboardingSignInCta,
+              hint: l10n.onboardingSignInHint,
+              icon: Icons.person_rounded,
+              primary: true,
+              onTap: onSignIn,
+            ),
+            const SizedBox(height: 14),
+            _ChoiceButton(
+              label: l10n.onboardingStartAnon,
+              hint: l10n.onboardingStartAnonHint,
+              icon: Icons.bolt,
+              primary: false,
+              onTap: onStartAnonymous,
+            ),
+          ],
+        ),
       ),
     );
   }

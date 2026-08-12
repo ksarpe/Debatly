@@ -36,12 +36,19 @@ class AuthSocialButton extends StatelessWidget {
               children: [
                 icon,
                 const SizedBox(width: 10),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: context.colors.ink,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
+                // Flexible + ellipsis: the label is translated and follows the
+                // system font, so on a narrow phone at a large text scale it
+                // must wrap inside the pill rather than spill out of it.
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: context.colors.ink,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ],

@@ -137,23 +137,29 @@ class _ShareQuestionButtonState extends State<ShareQuestionButton> {
           child: InkWell(
             borderRadius: _radius,
             onTap: _busy ? null : _share,
-            child: Padding(
-              padding: const EdgeInsets.all(11),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                // While the card renders, the spinner takes the icon's place so
-                // the pill keeps its shape and the tap clearly "did something".
-                child: _busy
-                    ? CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: context.colors.subtle,
-                      )
-                    : Icon(
-                        Icons.ios_share,
-                        size: 20,
-                        color: context.colors.subtle,
-                      ),
+            // The pill is sized to the touch target, not to its icon: at 42 it
+            // was under both platforms' minimum and a thumb regularly missed it.
+            child: SizedBox(
+              width: kMinTouchTarget,
+              height: kMinTouchTarget,
+              child: Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  // While the card renders, the spinner takes the icon's place
+                  // so the pill keeps its shape and the tap clearly "did
+                  // something".
+                  child: _busy
+                      ? CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: context.colors.subtle,
+                        )
+                      : Icon(
+                          Icons.ios_share,
+                          size: 20,
+                          color: context.colors.subtle,
+                        ),
+                ),
               ),
             ),
           ),

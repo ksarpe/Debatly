@@ -1586,53 +1586,47 @@ abstract class AppLocalizations {
   /// **'Every vote you\'ve cast, in one place'**
   String get paywallTitleHistory;
 
-  /// No description provided for @paywallBenefitUnlimitedTitle.
+  /// Quiet line under the paywall headline summing up what PRO contains.
   ///
   /// In en, this message translates to:
-  /// **'Unlimited questions'**
-  String get paywallBenefitUnlimitedTitle;
+  /// **'The whole catalog, every twist, zero ads'**
+  String get paywallSubtitle;
 
-  /// No description provided for @paywallBenefitUnlimitedBody.
+  /// No description provided for @paywallPerkUnlimited.
   ///
   /// In en, this message translates to:
-  /// **'Browse the whole library of 500+ questions — no daily limits, no waiting.'**
-  String get paywallBenefitUnlimitedBody;
+  /// **'No limits'**
+  String get paywallPerkUnlimited;
 
-  /// No description provided for @paywallBenefitNoAdsTitle.
+  /// No description provided for @paywallPerkNoAds.
   ///
   /// In en, this message translates to:
   /// **'Zero ads'**
-  String get paywallBenefitNoAdsTitle;
+  String get paywallPerkNoAds;
 
-  /// No description provided for @paywallBenefitNoAdsBody.
+  /// No description provided for @paywallPerkSmaczki.
   ///
   /// In en, this message translates to:
-  /// **'No rewarded ads, no interruptions — just the next question.'**
-  String get paywallBenefitNoAdsBody;
+  /// **'Every twist'**
+  String get paywallPerkSmaczki;
 
-  /// No description provided for @paywallBenefitSmaczkiTitle.
+  /// No description provided for @paywallPerkFavorites.
   ///
   /// In en, this message translates to:
-  /// **'Arguments for every question'**
-  String get paywallBenefitSmaczkiTitle;
+  /// **'Favorites'**
+  String get paywallPerkFavorites;
 
-  /// No description provided for @paywallBenefitSmaczkiBody.
+  /// No description provided for @paywallPerkHistory.
   ///
   /// In en, this message translates to:
-  /// **'Unlock all the talking points that deepen the conversation.'**
-  String get paywallBenefitSmaczkiBody;
+  /// **'Vote history'**
+  String get paywallPerkHistory;
 
-  /// No description provided for @paywallBenefitFavoritesTitle.
+  /// Perk tile labels are short — one or two words that fit under a round icon in a three-column grid.
   ///
   /// In en, this message translates to:
-  /// **'Favorites & voting history'**
-  String get paywallBenefitFavoritesTitle;
-
-  /// No description provided for @paywallBenefitFavoritesBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Save the best questions and look back at every vote you\'ve cast.'**
-  String get paywallBenefitFavoritesBody;
+  /// **'Offline mode'**
+  String get paywallPerkOffline;
 
   /// No description provided for @paywallLifetime.
   ///

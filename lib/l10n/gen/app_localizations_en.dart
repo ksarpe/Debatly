@@ -899,32 +899,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paywallTitleHistory => 'Every vote you\'ve cast, in one place';
 
   @override
-  String get paywallBenefitUnlimitedTitle => 'Unlimited questions';
+  String get paywallSubtitle => 'The whole catalog, every twist, zero ads';
 
   @override
-  String get paywallBenefitUnlimitedBody =>
-      'Browse the whole library of 500+ questions — no daily limits, no waiting.';
+  String get paywallPerkUnlimited => 'No limits';
 
   @override
-  String get paywallBenefitNoAdsTitle => 'Zero ads';
+  String get paywallPerkNoAds => 'Zero ads';
 
   @override
-  String get paywallBenefitNoAdsBody =>
-      'No rewarded ads, no interruptions — just the next question.';
+  String get paywallPerkSmaczki => 'Every twist';
 
   @override
-  String get paywallBenefitSmaczkiTitle => 'Arguments for every question';
+  String get paywallPerkFavorites => 'Favorites';
 
   @override
-  String get paywallBenefitSmaczkiBody =>
-      'Unlock all the talking points that deepen the conversation.';
+  String get paywallPerkHistory => 'Vote history';
 
   @override
-  String get paywallBenefitFavoritesTitle => 'Favorites & voting history';
-
-  @override
-  String get paywallBenefitFavoritesBody =>
-      'Save the best questions and look back at every vote you\'ve cast.';
+  String get paywallPerkOffline => 'Offline mode';
 
   @override
   String get paywallLifetime => 'Lifetime';

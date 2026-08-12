@@ -22,13 +22,41 @@ const double _kSkew = 16;
 /// Shared height of the slanted buttons and result panels.
 const double _kVoteHeight = 56;
 
+/// How far the slanted tiles follow the system font before they stop growing.
+/// Past this the panels would start crowding the question above them, and the
+/// text is legible enough without the box following it all the way up.
+///
+/// The tiles' own text is clamped to the SAME factor (see [_scaledTile]): they
+/// are a fixed-height graphic, so a box that stops growing while its label keeps
+/// going is a box whose contents spill out of it — which is what happened to the
+/// percentages at the larger iOS accessibility sizes.
+const double _kVoteMaxTextScale = 1.6;
+
 /// [_kVoteHeight] grown for the system font, so the label + percentage inside a
-/// result panel don't clip at a large accessibility text size. Capped: past
-/// ~1.6× the panels would start crowding the question above them, and the text
-/// stays legible without the box following it all the way up.
+/// result panel don't clip at a large accessibility text size.
 double _voteHeight(BuildContext context) {
   final scale = MediaQuery.textScalerOf(context).scale(1);
-  return _kVoteHeight * math.min(1.6, math.max(1, scale));
+  return _kVoteHeight * math.min(_kVoteMaxTextScale, math.max(1, scale));
+}
+
+/// Renders [child] with the text scale clamped to [_kVoteMaxTextScale], so a
+/// tile's contents grow exactly as far as the tile itself does.
+Widget _scaledTile({required Widget child}) =>
+    MediaQuery.withClampedTextScaling(
+      maxScaleFactor: _kVoteMaxTextScale,
+      child: child,
+    );
+
+/// The tallest this vote row can render at the current text scale: the slanted
+/// panels plus the "Twój głos" caption and its gap (the post-vote state, which
+/// is taller than the pre-vote buttons).
+///
+/// Public because the feed sizes the question above it against this — it is how
+/// the two are kept from being laid out on top of each other on a short screen.
+double voteRowMaxHeight(BuildContext context) {
+  final scale = MediaQuery.textScalerOf(context).scale(1);
+  // panels + the 6px gap + the 11.5px caption line, which follows the font.
+  return _voteHeight(context) + 6 + 16 * math.max(1, scale);
 }
 
 /// The pre-vote state: the two slanted TAK / NIE buttons. [onVote] is handed the
@@ -235,13 +263,16 @@ class _VoteButton extends StatelessWidget {
             child: Stack(
               children: [
                 Center(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: context.colors.ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.5,
+                  child: _scaledTile(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: context.colors.ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -290,41 +321,52 @@ class _ResultPanel extends StatelessWidget {
         : (mine ? color : color.withValues(alpha: 0.62));
     return ClipPath(
       clipper: _SkewClipper(slant),
-      child: Container(
+      child: SizedBox(
         height: _voteHeight(context),
-        color: color.withValues(alpha: mine ? 0.42 : 0.12),
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: color.withValues(alpha: mine ? 1 : 0.6),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.5,
+        child: ColoredBox(
+          color: color.withValues(alpha: mine ? 0.42 : 0.12),
+          child: Center(
+            child: _scaledTile(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: color.withValues(alpha: mine ? 1 : 0.6),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      ),
+                      if (mine) ...[
+                        const SizedBox(width: 4),
+                        Icon(Icons.check_rounded, color: color, size: 14),
+                      ],
+                    ],
                   ),
-                ),
-                if (mine) ...[
-                  const SizedBox(width: 4),
-                  Icon(Icons.check_rounded, color: color, size: 14),
+                  Flexible(
+                    child: Text(
+                      showPct ? '$pct%' : '–',
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: pctColor,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
                 ],
-              ],
-            ),
-            Text(
-              showPct ? '$pct%' : '–',
-              style: TextStyle(
-                color: pctColor,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                height: 1.1,
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

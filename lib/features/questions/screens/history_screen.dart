@@ -515,11 +515,11 @@ class HistoryButton extends StatelessWidget {
           child: InkWell(
             borderRadius: _radius,
             onTap: () => openHistory(context),
-            child: Padding(
-              padding: const EdgeInsets.all(11),
-              child: SizedBox(
-                width: 20,
-                height: 20,
+            // Sized to the touch target, matching the share pill beside it.
+            child: SizedBox(
+              width: kMinTouchTarget,
+              height: kMinTouchTarget,
+              child: Center(
                 child: Icon(
                   Icons.history_rounded,
                   size: 20,

@@ -29,27 +29,42 @@ class PaywallFooterLinks extends StatelessWidget {
       minimumSize: const Size(0, 36),
       padding: const EdgeInsets.symmetric(horizontal: 10),
     );
+    final links = <Widget>[
+      TextButton(
+        onPressed: busy ? null : onRestore,
+        style: style,
+        child: Text(l10n.restorePurchase),
+      ),
+      if (onTerms != null)
+        TextButton(
+          onPressed: busy ? null : onTerms,
+          style: style,
+          child: Text(l10n.paywallTermsLink),
+        ),
+      if (onPrivacy != null)
+        TextButton(
+          onPressed: busy ? null : onPrivacy,
+          style: style,
+          child: Text(l10n.paywallPrivacyLink),
+        ),
+    ];
+
     return Wrap(
       alignment: WrapAlignment.center,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        TextButton(
-          onPressed: busy ? null : onRestore,
-          style: style,
-          child: Text(l10n.restorePurchase),
-        ),
-        if (onTerms != null)
-          TextButton(
-            onPressed: busy ? null : onTerms,
-            style: style,
-            child: Text(l10n.paywallTermsLink),
-          ),
-        if (onPrivacy != null)
-          TextButton(
-            onPressed: busy ? null : onPrivacy,
-            style: style,
-            child: Text(l10n.paywallPrivacyLink),
-          ),
+        for (var i = 0; i < links.length; i++) ...[
+          // A dot between the links, so three separate TextButtons read as one
+          // legal footer line instead of three floating words.
+          if (i > 0)
+            ExcludeSemantics(
+              child: Text(
+                '·',
+                style: TextStyle(color: context.colors.subtle, fontSize: 12.5),
+              ),
+            ),
+          links[i],
+        ],
       ],
     );
   }

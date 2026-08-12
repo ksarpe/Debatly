@@ -104,6 +104,15 @@ extension BuildContextColors on BuildContext {
       Theme.of(this).extension<AppColors>() ?? AppColors.dark;
 }
 
+/// The smallest touch target the app holds itself to: Material's 48dp, which
+/// also clears Apple's 44pt guidance.
+///
+/// Anything a finger is meant to hit is sized against this. Two controls used to
+/// fall short — the share / history pills at 42, and "forgot password?" at the
+/// 19pt height of its own glyphs — and a target that small is missed often
+/// enough to read as "the app didn't react".
+const double kMinTouchTarget = 48;
+
 /// Central place for the brand accents, the global [ThemeData] (light + dark),
 /// and the signature "outlined + shadowed" text styling used for the question.
 ///

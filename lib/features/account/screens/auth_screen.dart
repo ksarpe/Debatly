@@ -210,21 +210,36 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                         ),
                       ],
                       if (_isLogin) ...[
-                        const SizedBox(height: 10),
+                        // The button below carries its own 14px of vertical
+                        // padding (the touch target), so the gap above it is
+                        // only what's left of the old 10px rhythm.
+                        const SizedBox(height: 2),
                         Align(
                           alignment: Alignment.centerRight,
-                          child: GestureDetector(
-                            onTap: (_isSubmitting || !isConfigured)
+                          // A TextButton, not a bare GestureDetector around the
+                          // Text: that gave the link a hit area exactly the size
+                          // of its glyphs (265x19), well under Apple's 44pt and
+                          // Material's 48dp minimum, so the tap regularly missed.
+                          child: TextButton(
+                            onPressed: (_isSubmitting || !isConfigured)
                                 ? null
                                 : _forgotPassword,
-                            child: Text(
-                              context.l10n.authForgotPassword,
-                              style: const TextStyle(
-                                color: AppTheme.spark,
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppTheme.spark,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 14,
+                              ),
+                              minimumSize: const Size(
+                                kMinTouchTarget,
+                                kMinTouchTarget,
+                              ),
+                              textStyle: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 13,
                               ),
                             ),
+                            child: Text(context.l10n.authForgotPassword),
                           ),
                         ),
                       ],

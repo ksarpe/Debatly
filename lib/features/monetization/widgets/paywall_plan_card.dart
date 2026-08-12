@@ -53,17 +53,20 @@ class PaywallPlanCard extends StatelessWidget {
     final priceSuffix = package.packageType == PackageType.monthly
         ? context.l10n.paywallPerMonth
         : '';
+    // Only the picked plan keeps full contrast; the other one recedes into the
+    // background instead of competing with it.
+    final ink = selected ? colors.ink : colors.subtle;
 
     final card = AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
-      padding: const EdgeInsets.fromLTRB(14, 18, 14, 14),
+      padding: const EdgeInsets.fromLTRB(14, 18, 14, 16),
       decoration: BoxDecoration(
-        color: colors.cardSurface,
+        color: selected ? colors.cardSurface : colors.accent,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: selected ? AppTheme.spark : colors.hairline,
-          width: selected ? 2 : 1.4,
+          color: selected ? AppTheme.spark : Colors.transparent,
+          width: 2,
         ),
         boxShadow: selected
             ? const [BoxShadow(color: Color(0x33F97316), blurRadius: 16)]
@@ -72,45 +75,50 @@ class PaywallPlanCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _label(context),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.ink,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Icon(
-                selected
-                    ? Icons.check_circle_rounded
-                    : Icons.radio_button_unchecked,
-                size: 20,
-                color: selected ? AppTheme.spark : colors.subtle,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
           Text(
-            '${package.storeProduct.priceString}$priceSuffix',
+            _label(context),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: colors.ink,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
+              color: ink,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
             ),
           ),
+          const SizedBox(height: 6),
+          // Price and its per-month suffix share a baseline, the way the store
+          // prints them: big number, small unit.
+          Text.rich(
+            TextSpan(
+              text: package.storeProduct.priceString,
+              style: TextStyle(
+                color: ink,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.4,
+              ),
+              children: [
+                if (priceSuffix.isNotEmpty)
+                  TextSpan(
+                    text: priceSuffix,
+                    style: TextStyle(
+                      color: selected ? colors.subtle : ink,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0,
+                    ),
+                  ),
+              ],
+            ),
+            maxLines: 1,
+          ),
           if (subline != null) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               subline!,
               style: TextStyle(
                 color: colors.subtle,
-                fontSize: 11.5,
+                fontSize: 11,
                 height: 1.25,
                 fontWeight: FontWeight.w600,
               ),
@@ -125,31 +133,41 @@ class PaywallPlanCard extends StatelessWidget {
       // Pass the Row's stretched height through so both cards fill it.
       fit: StackFit.passthrough,
       children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(18),
-            onTap: onTap,
-            child: card,
+        // The border alone carries the selection visually, so the state has to
+        // reach assistive tech some other way.
+        Semantics(
+          selected: selected,
+          button: true,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: onTap,
+              child: card,
+            ),
           ),
         ),
         if (recommended)
           Positioned(
             top: -9,
-            left: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppTheme.spark,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                context.l10n.paywallBestValue,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8,
+            left: 0,
+            right: 0,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppTheme.spark,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  context.l10n.paywallBestValue,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
                 ),
               ),
             ),

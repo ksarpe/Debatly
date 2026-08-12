@@ -462,38 +462,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     final picked = await showModalBottomSheet<Locale>(
       context: context,
       backgroundColor: context.colors.cardSurface,
+      // Without this the sheet is capped at 9/16 of the screen, which a short
+      // window or a large system font can push the last option straight out of.
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-              child: Text(
-                context.l10n.chooseLanguage,
-                style: TextStyle(
-                  color: context.colors.ink,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                child: Text(
+                  context.l10n.chooseLanguage,
+                  style: TextStyle(
+                    color: context.colors.ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-            ),
-            for (final locale in kSupportedLocales)
-              ListTile(
-                title: Text(
-                  _languageName(locale.languageCode),
-                  style: TextStyle(color: context.colors.ink, fontSize: 15),
+              for (final locale in kSupportedLocales)
+                ListTile(
+                  title: Text(
+                    _languageName(locale.languageCode),
+                    style: TextStyle(color: context.colors.ink, fontSize: 15),
+                  ),
+                  trailing: locale.languageCode == current.languageCode
+                      ? const Icon(Icons.check_rounded, color: AppTheme.spark)
+                      : null,
+                  onTap: () => Navigator.of(sheetContext).pop(locale),
                 ),
-                trailing: locale.languageCode == current.languageCode
-                    ? const Icon(Icons.check_rounded, color: AppTheme.spark)
-                    : null,
-                onTap: () => Navigator.of(sheetContext).pop(locale),
-              ),
-            const SizedBox(height: 8),
-          ],
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -536,42 +541,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     final picked = await showModalBottomSheet<ThemeMode>(
       context: context,
       backgroundColor: context.colors.cardSurface,
+      // Three options plus a header don't fit the default 9/16 cap on a short
+      // window — "Ciemny" fell off the bottom, painted but out of reach.
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
-              child: Text(
-                context.l10n.settingsChooseAppearance,
-                style: TextStyle(
-                  color: context.colors.ink,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                child: Text(
+                  context.l10n.settingsChooseAppearance,
+                  style: TextStyle(
+                    color: context.colors.ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-            ),
-            for (final mode in ThemeMode.values)
-              ListTile(
-                leading: Icon(
-                  _themeModeIcon(mode),
-                  color: context.colors.subtle,
+              for (final mode in ThemeMode.values)
+                ListTile(
+                  leading: Icon(
+                    _themeModeIcon(mode),
+                    color: context.colors.subtle,
+                  ),
+                  title: Text(
+                    _themeModeName(context, mode),
+                    style: TextStyle(color: context.colors.ink, fontSize: 15),
+                  ),
+                  trailing: mode == current
+                      ? const Icon(Icons.check_rounded, color: AppTheme.spark)
+                      : null,
+                  onTap: () => Navigator.of(sheetContext).pop(mode),
                 ),
-                title: Text(
-                  _themeModeName(context, mode),
-                  style: TextStyle(color: context.colors.ink, fontSize: 15),
-                ),
-                trailing: mode == current
-                    ? const Icon(Icons.check_rounded, color: AppTheme.spark)
-                    : null,
-                onTap: () => Navigator.of(sheetContext).pop(mode),
-              ),
-            const SizedBox(height: 8),
-          ],
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );

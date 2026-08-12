@@ -39,99 +39,105 @@ class _ManageSubscriptionSheetState
     final l10n = context.l10n;
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: context.colors.hairline,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                const Icon(
-                  Icons.workspace_premium,
-                  color: kPremiumGreen,
-                  size: 24,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  l10n.manageSubSheetTitle,
-                  style: TextStyle(
-                    color: context.colors.ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+      // The sheet opens scroll-controlled (no 9/16 cap), so on a short window or
+      // at a large system font its content can be taller than the screen — and
+      // a Column that overflows is painted but no longer hit-tested, which would
+      // put the "manage in the store" button out of reach.
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: context.colors.hairline,
+                    borderRadius: BorderRadius.circular(999),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // ---- Status card -------------------------------------------------
-            if (statusAsync.isLoading && status == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 18),
-                child: Center(
-                  child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.4,
-                      color: kPremiumGreen,
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.workspace_premium,
+                    color: kPremiumGreen,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    l10n.manageSubSheetTitle,
+                    style: TextStyle(
+                      color: context.colors.ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                ),
-              )
-            else
-              _StatusCard(status: status, localeCode: widget.localeCode),
-
-            const SizedBox(height: 14),
-            Text(
-              _storeNote(l10n, store),
-              style: TextStyle(
-                color: context.colors.subtle,
-                fontSize: 13.5,
-                height: 1.4,
+                ],
               ),
-            ),
-            if (_openFailed) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+
+              // ---- Status card -------------------------------------------------
+              if (statusAsync.isLoading && status == null)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 18),
+                  child: Center(
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: kPremiumGreen,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                _StatusCard(status: status, localeCode: widget.localeCode),
+
+              const SizedBox(height: 14),
               Text(
-                _storeOpenFailed(l10n, store),
-                style: const TextStyle(
-                  color: kDanger,
-                  fontSize: 13,
+                _storeNote(l10n, store),
+                style: TextStyle(
+                  color: context.colors.subtle,
+                  fontSize: 13.5,
                   height: 1.4,
                 ),
               ),
-            ],
-            const SizedBox(height: 20),
-
-            _ManageButton(
-              label: _storeButton(l10n, store),
-              busy: _opening,
-              onTap: () => _manage(status),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: TextButton(
-                onPressed: () => Navigator.of(context).maybePop(),
-                style: TextButton.styleFrom(
-                  foregroundColor: context.colors.subtle,
+              if (_openFailed) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _storeOpenFailed(l10n, store),
+                  style: const TextStyle(
+                    color: kDanger,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
                 ),
-                child: Text(l10n.later),
+              ],
+              const SizedBox(height: 20),
+
+              _ManageButton(
+                label: _storeButton(l10n, store),
+                busy: _opening,
+                onTap: () => _manage(status),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: context.colors.subtle,
+                  ),
+                  child: Text(l10n.later),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

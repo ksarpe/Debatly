@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
+import 'core/layout/orientation_lock.dart';
 import 'core/locale/app_locale.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
@@ -27,28 +28,33 @@ class DebatlyApp extends ConsumerWidget {
     // truth, mutated from the settings screen (see `themeControllerProvider`).
     final themeMode = ref.watch(themeControllerProvider);
 
-    return MaterialApp(
-      title: 'Debatly',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: themeMode,
-      locale: locale,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: kSupportedLocales,
-      // Feeds Sentry navigation breadcrumbs (which screen the user was on when an
-      // error fired) and per-route performance transactions. Harmless when Sentry
-      // is disabled — the observer just produces no-op events.
-      navigatorObservers: [SentryNavigatorObserver()],
-      // The launch flow: brand splash → first-run tutorial → the live daily.
-      // After onboarding has run once, this drops straight through to the
-      // question screen (see AppEntry).
-      home: const AppEntry(),
+    // Phones stay in portrait; tablets keep every orientation. The feed simply
+    // has no room for its chrome on a ~375pt-tall phone window, and the app has
+    // been advertising landscape on iPhone without ever laying out for it.
+    return OrientationLock(
+      child: MaterialApp(
+        title: 'Debatly',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: themeMode,
+        locale: locale,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: kSupportedLocales,
+        // Feeds Sentry navigation breadcrumbs (which screen the user was on when
+        // an error fired) and per-route performance transactions. Harmless when
+        // Sentry is disabled — the observer just produces no-op events.
+        navigatorObservers: [SentryNavigatorObserver()],
+        // The launch flow: brand splash → first-run tutorial → the live daily.
+        // After onboarding has run once, this drops straight through to the
+        // question screen (see AppEntry).
+        home: const AppEntry(),
+      ),
     );
   }
 }

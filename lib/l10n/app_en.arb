@@ -434,14 +434,19 @@
   "paywallTitleSmaczki": "Unlock every argument, for every question",
   "paywallTitleFavorites": "Keep your favorite questions forever",
   "paywallTitleHistory": "Every vote you've cast, in one place",
-  "paywallBenefitUnlimitedTitle": "Unlimited questions",
-  "paywallBenefitUnlimitedBody": "Browse the whole library of 500+ questions — no daily limits, no waiting.",
-  "paywallBenefitNoAdsTitle": "Zero ads",
-  "paywallBenefitNoAdsBody": "No rewarded ads, no interruptions — just the next question.",
-  "paywallBenefitSmaczkiTitle": "Arguments for every question",
-  "paywallBenefitSmaczkiBody": "Unlock all the talking points that deepen the conversation.",
-  "paywallBenefitFavoritesTitle": "Favorites & voting history",
-  "paywallBenefitFavoritesBody": "Save the best questions and look back at every vote you've cast.",
+  "paywallSubtitle": "The whole catalog, every twist, zero ads",
+  "@paywallSubtitle": {
+    "description": "Quiet line under the paywall headline summing up what PRO contains."
+  },
+  "paywallPerkUnlimited": "No limits",
+  "paywallPerkNoAds": "Zero ads",
+  "paywallPerkSmaczki": "Every twist",
+  "paywallPerkFavorites": "Favorites",
+  "paywallPerkHistory": "Vote history",
+  "paywallPerkOffline": "Offline mode",
+  "@paywallPerkOffline": {
+    "description": "Perk tile labels are short — one or two words that fit under a round icon in a three-column grid."
+  },
   "paywallLifetime": "Lifetime",
   "paywallAnnual": "Yearly",
   "paywallMonthly": "Monthly",

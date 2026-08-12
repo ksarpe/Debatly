@@ -921,32 +921,25 @@ class AppLocalizationsPl extends AppLocalizations {
   String get paywallTitleHistory => 'Wszystkie Twoje głosy w jednym miejscu';
 
   @override
-  String get paywallBenefitUnlimitedTitle => 'Nieograniczone pytania';
+  String get paywallSubtitle => 'Cały katalog, wszystkie smaczki, zero reklam';
 
   @override
-  String get paywallBenefitUnlimitedBody =>
-      'Czytaj całą bibliotekę ponad 500 pytań — bez dziennych limitów i czekania.';
+  String get paywallPerkUnlimited => 'Bez limitu';
 
   @override
-  String get paywallBenefitNoAdsTitle => 'Zero reklam';
+  String get paywallPerkNoAds => 'Zero reklam';
 
   @override
-  String get paywallBenefitNoAdsBody =>
-      'Bez reklam z nagrodami, bez przerywników — tylko kolejne pytanie.';
+  String get paywallPerkSmaczki => 'Wszystkie smaczki';
 
   @override
-  String get paywallBenefitSmaczkiTitle => 'Argumenty do każdego pytania';
+  String get paywallPerkFavorites => 'Ulubione';
 
   @override
-  String get paywallBenefitSmaczkiBody =>
-      'Odblokuj wszystkie tematy do dyskusji, które pogłębiają rozmowę.';
+  String get paywallPerkHistory => 'Historia głosów';
 
   @override
-  String get paywallBenefitFavoritesTitle => 'Ulubione i historia głosów';
-
-  @override
-  String get paywallBenefitFavoritesBody =>
-      'Zapisuj najlepsze pytania i wracaj do każdego oddanego głosu.';
+  String get paywallPerkOffline => 'Tryb offline';
 
   @override
   String get paywallLifetime => 'Dożywotni';
