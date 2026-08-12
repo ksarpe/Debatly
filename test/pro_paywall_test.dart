@@ -58,50 +58,26 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  // Prices render as Text.rich (big price + small "/mies." suffix), which
-  // plain find.text skips.
-  Finder findPrice(String text) => find.text(text, findRichText: true);
-
-  /// Reading order of a perk tile in the grid: rows first, then columns.
-  Offset perkAt(WidgetTester tester, String label) =>
-      tester.getTopLeft(find.text(label));
-
-  void expectPerkBefore(WidgetTester tester, String first, String second) {
-    final a = perkAt(tester, first);
-    final b = perkAt(tester, second);
-    expect(
-      a.dy < b.dy || (a.dy == b.dy && a.dx < b.dx),
-      isTrue,
-      reason: '"$first" ($a) should come before "$second" ($b)',
-    );
-  }
-
-  testWidgets('renders perks, live prices and preselects the first plan', (
+  testWidgets('renders benefits, live prices and preselects the first plan', (
     tester,
   ) async {
     await pumpSheet(tester, loadPackages: () async => [lifetime, monthly]);
 
-    // Headline + subtitle + the six perk tiles.
+    // Headline + the four benefit rows.
     expect(
       find.text('Zyskaj dostęp do wszystkich pytań i głosów'),
       findsOneWidget,
     );
-    expect(
-      find.text('Cały katalog, wszystkie smaczki, zero reklam'),
-      findsOneWidget,
-    );
-    expect(find.text('Bez limitu'), findsOneWidget);
+    expect(find.text('Nieograniczone pytania'), findsOneWidget);
     expect(find.text('Zero reklam'), findsOneWidget);
-    expect(find.text('Wszystkie smaczki'), findsOneWidget);
-    expect(find.text('Ulubione'), findsOneWidget);
-    expect(find.text('Historia głosów'), findsOneWidget);
-    expect(find.text('Tryb offline'), findsOneWidget);
+    expect(find.text('Argumenty do każdego pytania'), findsOneWidget);
+    expect(find.text('Ulubione i historia głosów'), findsOneWidget);
 
     // Both plans with their store-formatted prices; monthly gets the suffix.
     expect(find.text('Dożywotni'), findsOneWidget);
-    expect(findPrice(r'$22.99'), findsOneWidget);
+    expect(find.text(r'$22.99'), findsOneWidget);
     expect(find.text('Miesięczny'), findsOneWidget);
-    expect(findPrice(r'$5.49/mies.'), findsOneWidget);
+    expect(find.text(r'$5.49/mies.'), findsOneWidget);
     expect(find.text('NAJLEPSZA OFERTA'), findsOneWidget);
 
     // Lifetime is preselected, so the reassurance line is the one-time one.
@@ -127,11 +103,17 @@ void main() {
       findsNothing,
     );
 
-    // The smaczki perk takes the first tile, ahead of the default lead.
-    expectPerkBefore(tester, 'Wszystkie smaczki', 'Bez limitu');
+    // The smaczki benefit is reordered above the default lead (unlimited).
+    final smaczkiY = tester
+        .getTopLeft(find.text('Argumenty do każdego pytania'))
+        .dy;
+    final unlimitedY = tester
+        .getTopLeft(find.text('Nieograniczone pytania'))
+        .dy;
+    expect(smaczkiY, lessThan(unlimitedY));
   });
 
-  testWidgets('history source leads with the vote-history perk', (
+  testWidgets('history source leads with the favorites & history benefit', (
     tester,
   ) async {
     await pumpSheet(
@@ -142,10 +124,16 @@ void main() {
 
     expect(find.text('Wszystkie Twoje głosy w jednym miejscu'), findsOneWidget);
 
-    expectPerkBefore(tester, 'Historia głosów', 'Bez limitu');
+    final favoritesY = tester
+        .getTopLeft(find.text('Ulubione i historia głosów'))
+        .dy;
+    final unlimitedY = tester
+        .getTopLeft(find.text('Nieograniczone pytania'))
+        .dy;
+    expect(favoritesY, lessThan(unlimitedY));
   });
 
-  testWidgets('reading-limit source keeps the default perk order', (
+  testWidgets('reading-limit source keeps the default benefit order', (
     tester,
   ) async {
     await pumpSheet(
@@ -156,21 +144,11 @@ void main() {
 
     expect(find.text('Czytaj dalej — bez limitów i czekania'), findsOneWidget);
 
-    expectPerkBefore(tester, 'Bez limitu', 'Zero reklam');
-  });
-
-  testWidgets('the perk grid survives a narrow phone width', (tester) async {
-    // Three tiles per row on a 360pt screen is the tightest the grid ever
-    // gets; a fixed-width tile or a too-wide circle would overflow the Row
-    // (which fails the test on its own).
-    tester.view.devicePixelRatio = 1.0;
-    tester.view.physicalSize = const Size(360, 800);
-    addTearDown(tester.view.reset);
-
-    await pumpSheet(tester, loadPackages: () async => [lifetime, monthly]);
-
-    expect(find.text('Bez limitu'), findsOneWidget);
-    expect(find.text('Tryb offline'), findsOneWidget);
+    final unlimitedY = tester
+        .getTopLeft(find.text('Nieograniczone pytania'))
+        .dy;
+    final noAdsY = tester.getTopLeft(find.text('Zero reklam')).dy;
+    expect(unlimitedY, lessThan(noAdsY));
   });
 
   testWidgets('lifetime card carries the months-of-subscription comparison', (
@@ -413,7 +391,7 @@ void main() {
     await tester.tap(find.text('Spróbuj ponownie'));
     await tester.pumpAndSettle();
 
-    expect(findPrice(r'$22.99'), findsOneWidget);
+    expect(find.text(r'$22.99'), findsOneWidget);
     expect(find.text('Odblokuj pełny dostęp'), findsOneWidget);
   });
 }

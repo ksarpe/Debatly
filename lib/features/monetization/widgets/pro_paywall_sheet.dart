@@ -10,10 +10,11 @@ import '../../../core/theme/app_theme.dart';
 import '../../../services/analytics.dart';
 import '../../../services/purchases_service.dart';
 import '../../account/widgets/restore_sign_in_prompt.dart';
+import 'paywall_benefit_row.dart';
 import 'paywall_footer_links.dart';
+import 'paywall_hero.dart';
 import 'paywall_offer_error.dart';
 import 'paywall_offer_section.dart';
-import 'paywall_perk_grid.dart';
 
 /// Where the user opened the paywall from. Each entry point leads with the
 /// headline and benefit that match the desire that brought them here (the
@@ -76,8 +77,7 @@ Future<bool> showProPaywall(
   return purchased;
 }
 
-/// The paywall content: headline + perk grid + live package picker + CTA,
-/// sized to fit a phone screen in one view.
+/// The paywall content: hero + benefit list + live package picker + CTA.
 ///
 /// [loadPackages] exists for widget tests (RevenueCat can't be configured
 /// there); production always uses [PurchasesService.paywallPackages].
@@ -248,40 +248,30 @@ class _ProPaywallSheetState extends ConsumerState<ProPaywallSheet> {
     }
   }
 
-  /// The six PRO perks, reordered so the one matching [PaywallSource] takes
-  /// the first (top-left) tile — the sheet should answer the exact desire that
-  /// opened it before widening to the rest of PRO.
-  List<PaywallPerk> _perks(BuildContext context) {
+  /// The four benefit rows, reordered so the one matching [PaywallSource]
+  /// leads the list — the sheet should answer the exact desire that opened it
+  /// before widening to the rest of PRO.
+  List<Widget> _benefits(BuildContext context) {
     final l10n = context.l10n;
-    final unlimited = PaywallPerk(
+    final unlimited = PaywallBenefitRow(
       icon: Icons.all_inclusive,
-      label: l10n.paywallPerkUnlimited,
-      tint: AppTheme.spark,
+      title: l10n.paywallBenefitUnlimitedTitle,
+      body: l10n.paywallBenefitUnlimitedBody,
     );
-    final noAds = PaywallPerk(
+    final noAds = PaywallBenefitRow(
       icon: Icons.block,
-      label: l10n.paywallPerkNoAds,
-      tint: AppTheme.no,
+      title: l10n.paywallBenefitNoAdsTitle,
+      body: l10n.paywallBenefitNoAdsBody,
     );
-    final smaczki = PaywallPerk(
+    final smaczki = PaywallBenefitRow(
       icon: Icons.psychology_alt_outlined,
-      label: l10n.paywallPerkSmaczki,
-      tint: _violet,
+      title: l10n.paywallBenefitSmaczkiTitle,
+      body: l10n.paywallBenefitSmaczkiBody,
     );
-    final favorites = PaywallPerk(
-      icon: Icons.star_rounded,
-      label: l10n.paywallPerkFavorites,
-      tint: _amber,
-    );
-    final history = PaywallPerk(
-      icon: Icons.history_rounded,
-      label: l10n.paywallPerkHistory,
-      tint: AppTheme.yes,
-    );
-    final offline = PaywallPerk(
-      icon: Icons.download_rounded,
-      label: l10n.paywallPerkOffline,
-      tint: _sky,
+    final favorites = PaywallBenefitRow(
+      icon: Icons.star_outline_rounded,
+      title: l10n.paywallBenefitFavoritesTitle,
+      body: l10n.paywallBenefitFavoritesBody,
     );
     switch (widget.source) {
       // The reveal wall is about reading more, which the default order
@@ -289,21 +279,15 @@ class _ProPaywallSheetState extends ConsumerState<ProPaywallSheet> {
       case PaywallSource.general:
       case PaywallSource.readingLimit:
       case PaywallSource.adLimit:
-        return [unlimited, noAds, smaczki, favorites, history, offline];
+        return [unlimited, noAds, smaczki, favorites];
       case PaywallSource.smaczki:
-        return [smaczki, unlimited, noAds, favorites, history, offline];
+        return [smaczki, unlimited, noAds, favorites];
+      // One benefit row covers both favorites and history.
       case PaywallSource.favorites:
-        return [favorites, unlimited, smaczki, history, noAds, offline];
       case PaywallSource.history:
-        return [history, unlimited, smaczki, favorites, noAds, offline];
+        return [favorites, unlimited, smaczki, noAds];
     }
   }
-
-  /// Perk accents that aren't brand colours — one hue per tile so the grid
-  /// reads as six distinct things.
-  static const Color _violet = Color(0xFF8B5CF6);
-  static const Color _amber = Color(0xFFF59E0B);
-  static const Color _sky = Color(0xFF38BDF8);
 
   @override
   Widget build(BuildContext context) {
@@ -321,12 +305,13 @@ class _ProPaywallSheetState extends ConsumerState<ProPaywallSheet> {
       child: Stack(
         children: [
           SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, 16, 20, 16 + bottomInset),
+            padding: EdgeInsets.fromLTRB(24, 16, 24, 20 + bottomInset),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Clears the floating close chip in the corner.
-                const SizedBox(height: 40),
+                const SizedBox(height: 10),
+                const PaywallHero(),
+                const SizedBox(height: 14),
                 Text(
                   _headline(context),
                   textAlign: TextAlign.center,
@@ -334,26 +319,15 @@ class _ProPaywallSheetState extends ConsumerState<ProPaywallSheet> {
                     color: colors.ink,
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
-                    height: 1.15,
+                    height: 1.2,
                     letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  context.l10n.paywallSubtitle,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: colors.subtle,
-                    fontSize: 14,
-                    height: 1.3,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 26),
-                PaywallPerkGrid(perks: _perks(context)),
-                const SizedBox(height: 30),
+                const SizedBox(height: 24),
+                ..._benefits(context),
+                const SizedBox(height: 20),
                 _buildOffer(context),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 PaywallFooterLinks(
                   busy: _busy,
                   onRestore: _restore,
@@ -367,28 +341,14 @@ class _ProPaywallSheetState extends ConsumerState<ProPaywallSheet> {
               ],
             ),
           ),
-          // Close affordance floating over the scrollable content: a quiet
-          // round chip in the corner, out of the headline's way.
+          // Close affordance floating over the scrollable content.
           Positioned(
-            top: 10,
-            left: 12,
-            child: Material(
-              color: colors.accent,
-              shape: const CircleBorder(),
-              clipBehavior: Clip.antiAlias,
-              child: IconButton(
-                onPressed: _busy
-                    ? null
-                    : () => Navigator.of(context).pop(false),
-                iconSize: 18,
-                constraints: const BoxConstraints.tightFor(
-                  width: 38,
-                  height: 38,
-                ),
-                padding: EdgeInsets.zero,
-                icon: Icon(Icons.close_rounded, color: colors.subtle),
-                tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-              ),
+            top: 8,
+            right: 8,
+            child: IconButton(
+              onPressed: _busy ? null : () => Navigator.of(context).pop(false),
+              icon: Icon(Icons.close_rounded, color: colors.subtle),
+              tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
             ),
           ),
         ],
