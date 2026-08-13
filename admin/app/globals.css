@@ -155,8 +155,18 @@ td.en { color: var(--text-dim); font-size: 13.5px; }
 .fx input, .fx textarea {
   border: 0; background: transparent; border-radius: 0;
   padding: 7px 10px; min-height: 0;
+  flex: 1; min-width: 0;
 }
 .fx textarea { min-height: 42px; }
+
+/* Character count, parked in the right edge of the field it belongs to. */
+.cnt {
+  flex: none; align-self: center; padding: 0 9px;
+  font-size: 11.5px; font-variant-numeric: tabular-nums;
+  color: var(--text-faint); user-select: none;
+}
+.cnt.near { color: var(--warn); }
+.cnt.over { color: var(--danger); font-weight: 600; }
 
 /* ---------- smaczki (compact) ---------- */
 .sm-row {
@@ -242,6 +252,11 @@ details.sec > .body { padding: 0 16px 16px; }
   display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
 }
 .sticky-actions .spacer { flex: 1; }
+.kbd-hint {
+  font-size: 11px; color: var(--text-faint); user-select: none;
+  border: 1px solid var(--border-soft); border-radius: 5px; padding: 2px 6px;
+}
+.dirty { font-size: 12.5px; color: var(--warn); }
 .hist { font-size: 13.5px; border-bottom: 1px solid var(--border-soft); padding: 9px 0; }
 .hist:last-child { border-bottom: 0; }
 .spin { color: var(--text-faint); padding: 40px 0; text-align: center; }

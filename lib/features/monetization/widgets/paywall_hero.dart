@@ -38,7 +38,7 @@ class _PaywallHeroState extends State<PaywallHero>
   ).copyWith(letterSpacing: 3);
 
   static const Gradient _fillGradient = LinearGradient(
-    colors: [Color(0xFFFFC168), AppTheme.spark, Color(0xFFEA580C)],
+    colors: [Color(0xFFFFC168), AppTheme.spark, Color(0xFFD9510B)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
@@ -66,7 +66,7 @@ class _PaywallHeroState extends State<PaywallHero>
                 height: 104,
                 decoration: const BoxDecoration(
                   gradient: RadialGradient(
-                    colors: [Color(0x47F97316), Color(0x00F97316)],
+                    colors: [Color(0x47EA6A12), Color(0x00EA6A12)],
                   ),
                 ),
               ),

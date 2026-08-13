@@ -247,9 +247,16 @@ class SupabaseService {
   /// When the current user is anonymous we update that same Supabase user
   /// instead of creating a separate account, preserving any progress attached to
   /// their anonymous UUID.
+  ///
+  /// [locale] is the app's current language code; it rides along as user
+  /// metadata so the `send-auth-email` hook can write the confirmation mail in
+  /// the right language. It has to travel with THIS call — the mail goes out the
+  /// moment the account exists, long before anything else could record a
+  /// preference server-side.
   static Future<User?> registerWithPassword({
     required String email,
     required String password,
+    required String locale,
   }) async {
     if (!_initialised) {
       throw StateError('Supabase is not configured.');
@@ -258,6 +265,7 @@ class SupabaseService {
       client.auth,
       email: email,
       password: password,
+      locale: locale,
     );
   }
 
@@ -271,17 +279,82 @@ class SupabaseService {
     GoTrueClient auth, {
     required String email,
     required String password,
+    required String locale,
   }) async {
+    final data = {'locale': locale};
     final current = auth.currentUser;
     if (current?.isAnonymous == true) {
       final response = await auth.updateUser(
-        UserAttributes(email: email.trim(), password: password),
+        UserAttributes(email: email.trim(), password: password, data: data),
       );
       return response.user;
     }
 
-    final response = await auth.signUp(email: email.trim(), password: password);
+    final response = await auth.signUp(
+      email: email.trim(),
+      password: password,
+      data: data,
+    );
     return response.user;
+  }
+
+  /// Records the app's language on the user's profile so the auth emails
+  /// (`send-auth-email` edge function) are written in it.
+  ///
+  /// Goes through the `set_profile_locale` RPC rather than `updateUser`
+  /// metadata on purpose: a metadata write emits `userUpdated`, which
+  /// [SessionNotifier] answers with a full session reload and an entitlement
+  /// reconcile. Switching the UI language must not cost a premium re-check.
+  ///
+  /// Best-effort and silent — nobody's language preference is worth failing a
+  /// launch or a settings tap over, and the value is re-sent on the next launch
+  /// anyway. No-ops without a backend or a session.
+  static Future<void> syncProfileLocale(String locale) async {
+    if (!_initialised || client.auth.currentUser == null) return;
+    try {
+      await client.rpc('set_profile_locale', params: {'p_locale': locale});
+    } catch (e) {
+      debugPrint('SupabaseService.syncProfileLocale failed: $e');
+      Monitoring.addBreadcrumb(
+        'Profile locale sync failed; auth emails may use the previous language',
+        category: 'auth',
+      );
+    }
+  }
+
+  /// The all-time TAK/NIE tally for [questionId] — the onboarding taste card's
+  /// live community split.
+  ///
+  /// Reuses the `get_daily_vote_state` RPC (granted to `authenticated`, which
+  /// covers anonymous guests), so a guest is minted first when none exists yet —
+  /// harmless, the session reload right after onboarding does the same. Returns
+  /// null when Supabase isn't configured (mock mode), no session could be
+  /// established (offline first launch) or the RPC fails — the caller then keeps
+  /// its curated fallback split.
+  static Future<({int yes, int no})?> fetchVoteSplit(String questionId) async {
+    if (!_initialised) return null;
+    try {
+      if (await ensureSignedIn() == null) return null;
+      final data = await client.rpc(
+        'get_daily_vote_state',
+        params: {'p_question_id': questionId},
+      );
+      final rows = (data as List).cast<Map<String, dynamic>>();
+      if (rows.isEmpty) return null;
+      int asInt(Object? v) => v is int ? v : int.tryParse('$v') ?? 0;
+      return (
+        yes: asInt(rows.first['yes_count']),
+        no: asInt(rows.first['no_count']),
+      );
+    } catch (e) {
+      debugPrint('SupabaseService.fetchVoteSplit failed: $e');
+      // Best-effort: the onboarding reveal simply keeps its fallback split.
+      Monitoring.addBreadcrumb(
+        'Taste vote split fetch failed; onboarding shows the fallback 50/50',
+        category: 'onboarding',
+      );
+      return null;
+    }
   }
 
   /// Reconciles the STORE side of premium against RevenueCat for the current

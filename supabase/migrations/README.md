@@ -86,6 +86,30 @@ catastrophe. Do not "fix" it by flattening the folders back.
   where name like 'seed_global_dilemmas_batch_%';
   ```
 
+- `public.admin_approve_draft` was, between roughly **2026-07-31 and
+  2026-08-13**, a hand-pasted no-op stub on prod — `begin return
+  jsonb_build_object('disabled', true); end;` — installed straight through the
+  SQL editor with no migration behind it. Nothing in this folder recorded it,
+  so the repo looked correct while every "Zatwierdź" click in `/admin`
+  published nothing and left the draft in *Oczekujące*. It was an emergency
+  killswitch after a request flood (see below) and nobody undid it. Restored,
+  with a delete-path fix, by
+  `20260813150000_admin_approve_draft_restore.sql` (remote:
+  `admin_approve_draft_restore`). **The lesson is the drift, not the bug:** a
+  `create or replace function` typed into the SQL editor leaves no trace
+  anywhere except `pg_proc`. When prod behaviour contradicts the repo, diff
+  `pg_get_functiondef()` against the newest file here before believing either.
+- The flood that motivated that killswitch is still visible in
+  `pg_stat_database`: **118.2M rolled-back transactions, 98% of every
+  transaction on this project** since the 2026-06-17 counter reset. In
+  `pg_stat_statements` they appear only as PostgREST's per-request
+  `set_config(...)` preamble — 1957s of exec time across all 118M, and no
+  application statement behind them. So it was request *volume* from a
+  client-side retry storm, not slow SQL and not lock contention: every table
+  hanging off `questions` is a few hundred rows. The counter has been frozen
+  since at least 2026-08-13, i.e. the storm is over, but its trigger was never
+  identified. If it returns, the signature to look for is a climbing
+  `xact_rollback` with a flat `xact_commit`.
 - `20260618120000_init.sql` predates migration tracking on the remote — it is
   applied (the schema exists) but absent from the remote history table.
 - `20260622140000_entitlement_sources.sql` sat unapplied on prod until

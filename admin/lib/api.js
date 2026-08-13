@@ -62,10 +62,33 @@ export const api = {
     }),
 
   submitDraft: (draftId) => rpc('admin_submit_draft', { p_draft_id: draftId }),
-  approveDraft: (draftId) => rpc('admin_approve_draft', { p_draft_id: draftId }),
+
+  // Never trust a quiet success here. admin_approve_draft once sat on prod as a
+  // hand-pasted no-op stub returning {"disabled": true}; the panel read that as
+  // "published" and left the draft in Oczekujące. A real apply always names the
+  // action it performed, so anything else is a failure, not a success.
+  approveDraft: async (draftId) => {
+    const res = await rpc('admin_approve_draft', { p_draft_id: draftId });
+    if (!res || !res.action) {
+      const e = new Error(`APPROVE_NOOP: ${JSON.stringify(res)}`);
+      e.friendly = 'Serwer przyjął zatwierdzenie, ale nic nie opublikował — '
+        + 'funkcja admin_approve_draft w bazie jest wyłączona lub przestarzała. '
+        + 'Nic nie zostało zmienione.';
+      throw e;
+    }
+    return res;
+  },
   rejectDraft: (draftId, note = null) =>
     rpc('admin_reject_draft', { p_draft_id: draftId, p_note: note }),
 };
+
+/**
+ * Soft length hints, not DB constraints — the schema has none. Taken from the
+ * live catalog (543 questions): the longest PL question is 109 chars, the
+ * longest smaczek 73. Past these the text starts wrapping badly on a phone,
+ * so the counter warns rather than blocks.
+ */
+export const LIMITS = { question: 110, smaczek: 75 };
 
 export const CATEGORIES = [
   'Connection', 'Culture', 'Dreams', 'Environment', 'Ethics', 'Family',

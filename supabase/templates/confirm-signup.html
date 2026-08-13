@@ -1,0 +1,57 @@
+<!--
+  Debatly — Confirm sign up
+  Wklej do: Supabase Dashboard → Authentication → Emails → Confirm sign up → Body (Source)
+  Subject: Potwierdź adres e-mail · Confirm your email
+  Zmienne: {{ .ConfirmationURL }} {{ .Email }} {{ .Token }}
+-->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">Jeden klik i Twoje konto Debatly jest gotowe.</div>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#F6F6F9;margin:0;padding:32px 12px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="width:100%;max-width:560px;background-color:#FFFFFF;border:1px solid #E2E2EA;border-radius:16px;overflow:hidden;">
+
+        <!-- header -->
+        <tr>
+          <td style="background-color:#000000;padding:26px 32px;">
+            <!-- Podmień na <img src="…/logo.png" width="120" alt="Debatly" style="display:block;border:0;"> gdy wrzucisz logo do Storage -->
+            <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#FFFFFF;">Debatly<span style="color:#F97316;">.</span></span>
+          </td>
+        </tr>
+
+        <!-- body -->
+        <tr>
+          <td style="padding:32px 32px 8px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <h1 style="margin:0 0 12px 0;font-size:21px;line-height:28px;font-weight:700;color:#15161A;">Potwierdź swój adres e-mail</h1>
+            <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#5E5E66;">Cześć! Kliknij poniższy przycisk, żeby potwierdzić adres <strong style="color:#15161A;font-weight:600;">{{ .Email }}</strong> i dokończyć zakładanie konta w Debatly.</p>
+
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;">
+              <tr>
+                <td bgcolor="#F97316" style="border-radius:12px;">
+                  <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:15px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;line-height:20px;color:#FFFFFF;text-decoration:none;border-radius:12px;">Potwierdź adres e-mail</a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:0 0 24px 0;font-size:13px;line-height:20px;color:#8A8A8A;">Przycisk nie działa? Wklej ten adres do przeglądarki:<br><a href="{{ .ConfirmationURL }}" target="_blank" style="color:#F97316;text-decoration:underline;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+
+            <p style="margin:0 0 24px 0;font-size:13px;line-height:20px;color:#8A8A8A;">Jeśli to nie Ty zakładałeś konto — po prostu zignoruj tę wiadomość.</p>
+
+            <div style="height:1px;line-height:1px;font-size:0;background-color:#E2E2EA;">&nbsp;</div>
+
+            <p style="margin:20px 0 24px 0;font-size:13px;line-height:20px;color:#8A8A8A;"><strong style="color:#5E5E66;font-weight:600;">English:</strong> Confirm <strong style="color:#5E5E66;font-weight:600;">{{ .Email }}</strong> to finish signing up for Debatly — <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#F97316;text-decoration:underline;font-weight:600;">confirm email address</a>. Didn't sign up? Just ignore this message.</p>
+          </td>
+        </tr>
+
+        <!-- footer -->
+        <tr>
+          <td style="padding:0 32px 28px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <div style="height:1px;line-height:1px;font-size:0;background-color:#E2E2EA;">&nbsp;</div>
+            <p style="margin:16px 0 0 0;font-size:12px;line-height:18px;color:#A0A0A8;">Debatly — TAK czy NIE?<br>Wiadomość wysłana automatycznie, prosimy na nią nie odpowiadać.</p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

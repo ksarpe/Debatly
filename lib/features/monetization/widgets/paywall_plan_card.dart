@@ -66,7 +66,7 @@ class PaywallPlanCard extends StatelessWidget {
           width: selected ? 2 : 1.4,
         ),
         boxShadow: selected
-            ? const [BoxShadow(color: Color(0x33F97316), blurRadius: 16)]
+            ? const [BoxShadow(color: Color(0x33EA6A12), blurRadius: 16)]
             : null,
       ),
       child: Column(

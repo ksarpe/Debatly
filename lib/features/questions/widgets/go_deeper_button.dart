@@ -29,13 +29,13 @@ class GoDeeperButton extends StatelessWidget {
             // looked heavy and out of place on the light off-white canvas.
             decoration: const BoxDecoration(
               borderRadius: _radius,
-              color: Color(0x14F97316),
+              color: Color(0x14EA6A12),
               border: Border.fromBorderSide(
-                BorderSide(color: Color(0x80F97316)),
+                BorderSide(color: Color(0x80EA6A12)),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Color(0x33F97316),
+                  color: Color(0x33EA6A12),
                   blurRadius: 16,
                   spreadRadius: -4,
                 ),

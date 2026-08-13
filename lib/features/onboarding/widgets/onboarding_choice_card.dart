@@ -93,9 +93,9 @@ class _ChoiceButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final labelColor = primary ? Colors.white : context.colors.ink;
-    final hintColor = primary
-        ? Colors.white.withValues(alpha: 0.85)
-        : context.colors.subtle;
+    // On the orange gradient a translucent white hint washes out — a deep warm
+    // brown keeps the same "part of the button" feel with real contrast.
+    final hintColor = primary ? const Color(0xFF431407) : context.colors.subtle;
 
     return Material(
       color: Colors.transparent,
@@ -106,7 +106,7 @@ class _ChoiceButton extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: primary
                 ? const LinearGradient(
-                    colors: [Color(0xFFF97316), Color(0xFFEA580C)],
+                    colors: [Color(0xFFEA6A12), Color(0xFFD9510B)],
                   )
                 : null,
             color: primary ? null : context.colors.accent,
@@ -143,7 +143,13 @@ class _ChoiceButton extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         hint,
-                        style: TextStyle(color: hintColor, fontSize: 13),
+                        style: TextStyle(
+                          color: hintColor,
+                          fontSize: 13,
+                          fontWeight: primary
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
                       ),
                     ],
                   ),

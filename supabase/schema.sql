@@ -8,20 +8,23 @@ create table public.profiles (
   provider text,                         -- 'google' | 'email' ...
   is_premium boolean not null default false,
   premium_until timestamptz,
+  locale text,                             -- 'pl' | 'en' — language of the auth emails
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint profiles_locale_supported check (locale is null or locale in ('pl', 'en'))
 );
 
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, email, full_name, avatar_url, provider)
+  insert into public.profiles (id, email, full_name, avatar_url, provider, locale)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name'),
     new.raw_user_meta_data->>'avatar_url',
-    new.raw_app_meta_data->>'provider'
+    new.raw_app_meta_data->>'provider',
+    nullif(new.raw_user_meta_data->>'locale', '')
   )
   on conflict (id) do nothing;
   return new;
@@ -31,6 +34,29 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- The only client-writable path into profiles: `profiles` has no UPDATE policy
+-- (it also holds is_premium), so the language preference goes through a
+-- definer function that touches exactly one column for exactly auth.uid().
+create or replace function public.set_profile_locale(p_locale text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then
+    raise exception 'not authenticated' using errcode = '28000';
+  end if;
+  if p_locale is null or p_locale not in ('pl', 'en') then
+    raise exception 'unsupported locale: %', p_locale using errcode = '22023';
+  end if;
+
+  update public.profiles
+     set locale = p_locale, updated_at = now()
+   where id = auth.uid();
+end;
+$$;
+
+revoke execute on function public.set_profile_locale(text) from public, anon;
+grant  execute on function public.set_profile_locale(text) to authenticated;
+grant  select on public.profiles to service_role;   -- send-auth-email reads locale
 
 create table public.subscriptions (
   id uuid primary key default gen_random_uuid(),

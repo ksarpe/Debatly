@@ -1,0 +1,63 @@
+<!--
+  Debatly — Change email address
+  Wklej do: Supabase Dashboard → Authentication → Emails → Change email address → Body (Source)
+  Subject: Potwierdź nowy adres e-mail · Confirm your new email
+
+  WAŻNE dla Debatly: ten szablon leci także przy „upgrade gościa" —
+  registerWithPasswordOn() robi updateUser() na anonimowym userze
+  (lib/services/supabase_service.dart:277), a to jest zmiana e-maila, nie signUp.
+  Dlatego treść jest napisana neutralnie: działa i dla zmiany adresu, i dla
+  gościa zakładającego pierwsze konto.
+
+  Zmienne: {{ .ConfirmationURL }} {{ .Email }} (stary) {{ .NewEmail }} (nowy) {{ .Token }}
+-->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">Potwierdź ten adres, żeby przypisać go do swojego konta Debatly.</div>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#F6F6F9;margin:0;padding:32px 12px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="width:100%;max-width:560px;background-color:#FFFFFF;border:1px solid #E2E2EA;border-radius:16px;overflow:hidden;">
+
+        <!-- header -->
+        <tr>
+          <td style="background-color:#000000;padding:26px 32px;">
+            <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#FFFFFF;">Debatly<span style="color:#F97316;">.</span></span>
+          </td>
+        </tr>
+
+        <!-- body -->
+        <tr>
+          <td style="padding:32px 32px 8px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <h1 style="margin:0 0 12px 0;font-size:21px;line-height:28px;font-weight:700;color:#15161A;">Potwierdź nowy adres e-mail</h1>
+            <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#5E5E66;">Kliknij przycisk, żeby przypisać adres <strong style="color:#15161A;font-weight:600;">{{ .NewEmail }}</strong> do swojego konta Debatly. Twoje serie, głosy i odkryte smaczki zostają — zmienia się tylko adres, którym się logujesz.</p>
+
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;">
+              <tr>
+                <td bgcolor="#F97316" style="border-radius:12px;">
+                  <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:15px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;line-height:20px;color:#FFFFFF;text-decoration:none;border-radius:12px;">Potwierdź adres e-mail</a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="margin:0 0 24px 0;font-size:13px;line-height:20px;color:#8A8A8A;">Przycisk nie działa? Wklej ten adres do przeglądarki:<br><a href="{{ .ConfirmationURL }}" target="_blank" style="color:#F97316;text-decoration:underline;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+
+            <p style="margin:0 0 24px 0;font-size:13px;line-height:20px;color:#8A8A8A;">Jeśli to nie Ty — zignoruj tę wiadomość, nic się nie zmieni.</p>
+
+            <div style="height:1px;line-height:1px;font-size:0;background-color:#E2E2EA;">&nbsp;</div>
+
+            <p style="margin:20px 0 24px 0;font-size:13px;line-height:20px;color:#8A8A8A;"><strong style="color:#5E5E66;font-weight:600;">English:</strong> Confirm <strong style="color:#5E5E66;font-weight:600;">{{ .NewEmail }}</strong> to attach it to your Debatly account — <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#F97316;text-decoration:underline;font-weight:600;">confirm email address</a>. Your streak, votes and unlocked takes stay exactly where they are. Not you? Ignore this email.</p>
+          </td>
+        </tr>
+
+        <!-- footer -->
+        <tr>
+          <td style="padding:0 32px 28px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <div style="height:1px;line-height:1px;font-size:0;background-color:#E2E2EA;">&nbsp;</div>
+            <p style="margin:16px 0 0 0;font-size:12px;line-height:18px;color:#A0A0A8;">Debatly — TAK czy NIE?<br>Wiadomość wysłana automatycznie, prosimy na nią nie odpowiadać.</p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

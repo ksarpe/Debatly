@@ -96,7 +96,7 @@ void main() {
     await _passSplash(tester);
 
     // The welcome card opens the deck, with a "Skip" affordance.
-    expect(find.text('Witaj w Debatly'), findsOneWidget);
+    expect(find.text('Myślisz, że znasz odpowiedź?'), findsOneWidget);
     expect(find.text('Pomiń'), findsOneWidget);
 
     // Skip jumps to the final account-choice card.

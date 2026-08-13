@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { api, CATEGORIES } from '../../../lib/api';
+import { api, CATEGORIES, LIMITS } from '../../../lib/api';
 import SmaczkiEditor from '../../../components/SmaczkiEditor';
+import Counter from '../../../components/Counter';
 import Diff from '../../../components/Diff';
 
 const empty = {
@@ -19,6 +20,18 @@ const HIST_LABEL = {
 const HIST_BADGE = {
   delete: 'rejected', en_review: 'enreview', en_verified: 'approved',
 };
+
+/** Shape-only comparison, so "dirty" ignores whitespace and empty smaczki. */
+const norm = (q) => JSON.stringify({
+  category: q?.category ?? null,
+  is_premium: !!q?.is_premium,
+  is_active: q?.is_active !== false,
+  pl: (q?.pl ?? '').trim(),
+  en: (q?.en ?? '').trim(),
+  smaczki: (q?.smaczki ?? [])
+    .map((s) => ({ pl: (s.pl ?? '').trim(), en: (s.en ?? '').trim() }))
+    .filter((s) => s.pl !== ''),
+});
 
 export default function QuestionEditor() {
   const { id } = useParams();
@@ -72,6 +85,15 @@ export default function QuestionEditor() {
     return () => { cancelled = true; };
   }, [id, isNew]);
 
+  const refresh = useCallback(async () => {
+    const fresh = await api.getQuestion(id);
+    setLive(fresh.question);
+    setDraft(fresh.open_draft);
+    setEnReview(fresh.en_review_needed ?? false);
+    setForm((f) => ({ ...f, en_review: null }));
+    api.history(id).then((h) => setHistory(h ?? [])).catch(() => {});
+  }, [id]);
+
   const payload = useMemo(() => ({
     category: form.category,
     is_premium: form.is_premium,
@@ -88,7 +110,7 @@ export default function QuestionEditor() {
   // checkbox pozwala ręcznie nadpisać (np. literówka bez wpływu na EN).
   const autoEnReview = useMemo(() => {
     if (!live) return payload.en === '';
-    const glue = '\u0001';
+    const glue = String.fromCharCode(1); // separator smaczkow, nie wystapi w tresci
     const plChanged = (live.pl ?? '').trim() !== payload.pl
       || (live.smaczki ?? []).map((s) => (s.pl ?? '').trim()).join(glue)
          !== payload.smaczki.map((s) => s.pl).join(glue);
@@ -106,6 +128,23 @@ export default function QuestionEditor() {
 
   const pending = draft?.status === 'pending';
   const canApprove = role === 'approver';
+  const isDeleteDraft = draft?.action === 'delete';
+
+  // Unpublished edits sitting in the form only. Drives the beforeunload guard —
+  // easy to lose an hour of work otherwise when you edit dozens in a row.
+  const dirty = useMemo(() => {
+    if (pending) return false;
+    if (isNew) return payload.pl !== '' || payload.en !== '' || payload.smaczki.length > 0;
+    if (!live) return false;
+    return norm(payload) !== norm(live);
+  }, [pending, isNew, live, payload]);
+
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const h = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', h);
+    return () => window.removeEventListener('beforeunload', h);
+  }, [dirty]);
 
   async function run(fn, okMsg) {
     setBusy(true); setErr(null); setMsg(null);
@@ -121,52 +160,49 @@ export default function QuestionEditor() {
     }
   }
 
-  const saveDraft = () => run(async () => {
-    const draftId = await api.saveDraft({
-      action: isNew ? 'create' : 'update',
-      payload: fullPayload,
+  /** Save (reusing an editable draft when there is one) and return its id. */
+  async function stageDraft() {
+    const action = isNew ? 'create' : 'update';
+    const common = {
+      action, payload: fullPayload,
       questionId: isNew ? null : id,
-      draftId: draft && ['draft', 'rejected'].includes(draft.status) ? draft.id : null,
       title: payload.pl.slice(0, 80),
-    });
-    const fresh = isNew ? null : await api.getQuestion(id);
-    if (fresh) setDraft(fresh.open_draft);
-    else setDraft({ id: draftId, status: 'draft' });
-    return draftId;
+    };
+    const reusable = draft && ['draft', 'rejected'].includes(draft.status) ? draft.id : null;
+    const dId = await api.saveDraft({ ...common, draftId: reusable });
+    return reusable ?? dId;
+  }
+
+  const saveDraft = () => run(async () => {
+    const dId = await stageDraft();
+    if (isNew) setDraft({ id: dId, status: 'draft' });
+    else { const fresh = await api.getQuestion(id); setDraft(fresh.open_draft); }
+    return dId;
   }, 'Wersja robocza zapisana.');
 
   const submit = () => run(async () => {
-    let dId = draft?.id;
-    if (!dId || !['draft', 'rejected'].includes(draft?.status)) {
-      dId = await api.saveDraft({
-        action: isNew ? 'create' : 'update',
-        payload: fullPayload,
-        questionId: isNew ? null : id,
-        draftId: null,
-        title: payload.pl.slice(0, 80),
-      });
-    } else {
-      await api.saveDraft({
-        action: isNew ? 'create' : 'update',
-        payload: fullPayload, questionId: isNew ? null : id, draftId: dId,
-        title: payload.pl.slice(0, 80),
-      });
-    }
+    const dId = await stageDraft();
     await api.submitDraft(dId);
     setDraft({ ...(draft ?? {}), id: dId, status: 'pending' });
     return dId;
   }, 'Zgłoszone do zatwierdzenia.');
 
+  // Approver shortcut: draft → submit → apply in one click, so routine edits
+  // don't need the two-step review ceremony meant for multiple people.
+  const publish = () => run(async () => {
+    const dId = await stageDraft();
+    await api.submitDraft(dId);
+    const res = await api.approveDraft(dId);
+    if (isNew) { router.replace(`/q/${res.question_id}`); return res; }
+    await refresh();
+    return res;
+  }, 'Opublikowane.');
+
   const approve = () => run(async () => {
     const res = await api.approveDraft(draft.id);
-    if (isNew && res?.question_id) router.replace(`/q/${res.question_id}`);
-    else {
-      const fresh = await api.getQuestion(id);
-      setLive(fresh.question); setDraft(fresh.open_draft);
-      setEnReview(fresh.en_review_needed ?? false);
-      setForm((f) => ({ ...f, en_review: null }));
-      api.history(id).then((h) => setHistory(h ?? [])).catch(() => {});
-    }
+    if (res.action === 'delete') { router.replace('/'); return res; }
+    if (isNew && res.question_id) { router.replace(`/q/${res.question_id}`); return res; }
+    await refresh();
     return res;
   }, 'Zatwierdzone i opublikowane.');
 
@@ -188,9 +224,27 @@ export default function QuestionEditor() {
     return dId;
   }, 'Usunięcie zgłoszone do zatwierdzenia.');
 
-  if (loading) return <div className="spin">Ładowanie…</div>;
+  // Ctrl/Cmd+S fires whatever the big button does. Held in a ref so the
+  // listener registers once and still sees current state.
+  const primaryRef = useRef(null);
+  primaryRef.current = () => {
+    if (busy || loading || isDeleteDraft) return;
+    if (pending) { if (canApprove) approve(); return; }
+    if (!payload.pl) return;
+    if (canApprove) publish(); else submit();
+  };
+  useEffect(() => {
+    const h = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        primaryRef.current?.();
+      }
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, []);
 
-  const isDeleteDraft = draft?.action === 'delete';
+  if (loading) return <div className="spin">Ładowanie…</div>;
 
   return (
     <>
@@ -219,12 +273,14 @@ export default function QuestionEditor() {
                 <textarea rows={2} value={form.pl} disabled={pending}
                           placeholder="treść pytania"
                           onChange={(e) => setForm({ ...form, pl: e.target.value })} />
+                <Counter value={form.pl} limit={LIMITS.question} />
               </div>
               <div className="fx">
                 <span className="flag" title="angielski">🇬🇧</span>
                 <textarea rows={2} value={form.en} disabled={pending}
                           placeholder="tłumaczenie"
                           onChange={(e) => setForm({ ...form, en: e.target.value })} />
+                <Counter value={form.en} limit={LIMITS.question} />
               </div>
             </div>
 
@@ -282,18 +338,36 @@ export default function QuestionEditor() {
       </details>
 
       <div className="sticky-actions">
-        {!pending && !isDeleteDraft && (
-          <>
-            <button className="btn" onClick={saveDraft} disabled={busy}>Zapisz wersję roboczą</button>
-            <button className="btn primary" onClick={submit} disabled={busy || !payload.pl}>
-              Zgłoś do zatwierdzenia
+        {pending ? (
+          canApprove && (
+            <button className="btn ok" onClick={approve} disabled={busy}>
+              {isDeleteDraft ? 'Zatwierdź usunięcie' : 'Zatwierdź i opublikuj'}
             </button>
+          )
+        ) : (
+          <>
+            {canApprove ? (
+              <>
+                <button className="btn ok" onClick={publish} disabled={busy || !payload.pl}>
+                  Zapisz i opublikuj
+                </button>
+                <button className="btn ghost" onClick={saveDraft} disabled={busy || !payload.pl}>
+                  Wersja robocza
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="btn" onClick={saveDraft} disabled={busy || !payload.pl}>
+                  Zapisz wersję roboczą
+                </button>
+                <button className="btn primary" onClick={submit} disabled={busy || !payload.pl}>
+                  Zgłoś do zatwierdzenia
+                </button>
+              </>
+            )}
+            <span className="kbd-hint">Ctrl+S</span>
+            {dirty && <span className="dirty">● niezapisane</span>}
           </>
-        )}
-        {pending && canApprove && (
-          <button className="btn ok" onClick={approve} disabled={busy}>
-            Zatwierdź i opublikuj
-          </button>
         )}
         <div className="spacer" />
         {!isNew && !pending && (

@@ -4,10 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/localized_test_app.dart';
 
-/// The onboarding "aha": the last intro page is a real question the user votes
-/// on, and the tap flips straight to a community split with a personal
-/// majority/minority line — proving the app instead of promising it. Then
-/// "Continue" carries them to the account choice.
+/// The onboarding "aha" is a mind-change loop: the user votes on a real
+/// question, is stopped with "Ale chwila…" and three arguments, votes again,
+/// and only then sees the community split. Then "Dalej" carries them onwards to
+/// the reminder ask and the account choice.
+///
+/// The split is live in production (fetched off the question's all-time tally);
+/// in the test host Supabase is uninitialised, so the card renders its curated
+/// dead-even fallback — which is what the assertions below pin.
 ///
 /// The welcome card animates a perpetual glow, so `pumpAndSettle` never returns —
 /// every step uses explicit `pump`s past the page/switcher transitions instead
@@ -24,6 +28,17 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
   }
 
+  // The arguments takeover runs a 3.6s staggered entrance ("Ale chwila…", a
+  // beat of silence, one argument per second, then the button); pump all the
+  // way past it so the "Głosuję jeszcze raz" CTA is visible and tappable.
+  Future<void> settleArguments(WidgetTester tester) async {
+    await settlePage(tester); // the 280ms stage cross-fade
+    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.pump(const Duration(milliseconds: 1000));
+    await tester.pump(const Duration(milliseconds: 1000));
+  }
+
   Future<void> pumpOnboarding(WidgetTester tester) async {
     await tester.pumpWidget(
       LocalizedTestApp(home: OnboardingScreen(onFinish: () {})),
@@ -31,7 +46,7 @@ void main() {
     await settlePage(tester);
   }
 
-  // The post-vote card and the reminder card are taller than the 600px test
+  // The taller stages (arguments, result, reminder) overflow the 600px test
   // viewport, so their bottom CTAs render below the fold inside the card's
   // scroll view — scroll them in first, or the tap lands off-screen and misses.
   Future<void> tapText(WidgetTester tester, String label) async {
@@ -48,7 +63,24 @@ void main() {
     await settlePage(tester);
   }
 
-  testWidgets('voting TAK reveals the split, the majority line and Continue', (
+  // Walks the whole taste loop: first vote → arguments → "Przeczytałem" →
+  // second vote. Lands on the split reveal (50/50 in the test host).
+  Future<void> completeTasteLoop(
+    WidgetTester tester, {
+    String first = 'TAK',
+    String second = 'TAK',
+  }) async {
+    await tester.tap(find.text(first));
+    await settleArguments(tester);
+    await tapText(tester, 'Przeczytane!');
+    await settlePage(tester);
+    // The revote stage (question + prompt + buttons) is taller than the test
+    // viewport, so the buttons sit below the fold — scroll them in first.
+    await tapText(tester, second);
+    await settlePage(tester);
+  }
+
+  testWidgets('the first vote hides the split and shows the three arguments', (
     tester,
   ) async {
     await pumpOnboarding(tester);
@@ -61,45 +93,57 @@ void main() {
     expect(find.textContaining('%'), findsNothing);
 
     await tester.tap(find.text('TAK'));
-    await settlePage(tester); // AnimatedSwitcher to the results
+    await settleArguments(tester);
 
-    // The aha: a believable split appears with the "VS" seam, and — TAK being the
-    // majority side — the personal "you're with the majority" line.
-    expect(find.text('63%'), findsOneWidget);
-    expect(find.text('37%'), findsOneWidget);
-    expect(find.text('VS'), findsOneWidget);
-    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-    expect(find.text('Jesteś z większością. 🙌'), findsOneWidget);
-
-    // The post-vote payoff also teases one real smaczek for this question —
-    // the depth pillar shown, not described.
-    expect(find.textContaining('mikrozdradach'), findsOneWidget);
+    // No reveal yet — the takeover replaces the question entirely: just "Ale
+    // chwila…" and the three arguments, with the question and kicker gone.
+    expect(find.textContaining('%'), findsNothing);
+    expect(find.text('TWÓJ RUCH'), findsNothing);
+    expect(find.text('Ale chwila…'), findsOneWidget);
+    expect(find.textContaining('walizkę'), findsOneWidget);
+    expect(find.textContaining('komfortem'), findsOneWidget);
+    expect(find.textContaining('bramka'), findsOneWidget);
+    expect(find.text('Przeczytane!'), findsOneWidget);
   });
 
-  testWidgets('voting NIE lands the user in the minority', (tester) async {
-    await pumpOnboarding(tester);
-    await reachVotePage(tester);
-
-    await tester.tap(find.text('NIE'));
-    await settlePage(tester);
-
-    expect(find.text('Jesteś w mniejszości. 👀'), findsOneWidget);
-  });
-
-  testWidgets('Continue after voting advances to the notifications ask, then '
-      'the account choice', (tester) async {
+  testWidgets('after reading, the user votes again and the split is '
+      'revealed', (tester) async {
     await pumpOnboarding(tester);
     await reachVotePage(tester);
 
     await tester.tap(find.text('TAK'));
+    await settleArguments(tester);
+    await tapText(tester, 'Przeczytane!');
     await settlePage(tester);
 
-    // The card's own "Continue" (the bottom Next is suppressed on this page)
+    // The question returns for the second ask: the kicker flips to "ZAGŁOSUJ
+    // PONOWNIE" over fresh TAK/NIE buttons, still no split.
+    expect(find.text('ZAGŁOSUJ PONOWNIE'), findsOneWidget);
+    expect(find.text('TWÓJ RUCH'), findsNothing);
+    expect(find.textContaining('%'), findsNothing);
+
+    await tapText(tester, 'NIE'); // changing sides is allowed
+    await settlePage(tester);
+
+    // The reveal: the split (the fallback 50/50 here) with the "VS" seam and
+    // the check on the chosen side — and nothing else under the bars.
+    expect(find.text('50%'), findsNWidgets(2));
+    expect(find.text('VS'), findsOneWidget);
+    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+  });
+
+  testWidgets('Continue after the reveal advances to the notifications ask, '
+      'then the account choice', (tester) async {
+    await pumpOnboarding(tester);
+    await reachVotePage(tester);
+    await completeTasteLoop(tester);
+
+    // The card's own "Dalej" (the bottom Next is suppressed on this page)
     // lands on the reminder opt-in, not yet the account choice.
     await tapText(tester, 'Dalej');
     await settlePage(tester);
 
-    expect(find.text('Nie przegap nowych pytań'), findsOneWidget);
+    expect(find.text('Jutro czeka nowe pytanie'), findsOneWidget);
     expect(find.text('Włącz przypomnienia'), findsOneWidget);
     expect(find.text('Zacznij anonimowo'), findsNothing);
 
@@ -118,10 +162,8 @@ void main() {
     // rather than stalling on its busy spinner.
     await pumpOnboarding(tester);
     await reachVotePage(tester);
-
-    await tester.tap(find.text('TAK'));
-    await settlePage(tester);
-    await tapText(tester, 'Dalej'); // taste vote → reminder ask
+    await completeTasteLoop(tester);
+    await tapText(tester, 'Dalej'); // taste result → reminder ask
     await settlePage(tester);
 
     await tapText(tester, 'Włącz przypomnienia');

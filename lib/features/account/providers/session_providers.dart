@@ -1,7 +1,11 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/locale/app_locale.dart';
 import '../../../core/monitoring/monitoring.dart';
 import '../../../services/purchases_service.dart';
 import '../../../services/supabase_service.dart';
@@ -99,7 +103,22 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
   Future<SessionState> build() {
     _subscribeToAuthChanges();
     _subscribeToEntitlementChanges();
+    _subscribeToLocaleChanges();
     return _load();
+  }
+
+  /// Keep the server's idea of the user's language in step with the app's, so
+  /// the auth emails (`send-auth-email` edge function reads `profiles.locale`)
+  /// follow someone who switches language in Settings. Fire-and-forget: the
+  /// write is best-effort and must not stall the language switch itself.
+  ///
+  /// `fireImmediately` is deliberately off — the initial value is written by
+  /// [_load] once there is a session to write it against, which on a cold start
+  /// does not exist yet.
+  void _subscribeToLocaleChanges() {
+    ref.listen<Locale>(localeControllerProvider, (_, next) {
+      unawaited(SupabaseService.syncProfileLocale(next.languageCode));
+    });
   }
 
   /// Keep `isPremium` live when the entitlement changes OUTSIDE the in-app
@@ -161,9 +180,16 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
     final userId = await SupabaseService.ensureSignedIn();
     final user = SupabaseService.currentUser;
 
-    // 2. Tie the RevenueCat customer to that same identity.
+    // 2. Tie the RevenueCat customer to that same identity, and record the app
+    //    language against it. Guests get a locale too, so the value is already
+    //    on the profile by the time one upgrades and the first mail goes out.
     if (userId != null) {
       await PurchasesService.identify(userId);
+      unawaited(
+        SupabaseService.syncProfileLocale(
+          ref.read(localeControllerProvider).languageCode,
+        ),
+      );
     }
 
     // 3. Resolve the EFFECTIVE premium entitlement. The DATABASE is the source

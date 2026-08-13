@@ -277,7 +277,7 @@ class _UnlockButton extends StatelessWidget {
           boxShadow: primary
               ? const [
                   BoxShadow(
-                    color: Color(0x55F97316),
+                    color: Color(0x55EA6A12),
                     blurRadius: 20,
                     spreadRadius: 1,
                   ),

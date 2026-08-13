@@ -21,13 +21,23 @@ flutter run --dart-define-from-file=env/local.json
 
 ## Before every commit
 
-The CI (`.github/workflows/ci.yml`) enforces all three — run them locally first:
+The CI (`.github/workflows/ci.yml`) enforces all three and treats **every
+analyzer hint as fatal** — a plain `flutter analyze` is weaker than CI. Run the
+same commands locally first:
 
 ```bash
 dart format .
-flutter analyze
+```
+
+```bash
+flutter analyze --fatal-infos --fatal-warnings
+```
+
+```bash
 flutter test
 ```
+
+Flutter is pinned to **3.44.1** (`.metadata`); CI uses the same version.
 
 ## Conventions
 
@@ -46,6 +56,15 @@ flutter test
   `supabase/migrations/data/`. Never edit an already-applied migration, and
   never run `supabase db push` — see
   [supabase/migrations/README.md](supabase/migrations/README.md).
+  `supabase/schema.sql` is the original bootstrap, **not** the current shape:
+  everything from `question_seen` and `user_daily_questions` to the reveal /
+  vote / stats RPCs lives only in `migrations/schema/`. Check the live project
+  or the newest migration touching that object before assuming a shape.
+- **Product rules.** Before changing the feed, reveals or entitlements, read
+  [README.md](README.md) § *How the product actually works* — in particular that
+  the daily question is a free entry point, not a one-question-a-day cap, and
+  that the daily rolls over on the *local* date while credits and the ad cap
+  roll over at *UTC* midnight.
 - **Errors.** Report through the `Monitoring` facade
   (`lib/core/monitoring/monitoring.dart`), not bare `print`.
 

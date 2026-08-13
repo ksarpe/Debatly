@@ -123,13 +123,17 @@ class AppTheme {
 
   /// Orange "spark" accent — the glowing "go deeper" affordance. Shared by both
   /// themes.
-  static const Color spark = Color(0xFFF97316);
+  // Toned down from tailwind orange-500 (#F97316): at full brightness white
+  // labels on the spark gradient washed out on the onboarding choice card.
+  static const Color spark = Color(0xFFEA6A12);
 
   /// Semantic vote colours: green for TAK, red for NIE. Used by the daily
   /// vote panel for the buttons' side hints and the post-vote split. Shared by
   /// both themes.
   static const Color yes = Color(0xFF22C55E);
-  static const Color no = Color(0xFFEF4444);
+  // Lifted from the tailwind red-500 (#EF4444): at the low fill alphas the
+  // result panels use, that shade sank into the dark background.
+  static const Color no = Color(0xFFF7615C);
 
   /// The dark theme — the app's original look.
   static ThemeData get dark => _build(Brightness.dark, AppColors.dark);

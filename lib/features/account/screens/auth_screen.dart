@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/feedback/app_toast.dart';
+import '../../../core/locale/app_locale.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/supabase_service.dart';
@@ -501,6 +502,7 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
           await SupabaseService.registerWithPassword(
             email: email,
             password: password,
+            locale: ref.read(localeControllerProvider).languageCode,
           );
           await session.refresh();
           if (!mounted) return;

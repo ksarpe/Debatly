@@ -48,7 +48,7 @@ class AuthSegmentedTabs extends StatelessWidget {
                       // The brand orange (same gradient as the primary CTA) so the
                       // selected tab matches the app accent instead of a stray violet.
                       gradient: const LinearGradient(
-                        colors: [AppTheme.spark, Color(0xFFEA580C)],
+                        colors: [AppTheme.spark, Color(0xFFD9510B)],
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),

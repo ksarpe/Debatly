@@ -9,12 +9,13 @@ import '../locale/app_locale.dart';
 /// Mirrors [localeControllerProvider]: read by `MaterialApp` (drives
 /// `themeMode`), mutated by the settings screen, and persisted locally so the
 /// choice survives restarts and works for guests too (no account required).
-/// Defaults to [ThemeMode.system], so a first-run user matches their device's
-/// light/dark setting — the accessibility-correct default.
+/// Defaults to [ThemeMode.dark] — the app's visuals are designed dark-first,
+/// so a first-run user gets the intended look; light and follow-system remain
+/// explicit choices in settings.
 
 /// SharedPreferences key holding the user's explicit appearance override
 /// (`system` / `light` / `dark`). Absent until the user picks one, in which
-/// case we follow the system.
+/// case we default to dark.
 const String kThemeModePrefKey = 'app_theme_mode';
 
 /// Serialises a [ThemeMode] to the short token stored in SharedPreferences.
@@ -24,12 +25,12 @@ String _themeModeToKey(ThemeMode mode) => switch (mode) {
   ThemeMode.dark => 'dark',
 };
 
-/// Parses a stored token back to a [ThemeMode], defaulting to following the
-/// system for anything unrecognised (or absent).
+/// Parses a stored token back to a [ThemeMode], defaulting to dark for
+/// anything unrecognised (or absent).
 ThemeMode _themeModeFromKey(String? key) => switch (key) {
   'light' => ThemeMode.light,
-  'dark' => ThemeMode.dark,
-  _ => ThemeMode.system,
+  'system' => ThemeMode.system,
+  _ => ThemeMode.dark,
 };
 
 /// The active appearance. Read it; mutate it with [ThemeController.setMode].

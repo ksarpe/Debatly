@@ -1451,13 +1451,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingWelcomeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Welcome to Debatly'**
+  /// **'Think you know the answer?'**
   String get onboardingWelcomeTitle;
 
   /// No description provided for @onboardingWelcomeBody.
   ///
   /// In en, this message translates to:
-  /// **'Sharp questions that split the room — vote and see which side you\'re on.'**
+  /// **'In a moment you\'ll get a question with no good answer. Vote — and see how many people think differently than you.'**
   String get onboardingWelcomeBody;
 
   /// No description provided for @onboardingTasteKicker.
@@ -1469,38 +1469,50 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingTasteQuestion.
   ///
   /// In en, this message translates to:
-  /// **'Is emotional cheating worse than physical cheating?'**
+  /// **'Should an obese person have to pay for two plane seats?'**
   String get onboardingTasteQuestion;
 
-  /// No description provided for @onboardingTasteMajority.
+  /// No description provided for @onboardingTasteHoldOnTitle.
   ///
   /// In en, this message translates to:
-  /// **'You\'re with the majority. 🙌'**
-  String get onboardingTasteMajority;
+  /// **'Hold on…'**
+  String get onboardingTasteHoldOnTitle;
 
-  /// No description provided for @onboardingTasteMinority.
+  /// No description provided for @onboardingTasteSmaczek1.
   ///
   /// In en, this message translates to:
-  /// **'You\'re in the minority. 👀'**
-  String get onboardingTasteMinority;
+  /// **'You already pay extra for a heavier suitcase.'**
+  String get onboardingTasteSmaczek1;
+
+  /// No description provided for @onboardingTasteSmaczek2.
+  ///
+  /// In en, this message translates to:
+  /// **'And what about the comfort of the person in the next seat?'**
+  String get onboardingTasteSmaczek2;
+
+  /// No description provided for @onboardingTasteSmaczek3.
+  ///
+  /// In en, this message translates to:
+  /// **'How would you check? Some kind of gate before boarding?'**
+  String get onboardingTasteSmaczek3;
+
+  /// No description provided for @onboardingTasteRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it!'**
+  String get onboardingTasteRead;
+
+  /// No description provided for @onboardingTasteRevoteKicker.
+  ///
+  /// In en, this message translates to:
+  /// **'VOTE AGAIN'**
+  String get onboardingTasteRevoteKicker;
 
   /// No description provided for @onboardingTasteContinue.
   ///
   /// In en, this message translates to:
   /// **'Continue'**
   String get onboardingTasteContinue;
-
-  /// No description provided for @onboardingTasteSmaczekIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'Every question also comes with arguments that deepen the conversation. Like this one:'**
-  String get onboardingTasteSmaczekIntro;
-
-  /// No description provided for @onboardingTasteSmaczek.
-  ///
-  /// In en, this message translates to:
-  /// **'Psychologists talk about “micro-cheating” — hundreds of small secrets and hidden messages. One night or a thousand whispers: which is harder to forgive?'**
-  String get onboardingTasteSmaczek;
 
   /// No description provided for @onboardingChoiceTitle.
   ///
@@ -1523,7 +1535,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingSignInHint.
   ///
   /// In en, this message translates to:
-  /// **'Save your streak and progress'**
+  /// **'Streak, favourites and vote history — on every device'**
   String get onboardingSignInHint;
 
   /// No description provided for @onboardingStartAnon.
@@ -1535,19 +1547,19 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingStartAnonHint.
   ///
   /// In en, this message translates to:
-  /// **'With some limits'**
+  /// **'Quick start, no account needed'**
   String get onboardingStartAnonHint;
 
   /// No description provided for @onboardingNotifyTitle.
   ///
   /// In en, this message translates to:
-  /// **'Never miss a new question'**
+  /// **'Tomorrow\'s question is waiting'**
   String get onboardingNotifyTitle;
 
   /// No description provided for @onboardingNotifyBody.
   ///
   /// In en, this message translates to:
-  /// **'Turn on reminders and we\'ll nudge you once a day to come and vote. No spam — just one a day.'**
+  /// **'One notification a day, at a time you pick. Voting takes 10 seconds — and your streak grows every day.'**
   String get onboardingNotifyBody;
 
   /// No description provided for @onboardingNotifyEnable.

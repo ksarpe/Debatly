@@ -834,35 +834,42 @@ class AppLocalizationsPl extends AppLocalizations {
   String get onboardingNext => 'Dalej';
 
   @override
-  String get onboardingWelcomeTitle => 'Witaj w Debatly';
+  String get onboardingWelcomeTitle => 'Myślisz, że znasz odpowiedź?';
 
   @override
   String get onboardingWelcomeBody =>
-      'Mocne pytania, które dzielą ludzi — zagłosuj i zobacz, po której stronie jesteś.';
+      'Za chwilę dostaniesz pytanie, na które nie ma dobrej odpowiedzi. Zagłosuj — i zobacz, ilu ludzi myśli inaczej niż ty.';
 
   @override
   String get onboardingTasteKicker => 'TWÓJ RUCH';
 
   @override
   String get onboardingTasteQuestion =>
-      'Czy zdrada emocjonalna jest gorsza niż fizyczna?';
+      'Czy osoby otyłe powinny płacić za dwa miejsca w samolocie?';
 
   @override
-  String get onboardingTasteMajority => 'Jesteś z większością. 🙌';
+  String get onboardingTasteHoldOnTitle => 'Ale chwila…';
 
   @override
-  String get onboardingTasteMinority => 'Jesteś w mniejszości. 👀';
+  String get onboardingTasteSmaczek1 =>
+      'Za cięższą walizkę płacisz przecież dodatkowo.';
+
+  @override
+  String get onboardingTasteSmaczek2 =>
+      'A co z komfortem osoby siedzącej obok?';
+
+  @override
+  String get onboardingTasteSmaczek3 =>
+      'Jak to weryfikować? Jakaś bramka przed wejściem?';
+
+  @override
+  String get onboardingTasteRead => 'Przeczytane!';
+
+  @override
+  String get onboardingTasteRevoteKicker => 'ZAGŁOSUJ PONOWNIE';
 
   @override
   String get onboardingTasteContinue => 'Dalej';
-
-  @override
-  String get onboardingTasteSmaczekIntro =>
-      'Do każdego pytania dostajesz też argumenty, które pogłębiają rozmowę. Na przykład:';
-
-  @override
-  String get onboardingTasteSmaczek =>
-      'Psychologowie mówią o „mikrozdradach” — setkach drobnych sekretów i ukrytych wiadomości. Jedna noc czy tysiąc szeptów: co trudniej wybaczyć?';
 
   @override
   String get onboardingChoiceTitle => 'Jak chcesz zacząć?';
@@ -875,20 +882,21 @@ class AppLocalizationsPl extends AppLocalizations {
   String get onboardingSignInCta => 'Zaloguj / Załóż konto';
 
   @override
-  String get onboardingSignInHint => 'Zapisz passę i postępy';
+  String get onboardingSignInHint =>
+      'Passa, ulubione i historia głosów — na każdym urządzeniu';
 
   @override
   String get onboardingStartAnon => 'Zacznij anonimowo';
 
   @override
-  String get onboardingStartAnonHint => 'Z pewnymi ograniczeniami';
+  String get onboardingStartAnonHint => 'Szybki start, bez zakładania konta';
 
   @override
-  String get onboardingNotifyTitle => 'Nie przegap nowych pytań';
+  String get onboardingNotifyTitle => 'Jutro czeka nowe pytanie';
 
   @override
   String get onboardingNotifyBody =>
-      'Włącz przypomnienia, a codziennie przypomnimy Ci, żeby zagłosować. Bez spamu — jedno na dzień.';
+      'Jedno powiadomienie dziennie, o porze, którą wybierzesz. Głosujesz w 10 sekund, a passa rośnie z każdym dniem.';
 
   @override
   String get onboardingNotifyEnable => 'Włącz przypomnienia';

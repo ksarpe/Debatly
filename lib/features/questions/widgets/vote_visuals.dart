@@ -125,8 +125,8 @@ class VoteResultsRow extends StatelessWidget {
 
   /// When true, a "Twój głos: TAK/NIE" chip sits under the bars so the user can
   /// always tell which side they picked — the in-panel highlight alone was too
-  /// easy to miss. Opt-in: the onboarding taste card leaves it off (it has its
-  /// own majority/minority line), the real daily turns it on.
+  /// easy to miss. Opt-in: the onboarding taste card leaves it off (its reveal
+  /// is a one-beat look, not a lasting state), the real daily turns it on.
   final bool confirmMyVote;
 
   @override
@@ -406,9 +406,14 @@ class _VsBadge extends StatelessWidget {
 /// sides mirror around the central seam.
 enum _Slant { left, right }
 
-/// Clips a box into a parallelogram leaning along a `/` diagonal. Both sides
-/// share the same lean so the panels stay parallel; [_Slant.left] is the TAK
-/// side (seam on its right), [_Slant.right] is the NIE side (seam on its left).
+/// Corner radius of the slanted tiles — just enough to soften the points of the
+/// parallelogram without blunting the diagonal seam.
+const double _kVoteCornerRadius = 7;
+
+/// Clips a box into a parallelogram leaning along a `/` diagonal, with softly
+/// rounded corners. Both sides share the same lean so the panels stay parallel;
+/// [_Slant.left] is the TAK side (seam on its right), [_Slant.right] is the NIE
+/// side (seam on its left).
 class _SkewClipper extends CustomClipper<Path> {
   const _SkewClipper(this.slant);
 
@@ -419,12 +424,33 @@ class _SkewClipper extends CustomClipper<Path> {
     final w = size.width;
     final h = size.height;
     // Top edge is shifted right by _kSkew relative to the bottom edge → `/`.
-    return Path()
-      ..moveTo(_kSkew, 0)
-      ..lineTo(w, 0)
-      ..lineTo(w - _kSkew, h)
-      ..lineTo(0, h)
-      ..close();
+    final corners = [
+      Offset(_kSkew, 0),
+      Offset(w, 0),
+      Offset(w - _kSkew, h),
+      Offset(0, h),
+    ];
+    // Walk the polygon shortening each edge by the radius and bridging the
+    // gap with a quadratic curve through the original corner point.
+    final path = Path();
+    for (var i = 0; i < corners.length; i++) {
+      final prev = corners[(i + corners.length - 1) % corners.length];
+      final here = corners[i];
+      final next = corners[(i + 1) % corners.length];
+      final inDir = prev - here;
+      final outDir = next - here;
+      final start =
+          here + inDir * (_kVoteCornerRadius / math.max(1, inDir.distance));
+      final end =
+          here + outDir * (_kVoteCornerRadius / math.max(1, outDir.distance));
+      if (i == 0) {
+        path.moveTo(start.dx, start.dy);
+      } else {
+        path.lineTo(start.dx, start.dy);
+      }
+      path.quadraticBezierTo(here.dx, here.dy, end.dx, end.dy);
+    }
+    return path..close();
   }
 
   @override

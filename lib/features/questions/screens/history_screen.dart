@@ -28,14 +28,53 @@ Future<void> openHistory(BuildContext context) {
   ).push(MaterialPageRoute<void>(builder: (_) => const HistoryScreen()));
 }
 
+/// Scroll offset past which the header's own X has left the viewport, so the
+/// floating one takes over. Derived from the header's placement: 8px of top
+/// padding plus the 38px button, minus a few pixels so the swap overlaps
+/// instead of leaving a moment with no close button on screen.
+const double _kFloatingCloseFrom = 42;
+
 /// Full-screen PRO history of the user's votes. Mirrors the Favorites screen: a
 /// [TopGlow], a [SubScreenHeader] (title + close), then the body — the premium
 /// list of voted questions, or the PRO upsell for everyone else.
-class HistoryScreen extends ConsumerWidget {
+///
+/// A long history can be scrolled far past the header, so a second, *pinned* X
+/// fades in at the same spot once the header's own has scrolled away — closing
+/// the screen is always one tap, without scrolling back to the top.
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  final ScrollController _scrollController = ScrollController();
+  bool _showFloatingClose = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final show = _scrollController.offset > _kFloatingCloseFrom;
+    if (show != _showFloatingClose) {
+      setState(() => _showFloatingClose = show);
+    }
+  }
+
+  void _close() => Navigator.of(context).maybePop();
+
+  @override
+  Widget build(BuildContext context) {
     final isPremium = ref.watch(isPremiumProvider);
 
     return Scaffold(
@@ -45,6 +84,7 @@ class HistoryScreen extends ConsumerWidget {
           const TopGlow(),
           SafeArea(
             child: SingleChildScrollView(
+              controller: _scrollController,
               padding: EdgeInsets.fromLTRB(
                 20,
                 8,
@@ -59,11 +99,35 @@ class HistoryScreen extends ConsumerWidget {
                     children: [
                       SubScreenHeader(
                         title: context.l10n.historyTitle,
-                        onClose: () => Navigator.of(context).maybePop(),
+                        onClose: _close,
                       ),
                       const SizedBox(height: 16),
                       isPremium ? const _HistoryBody() : const _HistoryUpsell(),
                     ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Same padding / max width as the scrolling column, so the pinned X
+          // lands exactly where the header's one was — it reads as the button
+          // sticking rather than a second control appearing.
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8, left: 20, right: 20),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: IgnorePointer(
+                      ignoring: !_showFloatingClose,
+                      child: AnimatedOpacity(
+                        opacity: _showFloatingClose ? 1 : 0,
+                        duration: const Duration(milliseconds: 140),
+                        child: SubScreenCloseButton(onTap: _close),
+                      ),
+                    ),
                   ),
                 ),
               ),

@@ -23,7 +23,7 @@ class AuthPrimaryButton extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFFF97316), Color(0xFFEA580C)],
+            colors: [Color(0xFFEA6A12), Color(0xFFD9510B)],
           ),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [

@@ -816,35 +816,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingNext => 'Next';
 
   @override
-  String get onboardingWelcomeTitle => 'Welcome to Debatly';
+  String get onboardingWelcomeTitle => 'Think you know the answer?';
 
   @override
   String get onboardingWelcomeBody =>
-      'Sharp questions that split the room — vote and see which side you\'re on.';
+      'In a moment you\'ll get a question with no good answer. Vote — and see how many people think differently than you.';
 
   @override
   String get onboardingTasteKicker => 'YOUR TURN';
 
   @override
   String get onboardingTasteQuestion =>
-      'Is emotional cheating worse than physical cheating?';
+      'Should an obese person have to pay for two plane seats?';
 
   @override
-  String get onboardingTasteMajority => 'You\'re with the majority. 🙌';
+  String get onboardingTasteHoldOnTitle => 'Hold on…';
 
   @override
-  String get onboardingTasteMinority => 'You\'re in the minority. 👀';
+  String get onboardingTasteSmaczek1 =>
+      'You already pay extra for a heavier suitcase.';
+
+  @override
+  String get onboardingTasteSmaczek2 =>
+      'And what about the comfort of the person in the next seat?';
+
+  @override
+  String get onboardingTasteSmaczek3 =>
+      'How would you check? Some kind of gate before boarding?';
+
+  @override
+  String get onboardingTasteRead => 'Got it!';
+
+  @override
+  String get onboardingTasteRevoteKicker => 'VOTE AGAIN';
 
   @override
   String get onboardingTasteContinue => 'Continue';
-
-  @override
-  String get onboardingTasteSmaczekIntro =>
-      'Every question also comes with arguments that deepen the conversation. Like this one:';
-
-  @override
-  String get onboardingTasteSmaczek =>
-      'Psychologists talk about “micro-cheating” — hundreds of small secrets and hidden messages. One night or a thousand whispers: which is harder to forgive?';
 
   @override
   String get onboardingChoiceTitle => 'How do you want to start?';
@@ -857,20 +864,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingSignInCta => 'Sign in / Sign up';
 
   @override
-  String get onboardingSignInHint => 'Save your streak and progress';
+  String get onboardingSignInHint =>
+      'Streak, favourites and vote history — on every device';
 
   @override
   String get onboardingStartAnon => 'Start anonymously';
 
   @override
-  String get onboardingStartAnonHint => 'With some limits';
+  String get onboardingStartAnonHint => 'Quick start, no account needed';
 
   @override
-  String get onboardingNotifyTitle => 'Never miss a new question';
+  String get onboardingNotifyTitle => 'Tomorrow\'s question is waiting';
 
   @override
   String get onboardingNotifyBody =>
-      'Turn on reminders and we\'ll nudge you once a day to come and vote. No spam — just one a day.';
+      'One notification a day, at a time you pick. Voting takes 10 seconds — and your streak grows every day.';
 
   @override
   String get onboardingNotifyEnable => 'Turn on reminders';

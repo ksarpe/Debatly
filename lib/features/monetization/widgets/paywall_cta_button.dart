@@ -20,13 +20,13 @@ class PaywallCtaButton extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppTheme.spark, Color(0xFFEA580C)],
+          colors: [AppTheme.spark, Color(0xFFD9510B)],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
         borderRadius: BorderRadius.circular(999),
         boxShadow: const [
-          BoxShadow(color: Color(0x55F97316), blurRadius: 22, spreadRadius: 1),
+          BoxShadow(color: Color(0x55EA6A12), blurRadius: 22, spreadRadius: 1),
         ],
       ),
       child: Material(

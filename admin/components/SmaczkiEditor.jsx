@@ -1,5 +1,8 @@
 'use client';
 
+import Counter from './Counter';
+import { LIMITS } from '../lib/api';
+
 /**
  * Compact editor: one row per smaczek, PL above EN with the language flag inline
  * on the left, so a 3-smaczek question fits on screen without scrolling.
@@ -39,12 +42,14 @@ export default function SmaczkiEditor({ items, onChange, disabled = false }) {
               <input type="text" value={s.pl ?? ''} disabled={disabled}
                      placeholder="treść smaczka"
                      onChange={(e) => set(i, 'pl', e.target.value)} />
+              <Counter value={s.pl} limit={LIMITS.smaczek} />
             </div>
             <div className="fx">
               <span className="flag" title="angielski">🇬🇧</span>
               <input type="text" value={s.en ?? ''} disabled={disabled}
                      placeholder="tłumaczenie"
                      onChange={(e) => set(i, 'en', e.target.value)} />
+              <Counter value={s.en} limit={LIMITS.smaczek} />
             </div>
           </div>
 

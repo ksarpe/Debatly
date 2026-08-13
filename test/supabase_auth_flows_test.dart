@@ -122,6 +122,7 @@ void main() {
           client.auth,
           email: '  user@example.com  ',
           password: 'secret123',
+          locale: 'pl',
         );
 
         final update = log.last;
@@ -130,6 +131,11 @@ void main() {
         final body = jsonDecode(update.body) as Map<String, dynamic>;
         expect(body['email'], 'user@example.com', reason: 'email is trimmed');
         expect(body['password'], 'secret123');
+        expect(
+          (body['data'] as Map<String, dynamic>)['locale'],
+          'pl',
+          reason: 'the send-auth-email hook reads this to pick the language',
+        );
 
         expect(
           user?.id,
@@ -169,6 +175,7 @@ void main() {
           client.auth,
           email: 'user@example.com',
           password: 'secret123',
+          locale: 'en',
         );
 
         expect(log, hasLength(1));
@@ -176,6 +183,11 @@ void main() {
         expect(log.single.url.path, endsWith('/auth/v1/signup'));
         final body = jsonDecode(log.single.body) as Map<String, dynamic>;
         expect(body['email'], 'user@example.com');
+        expect(
+          (body['data'] as Map<String, dynamic>)['locale'],
+          'en',
+          reason: 'the send-auth-email hook reads this to pick the language',
+        );
         expect(user?.id, 'new-1');
       },
     );
