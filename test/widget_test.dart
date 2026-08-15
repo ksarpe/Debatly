@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'support/fakes.dart';
 import 'support/localized_test_app.dart';
 
 /// The Polish label of the "go deeper" pill (was `GoDeeperButton.label` before
@@ -79,7 +80,7 @@ void main() {
     expect(find.text('Zabezpiecz konto'), findsOneWidget);
   });
 
-  testWidgets('First launch shows onboarding; skip leads to the account choice', (
+  testWidgets('First launch shows onboarding; skip finishes it directly', (
     WidgetTester tester,
   ) async {
     // A brand-new install: no onboarding flag, so AppEntry runs the tutorial.
@@ -99,17 +100,9 @@ void main() {
     expect(find.text('Myślisz, że znasz odpowiedź?'), findsOneWidget);
     expect(find.text('Pomiń'), findsOneWidget);
 
-    // Skip jumps to the final account-choice card.
+    // Skip ends the tutorial immediately — there is no account step anymore
+    // (the session is anonymous by default; sign-in lives on the paywall).
     await tester.tap(find.text('Pomiń'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-
-    expect(find.text('Jak chcesz zacząć?'), findsOneWidget);
-    expect(find.text('Zacznij anonimowo'), findsOneWidget);
-    expect(find.text('Zaloguj / Załóż konto'), findsOneWidget);
-
-    // Choosing anonymous records that onboarding is done and reveals the app.
-    await tester.tap(find.text('Zacznij anonimowo'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
@@ -185,6 +178,28 @@ void main() {
     );
   });
 
+  testWidgets('Auth sheet is sign-in only before PRO (no register tab)', (
+    WidgetTester tester,
+  ) async {
+    // Registration is a post-purchase feature: a non-premium session (the hard
+    // paywall's sign-in link) must not offer account creation at all.
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sessionProvider.overrideWith(() => FakeSession(guestSession())),
+        ],
+        child: const LocalizedTestApp(home: AuthScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('ZAŁÓŻ KONTO'), findsNothing);
+    expect(find.text('ZALOGUJ SIĘ'), findsNothing); // no tab bar at all
+    expect(find.text('Zaloguj się'), findsOneWidget); // the sign-in CTA stays
+    // Social sign-in stays available — existing Google users have no password.
+    expect(find.text('Kontynuuj z Google'), findsOneWidget);
+  });
+
   testWidgets('Settings screen renders the profile hub', (
     WidgetTester tester,
   ) async {
@@ -200,10 +215,11 @@ void main() {
     expect(find.text('USTAWIENIA APLIKACJI'), findsOneWidget);
     expect(find.text('KONTO'), findsOneWidget);
     expect(find.text('Przypomnienia'), findsOneWidget);
-    // Mock mode resolves to a guest, free session: the secure-account action
-    // leads the page, right under the guest-session header.
+    // Mock mode resolves to a PREMIUM guest (the hard paywall would otherwise
+    // wall off keyless development), so the account card shows the premium row
+    // and the secure-account action leads the page.
     expect(find.text('Sesja gościa'), findsOneWidget);
-    expect(find.text('Przejdź na Premium'), findsOneWidget);
+    expect(find.text('Premium aktywne'), findsOneWidget);
     expect(find.text('Zabezpiecz konto'), findsOneWidget);
   });
 

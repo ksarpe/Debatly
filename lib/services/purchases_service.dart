@@ -23,8 +23,10 @@ enum PremiumStore {
 /// A read-only snapshot of the user's premium subscription, distilled from the
 /// RevenueCat `EntitlementInfo` into just what the Manage-subscription UI needs.
 ///
-/// [willRenew] is the cancellation signal: `false` means the user has already
-/// turned off auto-renew (in the store) but keeps premium until [expirationDate].
+/// [willRenew] alone is NOT the cancellation signal: RevenueCat reports `false`
+/// both for a subscription the user turned off and for an entitlement that never
+/// renews in the first place (a lifetime purchase, a permanent promo grant).
+/// [expirationDate] is what separates them — see [isCancelled] / [isLifetime].
 @immutable
 class PremiumStatus {
   const PremiumStatus({
@@ -47,8 +49,19 @@ class PremiumStatus {
   /// build one (e.g. promotional entitlements).
   final String? managementUrl;
 
+  /// An entitlement that simply never ends: a lifetime (non-consumable)
+  /// purchase or a permanent promotional grant. There is no renewal to manage
+  /// and nothing to cancel, so the manage sheet must not send these users to
+  /// the store's Subscriptions screen.
+  bool get isLifetime => isActive && !willRenew && expirationDate == null;
+
   /// The user has cancelled but is still inside their paid period.
-  bool get isCancelled => isActive && !willRenew;
+  ///
+  /// The expiry check is load-bearing: a lifetime purchase also reports
+  /// `willRenew: false`, so without it the plan the paywall preselects and
+  /// pitches as "one payment — forever" would greet its buyers with
+  /// "Cancelled — won't renew".
+  bool get isCancelled => isActive && !willRenew && expirationDate != null;
 }
 
 /// Wrapper around RevenueCat (`purchases_flutter`).
@@ -65,6 +78,11 @@ class PurchasesService {
 
   static bool _configured = false;
 
+  /// Whether RevenueCat was actually configured this run. False in mock /
+  /// keyless development, where nothing can be bought or restored — the
+  /// session layer uses this to decide the app is running against mock data.
+  static bool get isConfigured => _configured;
+
   static Future<void> initialise() async {
     if (!isUsableKey(AppConfig.revenueCatApiKey)) {
       debugPrint(
@@ -75,7 +93,7 @@ class PurchasesService {
       return;
     }
 
-    // Degrade gracefully like SupabaseService / AdsService: a bad key must not
+    // Degrade gracefully like SupabaseService: a bad key must not
     // abort app launch. RevenueCat's native SDK ABORTS THE PROCESS on an invalid
     // key ("app will close now to protect the security"), so we both pre-screen
     // obvious placeholders in [isUsableKey] and guard the configure call here.

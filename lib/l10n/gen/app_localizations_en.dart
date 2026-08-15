@@ -36,6 +36,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noPreviousPurchase => 'No previous purchase found.';
 
   @override
+  String get purchaseSyncPending =>
+      'Your purchase went through, but we couldn\'t confirm it yet. Try “Restore purchase” in a moment.';
+
+  @override
   String get restoreSignInTitle => 'Restore purchase?';
 
   @override
@@ -410,13 +414,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your Premium status, handled through the App Store or Google Play. We never see your card details.';
 
   @override
-  String get privacyDataAdsTitle => 'Ads';
-
-  @override
-  String get privacyDataAdsBody =>
-      'Free users see ads via Google AdMob, which may use device identifiers. Premium removes ads entirely.';
-
-  @override
   String get settingsPremiumActiveToast => 'Premium active. 🎉';
 
   @override
@@ -427,6 +424,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get manageSubStatusCancelled => 'Cancelled — won\'t renew';
+
+  @override
+  String get manageSubStatusLifetime => 'Lifetime access';
+
+  @override
+  String get manageSubNoteLifetime =>
+      'This was a one-time purchase — there is no subscription to cancel. Premium stays on this account forever.';
+
+  @override
+  String get manageSubClose => 'Close';
 
   @override
   String manageSubRenewsOn(String date) {
@@ -605,13 +612,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get streakTooltip => 'Your streak';
 
   @override
-  String get freeUnlockTooltip => 'Free unlock';
-
-  @override
-  String get freeUnlockExplain =>
-      'You have one free unlock — swipe to the next question and it unlocks automatically.';
-
-  @override
   String get newQuestionBadge => 'New';
 
   @override
@@ -628,53 +628,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voteFailed => 'Could not record your vote.';
 
   @override
-  String get revealFailed =>
-      'Couldn\'t reveal the question — please try again.';
-
-  @override
-  String get adLoading => 'The ad is still loading — try again in a moment.';
-
-  @override
-  String get adNoReward => 'No reward — watch the whole video to unlock.';
-
-  @override
   String get noConnection => 'No connection — try again in a moment.';
 
   @override
-  String get noMoreTitle => 'That\'s all the questions for now';
-
-  @override
-  String get noMoreBody =>
-      'Come back tomorrow for new questions — or go PRO to read without limits.';
-
-  @override
   String get backToLatestQuestion => 'Back to the latest question';
-
-  @override
-  String get nextQuestionWaiting => 'The next question is waiting';
-
-  @override
-  String get adLimitReachedInfo =>
-      'Today\'s free unlocks are used up. Come back tomorrow — or unlock everything with PRO.';
-
-  @override
-  String get adLimitReachedToast => 'You\'ve hit today\'s ad unlock limit.';
-
-  @override
-  String adLimitResetInHM(int hours, int minutes) {
-    return 'New unlocks in $hours hr $minutes min';
-  }
-
-  @override
-  String adLimitResetInM(int minutes) {
-    return 'New unlocks in $minutes min';
-  }
-
-  @override
-  String get orSignInFreeQuestion => 'Or sign in to get one free question.';
-
-  @override
-  String get unlockWithAd => 'Unlock with an ad';
 
   @override
   String get proActiveTitle => 'PRO active 🎉';
@@ -834,18 +791,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingTasteSmaczek1 =>
-      'You already pay extra for a heavier suitcase.';
+      'You already pay extra for a few kilos of luggage.';
 
   @override
   String get onboardingTasteSmaczek2 =>
-      'And what about the comfort of the person in the next seat?';
+      'What about the person squeezed next to you? Same fare, worse seat.';
 
   @override
   String get onboardingTasteSmaczek3 =>
-      'How would you check? Some kind of gate before boarding?';
+      'And how would you check who pays? A gate scale before boarding?';
 
   @override
-  String get onboardingTasteRead => 'Got it!';
+  String get onboardingTasteSmaczek4 =>
+      'What about people whose weight comes from illness? Punished for life?';
+
+  @override
+  String get onboardingTasteRead => 'Okay, let me vote!';
 
   @override
   String get onboardingTasteRevoteKicker => 'VOTE AGAIN';
@@ -854,24 +815,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingTasteContinue => 'Continue';
 
   @override
-  String get onboardingChoiceTitle => 'How do you want to start?';
+  String get onboardingTasteNextTitle => 'Let\'s try another one…';
 
   @override
-  String get onboardingChoiceBody =>
-      'You can sign in anytime later from settings.';
+  String get onboardingTasteQuestion2 =>
+      'Should you tell a new partner exactly how many people you\'ve slept with?';
 
   @override
-  String get onboardingSignInCta => 'Sign in / Sign up';
+  String get onboardingTasteSureTitle => 'Are you sure though?';
 
   @override
-  String get onboardingSignInHint =>
-      'Streak, favourites and vote history — on every device';
+  String get onboardingTasteQ2Smaczek1 =>
+      'There\'s no argument only if your numbers happen to match.';
 
   @override
-  String get onboardingStartAnon => 'Start anonymously';
+  String get onboardingTasteQ2Smaczek2 =>
+      'Once you know, will it stop bugging you? Will it stop bugging them?';
 
   @override
-  String get onboardingStartAnonHint => 'Quick start, no account needed';
+  String get onboardingTasteQ2Smaczek3 =>
+      'If the number isn\'t 100, what does it actually change?';
+
+  @override
+  String get onboardingTasteQ2Smaczek4 =>
+      'And if it is 100 — would you rather know, or rather tell?';
+
+  @override
+  String get onboardingCatalogTitle => 'And we\'ve got 500+ more like these';
+
+  @override
+  String get onboardingCatalogBody =>
+      'Every single one with vote results from the whole world. Cast your vote and find out whether you think like the majority — or the whole world has it wrong. And each question comes with arguments that can change your mind.';
+
+  @override
+  String get onboardingCatalogPerfectFor => 'PERFECT FOR';
+
+  @override
+  String get onboardingCatalogUse1 => 'dates';
+
+  @override
+  String get onboardingCatalogUse2 => 'get-togethers with friends';
+
+  @override
+  String get onboardingCatalogUse3 => 'evenings for two';
+
+  @override
+  String get onboardingCatalogUse4 => 'talks around the family table';
 
   @override
   String get onboardingNotifyTitle => 'Tomorrow\'s question is waiting';
@@ -894,11 +883,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paywallTitle => 'Unlock every question and vote';
 
   @override
-  String get paywallTitleReadingLimit => 'Keep reading — no limits, no waiting';
+  String get paywallTitleHardWall => 'See how the whole world voted';
 
   @override
-  String get paywallTitleAdLimit =>
-      'Don\'t wait until tomorrow — unlock everything';
+  String get paywallSubtitleHardWall =>
+      '500+ questions that split the room — and every argument you need to defend your take.';
 
   @override
   String get paywallTitleSmaczki => 'Unlock every argument, for every question';
@@ -910,25 +899,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paywallTitleHistory => 'Every vote you\'ve cast, in one place';
 
   @override
-  String get paywallBenefitUnlimitedTitle => 'Unlimited questions';
+  String get paywallWhatYouGet => 'EVERYTHING YOU GET';
+
+  @override
+  String get paywallBenefitUnlimitedTitle => 'The full 500+ question catalog';
 
   @override
   String get paywallBenefitUnlimitedBody =>
-      'Browse the whole library of 500+ questions — no daily limits, no waiting.';
+      'Every divisive question at your fingertips — no limits, no waiting.';
 
   @override
-  String get paywallBenefitNoAdsTitle => 'Zero ads';
+  String get paywallBenefitOfflineTitle => 'Works offline';
 
   @override
-  String get paywallBenefitNoAdsBody =>
-      'No rewarded ads, no interruptions — just the next question.';
+  String get paywallBenefitOfflineBody =>
+      'Download the whole catalog and keep reading with no connection.';
 
   @override
-  String get paywallBenefitSmaczkiTitle => 'Arguments for every question';
+  String get paywallBenefitSmaczkiTitle => 'Arguments FOR and AGAINST';
 
   @override
   String get paywallBenefitSmaczkiBody =>
-      'Unlock all the talking points that deepen the conversation.';
+      'Talking points for every question — ammunition so you never lose a debate.';
+
+  @override
+  String get paywallBenefitSplitTitle => 'Votes from around the world';
+
+  @override
+  String get paywallBenefitSplitBody =>
+      'After every vote, see how the whole world split — how many think like you, and how many don\'t.';
+
+  @override
+  String get paywallBenefitFreshTitle => 'Dozens of new questions';
+
+  @override
+  String get paywallBenefitFreshBody =>
+      'The catalog keeps growing — we add fresh questions all the time.';
+
+  @override
+  String get paywallBenefitStreakTitle => 'Streaks & ranks';
+
+  @override
+  String get paywallBenefitStreakBody =>
+      'Vote daily, keep your streak alive and climb the rank ladder.';
 
   @override
   String get paywallBenefitFavoritesTitle => 'Favorites & voting history';
@@ -936,6 +949,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get paywallBenefitFavoritesBody =>
       'Save the best questions and look back at every vote you\'ve cast.';
+
+  @override
+  String get paywallSignInLink => 'Sign in';
 
   @override
   String get paywallLifetime => 'Lifetime';
@@ -973,7 +989,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paywallLifetimeNote => 'One-time payment — yours forever';
 
   @override
-  String get paywallSubscriptionNote => 'No commitment, cancel anytime';
+  String get paywallSubscriptionNote =>
+      'Auto-renews until cancelled — cancel anytime';
 
   @override
   String get paywallLoadError =>

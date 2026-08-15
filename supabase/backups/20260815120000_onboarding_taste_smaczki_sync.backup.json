@@ -1,0 +1,50 @@
+[
+  {
+    "question_id": "8b54aec1-b9a0-41b7-9a2d-766d886cfe50",
+    "question_pl": "Czy osoby otyłe powinny płacić za dwa miejsca w samolocie?",
+    "position": 1,
+    "smaczek_id": "8fb13235-587f-4743-9949-9982110c1c8f",
+    "pl": "Dopłaciłbyś do szerszych foteli dla wszystkich?",
+    "en": "Would you chip in for wider seats for everyone?"
+  },
+  {
+    "question_id": "8b54aec1-b9a0-41b7-9a2d-766d886cfe50",
+    "question_pl": "Czy osoby otyłe powinny płacić za dwa miejsca w samolocie?",
+    "position": 2,
+    "smaczek_id": "04099a4b-6c1f-43c0-9ba4-b724f53639ee",
+    "pl": "Twoja walizka waży mniej, a płacisz za nią osobno",
+    "en": "Your suitcase weighs less and you pay for it separately"
+  },
+  {
+    "question_id": "8b54aec1-b9a0-41b7-9a2d-766d886cfe50",
+    "question_pl": "Czy osoby otyłe powinny płacić za dwa miejsca w samolocie?",
+    "position": 3,
+    "smaczek_id": "8b683146-d982-4b84-adba-2243be536e26",
+    "pl": "Nie chodzi o wagę, tylko o to, kto siedzi obok ciebie",
+    "en": "This is not about weight, it is about who sits next to you"
+  },
+  {
+    "question_id": "ad75972d-1304-4058-b237-cddd2714eded",
+    "question_pl": "Czy powinieneś mówić nowemu partnerowi, z iloma osobami spałeś?",
+    "position": 1,
+    "smaczek_id": "af1ca4fa-5ebc-46df-a43a-57a8931d2bda",
+    "pl": "Powiesz liczbę i on zacznie liczyć, kto to był",
+    "en": "Give the number and they'll start counting who they were"
+  },
+  {
+    "question_id": "ad75972d-1304-4058-b237-cddd2714eded",
+    "question_pl": "Czy powinieneś mówić nowemu partnerowi, z iloma osobami spałeś?",
+    "position": 2,
+    "smaczek_id": "5236a623-f996-42c3-a577-d95f0072a158",
+    "pl": "Zapytasz go o jego liczbę? I co z nią zrobisz?",
+    "en": "Will you ask for their number? And then what?"
+  },
+  {
+    "question_id": "ad75972d-1304-4058-b237-cddd2714eded",
+    "question_pl": "Czy powinieneś mówić nowemu partnerowi, z iloma osobami spałeś?",
+    "position": 3,
+    "smaczek_id": "fec4f12b-e640-4c89-bca7-307ada96f6d6",
+    "pl": "Zapytałbyś, gdybyś wiedział, że odpowiedź zaboli?",
+    "en": "Would you ask if you knew the answer would hurt?"
+  }
+]

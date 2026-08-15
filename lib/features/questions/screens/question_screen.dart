@@ -6,7 +6,6 @@ import '../../../core/network/connectivity_providers.dart';
 import '../../../services/question_cache.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/providers/stats_providers.dart';
-import '../../monetization/providers/monetization_providers.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../providers/question_providers.dart';
 import '../widgets/favorite_star_button.dart';
@@ -24,17 +23,9 @@ class QuestionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Kick off silent anonymous auth + entitlement loading at launch, and start
-    // pre-loading a rewarded ad so the unlock sheet is responsive the first time
-    // a free user is gated. Reading them here is enough to instantiate them; the
-    // daily question every user opens to is free.
+    // Keep the session warm (the home gate already resolved it) and sync the
+    // user's engagement state — the streak chip and rank ride on it.
     ref.watch(sessionProvider);
-    ref.watch(rewardedAdServiceProvider);
-
-    // Sync the user's engagement state once the session resolves. This drives
-    // the streak + free-unlock chips AND performs today's free-credit top-up
-    // (server-side, once per UTC day) — the replacement for the old random
-    // bonus claim. Premium users get no credit; guests are signed in too.
     ref.watch(userStatsProvider);
 
     // When the signed-in identity changes (log in / log out / account switch),
@@ -56,21 +47,19 @@ class QuestionScreen extends ConsumerWidget {
       ref.invalidate(todaysDailyQuestionProvider);
       ref.invalidate(dailyVoteStateProvider);
       ref.invalidate(smaczkiProvider);
-      // Revealed questions are per-identity and held only in memory — drop them
-      // and snap back to the daily so a new user never inherits the previous
-      // user's feed.
-      ref.read(revealedFeedProvider.notifier).clear();
+      // Snap back to the daily so a new user never inherits the previous
+      // user's position in the deck.
       ref.read(questionIndexProvider.notifier).toDaily();
       ref.read(furthestIndexProvider.notifier).reset();
     });
 
-    // Premium walks the whole catalog, so record each question it lands on in the
-    // seen-memory — that's what lets the next launch surface UNSEEN questions
-    // first instead of looping the same ones forever. Free users only ever reach
-    // the daily + their reveals (both recorded server-side already), so this is
-    // premium-only; the daily is also skipped here (get_daily_question records
-    // it). Fire-and-forget: the repo swallows errors, and we deliberately do NOT
-    // refetch the pool, so the current session's deck order stays put.
+    // Record each question the user lands on in the seen-memory — that's what
+    // lets the next launch surface UNSEEN questions first instead of looping
+    // the same ones forever. Premium-guarded for the lapse edge (the gate
+    // swaps the feed out on the next frame); the daily is skipped here
+    // (get_daily_question records it). Fire-and-forget: the repo swallows
+    // errors, and we deliberately do NOT refetch the pool, so the current
+    // session's deck order stays put.
     ref.listen(currentQuestionProvider, (prev, next) {
       if (next == null || next.isLocked == true) return;
       if (prev?.id == next.id) return;
@@ -134,9 +123,7 @@ class QuestionScreen extends ConsumerWidget {
     final deck = ref.watch(questionDeckProvider);
 
     // The question currently on screen drives the top-left favorite star: it
-    // saves THIS question. Premium fills it; a free user's tap opens the paywall
-    // (favorites are premium). Hidden when there's nothing readable to save (the
-    // free reveal slot).
+    // saves THIS question. Hidden while the deck is still loading.
     final current = ref.watch(currentQuestionProvider);
 
     return Scaffold(
@@ -144,10 +131,9 @@ class QuestionScreen extends ConsumerWidget {
       // true midpoint; the (transparent) app bar floats over the top.
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        // Status cluster centred at the top. The streak flame shows for everyone
-        // — guests vote and build a streak on their anonymous identity too (the
-        // account nudge, not a hidden chip, is what argues for signing in); the
-        // free-unlock chip self-hides off the daily / for guests.
+        // Status cluster centred at the top: the streak flame (guests build a
+        // streak on their anonymous identity too — the account nudge, not a
+        // hidden chip, is what argues for signing in).
         automaticallyImplyLeading: false,
         // The offline strip rides in the app bar's `bottom` slot so it grows the
         // bar when offline and reserves no space when connected (rather than
@@ -160,10 +146,7 @@ class QuestionScreen extends ConsumerWidget {
               )
             : null,
         centerTitle: true,
-        title: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [StreakChip(), FreeUnlockChip()],
-        ),
+        title: const StreakChip(),
         // Top-right action: the person icon opens the profile hub for everyone.
         // A guest has a profile too (streak, rank, preferences ride the
         // anonymous identity); securing the account is a clearly-labelled

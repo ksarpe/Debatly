@@ -1,7 +1,6 @@
 import 'package:debatly/core/locale/app_locale.dart';
 import 'package:debatly/data/models/question.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
-import 'package:debatly/features/account/providers/stats_providers.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/widgets/question_body.dart';
 import 'package:debatly/features/questions/widgets/wind_question_view.dart';
@@ -40,7 +39,6 @@ void main() {
         questionsProvider.overrideWith((ref) async => pool),
         todaysDailyQuestionProvider.overrideWith((ref) async => daily),
         isPremiumProvider.overrideWithValue(true),
-        freeUnlockCreditsProvider.overrideWithValue(0),
         deckShuffleSeedProvider.overrideWithValue(1),
       ],
     );

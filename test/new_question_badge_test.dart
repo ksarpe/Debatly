@@ -3,7 +3,6 @@ import 'package:debatly/data/models/question.dart';
 import 'package:debatly/data/models/vote_result.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
-import 'package:debatly/features/account/providers/stats_providers.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/widgets/new_question_badge.dart';
 import 'package:debatly/features/questions/widgets/question_body.dart';
@@ -34,7 +33,6 @@ void main() {
         questionsProvider.overrideWith((ref) async => [daily]),
         todaysDailyQuestionProvider.overrideWith((ref) async => daily),
         isPremiumProvider.overrideWithValue(true),
-        freeUnlockCreditsProvider.overrideWithValue(0),
         deckShuffleSeedProvider.overrideWithValue(1),
         sessionProvider.overrideWith(_FakeSession.new),
         questionRepositoryProvider.overrideWithValue(

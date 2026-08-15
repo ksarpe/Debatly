@@ -125,70 +125,6 @@ void main() {
     );
   });
 
-  group('peekNextQuestion', () {
-    test('coerces a numeric id to String and reads the teaser', () async {
-      final peek = await repo('''
-        [{"id": 77, "teaser": "Czy sztuczna"}]
-      ''').peekNextQuestion();
-
-      expect(capturedUrl.path, endsWith('/rpc/peek_next_question'));
-      expect(capturedBody['p_locale'], 'pl');
-      expect(peek, isNotNull);
-      expect(peek!.id, '77');
-      expect(peek.teaser, 'Czy sztuczna');
-    });
-
-    test('returns null when nothing is left to tease', () async {
-      expect(await repo('[]').peekNextQuestion(), isNull);
-    });
-  });
-
-  group('revealAdQuestion', () {
-    test('unlocks the revealed row and forwards the requested id', () async {
-      final q = await repo('''
-        [{"id": "q9", "category": "ethics", "question_text": "Tekst?", "locked": true}]
-      ''').revealAdQuestion(questionId: 'q9');
-
-      expect(capturedUrl.path, endsWith('/rpc/reveal_ad_question'));
-      expect(capturedBody['p_question_id'], 'q9');
-      expect(q, isNotNull);
-      // Even if the row echoes `locked: true`, a reveal is forced unlocked.
-      expect(q!.isLocked, isFalse);
-      expect(q.questionText, 'Tekst?');
-    });
-
-    test(
-      'omits p_question_id entirely when none is passed (random pick)',
-      () async {
-        await repo('''
-        [{"id": "q1", "question_text": "X?"}]
-      ''').revealAdQuestion();
-        // The null-aware map element must DROP the key, not send an explicit null —
-        // the SQL function distinguishes "pick the teased one" from "pick any".
-        expect(capturedBody.containsKey('p_question_id'), isFalse);
-      },
-    );
-
-    test('returns null when nothing unseen is left', () async {
-      expect(await repo('[]').revealAdQuestion(), isNull);
-    });
-  });
-
-  group('revealFreeQuestion', () {
-    test(
-      'unlocks the row; returns null on an empty (no-charge) result',
-      () async {
-        final q = await repo('''
-        [{"id": "q3", "question_text": "Tekst?", "locked": true}]
-      ''').revealFreeQuestion();
-        expect(capturedUrl.path, endsWith('/rpc/reveal_free_question'));
-        expect(q!.isLocked, isFalse);
-
-        expect(await repo('[]').revealFreeQuestion(), isNull);
-      },
-    );
-  });
-
   group('syncUserState', () {
     test('maps the engagement row', () async {
       final stats = await repo('''
@@ -202,7 +138,6 @@ void main() {
       expect(capturedUrl.path, endsWith('/rpc/sync_user_state'));
       expect(stats, isNotNull);
       expect(stats!.currentStreak, 5);
-      expect(stats.freeUnlockCredits, 1);
       expect(stats.rankName, 'Podżegacz');
     });
 

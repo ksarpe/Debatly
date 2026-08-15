@@ -134,12 +134,6 @@ class PrivacyDataScreen extends StatelessWidget {
                             title: l10n.privacyDataPurchasesTitle,
                             body: l10n.privacyDataPurchasesBody,
                           ),
-                          const SettingsRowDivider(),
-                          _PrivacyDataRow(
-                            icon: Icons.campaign_outlined,
-                            title: l10n.privacyDataAdsTitle,
-                            body: l10n.privacyDataAdsBody,
-                          ),
                         ],
                       ),
                     ],

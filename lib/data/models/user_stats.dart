@@ -1,21 +1,19 @@
-/// The user's engagement state shown by the two top icons (streak + free
-/// unlocks) and the rank sheet.
+/// The user's engagement state shown by the streak chip and the rank sheet.
 ///
-/// Produced server-side by the `sync_user_state` RPC, which also performs the
-/// once-per-day free-credit top-up as a side effect. Everything here is the
-/// SERVER's view — the client never computes streak or credits itself, so the
-/// phone clock can't be used to game them.
+/// Produced server-side by the `sync_user_state` RPC. Everything here is the
+/// SERVER's view — the client never computes the streak itself, so the phone
+/// clock can't be used to game it. (The RPC still returns the legacy
+/// credit/ad-cap fields for older app versions; this client ignores them —
+/// the hard paywall has no free reveals.)
 class UserStats {
   const UserStats({
     required this.currentStreak,
     required this.longestStreak,
-    required this.freeUnlockCredits,
     required this.rankTier,
     required this.rankName,
     this.nextRankStreak,
     this.graceDaysLeft,
     this.isPremium = false,
-    this.adRevealsLeftToday,
   });
 
   /// Consecutive days the user voted on the daily. The server applies the streak
@@ -26,10 +24,6 @@ class UserStats {
 
   /// Best streak ever reached — shown as a secondary stat in the rank sheet.
   final int longestStreak;
-
-  /// Free unlock credits in the bank (0 or 1). Always 0 for premium users, who
-  /// don't use the credit system at all (everything is already readable).
-  final int freeUnlockCredits;
 
   /// Index of the current rank in the ladder (0 = the entry rank).
   final int rankTier;
@@ -47,18 +41,11 @@ class UserStats {
 
   final bool isPremium;
 
-  /// Ad reveals left before today's daily cap (server-enforced, UTC day).
-  /// Null = unknown: premium (never hits the ad wall), an old server without
-  /// the field, or a pre-sync/offline snapshot — the paywall then keeps the ad
-  /// button and lets the server be the judge.
-  final int? adRevealsLeftToday;
-
   factory UserStats.fromJson(Map<String, dynamic> json) {
     int asInt(Object? v) => v is int ? v : int.tryParse('$v') ?? 0;
     return UserStats(
       currentStreak: asInt(json['current_streak']),
       longestStreak: asInt(json['longest_streak']),
-      freeUnlockCredits: asInt(json['free_unlock_credits']),
       rankTier: asInt(json['rank_tier']),
       rankName: json['rank_name'] as String? ?? '',
       nextRankStreak: json['next_rank_streak'] == null
@@ -68,32 +55,26 @@ class UserStats {
           ? null
           : asInt(json['grace_days_left']),
       isPremium: json['is_premium'] as bool? ?? false,
-      adRevealsLeftToday: json['ad_reveals_left_today'] == null
-          ? null
-          : asInt(json['ad_reveals_left_today']),
     );
   }
 
   /// Mirrors the `sync_user_state` row shape so a cached snapshot round-trips
-  /// back through [UserStats.fromJson] — lets the streak / credit chips render
-  /// from the last sync while offline instead of resetting to [empty].
+  /// back through [UserStats.fromJson] — lets the streak chip render from the
+  /// last sync while offline instead of resetting to [empty].
   Map<String, dynamic> toJson() => {
     'current_streak': currentStreak,
     'longest_streak': longestStreak,
-    'free_unlock_credits': freeUnlockCredits,
     'rank_tier': rankTier,
     'rank_name': rankName,
     'next_rank_streak': nextRankStreak,
     'grace_days_left': graceDaysLeft,
     'is_premium': isPremium,
-    'ad_reveals_left_today': adRevealsLeftToday,
   };
 
   /// A zeroed state used as the offline/mock baseline and before the first sync.
   static const UserStats empty = UserStats(
     currentStreak: 0,
     longestStreak: 0,
-    freeUnlockCredits: 0,
     rankTier: 0,
     rankName: '',
     nextRankStreak: null,

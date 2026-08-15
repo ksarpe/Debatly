@@ -122,7 +122,6 @@ void main() {
     inner.stats = const UserStats(
       currentStreak: 4,
       longestStreak: 4,
-      freeUnlockCredits: 1,
       rankTier: 1,
       rankName: 'Prowokator',
     );
@@ -239,21 +238,6 @@ class _FakeRepo implements QuestionRepository {
   @override
   Future<List<Question>> fetchFavoriteQuestions() async =>
       _read(favoriteQuestions);
-
-  @override
-  Future<({String id, String teaser})?> peekNextQuestion({
-    List<String> excludeIds = const [],
-  }) => throw UnimplementedError();
-
-  @override
-  Future<Question?> revealAdQuestion({
-    String? questionId,
-    List<String> excludeIds = const [],
-  }) => throw UnimplementedError();
-
-  @override
-  Future<Question?> revealFreeQuestion({List<String> excludeIds = const []}) =>
-      throw UnimplementedError();
 
   @override
   Future<VoteResult> getDailyVoteState(String questionId) async =>

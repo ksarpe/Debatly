@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Required for Supabase, RevenueCat and AdMob network calls. -->
+    <!-- Required for Supabase and RevenueCat network calls. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Daily reminder (flutter_local_notifications). POST_NOTIFICATIONS is the
          Android 13+ runtime permission; RECEIVE_BOOT_COMPLETED lets the reminder
@@ -13,12 +13,6 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
-        <!-- Google AdMob application id (real, from the AdMob console — the
-             Android app's own id, distinct from the iOS one in Info.plist).
-             https://developers.google.com/admob/flutter/quick-start -->
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-7626099438648527~5813725144"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

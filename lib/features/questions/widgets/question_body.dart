@@ -47,10 +47,6 @@ class QuestionBody extends ConsumerWidget {
     // drives the analytics split in the vote panel.
     final isDaily = ref.watch(isShowingDailyProvider);
 
-    // The reveal slot renders the paywall / "no more questions" body, which
-    // brings its own CTAs — the swipe hint and "go deeper" pill don't apply.
-    final atRevealSlot = ref.watch(isAtRevealSlotProvider);
-
     // Whether the user has ever swiped forward. Until they have, a gentle
     // right-edge arrow nudges them to discover that the feed continues past the
     // daily — the swipe gesture isn't obvious from the faint text hint alone.
@@ -73,22 +69,21 @@ class QuestionBody extends ConsumerWidget {
 
     // The rows that sit under the question: the vote panel and the share /
     // history pills. Present on every readable question, absent on a locked
-    // teaser and on the reveal slot.
+    // teaser.
     final hasRows = isReadable && questionId != null;
 
     // The small "NOWE" pill over a question added within the freshness window
     // — pre-empts reading its thin vote count as disinterest. The provider is
-    // already false for locked teasers and the reveal slot (current == null).
+    // already false for locked teasers (current == null).
     final showNewBadge = ref.watch(currentQuestionIsNewProvider);
 
     // What the bottom overlay carries. The swipe hint and the "go deeper" pill
-    // belong to a readable question; the "back to the latest →" link (BOTH
-    // tiers) appears whenever back swipes have left the user behind the
-    // furthest question reached this session, so a run of back swipes is
-    // undone in one tap instead of re-swiped forward one by one. (Going the
-    // other way needs no link: a back swipe steps back one question at a time,
-    // paywall included.)
-    final showHintAndDeeper = hasRows && !atRevealSlot;
+    // belong to a readable question; the "back to the latest →" link appears
+    // whenever back swipes have left the user behind the furthest question
+    // reached this session, so a run of back swipes is undone in one tap
+    // instead of re-swiped forward one by one. (Going the other way needs no
+    // link: a back swipe already steps backwards.)
+    final showHintAndDeeper = hasRows;
     final showJumpToLatest = ref.watch(canJumpToLatestProvider);
     final showOverlay = showHintAndDeeper || showJumpToLatest;
 
@@ -122,7 +117,6 @@ class QuestionBody extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: _CentredGroup(
-                      atRevealSlot: atRevealSlot,
                       votePanelKey: hasRows
                           ? ValueKey('${userId ?? ''}:$questionId')
                           : null,
@@ -178,15 +172,12 @@ class QuestionBody extends ConsumerWidget {
 /// "restore purchase" used to become unreachable.
 class _CentredGroup extends StatelessWidget {
   const _CentredGroup({
-    required this.atRevealSlot,
     required this.votePanelKey,
     required this.questionId,
     required this.questionText,
     required this.isDaily,
     required this.showNewBadge,
   });
-
-  final bool atRevealSlot;
 
   /// Non-null exactly when the question is readable, i.e. when the vote panel
   /// and the pill row are part of the group. Keyed by (user, question) so the
@@ -213,65 +204,58 @@ class _CentredGroup extends StatelessWidget {
       child: Align(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: _kFeedMaxWidth),
-          child: atRevealSlot
-              // The reveal wall is a self-sizing column of CTAs (watch an ad, go
-              // PRO, restore, back to the daily), so it gets the intrinsic mode:
-              // it scrolls rather than spilling out of its box.
-              ? FitOrScroll(child: WindQuestionView(key: windQuestionViewKey))
-              : FitOrScroll(
-                  // The question flexes against a bounded box (it shrinks its
-                  // font to fit), so the floor keeps that box bounded once the
-                  // viewport itself is too small.
-                  minContentHeight: _minGroupHeight(context, withRows: hasRows),
-                  child: Column(
+          child: FitOrScroll(
+            // The question flexes against a bounded box (it shrinks its
+            // font to fit), so the floor keeps that box bounded once the
+            // viewport itself is too small.
+            minContentHeight: _minGroupHeight(context, withRows: hasRows),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // "NOWE" sits above the question, not inside the wind
+                // canvas, so the falling-words animation stays untouched
+                // — the pill just appears with the question it labels.
+                if (showNewBadge) ...[
+                  const NewQuestionBadge(),
+                  const SizedBox(height: 16),
+                ],
+                // The GlobalKey does double duty: it keeps the State
+                // stable across unrelated rebuilds (so the peeked teaser
+                // survives a sibling toggling), and it gives the
+                // full-screen gesture layer its handle into the swipe
+                // handlers.
+                //
+                // Flexible hands the leftover height to the text, which
+                // shrinks to fit — see QuestionTextStyles.fitFontSize.
+                Flexible(child: WindQuestionView(key: windQuestionViewKey)),
+                // Vote under EVERY readable question — casting reveals the
+                // community split, the feed's core hook, and any vote can
+                // move the streak (server: once per UTC day).
+                if (hasRows) ...[
+                  const SizedBox(height: 28),
+                  DailyVotePanel(
+                    key: votePanelKey,
+                    questionId: questionId!,
+                    isDaily: isDaily,
+                  ),
+                  // Share sits right under the question rather than as the
+                  // faint icon it used to be down in the bottom overlay,
+                  // paired with "Historia" — every question is votable
+                  // now, so the PRO voting record is one tap away
+                  // anywhere.
+                  const SizedBox(height: 24),
+                  Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // "NOWE" sits above the question, not inside the wind
-                      // canvas, so the falling-words animation stays untouched
-                      // — the pill just appears with the question it labels.
-                      if (showNewBadge) ...[
-                        const NewQuestionBadge(),
-                        const SizedBox(height: 16),
-                      ],
-                      // The GlobalKey does double duty: it keeps the State
-                      // stable across unrelated rebuilds (so the peeked teaser
-                      // survives a sibling toggling), and it gives the
-                      // full-screen gesture layer its handle into the swipe
-                      // handlers.
-                      //
-                      // Flexible hands the leftover height to the text, which
-                      // shrinks to fit — see QuestionTextStyles.fitFontSize.
-                      Flexible(
-                        child: WindQuestionView(key: windQuestionViewKey),
-                      ),
-                      // Vote under EVERY readable question — casting reveals the
-                      // community split, the feed's core hook, and any vote can
-                      // move the streak (server: once per UTC day).
-                      if (hasRows) ...[
-                        const SizedBox(height: 28),
-                        DailyVotePanel(
-                          key: votePanelKey,
-                          questionId: questionId!,
-                          isDaily: isDaily,
-                        ),
-                        // Share sits right under the question rather than as the
-                        // faint icon it used to be down in the bottom overlay,
-                        // paired with "Historia" — every question is votable
-                        // now, so the PRO voting record is one tap away
-                        // anywhere.
-                        const SizedBox(height: 24),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ShareQuestionButton(questionText: questionText!),
-                            const SizedBox(width: 12),
-                            const HistoryButton(),
-                          ],
-                        ),
-                      ],
+                      ShareQuestionButton(questionText: questionText!),
+                      const SizedBox(width: 12),
+                      const HistoryButton(),
                     ],
                   ),
-                ),
+                ],
+              ],
+            ),
+          ),
         ),
       ),
     );

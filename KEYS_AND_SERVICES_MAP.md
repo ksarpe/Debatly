@@ -158,7 +158,14 @@ flowchart TB
 | 🆔 OAuth **iOS** client id | Google Cloud → Credentials | URL scheme w `ios/Runner/Info.plist` **oraz** Supabase Authorized Client IDs |
 | 🆔 OAuth **Android** client (SHA-1 podpisu) | Google Cloud → Credentials | tylko rejestracja odcisku podpisu; nie trafia do kodu |
 
-### 📺 AdMob (jeden publisher: `7626099438648527`)
+### 📺 AdMob — **LEGACY (hard paywall, 2026-08)**
+
+> Aplikacja od rebuildu na twardy paywall **nie pokazuje żadnych reklam**:
+> `google_mobile_ads`, consent (UMP/ATT) i App ID w manifestach zostały
+> usunięte z klienta. Poniższa tabela i edge fn `admob-ssv` zostają wyłącznie
+> dla STARYCH wersji aplikacji w sklepach — nie kasuj SSV/ad unitów, dopóki
+> stare wersje żyją.
+
 | Artefakt | Wartość / gdzie | Dokąd idzie |
 | --- | --- | --- |
 | 🆔 App ID Android | `ca-app-pub-7626099438648527~5813725144` | `AndroidManifest.xml` (już wpisane ✅) |
@@ -196,7 +203,7 @@ flowchart TB
 | Artefakt | Wartość |
 | --- | --- |
 | Integracja `AppStoreConnect` | 📄 App Store Connect API Key `.p8` (App Manager) — nazwa **musi** = `codemagic.yaml` |
-| Grupa env `debatly_secrets` (każde jako Secure) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `REVENUECAT_API_KEY_IOS` (`appl_…`), `ADMOB_REWARDED_ID_IOS`, `GOOGLE_SERVER_CLIENT_ID`, `SENTRY_DSN` |
+| Grupa env `debatly_secrets` (każde jako Secure) | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `REVENUECAT_API_KEY_IOS` (`appl_…`), `GOOGLE_SERVER_CLIENT_ID`, `SENTRY_DSN` (`ADMOB_REWARDED_ID_IOS` — już nieużywany, można usunąć) |
 | Podpis | `ios_signing.bundle_identifier: com.aknsoftware.debatly` (Codemagic sam robi cert + profil) |
 
 ---
@@ -207,7 +214,7 @@ flowchart TB
 
 **B. Subskrypcja Android:** analogicznie, ale poświadczenie w RC to service-account `.json`, klucz publiczny to `goog_`, powiadomienia to RTDN zamiast ASN.
 
-**C. Reklama z nagrodą:** apka pokazuje rewarded unit z `userId = auth.uid()` → Google woła `admob-ssv` (weryfikuje podpis ECDSA, loguje) → apka wywołuje RPC `reveal_ad_question` (to on faktycznie odsłania pytanie).
+**C. Reklama z nagrodą (LEGACY — tylko stare wersje apki):** stara apka pokazuje rewarded unit z `userId = auth.uid()` → Google woła `admob-ssv` (weryfikuje podpis ECDSA, loguje) → apka wywołuje RPC `reveal_ad_question`. Nowy klient (hard paywall) w ogóle nie ma reklam.
 
 **D. Google sign-in:** Web client id (`GOOGLE_SERVER_CLIENT_ID`) → natywne logowanie zwraca ID token → Supabase go weryfikuje (Web **i** iOS client id muszą być w Authorized Client IDs).
 
@@ -219,15 +226,14 @@ flowchart TB
 
 **Klient (`--dart-define`, `lib/core/config/app_config.dart`, pliki `env/*.json`):**
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `GOOGLE_SERVER_CLIENT_ID`, `REVENUECAT_API_KEY`
-(`appl_`/`goog_` zależnie od platformy), `ADMOB_REWARDED_ID`, `ADMOB_TEST_DEVICE_IDS`,
-`SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_TRACES_SAMPLE_RATE`, `PRIVACY_POLICY_URL`,
+(`appl_`/`goog_` zależnie od platformy), `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_TRACES_SAMPLE_RATE`, `PRIVACY_POLICY_URL`,
 `TERMS_OF_SERVICE_URL`, `DELETE_ACCOUNT_URL`. Wzór: [env/example.json](env/example.json).
 
 **Serwer (Supabase secrets):** `REVENUECAT_WEBHOOK_SECRET`, `REVENUECAT_REST_API_KEY`,
 `PREMIUM_ENTITLEMENT` (opcjonalnie), plus auto `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_URL`.
 
-**Native (w repo, już wpisane):** AdMob App ID w `AndroidManifest.xml` i `Info.plist`;
-OAuth iOS URL scheme w `Info.plist`; `Runner.entitlements` (SIWA).
+**Native (w repo, już wpisane):** OAuth iOS URL scheme w `Info.plist`;
+`Runner.entitlements` (SIWA). (AdMob App ID usunięty z obu manifestów — brak reklam.)
 
 ---
 

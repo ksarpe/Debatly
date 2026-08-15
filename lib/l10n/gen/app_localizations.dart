@@ -152,6 +152,12 @@ abstract class AppLocalizations {
   /// **'No previous purchase found.'**
   String get noPreviousPurchase;
 
+  /// No description provided for @purchaseSyncPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Your purchase went through, but we couldn\'t confirm it yet. Try “Restore purchase” in a moment.'**
+  String get purchaseSyncPending;
+
   /// No description provided for @restoreSignInTitle.
   ///
   /// In en, this message translates to:
@@ -836,18 +842,6 @@ abstract class AppLocalizations {
   /// **'Your Premium status, handled through the App Store or Google Play. We never see your card details.'**
   String get privacyDataPurchasesBody;
 
-  /// No description provided for @privacyDataAdsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Ads'**
-  String get privacyDataAdsTitle;
-
-  /// No description provided for @privacyDataAdsBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Free users see ads via Google AdMob, which may use device identifiers. Premium removes ads entirely.'**
-  String get privacyDataAdsBody;
-
   /// No description provided for @settingsPremiumActiveToast.
   ///
   /// In en, this message translates to:
@@ -871,6 +865,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancelled — won\'t renew'**
   String get manageSubStatusCancelled;
+
+  /// No description provided for @manageSubStatusLifetime.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifetime access'**
+  String get manageSubStatusLifetime;
+
+  /// No description provided for @manageSubNoteLifetime.
+  ///
+  /// In en, this message translates to:
+  /// **'This was a one-time purchase — there is no subscription to cancel. Premium stays on this account forever.'**
+  String get manageSubNoteLifetime;
+
+  /// No description provided for @manageSubClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get manageSubClose;
 
   /// No description provided for @manageSubRenewsOn.
   ///
@@ -1160,18 +1172,6 @@ abstract class AppLocalizations {
   /// **'Your streak'**
   String get streakTooltip;
 
-  /// No description provided for @freeUnlockTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Free unlock'**
-  String get freeUnlockTooltip;
-
-  /// No description provided for @freeUnlockExplain.
-  ///
-  /// In en, this message translates to:
-  /// **'You have one free unlock — swipe to the next question and it unlocks automatically.'**
-  String get freeUnlockExplain;
-
   /// Small pill badge shown above a question added to the catalog within the last two weeks.
   ///
   /// In en, this message translates to:
@@ -1202,89 +1202,17 @@ abstract class AppLocalizations {
   /// **'Could not record your vote.'**
   String get voteFailed;
 
-  /// No description provided for @revealFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t reveal the question — please try again.'**
-  String get revealFailed;
-
-  /// No description provided for @adLoading.
-  ///
-  /// In en, this message translates to:
-  /// **'The ad is still loading — try again in a moment.'**
-  String get adLoading;
-
-  /// No description provided for @adNoReward.
-  ///
-  /// In en, this message translates to:
-  /// **'No reward — watch the whole video to unlock.'**
-  String get adNoReward;
-
   /// No description provided for @noConnection.
   ///
   /// In en, this message translates to:
   /// **'No connection — try again in a moment.'**
   String get noConnection;
 
-  /// No description provided for @noMoreTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'That\'s all the questions for now'**
-  String get noMoreTitle;
-
-  /// No description provided for @noMoreBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Come back tomorrow for new questions — or go PRO to read without limits.'**
-  String get noMoreBody;
-
   /// No description provided for @backToLatestQuestion.
   ///
   /// In en, this message translates to:
   /// **'Back to the latest question'**
   String get backToLatestQuestion;
-
-  /// No description provided for @nextQuestionWaiting.
-  ///
-  /// In en, this message translates to:
-  /// **'The next question is waiting'**
-  String get nextQuestionWaiting;
-
-  /// No description provided for @adLimitReachedInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s free unlocks are used up. Come back tomorrow — or unlock everything with PRO.'**
-  String get adLimitReachedInfo;
-
-  /// No description provided for @adLimitReachedToast.
-  ///
-  /// In en, this message translates to:
-  /// **'You\'ve hit today\'s ad unlock limit.'**
-  String get adLimitReachedToast;
-
-  /// No description provided for @adLimitResetInHM.
-  ///
-  /// In en, this message translates to:
-  /// **'New unlocks in {hours} hr {minutes} min'**
-  String adLimitResetInHM(int hours, int minutes);
-
-  /// No description provided for @adLimitResetInM.
-  ///
-  /// In en, this message translates to:
-  /// **'New unlocks in {minutes} min'**
-  String adLimitResetInM(int minutes);
-
-  /// No description provided for @orSignInFreeQuestion.
-  ///
-  /// In en, this message translates to:
-  /// **'Or sign in to get one free question.'**
-  String get orSignInFreeQuestion;
-
-  /// No description provided for @unlockWithAd.
-  ///
-  /// In en, this message translates to:
-  /// **'Unlock with an ad'**
-  String get unlockWithAd;
 
   /// No description provided for @proActiveTitle.
   ///
@@ -1481,25 +1409,31 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingTasteSmaczek1.
   ///
   /// In en, this message translates to:
-  /// **'You already pay extra for a heavier suitcase.'**
+  /// **'You already pay extra for a few kilos of luggage.'**
   String get onboardingTasteSmaczek1;
 
   /// No description provided for @onboardingTasteSmaczek2.
   ///
   /// In en, this message translates to:
-  /// **'And what about the comfort of the person in the next seat?'**
+  /// **'What about the person squeezed next to you? Same fare, worse seat.'**
   String get onboardingTasteSmaczek2;
 
   /// No description provided for @onboardingTasteSmaczek3.
   ///
   /// In en, this message translates to:
-  /// **'How would you check? Some kind of gate before boarding?'**
+  /// **'And how would you check who pays? A gate scale before boarding?'**
   String get onboardingTasteSmaczek3;
+
+  /// No description provided for @onboardingTasteSmaczek4.
+  ///
+  /// In en, this message translates to:
+  /// **'What about people whose weight comes from illness? Punished for life?'**
+  String get onboardingTasteSmaczek4;
 
   /// No description provided for @onboardingTasteRead.
   ///
   /// In en, this message translates to:
-  /// **'Got it!'**
+  /// **'Okay, let me vote!'**
   String get onboardingTasteRead;
 
   /// No description provided for @onboardingTasteRevoteKicker.
@@ -1514,41 +1448,89 @@ abstract class AppLocalizations {
   /// **'Continue'**
   String get onboardingTasteContinue;
 
-  /// No description provided for @onboardingChoiceTitle.
+  /// No description provided for @onboardingTasteNextTitle.
   ///
   /// In en, this message translates to:
-  /// **'How do you want to start?'**
-  String get onboardingChoiceTitle;
+  /// **'Let\'s try another one…'**
+  String get onboardingTasteNextTitle;
 
-  /// No description provided for @onboardingChoiceBody.
+  /// No description provided for @onboardingTasteQuestion2.
   ///
   /// In en, this message translates to:
-  /// **'You can sign in anytime later from settings.'**
-  String get onboardingChoiceBody;
+  /// **'Should you tell a new partner exactly how many people you\'ve slept with?'**
+  String get onboardingTasteQuestion2;
 
-  /// No description provided for @onboardingSignInCta.
+  /// No description provided for @onboardingTasteSureTitle.
   ///
   /// In en, this message translates to:
-  /// **'Sign in / Sign up'**
-  String get onboardingSignInCta;
+  /// **'Are you sure though?'**
+  String get onboardingTasteSureTitle;
 
-  /// No description provided for @onboardingSignInHint.
+  /// No description provided for @onboardingTasteQ2Smaczek1.
   ///
   /// In en, this message translates to:
-  /// **'Streak, favourites and vote history — on every device'**
-  String get onboardingSignInHint;
+  /// **'There\'s no argument only if your numbers happen to match.'**
+  String get onboardingTasteQ2Smaczek1;
 
-  /// No description provided for @onboardingStartAnon.
+  /// No description provided for @onboardingTasteQ2Smaczek2.
   ///
   /// In en, this message translates to:
-  /// **'Start anonymously'**
-  String get onboardingStartAnon;
+  /// **'Once you know, will it stop bugging you? Will it stop bugging them?'**
+  String get onboardingTasteQ2Smaczek2;
 
-  /// No description provided for @onboardingStartAnonHint.
+  /// No description provided for @onboardingTasteQ2Smaczek3.
   ///
   /// In en, this message translates to:
-  /// **'Quick start, no account needed'**
-  String get onboardingStartAnonHint;
+  /// **'If the number isn\'t 100, what does it actually change?'**
+  String get onboardingTasteQ2Smaczek3;
+
+  /// No description provided for @onboardingTasteQ2Smaczek4.
+  ///
+  /// In en, this message translates to:
+  /// **'And if it is 100 — would you rather know, or rather tell?'**
+  String get onboardingTasteQ2Smaczek4;
+
+  /// No description provided for @onboardingCatalogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'And we\'ve got 500+ more like these'**
+  String get onboardingCatalogTitle;
+
+  /// No description provided for @onboardingCatalogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Every single one with vote results from the whole world. Cast your vote and find out whether you think like the majority — or the whole world has it wrong. And each question comes with arguments that can change your mind.'**
+  String get onboardingCatalogBody;
+
+  /// No description provided for @onboardingCatalogPerfectFor.
+  ///
+  /// In en, this message translates to:
+  /// **'PERFECT FOR'**
+  String get onboardingCatalogPerfectFor;
+
+  /// No description provided for @onboardingCatalogUse1.
+  ///
+  /// In en, this message translates to:
+  /// **'dates'**
+  String get onboardingCatalogUse1;
+
+  /// No description provided for @onboardingCatalogUse2.
+  ///
+  /// In en, this message translates to:
+  /// **'get-togethers with friends'**
+  String get onboardingCatalogUse2;
+
+  /// No description provided for @onboardingCatalogUse3.
+  ///
+  /// In en, this message translates to:
+  /// **'evenings for two'**
+  String get onboardingCatalogUse3;
+
+  /// No description provided for @onboardingCatalogUse4.
+  ///
+  /// In en, this message translates to:
+  /// **'talks around the family table'**
+  String get onboardingCatalogUse4;
 
   /// No description provided for @onboardingNotifyTitle.
   ///
@@ -1586,17 +1568,17 @@ abstract class AppLocalizations {
   /// **'Unlock every question and vote'**
   String get paywallTitle;
 
-  /// No description provided for @paywallTitleReadingLimit.
+  /// Headline of the full-screen hard paywall every non-PRO user lands on after onboarding.
   ///
   /// In en, this message translates to:
-  /// **'Keep reading — no limits, no waiting'**
-  String get paywallTitleReadingLimit;
+  /// **'See how the whole world voted'**
+  String get paywallTitleHardWall;
 
-  /// No description provided for @paywallTitleAdLimit.
+  /// Hook line under the hard-paywall headline, teasing the catalog and the arguments.
   ///
   /// In en, this message translates to:
-  /// **'Don\'t wait until tomorrow — unlock everything'**
-  String get paywallTitleAdLimit;
+  /// **'500+ questions that split the room — and every argument you need to defend your take.'**
+  String get paywallSubtitleHardWall;
 
   /// No description provided for @paywallTitleSmaczki.
   ///
@@ -1616,41 +1598,83 @@ abstract class AppLocalizations {
   /// **'Every vote you\'ve cast, in one place'**
   String get paywallTitleHistory;
 
+  /// Uppercase section header above the paywall benefit list.
+  ///
+  /// In en, this message translates to:
+  /// **'EVERYTHING YOU GET'**
+  String get paywallWhatYouGet;
+
   /// No description provided for @paywallBenefitUnlimitedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Unlimited questions'**
+  /// **'The full 500+ question catalog'**
   String get paywallBenefitUnlimitedTitle;
 
   /// No description provided for @paywallBenefitUnlimitedBody.
   ///
   /// In en, this message translates to:
-  /// **'Browse the whole library of 500+ questions — no daily limits, no waiting.'**
+  /// **'Every divisive question at your fingertips — no limits, no waiting.'**
   String get paywallBenefitUnlimitedBody;
 
-  /// No description provided for @paywallBenefitNoAdsTitle.
+  /// No description provided for @paywallBenefitOfflineTitle.
   ///
   /// In en, this message translates to:
-  /// **'Zero ads'**
-  String get paywallBenefitNoAdsTitle;
+  /// **'Works offline'**
+  String get paywallBenefitOfflineTitle;
 
-  /// No description provided for @paywallBenefitNoAdsBody.
+  /// No description provided for @paywallBenefitOfflineBody.
   ///
   /// In en, this message translates to:
-  /// **'No rewarded ads, no interruptions — just the next question.'**
-  String get paywallBenefitNoAdsBody;
+  /// **'Download the whole catalog and keep reading with no connection.'**
+  String get paywallBenefitOfflineBody;
 
   /// No description provided for @paywallBenefitSmaczkiTitle.
   ///
   /// In en, this message translates to:
-  /// **'Arguments for every question'**
+  /// **'Arguments FOR and AGAINST'**
   String get paywallBenefitSmaczkiTitle;
 
   /// No description provided for @paywallBenefitSmaczkiBody.
   ///
   /// In en, this message translates to:
-  /// **'Unlock all the talking points that deepen the conversation.'**
+  /// **'Talking points for every question — ammunition so you never lose a debate.'**
   String get paywallBenefitSmaczkiBody;
+
+  /// No description provided for @paywallBenefitSplitTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Votes from around the world'**
+  String get paywallBenefitSplitTitle;
+
+  /// No description provided for @paywallBenefitSplitBody.
+  ///
+  /// In en, this message translates to:
+  /// **'After every vote, see how the whole world split — how many think like you, and how many don\'t.'**
+  String get paywallBenefitSplitBody;
+
+  /// No description provided for @paywallBenefitFreshTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dozens of new questions'**
+  String get paywallBenefitFreshTitle;
+
+  /// No description provided for @paywallBenefitFreshBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The catalog keeps growing — we add fresh questions all the time.'**
+  String get paywallBenefitFreshBody;
+
+  /// No description provided for @paywallBenefitStreakTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Streaks & ranks'**
+  String get paywallBenefitStreakTitle;
+
+  /// No description provided for @paywallBenefitStreakBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote daily, keep your streak alive and climb the rank ladder.'**
+  String get paywallBenefitStreakBody;
 
   /// No description provided for @paywallBenefitFavoritesTitle.
   ///
@@ -1663,6 +1687,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save the best questions and look back at every vote you\'ve cast.'**
   String get paywallBenefitFavoritesBody;
+
+  /// No description provided for @paywallSignInLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get paywallSignInLink;
 
   /// No description provided for @paywallLifetime.
   ///
@@ -1721,7 +1751,7 @@ abstract class AppLocalizations {
   /// No description provided for @paywallSubscriptionNote.
   ///
   /// In en, this message translates to:
-  /// **'No commitment, cancel anytime'**
+  /// **'Auto-renews until cancelled — cancel anytime'**
   String get paywallSubscriptionNote;
 
   /// No description provided for @paywallLoadError.

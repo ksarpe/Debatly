@@ -67,10 +67,7 @@ Future<void> _startApp() async {
   );
 
   // Everything below is irrelevant to the first frame, so it runs AFTER the UI
-  // is on screen — the splash can never wait on it. Consent + AdMob are NOT
-  // here any more: their bring-up (the app's only interrupting legal dialogs)
-  // is deferred to the first home-screen entry so it can never land on top of
-  // the onboarding funnel — see [AdsBootstrap] and [AppEntry].
+  // is on screen — the splash can never wait on it.
   unawaited(_initBackgroundServices(prefs));
 }
 

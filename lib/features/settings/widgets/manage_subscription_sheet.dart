@@ -37,6 +37,13 @@ class _ManageSubscriptionSheetState
     final status = statusAsync.value;
     final store = status?.store ?? PremiumStore.other;
     final l10n = context.l10n;
+    // A lifetime purchase / permanent grant has no renewal to manage and no
+    // store page to send anyone to (RevenueCat hands out no `managementURL`
+    // for one). Everything below this line that talks about subscriptions is
+    // therefore swapped out — sending a "one payment, forever" buyer to Google
+    // Play's Subscriptions screen is at best confusing and at worst reads as
+    // "your purchase is a subscription you should go cancel".
+    final lifetime = status?.isLifetime ?? false;
 
     return SafeArea(
       // The sheet opens scroll-controlled (no 9/16 cap), so on a short window or
@@ -101,7 +108,7 @@ class _ManageSubscriptionSheetState
 
               const SizedBox(height: 14),
               Text(
-                _storeNote(l10n, store),
+                lifetime ? l10n.manageSubNoteLifetime : _storeNote(l10n, store),
                 style: TextStyle(
                   color: context.colors.subtle,
                   fontSize: 13.5,
@@ -121,19 +128,24 @@ class _ManageSubscriptionSheetState
               ],
               const SizedBox(height: 20),
 
-              _ManageButton(
-                label: _storeButton(l10n, store),
-                busy: _opening,
-                onTap: () => _manage(status),
-              ),
-              const SizedBox(height: 8),
+              if (!lifetime) ...[
+                _ManageButton(
+                  label: _storeButton(l10n, store),
+                  busy: _opening,
+                  onTap: () => _manage(status),
+                ),
+                const SizedBox(height: 8),
+              ],
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.of(context).maybePop(),
                   style: TextButton.styleFrom(
                     foregroundColor: context.colors.subtle,
                   ),
-                  child: Text(l10n.later),
+                  // With no manage button above it this is the sheet's only
+                  // action, so "Later" (which implies unfinished business)
+                  // gives way to a plain close.
+                  child: Text(lifetime ? l10n.manageSubClose : l10n.later),
                 ),
               ),
             ],
@@ -172,10 +184,13 @@ class _StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final cancelled = status?.isCancelled ?? false;
+    final lifetime = status?.isLifetime ?? false;
     final expiry = status?.expirationDate;
 
     final headline = cancelled
         ? l10n.manageSubStatusCancelled
+        : lifetime
+        ? l10n.manageSubStatusLifetime
         : l10n.manageSubStatusActive;
     final headlineColor = cancelled ? kGold : kPremiumGreen;
 

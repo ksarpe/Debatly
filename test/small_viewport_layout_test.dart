@@ -4,9 +4,10 @@ import 'package:debatly/data/models/question.dart';
 import 'package:debatly/data/models/vote_result.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
-import 'package:debatly/features/account/providers/stats_providers.dart';
 import 'package:debatly/features/account/screens/auth_screen.dart';
+import 'package:debatly/features/monetization/screens/hard_paywall_screen.dart';
 import 'package:debatly/features/onboarding/screens/onboarding_screen.dart';
+import 'package:debatly/features/onboarding/widgets/onboarding_catalog_card.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/screens/history_screen.dart';
 import 'package:debatly/features/questions/widgets/question_body.dart';
@@ -15,7 +16,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:purchases_flutter/purchases_flutter.dart' show Package;
 
+import 'support/fakes.dart';
 import 'support/localized_test_app.dart';
 import 'support/test_prefs.dart';
 
@@ -78,7 +81,6 @@ void main() {
         questionsProvider.overrideWith((ref) async => pool),
         todaysDailyQuestionProvider.overrideWith((ref) async => daily),
         isPremiumProvider.overrideWithValue(premium),
-        freeUnlockCreditsProvider.overrideWithValue(0),
         deckShuffleSeedProvider.overrideWithValue(1),
         sessionProvider.overrideWith(_FakeSession.new),
         questionRepositoryProvider.overrideWithValue(repo ?? _VotedRepo()),
@@ -144,10 +146,10 @@ void main() {
     });
   });
 
-  group('the reveal wall never hides its exits', () {
-    // "Restore purchase" is the only restore path a guest has (Settings is
-    // account-only), so App Review has to be able to reach it. (The way back to
-    // the free daily is a plain right swipe now, not a link.)
+  group('the hard paywall never hides its exits', () {
+    // "Przywróć zakup" and the sign-in link are the only ways an already-
+    // entitled user gets past the wall (App Review must be able to reach the
+    // restore), so they have to survive short windows and large fonts.
     const viewports = <String, (Size, double)>{
       'short window': (Size(812, 375), 1.0),
       'phone': (Size(375, 667), 1.0),
@@ -156,25 +158,39 @@ void main() {
     };
 
     viewports.forEach((name, spec) {
-      testWidgets('restore reachable — $name', (tester) async {
+      testWidgets('restore + sign-in reachable — $name', (tester) async {
         final (size, scale) = spec;
-        await pumpFeed(
-          tester,
-          size: size,
-          textScale: scale,
-          premium: false,
-          repo: _PeekRepo(),
-        );
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
 
-        // Swipe a free user with no credit onto the reveal slot.
-        await tester.flingFrom(
-          Offset(size.width / 2, size.height / 2),
-          const Offset(-300, 0),
-          1000,
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(
+              await mockSharedPreferences(),
+            ),
+            sessionProvider.overrideWith(() => FakeSession(guestSession())),
+          ],
         );
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 260));
-        await tester.pump(const Duration(milliseconds: 120));
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: LocalizedTestApp(
+              home: Builder(
+                builder: (context) => MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: TextScaler.linear(scale)),
+                  child: HardPaywallScreen(
+                    loadPackages: () async => const <Package>[],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
         await tester.pumpAndSettle();
 
         expect(
@@ -183,7 +199,7 @@ void main() {
           reason: 'the wall must fit or scroll, never overflow its box',
         );
 
-        for (final label in const ['Przywróć zakup']) {
+        for (final label in const ['Przywróć zakup', 'Zaloguj się']) {
           final finder = find.text(label);
           expect(finder, findsOneWidget, reason: label);
           // Scrolling it into view is allowed; being unreachable is not.
@@ -236,6 +252,34 @@ void main() {
         await tester.pump(const Duration(milliseconds: 500));
 
         expect(tester.takeException(), isNull);
+      });
+
+      // The tallest card in the deck — glyph, title, body, kicker and four
+      // use-cases — so it is the one that overflows first.
+      testWidgets('the catalog pitch does not clip its copy — $name', (
+        tester,
+      ) async {
+        final (size, scale) = spec;
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+
+        await tester.pumpWidget(
+          LocalizedTestApp(
+            home: Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(scale)),
+                child: const Scaffold(body: OnboardingCatalogCard()),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.byType(FitOrScroll), findsOneWidget);
       });
     });
   });
@@ -372,13 +416,4 @@ class _VotedRepo extends MockQuestionRepository {
   @override
   Future<VoteResult> getDailyVoteState(String questionId) async =>
       const VoteResult(yesCount: 61, noCount: 39, myChoice: VoteResult.yes);
-}
-
-/// A teaser for the reveal wall, kept deliberately short so the assertions can't
-/// be blamed on the test font wrapping a long headline.
-class _PeekRepo extends MockQuestionRepository {
-  @override
-  Future<({String id, String teaser})?> peekNextQuestion({
-    List<String> excludeIds = const [],
-  }) async => (id: 'peek', teaser: 'Czy');
 }

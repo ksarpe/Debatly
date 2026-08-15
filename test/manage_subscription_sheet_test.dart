@@ -97,6 +97,29 @@ void main() {
   );
 
   testWidgets(
+    'a lifetime purchase reads as lifetime access, not a cancellation',
+    (tester) async {
+      // RevenueCat's shape for a non-consumable buy (and for a permanent promo
+      // grant): active, never renews, no expiry. Read as a cancellation, it
+      // told every buyer of the plan the paywall PRESELECTS and pitches as
+      // "one payment — forever" that their purchase was "Anulowano".
+      await pumpSheet(tester, status: status(willRenew: false));
+
+      expect(find.text('Dostęp dożywotni'), findsOneWidget);
+      expect(find.text('Anulowano — nie odnowi się'), findsNothing);
+      // There is no subscription to manage, so the store deep link — which
+      // RevenueCat gives no URL for here anyway — goes away with it.
+      expect(find.text('Zarządzaj w Google Play'), findsNothing);
+      expect(find.textContaining('subskrypcją zarządza Google'), findsNothing);
+      expect(find.textContaining('jednorazowy zakup'), findsOneWidget);
+      // ...which leaves the close action as the sheet's only button, so it
+      // stops reading as "Later, I'll deal with this".
+      expect(find.text('Zamknij'), findsOneWidget);
+      expect(find.text('Później'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'a management link that cannot open shows the per-store fallback, '
     'and the sheet stays put',
     (tester) async {

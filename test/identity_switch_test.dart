@@ -17,8 +17,8 @@ import 'support/test_prefs.dart';
 ///    (the fetches already wait on the session; invalidating again was the
 ///    "double reload" that refetched everything and flashed the deck);
 ///  * a genuine identity SWITCH (guest→account, or sign-out onto a fresh
-///    guest) must drop every per-user cache — revealed feed, deck position —
-///    so the new user never inherits the previous user's feed or votes.
+///    guest) must drop every per-user cache and snap back to the daily, so
+///    the new user never inherits the previous user's position or votes.
 void main() {
   const guest = SessionState(userId: 'guest-1', isAnonymous: true);
   const account = SessionState(userId: 'user-2', isAnonymous: false);
@@ -46,7 +46,7 @@ void main() {
         sessionProvider.overrideWith(() => session),
         questionsProvider.overrideWith((ref) async {
           questionsFetches++;
-          return const <Question>[];
+          return [q('pool-a'), q('pool-b')];
         }),
         todaysDailyQuestionProvider.overrideWith((ref) async {
           dailyFetches++;
@@ -92,12 +92,10 @@ void main() {
   ) async {
     final (container, session) = await pumpHome(tester);
 
-    // Simulate a session that revealed a question and moved onto it.
-    container.read(revealedFeedProvider.notifier).append(q('revealed-1'));
-    container.read(questionIndexProvider.notifier).forwardLinear();
+    // Simulate a session that walked forward in the deck.
+    container.read(questionIndexProvider.notifier).next();
     await tester.pumpAndSettle();
     expect(container.read(questionIndexProvider), 1);
-    expect(container.read(revealedFeedProvider), hasLength(1));
 
     // The guest signs into a real account (different UUID).
     session.emit(account);
@@ -110,18 +108,13 @@ void main() {
     );
     expect(dailyFetches, 2);
     expect(
-      container.read(revealedFeedProvider),
-      isEmpty,
-      reason: 'the new user must not inherit the previous user\'s reveals',
-    );
-    expect(
       container.read(questionIndexProvider),
       0,
       reason: 'snapped back to the daily',
     );
   });
 
-  testWidgets('signing out onto a fresh guest clears the account\'s feed', (
+  testWidgets('signing out onto a fresh guest resets the account\'s feed', (
     tester,
   ) async {
     final (container, session) = await pumpHome(tester);
@@ -130,9 +123,9 @@ void main() {
     session.emit(account);
     await tester.pumpAndSettle();
 
-    container.read(revealedFeedProvider.notifier).append(q('revealed-2'));
-    container.read(questionIndexProvider.notifier).forwardLinear();
+    container.read(questionIndexProvider.notifier).next();
     await tester.pumpAndSettle();
+    expect(container.read(questionIndexProvider), 1);
 
     final fetchesBefore = questionsFetches;
 
@@ -141,7 +134,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(questionsFetches, fetchesBefore + 1);
-    expect(container.read(revealedFeedProvider), isEmpty);
     expect(container.read(questionIndexProvider), 0);
   });
 }

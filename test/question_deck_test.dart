@@ -1,14 +1,16 @@
 import 'package:debatly/data/models/question.dart';
+import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Deck composition under the reveal-feed model:
-///   * a FREE user's deck is the daily plus whatever they've revealed this
-///     session (the locked catalog is never shipped to them);
-///   * a PREMIUM user's deck is the daily plus the whole catalog, in a stable
-///     seeded order that survives a refetch.
+import 'support/fakes.dart';
+
+/// Deck composition under the hard paywall: the deck is the daily plus the
+/// whole catalog, in a stable seeded order that survives a refetch, with
+/// unseen questions surfaced before the seen archive — plus the gate on the
+/// catalog fetch itself, which only an entitled session may trigger.
 void main() {
   Question q(String id) => Question(
     id: id,
@@ -19,7 +21,7 @@ void main() {
   Future<ProviderContainer> deckContainer({
     required Question daily,
     required List<Question> pool,
-    bool premium = false,
+    bool premium = true,
   }) async {
     final container = ProviderContainer(
       overrides: [
@@ -34,25 +36,6 @@ void main() {
     await container.read(todaysDailyQuestionProvider.future);
     return container;
   }
-
-  test('free deck is the daily alone until questions are revealed', () async {
-    final daily = q('daily');
-    final container = await deckContainer(daily: daily, pool: [daily, q('x')]);
-
-    // The locked catalog is NOT in a free user's deck — only the daily.
-    expect(container.read(questionDeckProvider).map((e) => e.id).toList(), [
-      'daily',
-    ]);
-
-    // Revealing appends to the session feed, growing the deck in order.
-    container.read(revealedFeedProvider.notifier).append(q('r1'));
-    container.read(revealedFeedProvider.notifier).append(q('r2'));
-    expect(container.read(questionDeckProvider).map((e) => e.id).toList(), [
-      'daily',
-      'r1',
-      'r2',
-    ]);
-  });
 
   test('premium deck is the daily plus the whole catalog', () async {
     final daily = q('daily');
@@ -139,4 +122,87 @@ void main() {
 
     expect(container.read(questionIndexProvider), 2);
   });
+
+  /// Who is even allowed to load the catalog. The server withholds it from a
+  /// non-entitled user anyway (RLS), but the client must not ask: a walled
+  /// user pulling ~1000 rows (and jsonEncode-ing them into the cache) on every
+  /// launch is bandwidth and battery spent on content they cannot see.
+  group('catalog gating', () {
+    ProviderContainer poolContainer(
+      _CountingRepo repo,
+      SessionNotifier session,
+    ) {
+      final container = ProviderContainer(
+        overrides: [
+          questionRepositoryProvider.overrideWithValue(repo),
+          sessionProvider.overrideWith(() => session),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    test('a non-premium session never asks for the catalog', () async {
+      final repo = _CountingRepo();
+      final container = poolContainer(repo, FakeSession(guestSession()));
+      await container.read(sessionProvider.future);
+
+      expect(await container.read(questionsProvider.future), isEmpty);
+      expect(repo.fetches, 0, reason: 'nothing is fetched behind the wall');
+    });
+
+    test('an entitled session loads it exactly once', () async {
+      final repo = _CountingRepo();
+      final container = poolContainer(
+        repo,
+        FakeSession(guestSession(isPremium: true)),
+      );
+      await container.read(sessionProvider.future);
+
+      expect(await container.read(questionsProvider.future), hasLength(2));
+      expect(repo.fetches, 1);
+    });
+
+    test('buying PRO loads the catalog without a relaunch', () async {
+      // The moment the entitlement flips, the home gate swaps the wall for the
+      // feed — the pool has to follow it, or the buyer lands on an empty deck
+      // and has to kill the app to see what they paid for.
+      final repo = _CountingRepo();
+      final session = _MutableSession(guestSession());
+      final container = poolContainer(repo, session);
+      await container.read(sessionProvider.future);
+      expect(await container.read(questionsProvider.future), isEmpty);
+
+      session.emit(guestSession(isPremium: true));
+
+      expect(await container.read(questionsProvider.future), hasLength(2));
+      expect(repo.fetches, 1);
+    });
+  });
+}
+
+/// Counts how often the catalog was actually fetched.
+class _CountingRepo extends MockQuestionRepository {
+  int fetches = 0;
+
+  @override
+  Future<List<Question>> fetchQuestions() async {
+    fetches++;
+    return [
+      Question(id: 'a', category: 'A', questionText: 'Q a?'),
+      Question(id: 'b', category: 'B', questionText: 'Q b?'),
+    ];
+  }
+}
+
+/// A [SessionNotifier] whose state the test drives directly.
+class _MutableSession extends SessionNotifier {
+  _MutableSession(this._initial);
+
+  final SessionState _initial;
+
+  @override
+  Future<SessionState> build() async => _initial;
+
+  void emit(SessionState next) => state = AsyncValue.data(next);
 }

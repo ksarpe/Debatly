@@ -2,8 +2,6 @@
   "SUPABASE_URL": "https://your-project-ref.supabase.co",
   "SUPABASE_ANON_KEY": "your-publishable-anon-key",
   "REVENUECAT_API_KEY": "test_PzfkAxUznyhnalLmjICQTfUDqXV",
-  "ADMOB_REWARDED_ID": "ca-app-pub-3940256099942544/5224354917",
-  "ADMOB_TEST_DEVICE_IDS": "PASTE_TEST_DEVICE_ID_FROM_LOG",
   "GOOGLE_SERVER_CLIENT_ID": "xxxxxxxx.apps.googleusercontent.com",
   "PRIVACY_POLICY_URL": "https://debatly.app/privacy",
   "TERMS_OF_SERVICE_URL": "https://debatly.app/terms",

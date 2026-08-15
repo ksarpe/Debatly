@@ -22,13 +22,24 @@ import '../../../services/supabase_service.dart';
 bool isIdentityChangingAuthEvent(AuthChangeEvent event) =>
     event == AuthChangeEvent.signedOut || event == AuthChangeEvent.userUpdated;
 
-/// Resolves the EFFECTIVE premium flag from the three sources in strict
-/// precedence: the reconciled store↔DB sync wins; else the raw profile flag (so
-/// a promotional / admin grant with no purchase behind it still unlocks); else
-/// the on-device store cache (only reached with no backend at all).
+/// Resolves the EFFECTIVE premium flag from the three sources in precedence:
+/// the reconciled store↔DB sync wins; else the raw profile flag (so a
+/// promotional / admin grant with no purchase behind it still unlocks); else
+/// the on-device store cache.
 ///
-/// The sources are LAZY thunks, not values, so the short-circuit is preserved —
-/// a successful [sync] must NOT fire [profile] or [store] (each is a network /
+/// Any `true` short-circuits. A `false` from the server side does NOT: the
+/// device is asked as well, and its answer can still unlock. That looks
+/// backwards until you remember the whole app now sits behind the paywall —
+/// so every way the server can wrongly say "no" (a 502 from `sync-entitlement`,
+/// a RevenueCat webhook that hasn't landed yet, a profile row written a second
+/// too late) is a paying user staring at a wall. RevenueCat holds the receipt
+/// on the device; when it says the entitlement is active, that person really
+/// did pay. The cost of trusting it is a short grace period after a genuine
+/// lapse — RevenueCat drops an expired entitlement out of `active` on its own —
+/// which is by far the cheaper mistake of the two.
+///
+/// The sources are LAZY thunks, not values, so the short-circuit is preserved:
+/// a resolved [sync] must NOT fire [profile] or [store] (each is a network /
 /// SDK call). Extracted so both the order and that no-redundant-call guarantee
 /// are unit-tested without standing up the whole static service layer.
 @visibleForTesting
@@ -36,7 +47,15 @@ Future<bool> resolveEffectivePremium({
   required Future<bool?> Function() sync,
   required Future<bool?> Function() profile,
   required Future<bool> Function() store,
-}) async => await sync() ?? await profile() ?? await store();
+}) async {
+  // The reconciled sync is the best answer there is; a `false` from it is a
+  // real statement about the DB side, so the raw profile read adds nothing.
+  final reconciled = await sync();
+  if (reconciled == true) return true;
+  // Couldn't reconcile — the profile flag still unlocks a promo/admin grant.
+  if (reconciled == null && await profile() == true) return true;
+  return store();
+}
 
 /// Immutable snapshot of who the current user is and what they're entitled to.
 ///
@@ -176,6 +195,15 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
   }
 
   Future<SessionState> _load() async {
+    // MOCK MODE — no Supabase and no RevenueCat keys: there is no backend to
+    // entitle against and the repositories serve local mock data. Under the
+    // hard paywall a free session would gate the whole app behind a purchase
+    // that cannot happen, so mock sessions are premium — the full feed stays
+    // browsable in keyless development. Any real backend key skips this.
+    if (!SupabaseService.isInitialised && !PurchasesService.isConfigured) {
+      return const SessionState(isPremium: true);
+    }
+
     // 1. Make sure every user — even a brand-new guest — has a stable UUID.
     final userId = await SupabaseService.ensureSignedIn();
     final user = SupabaseService.currentUser;
@@ -200,8 +228,9 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
     // returns; this also closes the "bought PRO but see nothing" race before any
     // RPC fetches catalog text. If that call can't run we read the flag straight
     // from the profile, so a promotional grant with no purchase behind it still
-    // unlocks the app. Only with no backend at all do we fall back to the
-    // on-device RevenueCat cache.
+    // unlocks the app. And if nothing server-side says premium we still ask the
+    // device — see [resolveEffectivePremium] for why a paid-for receipt has to
+    // outrank a server that says no.
     final isPremium = await resolveEffectivePremium(
       sync: SupabaseService.syncEntitlement,
       profile: SupabaseService.fetchIsPremium,
@@ -245,8 +274,15 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
   /// the reveal-slot paywall (a logged-in user buys from Settings, so the flicker
   /// hides under that pushed route). Keeping the previous SessionState visible
   /// while `_load` runs means only `isPremium` changes, exactly once.
-  Future<void> refresh() async {
+  ///
+  /// Returns the reloaded state (null if the reload threw), so a caller that
+  /// has to act on the OUTCOME — "did the purchase actually land?" — reads it
+  /// from the call itself instead of re-reading a provider afterwards. That
+  /// re-read is only reliable while something is still listening to the
+  /// session, which is not a guarantee a single screen can make about itself.
+  Future<SessionState?> refresh() async {
     state = await AsyncValue.guard(_load);
+    return state.value;
   }
 }
 

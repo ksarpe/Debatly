@@ -46,8 +46,10 @@ final questionRepositoryProvider = Provider<QuestionRepository>((ref) {
   );
 });
 
-/// Loads the full question catalog once — for PREMIUM users only. Free users
-/// get an empty list without any fetch: their deck never reads the catalog.
+/// Loads the full question catalog once — for PREMIUM users only. The hard
+/// paywall keeps non-PRO sessions out of the feed entirely, so a non-premium
+/// read gets an empty list without any fetch (defense in depth: RLS withholds
+/// the catalog server-side too).
 final questionsProvider = FutureProvider<List<Question>>((ref) async {
   // Hold the first fetch until the session's initial load has resolved, so the
   // catalog is fetched ONCE with the final identity + premium tier — not once on
@@ -59,11 +61,9 @@ final questionsProvider = FutureProvider<List<Question>>((ref) async {
   if (ref.watch(sessionProvider.select((s) => s.isLoading))) {
     return const <Question>[];
   }
-  // A free user's deck is only the daily + this session's reveals (see
-  // [questionDeckProvider]) — the locked catalog is never rendered for them, so
-  // don't ship ~1000 locked rows (and jsonEncode them into the cache on the UI
-  // thread) on every launch. Watching the flag here (not just via the repo)
-  // makes the pool load the moment premium flips true.
+  // Watching the flag here (not just via the repo) makes the pool load the
+  // moment premium flips true — right as the home gate swaps the paywall out
+  // for the feed.
   if (!ref.watch(isPremiumProvider)) return const <Question>[];
   final repo = ref.watch(questionRepositoryProvider);
   return repo.fetchQuestions();
@@ -120,23 +120,22 @@ final furthestIndexProvider = NotifierProvider<FurthestIndexNotifier, int>(
 /// Tracks which question in the loaded list is currently shown.
 ///
 /// The "wind" swipe simply advances this index; the view animates the text
-/// transition in response to the change. Forward wraps for premium (the catalog
-/// is a loop); backward is clamped at the daily for BOTH tiers, so a right
-/// swipe steps back through what was already on screen and stops at index 0.
+/// transition in response to the change. Forward wraps (the catalog is a
+/// loop); backward is clamped at the daily, so a right swipe steps back
+/// through what was already on screen and stops at index 0.
 class QuestionDeckNotifier extends Notifier<int> {
   @override
   int build() => 0;
 
   // read, NOT watch: this is a one-off length lookup inside an action. Watching
   // here would subscribe the index notifier to the deck, so a pool refetch
-  // (e.g. when an ad unlock invalidates questionsProvider) would rebuild this
-  // notifier and reset the index to 0 — snapping the user back to the daily
-  // instead of leaving them on the question they just unlocked.
+  // would rebuild this notifier and reset the index to 0 — snapping the user
+  // back to the daily instead of leaving them on the question they were reading.
   int get _length => ref.read(questionDeckProvider).length;
 
   void _bumpFurthest() => ref.read(furthestIndexProvider.notifier).bump(state);
 
-  /// Premium-only wrap-around forward (the full catalog is a loop).
+  /// Wrap-around forward (the full catalog is a loop).
   void next() {
     final length = _length;
     if (length == 0) return;
@@ -144,33 +143,19 @@ class QuestionDeckNotifier extends Notifier<int> {
     _bumpFurthest();
   }
 
-  /// Free-feed forward: advance by one WITHOUT wrapping, allowing exactly one
-  /// step past the last item onto the "reveal slot" (index == length), where the
-  /// paywall / auto-credit reveal kicks in. A no-op once already at the slot.
-  void forwardLinear() {
-    final length = _length;
-    if (state < length) state = state + 1;
-    _bumpFurthest();
-  }
-
-  /// Step back by one, clamped at the daily (index 0) — BOTH tiers. For a free
-  /// user this walks back through this session's revealed questions (also the
-  /// way back off the reveal slot); for premium it retraces the stable
-  /// per-launch deck order, which IS the order they just read.
+  /// Step back by one, clamped at the daily (index 0) — retraces the stable
+  /// per-launch deck order, which IS the order the user just read.
   void backLinear() {
     if (state > 0) state = state - 1;
   }
 
   /// Jumps straight back to the daily, which the deck always keeps at index 0
-  /// (see [questionDeckProvider]). This is the escape hatch for a free user who
-  /// swiped onto the reveal slot and doesn't want to watch an ad: instead of
-  /// being stuck on the paywall, they can return to the free daily in one tap.
+  /// (see [questionDeckProvider]) — used on an identity switch so a fresh user
+  /// starts at their own daily.
   void toDaily() => state = 0;
 
   /// Jumps forward to the furthest question reached this session — the "undo"
-  /// for a run of back swipes. Clamped to the last real question so it never
-  /// lands on a free user's reveal slot (the paywall), even when the furthest
-  /// position recorded WAS the slot.
+  /// for a run of back swipes.
   void toLatest() {
     final length = _length;
     if (length == 0) return;
@@ -290,24 +275,6 @@ final deckShuffleSeedProvider = Provider<int>(
   (ref) => Random().nextInt(1 << 32),
 );
 
-/// The questions a free user has revealed THIS session, in the order they were
-/// revealed. Held only in memory: revealed text is no longer re-readable through
-/// the gate, so it lives here until the app closes (then it is gone — not
-/// re-readable, not re-served). Each reveal RPC appends one question.
-class RevealedFeedNotifier extends Notifier<List<Question>> {
-  @override
-  List<Question> build() => const [];
-
-  void append(Question q) => state = [...state, q];
-
-  void clear() => state = const [];
-}
-
-final revealedFeedProvider =
-    NotifierProvider<RevealedFeedNotifier, List<Question>>(
-      RevealedFeedNotifier.new,
-    );
-
 /// Id of the synthetic "własne pytanie" pin from the DEV tools screen. Never a
 /// real catalog row: the vote/smaczki RPCs take `uuid` params, so this id must
 /// be short-circuited client-side (see [dailyVoteStateProvider],
@@ -335,12 +302,11 @@ final devPinnedQuestionProvider =
 
 /// The ordered deck the home screen walks through.
 ///
-/// Position 0 is always today's daily. PREMIUM gets the whole catalog after it,
-/// ordered UNSEEN-FIRST so fresh questions surface before the archive (each is
-/// recorded as seen the moment they land on it — see `markQuestionSeen`). A FREE
-/// user instead gets a forward "feed": the daily plus the questions they've
-/// revealed this session (one ad / credit at a time), and nothing else — the
-/// locked catalog is never shipped to them.
+/// Position 0 is always today's daily; the whole catalog follows, ordered
+/// UNSEEN-FIRST so fresh questions surface before the archive (each is
+/// recorded as seen the moment the user lands on it — see `markQuestionSeen`).
+/// Only entitled sessions ever render the feed (the hard paywall gates it),
+/// so there is no free-tier deck shape anymore.
 ///
 /// While the daily is still loading the deck stays empty on purpose, so the
 /// screen shows its spinner rather than flashing a non-daily question first.
@@ -360,71 +326,46 @@ final questionDeckProvider = Provider<List<Question>>((ref) {
     return [...rest.take(at), pinned, ...rest.skip(at)];
   }
 
-  if (ref.watch(isPremiumProvider)) {
-    final pool =
-        ref.watch(questionsProvider).asData?.value ?? const <Question>[];
-    final seed = ref.watch(deckShuffleSeedProvider);
+  final pool = ref.watch(questionsProvider).asData?.value ?? const <Question>[];
+  final seed = ref.watch(deckShuffleSeedProvider);
 
-    // Order unseen-before-seen, shuffling each group with the per-launch seed:
-    // random each open, STABLE across refetches within the session so the user
-    // isn't jumped around. The `seen` flags are read once at fetch time and we do
-    // NOT refetch the pool when marking a question seen mid-session, so walking
-    // forward keeps the unseen run intact (newly-marked questions only move to the
-    // archive on the NEXT launch). Done even when the daily fails to resolve —
-    // otherwise the deck would fall back to the raw catalog order (created_at),
-    // the "questions feel sequential" symptom.
-    List<Question> orderedUnseenFirst(Iterable<Question> qs) {
-      final list = qs.toList();
-      final unseen = list.where((q) => !q.seen).toList()..shuffle(Random(seed));
-      final seen = list.where((q) => q.seen).toList()..shuffle(Random(seed));
-      return [...unseen, ...seen];
-    }
-
-    if (daily == null) return withDevPin(orderedUnseenFirst(pool));
-    return withDevPin([
-      daily,
-      ...orderedUnseenFirst(pool.where((q) => q.id != daily.id)),
-    ]);
+  // Order unseen-before-seen, shuffling each group with the per-launch seed:
+  // random each open, STABLE across refetches within the session so the user
+  // isn't jumped around. The `seen` flags are read once at fetch time and we do
+  // NOT refetch the pool when marking a question seen mid-session, so walking
+  // forward keeps the unseen run intact (newly-marked questions only move to the
+  // archive on the NEXT launch). Done even when the daily fails to resolve —
+  // otherwise the deck would fall back to the raw catalog order (created_at),
+  // the "questions feel sequential" symptom.
+  List<Question> orderedUnseenFirst(Iterable<Question> qs) {
+    final list = qs.toList();
+    final unseen = list.where((q) => !q.seen).toList()..shuffle(Random(seed));
+    final seen = list.where((q) => q.seen).toList()..shuffle(Random(seed));
+    return [...unseen, ...seen];
   }
 
-  final revealed = ref.watch(revealedFeedProvider);
-  if (daily == null) return withDevPin(revealed);
-  return withDevPin([daily, ...revealed]);
+  if (daily == null) return withDevPin(orderedUnseenFirst(pool));
+  return withDevPin([
+    daily,
+    ...orderedUnseenFirst(pool.where((q) => q.id != daily.id)),
+  ]);
 });
 
-/// The single question to render, or null when there is nothing to show.
-///
-/// For a free user the index may sit one past the last item — the "reveal slot"
-/// — where there is no question yet (the paywall / auto-reveal shows instead);
-/// that returns null. Premium wraps around its catalog and never hits the slot.
+/// The single question to render, or null while the deck is still empty. The
+/// index wraps around the catalog (the deck is a loop).
 final currentQuestionProvider = Provider<Question?>((ref) {
   final deck = ref.watch(questionDeckProvider);
   if (deck.isEmpty) return null;
   final index = ref.watch(questionIndexProvider);
-  if (ref.watch(isPremiumProvider)) return deck[index % deck.length];
-  if (index >= deck.length) return null; // the reveal slot
-  return deck[index];
-});
-
-/// True when a free user has swiped one step past the last revealed question and
-/// is sitting on the reveal slot (where the paywall / auto-credit reveal lives).
-final isAtRevealSlotProvider = Provider<bool>((ref) {
-  if (ref.watch(isPremiumProvider)) return false;
-  final deck = ref.watch(questionDeckProvider);
-  if (deck.isEmpty) return false;
-  return ref.watch(questionIndexProvider) >= deck.length;
+  return deck[index % deck.length];
 });
 
 /// True when the user has swiped back from the furthest question they reached
 /// this session — i.e. a one-tap "back to the latest" jump would move them
-/// forward. Hidden on the reveal slot (the paywall carries its own links).
-/// The furthest position is clamped to the last real question the same way
-/// [QuestionDeckNotifier.toLatest] clamps its jump, so a recorded slot visit
-/// alone never shows the link.
+/// forward.
 final canJumpToLatestProvider = Provider<bool>((ref) {
   final deck = ref.watch(questionDeckProvider);
   if (deck.isEmpty) return false;
-  if (ref.watch(isAtRevealSlotProvider)) return false;
   final index = ref.watch(questionIndexProvider);
   final furthest = min(ref.watch(furthestIndexProvider), deck.length - 1);
   return index < furthest;

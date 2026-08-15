@@ -1,6 +1,11 @@
+import 'package:debatly/core/locale/app_locale.dart'
+    show sharedPreferencesProvider;
 import 'package:debatly/features/account/providers/session_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'support/test_prefs.dart';
 
 /// Premium is tied to the *identity* (the Supabase UUID every user gets at
 /// launch via anonymous sign-in), NOT to having a real account. These tests pin
@@ -99,6 +104,39 @@ void main() {
     });
   });
 
+  // Keyless development (and the whole widget-test suite) runs with neither
+  // Supabase nor RevenueCat configured. Under the hard paywall a free session
+  // there would wall the app off behind a purchase that CANNOT be made — no
+  // store, no entitlement, no way through. So a keyless session resolves
+  // premium; anything else makes the mock data unreachable.
+  group('mock mode (no backend keys)', () {
+    test(
+      'resolves a premium session, so the keyless app is never walled',
+      () async {
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(
+              await mockSharedPreferences(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final session = await container.read(sessionProvider.future);
+
+        expect(session.isPremium, isTrue, reason: 'the feed must be reachable');
+        expect(
+          container.read(isPremiumProvider),
+          isTrue,
+          reason: 'the home gate reads this flag, not the state directly',
+        );
+        // The entitlement is granted WITHOUT inventing an identity: there is
+        // no backend to mint a UUID against, and nothing may pretend there is.
+        expect(session.isSignedIn, isFalse);
+      },
+    );
+  });
+
   // The effective-premium precedence is the gate the whole app reads. The order
   // matters (a promo grant with no purchase must still unlock) AND the
   // short-circuit matters (a resolved sync must not fire the other two
@@ -162,20 +200,48 @@ void main() {
       expect(result, isFalse);
     });
 
-    test('a false from sync is authoritative — does NOT fall through', () async {
-      // A resolved `false` is a real answer (lapsed), not "unknown"; only null
-      // means "couldn't reconcile, try the next source".
-      var profileCalls = 0;
-      final result = await resolveEffectivePremium(
-        sync: () async => false,
-        profile: () async {
-          profileCalls++;
-          return true;
-        },
-        store: () async => true,
+    test(
+      'a false from sync settles the DB side — the profile is not re-read',
+      () async {
+        // A resolved `false` is a real answer about the database (lapsed), not
+        // "unknown"; only null means "couldn't reconcile, try the next source".
+        var profileCalls = 0;
+        final result = await resolveEffectivePremium(
+          sync: () async => false,
+          profile: () async {
+            profileCalls++;
+            return true;
+          },
+          store: () async => false,
+        );
+        expect(result, isFalse);
+        expect(profileCalls, 0);
+      },
+    );
+
+    test('the device receipt outranks a server that says no', () async {
+      // The whole app sits behind the paywall, so every way the server can
+      // wrongly answer "no" — a 502 from sync-entitlement, a webhook that
+      // hasn't landed — is a paying user staring at a wall. RevenueCat holding
+      // an ACTIVE entitlement on the device means they really did pay.
+      expect(
+        await resolveEffectivePremium(
+          sync: () async => false,
+          profile: () async => false,
+          store: () async => true,
+        ),
+        isTrue,
+        reason: 'a reconciled "no" must not lock out a receipt on the device',
       );
-      expect(result, isFalse);
-      expect(profileCalls, 0);
+      expect(
+        await resolveEffectivePremium(
+          sync: () async => null,
+          profile: () async => false,
+          store: () async => true,
+        ),
+        isTrue,
+        reason: 'nor a profile row the webhook has not reached yet',
+      );
     });
   });
 }

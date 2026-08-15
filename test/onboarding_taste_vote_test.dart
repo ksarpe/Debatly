@@ -4,10 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/localized_test_app.dart';
 
-/// The onboarding "aha" is a mind-change loop: the user votes on a real
-/// question, is stopped with "Ale chwila…" and three arguments, votes again,
-/// and only then sees the community split. Then "Dalej" carries them onwards to
-/// the reminder ask and the account choice.
+/// The onboarding "aha" is a mind-change loop run twice: the user votes on a
+/// real question, is stopped with "Ale chwila…" and four arguments, votes
+/// again, and only then sees the community split. "Dalej" then rolls through
+/// the "Spróbujmy z kolejnym…" interlude into a second question with the same
+/// loop (its takeover titled "Czy aby na pewno?"), and only after that second
+/// reveal does "Dalej" carry them onwards — first to the catalog pitch ("A
+/// takich pytań mamy ponad 500"), then to the reminder ask, the last card
+/// before the home gate (the hard paywall).
 ///
 /// The split is live in production (fetched off the question's all-time tally);
 /// in the test host Supabase is uninitialised, so the card renders its curated
@@ -28,15 +32,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
   }
 
-  // The arguments takeover runs a 3.6s staggered entrance ("Ale chwila…", a
-  // beat of silence, one argument per second, then the button); pump all the
-  // way past it so the "Głosuję jeszcze raz" CTA is visible and tappable.
+  // The arguments takeover runs a 5.6s staggered entrance (the title, a beat
+  // of silence, one argument per second, a second of silence, then the
+  // button); pump all the way past it so the "Dobra, głosuję!" CTA is visible
+  // and tappable.
   Future<void> settleArguments(WidgetTester tester) async {
     await settlePage(tester); // the 280ms stage cross-fade
-    await tester.pump(const Duration(milliseconds: 1000));
-    await tester.pump(const Duration(milliseconds: 1000));
-    await tester.pump(const Duration(milliseconds: 1000));
-    await tester.pump(const Duration(milliseconds: 1000));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 1000));
+    }
   }
 
   Future<void> pumpOnboarding(WidgetTester tester) async {
@@ -63,16 +67,17 @@ void main() {
     await settlePage(tester);
   }
 
-  // Walks the whole taste loop: first vote → arguments → "Przeczytałem" →
-  // second vote. Lands on the split reveal (50/50 in the test host).
+  // Walks one round of the taste loop: first vote → arguments →
+  // "Dobra, głosuję!" → second vote. Lands on the split reveal (50/50 in the
+  // test host).
   Future<void> completeTasteLoop(
     WidgetTester tester, {
     String first = 'TAK',
     String second = 'TAK',
   }) async {
-    await tester.tap(find.text(first));
+    await tapText(tester, first);
     await settleArguments(tester);
-    await tapText(tester, 'Przeczytane!');
+    await tapText(tester, 'Dobra, głosuję!');
     await settlePage(tester);
     // The revote stage (question + prompt + buttons) is taller than the test
     // viewport, so the buttons sit below the fold — scroll them in first.
@@ -80,7 +85,35 @@ void main() {
     await settlePage(tester);
   }
 
-  testWidgets('the first vote hides the split and shows the three arguments', (
+  // Round one's "Dalej" rolls into the "Spróbujmy z kolejnym…" interlude,
+  // which auto-advances into round two's question after two seconds.
+  Future<void> passInterlude(WidgetTester tester) async {
+    await tapText(tester, 'Dalej');
+    await settlePage(tester);
+    expect(find.text('Spróbujmy z kolejnym…'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    await settlePage(tester);
+  }
+
+  testWidgets('the taste-vote page cannot be swiped away — the deck only '
+      'moves via the vote loop (or "Skip")', (tester) async {
+    await pumpOnboarding(tester);
+    await reachVotePage(tester);
+    expect(find.text('TWÓJ RUCH'), findsOneWidget);
+
+    // A hard forward swipe must not reach the catalog pitch, and a backward
+    // one must not return to the welcome card — the page is a gate.
+    await tester.drag(find.byType(PageView), const Offset(-400, 0));
+    await settlePage(tester);
+    expect(find.text('TWÓJ RUCH'), findsOneWidget);
+    expect(find.text('A takich pytań mamy ponad 500'), findsNothing);
+
+    await tester.drag(find.byType(PageView), const Offset(400, 0));
+    await settlePage(tester);
+    expect(find.text('TWÓJ RUCH'), findsOneWidget);
+  });
+
+  testWidgets('the first vote hides the split and shows the four arguments', (
     tester,
   ) async {
     await pumpOnboarding(tester);
@@ -96,14 +129,15 @@ void main() {
     await settleArguments(tester);
 
     // No reveal yet — the takeover replaces the question entirely: just "Ale
-    // chwila…" and the three arguments, with the question and kicker gone.
+    // chwila…" and the four arguments, with the question and kicker gone.
     expect(find.textContaining('%'), findsNothing);
     expect(find.text('TWÓJ RUCH'), findsNothing);
     expect(find.text('Ale chwila…'), findsOneWidget);
-    expect(find.textContaining('walizkę'), findsOneWidget);
+    expect(find.textContaining('walizki'), findsOneWidget);
     expect(find.textContaining('komfortem'), findsOneWidget);
-    expect(find.textContaining('bramka'), findsOneWidget);
-    expect(find.text('Przeczytane!'), findsOneWidget);
+    expect(find.textContaining('Bramka'), findsOneWidget);
+    expect(find.textContaining('chorobę'), findsOneWidget);
+    expect(find.text('Dobra, głosuję!'), findsOneWidget);
   });
 
   testWidgets('after reading, the user votes again and the split is '
@@ -113,7 +147,7 @@ void main() {
 
     await tester.tap(find.text('TAK'));
     await settleArguments(tester);
-    await tapText(tester, 'Przeczytane!');
+    await tapText(tester, 'Dobra, głosuję!');
     await settlePage(tester);
 
     // The question returns for the second ask: the kicker flips to "ZAGŁOSUJ
@@ -132,43 +166,83 @@ void main() {
     expect(find.byIcon(Icons.check_rounded), findsOneWidget);
   });
 
-  testWidgets('Continue after the reveal advances to the notifications ask, '
-      'then the account choice', (tester) async {
-    await pumpOnboarding(tester);
+  // The catalog pitch between the taste card and the reminder ask: no buttons
+  // of its own, so the deck's bottom "Dalej" carries it.
+  Future<void> passCatalogPitch(WidgetTester tester) async {
+    expect(find.text('A takich pytań mamy ponad 500'), findsOneWidget);
+    expect(find.text('IDEALNE NA'), findsOneWidget);
+    await tapText(tester, 'Dalej');
+    await settlePage(tester);
+  }
+
+  testWidgets('Continue after the reveal advances to the catalog pitch and '
+      'then the notifications ask, and "Not now" finishes onboarding', (
+    tester,
+  ) async {
+    var finished = 0;
+    await tester.pumpWidget(
+      LocalizedTestApp(home: OnboardingScreen(onFinish: () => finished++)),
+    );
+    await settlePage(tester);
     await reachVotePage(tester);
     await completeTasteLoop(tester);
 
+    // Round one's "Dalej" leads not out of the card but into round two: the
+    // interlude, then the second question under the "Czy aby na pewno?"
+    // takeover, walked with the same loop.
+    await passInterlude(tester);
+    expect(find.text('TWÓJ RUCH'), findsOneWidget);
+    // The question renders uppercased, word by word, each word as a stacked
+    // stroke + fill Text pair — hence uppercase and findsWidgets, not one.
+    expect(find.textContaining('ILOMA'), findsWidgets);
+    await tapText(tester, 'TAK');
+    await settleArguments(tester);
+    expect(find.text('Czy aby na pewno?'), findsOneWidget);
+    await tapText(tester, 'Dobra, głosuję!');
+    await settlePage(tester);
+    await tapText(tester, 'NIE');
+    await settlePage(tester);
+
     // The card's own "Dalej" (the bottom Next is suppressed on this page)
-    // lands on the reminder opt-in, not yet the account choice.
+    // lands on the catalog pitch, and its "Dalej" on the reminder opt-in —
+    // the final card, no account step follows.
     await tapText(tester, 'Dalej');
     await settlePage(tester);
+    await passCatalogPitch(tester);
 
     expect(find.text('Jutro czeka nowe pytanie'), findsOneWidget);
     expect(find.text('Włącz przypomnienia'), findsOneWidget);
-    expect(find.text('Zacznij anonimowo'), findsNothing);
+    expect(finished, 0);
 
-    // "Not now" carries the user on to the account choice without enabling.
+    // "Not now" ends the tutorial without enabling — the home gate (paywall
+    // for a non-PRO session) is next.
     await tapText(tester, 'Nie teraz');
     await settlePage(tester);
 
-    expect(find.text('Zacznij anonimowo'), findsOneWidget);
-    expect(find.text('Zaloguj / Załóż konto'), findsOneWidget);
+    expect(finished, 1);
   });
 
-  testWidgets('the reminder ask never traps the user — "Enable" advances even '
+  testWidgets('the reminder ask never traps the user — "Enable" finishes even '
       'when the notification plugin is unavailable', (tester) async {
     // The native plugin no-ops in the test host, so the permission request
-    // resolves false; the card must still carry the user to the account choice
-    // rather than stalling on its busy spinner.
-    await pumpOnboarding(tester);
-    await reachVotePage(tester);
-    await completeTasteLoop(tester);
-    await tapText(tester, 'Dalej'); // taste result → reminder ask
+    // resolves false; the card must still end the tutorial rather than
+    // stalling on its busy spinner.
+    var finished = 0;
+    await tester.pumpWidget(
+      LocalizedTestApp(home: OnboardingScreen(onFinish: () => finished++)),
+    );
     await settlePage(tester);
+    await reachVotePage(tester);
+    await completeTasteLoop(tester); // round one
+    await passInterlude(tester);
+    await completeTasteLoop(tester); // round two
+    await tapText(tester, 'Dalej'); // taste result → catalog pitch
+    await settlePage(tester);
+    await passCatalogPitch(tester); // → reminder ask
 
     await tapText(tester, 'Włącz przypomnienia');
     await settlePage(tester);
 
-    expect(find.text('Zacznij anonimowo'), findsOneWidget);
+    expect(finished, 1);
   });
 }

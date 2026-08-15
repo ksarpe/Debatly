@@ -21,7 +21,6 @@ void main() {
   UserStats stats({int streak = 0, int? grace, int? nextRank}) => UserStats(
     currentStreak: streak,
     longestStreak: streak,
-    freeUnlockCredits: 0,
     rankTier: 1,
     rankName: 'Provocateur',
     nextRankStreak: nextRank,

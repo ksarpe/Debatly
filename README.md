@@ -19,74 +19,85 @@ side. Answering keeps a daily streak alive, which climbs a rank ladder from
 
 ## How the product actually works
 
-Read this before changing anything in `features/questions`, `features/account`
-or the reveal RPCs — most wrong assumptions about Debatly start here.
+Read this before changing anything in `features/questions`,
+`features/account` or `features/monetization` — most wrong assumptions about
+Debatly start here.
 
-**Debatly is not a "one question per day" app.** A free user can read several
-questions every day; the daily question is only the *free entry point* of a feed
-that keeps going.
+**Debatly is a hard-paywall app.** There is no free tier anymore: after
+onboarding every non-PRO user lands on a full-screen paywall
+(`HardPaywallScreen`) and stays there until they buy, restore, or sign in to
+an account that already holds PRO. The feed, voting, streaks — all of it is
+PRO-only. (The freemium reveal feed — daily credits, rewarded-ad reveals, the
+"reveal slot" — was removed in the 2026-08 hard-paywall rebuild; its server
+RPCs remain live only for old app versions.)
 
-### The feed
+### The gate
+
+`AppEntry` routes splash → onboarding (first run) → `HomeGate`. The gate
+watches the resolved session:
+
+- session still loading → spinner,
+- `isPremium == false` → `HardPaywallScreen` (no way past it),
+- `isPremium == true` → `QuestionScreen` (the feed).
+
+The paywall never dismisses itself: a completed purchase/restore refreshes the
+session, the entitlement flips, and the gate swaps the screen. The wall is
+**identical for everyone**, signed in or not — there is no profile entry on
+it. What it does offer, all in the sticky footer, is the two ways back to a
+purchase already made: restore purchase (also a store requirement) and
+"already have PRO? sign in", plus the terms/privacy links, which must not sit
+behind a purchase.
+
+### The account model: buy to play, sign in to secure
+
+Identity and account are separate things, and only the identity gates content:
+
+- **Every user gets an anonymous Supabase UUID at launch.** That is who they
+  are; the entitlement rides on it. A guest can hold PRO indefinitely.
+- **You buy PRO to play.** The purchase attaches to that anonymous identity —
+  no account, no email, no sign-up in front of the paywall.
+- **An account only SECURES a purchase that already happened.** It makes PRO
+  (and the streak, votes, favorites) survive a reinstall or a new phone. It is
+  pitched right after the buy (`promptSaveProAccount`) and offered again in
+  Settings (`SecureAccountButton`).
+
+The auth sheet enforces this: before PRO it is **sign-in only** — no register
+tab, so no accounts are minted in front of the paywall. Signing in there means
+"take me to the purchase I already made", which is why the link is shown to
+signed-in users too (it is their only route to a *different*, entitled
+account now that the wall has no profile entry).
+
+Consequence worth knowing: an **account without PRO** is not a state the
+product creates anymore. A handful of legacy ones exist from before the
+rebuild; they hit the same wall as everyone else and can buy, restore, or
+sign into another account — Settings is not reachable for them. Account
+deletion for those users therefore has to go through the web link
+(`DELETE_ACCOUNT_URL`, surfaced on the privacy policy page), not in-app.
+
+Mock mode (no Supabase/RevenueCat keys) resolves the session as premium so
+keyless development still lands on the feed.
+
+### The feed (PRO)
 
 Position 0 of the deck is **today's personal daily question**: drawn
 server-side, per user, from the questions *that user has not voted on yet*,
-preferring never-seen ones. It is free for everyone (guests included), needs no
-ad and no account, and is stable for the rest of that local date. It is
-**personal** — two users almost never see the same one.
+preferring never-seen ones, stable for the rest of that local date. After it
+comes the whole catalog, unseen-first, shuffled with a per-launch seed;
+forward swipes wrap around.
 
-Past it, the tiers diverge:
-
-- **PRO** walks the entire catalog, wrapping around; every question reads.
-- **Free** walks a forward feed: the daily, then the questions they reveal one
-  at a time this session. Swiping past the last item lands on the **reveal
-  slot**, where a question is unlocked by the daily credit or by a rewarded ad.
-
-Revealed text lives in memory only (`revealedFeedProvider`). Close the app and
-it is gone — the RLS gate does not serve it again.
-
-### What each tier gets
-
-| | Guest (anonymous) | Free + real account | PRO |
-|---|---|---|---|
-| Personal daily question | 1 / day | 1 / day | 1 / day |
-| Free unlock credit | — | 1 / UTC day | n/a |
-| Rewarded-ad reveals | up to 3 / UTC day | up to 3 / UTC day | n/a |
-| **Questions readable per day** | **up to 4** | **up to 5** | **whole catalog** |
-| Voting + community split | yes | yes | yes |
-| Streak & ranks | yes | yes | yes |
-| Smaczki (arguments) | first one only | first one only | all |
-| Vote history screen | — | — | yes |
-| Favorites | star is a paywall hook | star is a paywall hook | add + keep forever |
-| Offline catalog | — | — | yes |
-
-Numbers that matter, and where they are enforced:
-
-- The **free unlock credit** is topped up server-side by `sync_user_state`,
-  once per UTC day, capped at 1, and **only for real accounts**
-  (`is_real_account` — email/Google). Anonymous guests get no credit; that is
-  the anti-farming gate, since a fresh anonymous identity is free to mint.
-  It is spent automatically on the forward swipe onto the reveal slot, never
-  while merely reading the daily.
-- The **ad-reveal cap is 3 per UTC day**, defined once in
-  `ad_reveal_daily_cap()` and enforced by `reveal_ad_question` before anything
-  is spent. When it is hit, the paywall drops the ad button, pitches PRO and
-  shows a live countdown to the UTC-midnight reset.
-- The **daily question rolls over on the user's local date**; the credit and the
-  ad cap roll over at **UTC midnight**. They are deliberately different clocks —
-  do not "fix" one to match the other.
-
-### Voting, streaks, smaczki
-
-- Every question the user has actually seen is votable (TAK/NIE), once. The
-  panel then shows the community split — an **all-time tally** for that
-  question, not "today's result".
+- Every question is votable (TAK/NIE), once. The panel then shows the
+  community split — an **all-time tally** for that question, not "today's
+  result".
 - The **streak** advances on *any* successful vote, at most once per UTC day.
   Missing days decay it by one rank per 3 missed days (a "freeze") instead of
   snapping to zero. Ranks are a static ladder keyed on streak length
-  (0/3/7/14/30/60/100 days).
+  (0/3/7/14/30/60/100 days). The daily rolls over on the user's *local* date;
+  the streak on *UTC* days — two clocks, on purpose.
 - **Smaczki** are per-question discussion prompts served by
-  `get_question_smaczki`: a free user gets smaczek #1 plus locked placeholders,
-  PRO gets them all.
+  `get_question_smaczki`; PRO reads them all. Favorites, the vote-history
+  screen and the offline catalog download are PRO features too (their old
+  free-tier upsell hooks remain as defence in depth for a lapsed entitlement
+  mid-session).
 
 ## Tech stack
 
@@ -96,7 +107,6 @@ Numbers that matter, and where they are enforced:
 | State management   | Riverpod (`flutter_riverpod`)           |
 | Backend / Auth     | Supabase (`supabase_flutter`)           |
 | Subscriptions      | RevenueCat (`purchases_flutter`)        |
-| Ads                | Google AdMob (`google_mobile_ads`)      |
 | Monitoring         | Sentry (`sentry_flutter`)               |
 | Animation          | Custom `AnimatedBuilder` + `Transform`  |
 
@@ -125,12 +135,12 @@ lib/
 │   └── repositories/        # QuestionRepository + caching decorator
 ├── features/                # Feature-first: providers / screens / widgets each
 │   ├── account/             # Auth sheet, session, stats, rank/streak celebrations
-│   ├── monetization/        # Paywall sheet + entitlement providers
-│   ├── onboarding/          # Splash → tutorial (incl. a taste vote) → app entry
-│   ├── questions/           # The feed, voting, reveals, smaczki, share, history
+│   ├── monetization/        # Hard paywall screen + paywall sheet
+│   ├── onboarding/          # Splash → tutorial (incl. a taste vote) → home gate
+│   ├── questions/           # The feed, voting, smaczki, share, history
 │   └── settings/            # Settings hub, favorites, reminders, privacy, DEV tools
 ├── l10n/                    # ARB source strings (en/pl) + gen/ (generated)
-└── services/                # SDK wrappers: Supabase, RevenueCat, AdMob, consent,
+└── services/                # SDK wrappers: Supabase, RevenueCat,
                              # notifications + reminder loop, reviews, analytics,
                              # install referrer, caching
 supabase/                    # schema.sql, migrations/, edge functions, backups
@@ -147,17 +157,11 @@ short beat the next question **assembles word by word, each word dropping in
 from above** (see [falling_words_text.dart](lib/features/questions/widgets/falling_words_text.dart)).
 No cards, no flips — just text in motion.
 
-- **Swipe left** = forward. PRO wraps around the catalog; a free user advances
-  through their revealed feed and then onto the reveal slot.
-- **Swipe right** = back, on both tiers, clamped at the daily (index 0) with a
-  small bounce so the gesture never silently does nothing or overshoots.
+- **Swipe left** = forward, wrapping around the catalog.
+- **Swipe right** = back, clamped at the daily (index 0) with a small bounce
+  so the gesture never silently does nothing or overshoots.
 - A slow drag commits on total travel (64 logical px) as well as on flick
   velocity — tablet users drag slowly, and App Review noticed.
-- Landing on the reveal slot with a credit auto-reveals: the padlock flourish
-  ([lock_reveal.dart](lib/features/questions/widgets/lock_reveal.dart)) plays,
-  then the question falls in. Without a credit the paywall shows, teased with the
-  first words of the next question (non-consuming `peek_next_question`, eagerly
-  prefetched while the user still lingers on the last item).
 
 See [wind_question_view.dart](lib/features/questions/widgets/wind_question_view.dart).
 
@@ -174,7 +178,7 @@ flutter run
 To enable the backends, pass keys at build time:
 
 ```bash
-flutter run --dart-define=SUPABASE_URL=https://xyz.supabase.co --dart-define=SUPABASE_ANON_KEY=... --dart-define=REVENUECAT_API_KEY=... --dart-define=ADMOB_BANNER_ID=ca-app-pub-.../... --dart-define=ADMOB_REWARDED_ID=ca-app-pub-.../...
+flutter run --dart-define=SUPABASE_URL=https://xyz.supabase.co --dart-define=SUPABASE_ANON_KEY=... --dart-define=REVENUECAT_API_KEY=...
 ```
 
 Or copy `env/example.json` to `env/local.json`, fill in the real values, and run:
@@ -241,17 +245,17 @@ their local date and stored in `user_daily_questions`.
 |---|---|
 | `user_daily_questions` | The live mechanism — one personal free question per user per local date. |
 | `daily_questions` | **Legacy.** The old global "same question for everyone" calendar. No longer written to; kept only for old history rows and the voted-everything fallback. |
-| `question_seen` | Formerly `question_unlocks`. A row means "this user may read this question's text" (revealed, or landed on by PRO). |
-| free unlock credit | The 1-per-UTC-day auto-spent reveal, real accounts only. Not the daily question. |
+| `question_seen` | Formerly `question_unlocks`. A row means "this user may read this question's text" (landed on in the feed; historically also free-tier reveals). |
+| free unlock credit / reveal slot / ad reveals | **Legacy free-tier machinery.** Removed from the client in the hard-paywall rebuild; the RPCs (`reveal_free_question`, `reveal_ad_question`, `peek_next_question`) stay live server-side only for old app versions. |
 | smaczki | Per-question arguments/prompts behind the "go deeper" button. |
-| reveal slot | The virtual index one past the free user's last question, where the paywall or auto-reveal lives. |
 
 ### Edge functions
 
 `supabase/functions/` holds the Deno functions: `revenuecat-webhook` (reflects
 entitlement changes onto `profiles.is_premium`), `sync-entitlement`,
-`admob-ssv` (server-side ad reward verification), `send-auth-email` (localized
-auth emails, reading `profiles.locale`) and `delete-account`.
+`admob-ssv` (ad-reward verification — legacy, kept only for old app versions),
+`send-auth-email` (localized auth emails, reading `profiles.locale`) and
+`delete-account`.
 
 **Account deletion** is required by both stores. Settings → *Delete account*
 calls `delete-account`, which deletes the Supabase user (cascading to all their
@@ -264,18 +268,11 @@ the profile language goes through `set_profile_locale`.
 
 ### Native config notes
 
-- **AdMob app id** is set to Google's public *test* id in
-  `android/app/src/main/AndroidManifest.xml` and `ios/Runner/Info.plist`.
-  Replace both with your real id before release.
-- **Ad consent.** `ConsentService` ([consent_service.dart](lib/services/consent_service.dart))
-  runs before `AdsService.initialise`, both sequenced by `AdsBootstrap` on the
-  first home-screen entry (after onboarding — never over the welcome funnel):
-  it gathers GDPR consent via
-  Google's UMP (configure the message in the AdMob console → *Privacy & messaging*)
-  and, on iOS, requests App Tracking Transparency (`NSUserTrackingUsageDescription`
-  is set in `Info.plist`). Before release, add Google's full SKAdNetwork list to
-  `Info.plist` ([3p-skadnetworks](https://developers.google.com/admob/ios/3p-skadnetworks)).
-- Android `minSdk` is raised to 23 (required by `google_mobile_ads`).
+- **No ads, no ad consent.** The AdMob SDK, the UMP consent flow and the iOS
+  ATT prompt were removed with the hard-paywall rebuild (no free tier → no
+  rewarded ads); the AdMob app ids are gone from `AndroidManifest.xml` and
+  `Info.plist` along with the SKAdNetwork list.
+- Android `minSdk` stays at 23.
 - Android `compileSdk` is raised to 36 (required by `package_info_plus`), and
   `android/build.gradle.kts` forces every subproject to compileSdk 36 — some
   transitive plugins (`passkeys_*` via Supabase) pin themselves to 35.
@@ -288,8 +285,9 @@ the profile language goes through `set_profile_locale`.
 
 ## Auth & monetization internals
 
-The app is *freemium with rewarded ads*. Everything degrades gracefully when SDK
-keys are absent, so it still runs against mock data.
+The app is **hard-paywall**: PRO or the wall. Everything still degrades
+gracefully when SDK keys are absent — mock mode resolves as premium and runs
+on local data.
 
 - **Silent anonymous auth.** On launch `SessionNotifier`
   ([session_providers.dart](lib/features/account/providers/session_providers.dart))
@@ -297,24 +295,19 @@ keys are absent, so it still runs against mock data.
   if `currentUser` is null. Every guest gets a stable Supabase UUID — no email,
   no password — and that UUID is also passed to RevenueCat (`Purchases.logIn`)
   so entitlements follow the same identity. Signing up later upgrades the same
-  identity in place, so the streak, votes and PRO survive.
-- **Server-mediated reveals.** Question text is gated by RLS, so reveals go
-  through SECURITY DEFINER RPCs: `peek_next_question` teases the next pick
-  without consuming anything, `reveal_free_question` charges the daily credit,
-  and `reveal_ad_question` reveals after a
-  [`RewardedAdService`](lib/services/rewarded_ad_service.dart) ad — checking the
-  3-per-day cap *before* anything is spent. The reward is captured
-  authoritatively inside the service (decoupled from the ad-dismiss callback)
-  and a live session is ensured before the RPC, so a watched ad never resolves
-  to a generic error.
-- **Premium.** RevenueCat handles billing; the paywall itself is in-app
-  ([`ProPaywallSheet`](lib/features/monetization/widgets/pro_paywall_sheet.dart)) — packages
-  and localized prices come live from the current RevenueCat offering, the
-  purchase goes through `Purchases.purchase`. The `revenuecat-webhook` edge
-  function reflects entitlement changes onto `profiles.is_premium` (the flag the
-  RLS gate reads). Restore-purchases is reachable from Settings, the paywall
-  sheet and the reveal-slot paywall (the latter two for guests, who can't open
-  Settings).
+  identity in place, so the streak, votes and PRO survive. A guest who buys on
+  the wall is nudged right after to attach the purchase to a real account.
+- **Premium.** RevenueCat handles billing; both paywall surfaces share one
+  content widget ([`ProPaywallContent`](lib/features/monetization/widgets/paywall_content.dart)):
+  the full-screen [`HardPaywallScreen`](lib/features/monetization/screens/hard_paywall_screen.dart)
+  (the home gate) and the modal [`ProPaywallSheet`](lib/features/monetization/widgets/pro_paywall_sheet.dart)
+  (Settings + defensive upsell hooks). Packages and localized prices come live
+  from the current RevenueCat offering; the purchase goes through
+  `Purchases.purchase`. The `revenuecat-webhook` edge function reflects
+  entitlement changes onto `profiles.is_premium` (the flag the RLS gate
+  reads). Restore-purchases is reachable from Settings and from both paywalls
+  (guests get a sign-in-first chooser so a store restore can't hijack an
+  account-held entitlement).
 - **Caching / offline.** In production the Supabase repository is wrapped in
   `CachingQuestionRepository`, scoped to the locale and the signed-in UUID, so
   reads survive a dropped network and PRO users can download the whole catalog

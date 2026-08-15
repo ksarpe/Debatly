@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "admin"],
       "port": 3200
+    },
+    {
+      "name": "admin-alt",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d admin && npx next dev -p 3210"],
+      "port": 3210
     }
   ]
 }

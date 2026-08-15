@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/monitoring/monitoring.dart';
@@ -28,40 +26,10 @@ abstract class QuestionRepository {
   /// them all. See [Smaczek].
   Future<List<Smaczek>> fetchSmaczki(String questionId);
 
-  /// Peeks the next UNVOTED question's teaser WITHOUT revealing it — the paywall
-  /// bait. Returns its id (echo back to [revealAdQuestion] so the ad reveals the
-  /// teased question) and the first two words of its text. No text, not marked
-  /// seen. Null when nothing eligible is left.
+  /// Syncs and returns the user's engagement state (streak, rank).
   ///
-  /// [excludeIds] are this session's already-revealed ids: the pool is "not
-  /// voted", so a shown-but-unvoted question is still eligible — passing the
-  /// session's ids keeps the teaser off a question already on screen this session.
-  Future<({String id, String teaser})?> peekNextQuestion({
-    List<String> excludeIds = const [],
-  });
-
-  /// Reveals the next UNSEEN question after a rewarded ad.
-  ///
-  /// Pass [questionId] (from [peekNextQuestion]) to reveal exactly the teased
-  /// question; the server validates it is still eligible (active, not today's
-  /// daily, NOT YET VOTED) and otherwise picks a random unvoted one so the watched
-  /// ad is never wasted. Records the reveal in `question_seen` (the "shown" signal
-  /// the smaczki + vote gates read) and returns it WITH text. The reveal is
-  /// ephemeral: the gate no longer grants this text later, so the caller must keep
-  /// the returned question in session memory. [excludeIds] skip this session's
-  /// already-revealed ids on the random pick. Returns null when the user has voted
-  /// on everything eligible. Available to guests too.
-  Future<Question?> revealAdQuestion({
-    String? questionId,
-    List<String> excludeIds = const [],
-  });
-
-  /// Syncs and returns the user's engagement state (streak, free-unlock
-  /// credits, rank).
-  ///
-  /// Calls `sync_user_state`, which ALSO tops up the daily free-unlock credit
-  /// (once per server-UTC day, capped at 1, never for premium) as a side
-  /// effect. Returns null when there is no signed-in user / no backend.
+  /// Calls `sync_user_state`. Returns null when there is no signed-in user /
+  /// no backend.
   Future<UserStats?> syncUserState();
 
   /// The current community split + the caller's own vote for [questionId].
@@ -77,26 +45,15 @@ abstract class QuestionRepository {
   /// personal-daily migration. Returns the updated split.
   Future<VoteResult> castDailyVote(String questionId, int choice);
 
-  /// Reveals the next UNSEEN question paid with the daily free credit instead of
-  /// an ad (real accounts only, once per day).
-  ///
-  /// Same server-side pick (unvoted pool) + seen record as [revealAdQuestion], but
-  /// charges one credit — only on a successful reveal. [excludeIds] skip this
-  /// session's already-revealed ids. Returns the revealed question, or null when
-  /// nothing eligible is left (no charge). Throws when there is no credit, the
-  /// user is premium, or the user is a guest.
-  Future<Question?> revealFreeQuestion({List<String> excludeIds = const []});
-
   /// The full rank ladder (ordered by tier), for the rank sheet.
   Future<List<Rank>> fetchRanks();
 
-  /// Records that the caller has viewed [questionId] (premium catalog browsing).
+  /// Records that the caller has viewed [questionId] (catalog browsing).
   ///
   /// Best-effort and idempotent: it appends to the per-user seen-memory so the
-  /// next launch surfaces UNSEEN questions first. A free user never reaches the
-  /// arbitrary catalog (their daily + reveals are recorded elsewhere), so the
-  /// caller only invokes this for premium. Never throws to the caller — a failed
-  /// marker just means the question may reappear as "new" later, which is benign.
+  /// next launch surfaces UNSEEN questions first. Never throws to the caller —
+  /// a failed marker just means the question may reappear as "new" later,
+  /// which is benign.
   Future<void> markQuestionSeen(String questionId);
 
   /// The ids of the questions the caller has favorited.
@@ -145,12 +102,6 @@ abstract class QuestionRepository {
 /// Replace with a `SupabaseQuestionRepository` (querying the `questions` table)
 /// when the backend is ready — the [QuestionRepository] contract stays the same.
 class MockQuestionRepository implements QuestionRepository {
-  /// [random] drives the "random pool question" picks (peek / ad reveal); tests
-  /// pass a seeded [Random] for reproducible picks. Defaults to a fresh one.
-  MockQuestionRepository({Random? random}) : _random = random ?? Random();
-
-  final Random _random;
-
   /// Instance-local favorites for the offline/dev preview.
   ///
   /// The real store is the `question_favorites` table; in mock mode there's no
@@ -164,15 +115,9 @@ class MockQuestionRepository implements QuestionRepository {
   Future<List<Question>> fetchQuestions() async {
     // Simulate a small network delay so loading states are exercised in the UI.
     await Future.delayed(const Duration(milliseconds: 300));
-    // Mirror the free-tier shape the get_questions RPC returns: the catalog
-    // comes back in full but every question is locked, each carrying a short
-    // teaser (the first two words) so the locked-card "Czy miliarderzy…" tease
-    // is exercised offline. Only the daily is free, and the deck shows that
-    // separately (fetchDailyQuestion, always unlocked) at position 0.
-    return [
-      for (final q in kMockQuestions)
-        q.copyWith(isLocked: true, teaser: _teaserOf(q.questionText)),
-    ];
+    // Mock sessions are premium (see SessionNotifier), so mirror the entitled
+    // shape the get_questions RPC returns: the whole catalog, readable.
+    return [for (final q in kMockQuestions) q.copyWith(isLocked: false)];
   }
 
   @override
@@ -189,10 +134,8 @@ class MockQuestionRepository implements QuestionRepository {
   @override
   Future<List<Smaczek>> fetchSmaczki(String questionId) async {
     await Future.delayed(const Duration(milliseconds: 200));
-    // Dev/offline preview mirrors the free-tier shape the RPC returns: the
-    // first smaczek is readable, the rest come back locked (no text). Premium
-    // can't be exercised without real RevenueCat config, so mock mode is always
-    // the free view.
+    // Mock sessions are premium (see SessionNotifier), so every smaczek comes
+    // back readable — the entitled shape of the RPC.
     return const [
       Smaczek(
         position: 1,
@@ -201,56 +144,30 @@ class MockQuestionRepository implements QuestionRepository {
             'Zapytaj o konkretny przykład z ostatniego tygodnia — konkret '
             'otwiera rozmowę szybciej niż ogólniki.',
       ),
-      Smaczek(position: 2, isLocked: true),
-      Smaczek(position: 3, isLocked: true),
+      Smaczek(
+        position: 2,
+        isLocked: false,
+        text:
+            'Poproś każdego o jedno zdanie uzasadnienia, zanim zaczniecie '
+            'dyskutować — unikniecie mówienia obok siebie.',
+      ),
+      Smaczek(
+        position: 3,
+        isLocked: false,
+        text:
+            'Zamieńcie się rolami: każdy broni odpowiedzi przeciwnej do '
+            'własnej przez dwie minuty.',
+      ),
     ];
   }
 
   @override
-  Future<({String id, String teaser})?> peekNextQuestion({
-    List<String> excludeIds = const [],
-  }) async {
-    await Future.delayed(const Duration(milliseconds: 150));
-    if (kMockQuestions.length < 2) return null;
-    final pick = kMockQuestions[1 + _random.nextInt(kMockQuestions.length - 1)];
-    final teaser = pick.questionText
-        .trim()
-        .split(RegExp(r'\s+'))
-        .take(2)
-        .join(' ');
-    return (id: pick.id, teaser: teaser);
-  }
-
-  @override
-  Future<Question?> revealAdQuestion({
-    String? questionId,
-    List<String> excludeIds = const [],
-  }) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    // Offline preview: reveal the requested mock question (or a random pool one).
-    // No real seen-memory in mock mode, so this can repeat — fine for a dev
-    // preview; tests use a custom fake repository.
-    if (kMockQuestions.isEmpty) return null;
-    final pick = questionId != null
-        ? kMockQuestions.firstWhere(
-            (q) => q.id == questionId,
-            orElse: () => kMockQuestions.first,
-          )
-        : kMockQuestions[kMockQuestions.length < 2
-              ? 0
-              : 1 + _random.nextInt(kMockQuestions.length - 1)];
-    return pick.copyWith(isLocked: false);
-  }
-
-  @override
   Future<UserStats?> syncUserState() async {
-    // Offline preview: a fresh free user with the daily credit available and no
-    // streak yet. The real top-up / streak logic is server-side (off the server
-    // clock), so mock mode just shows the entry state.
+    // Offline preview: a fresh user with no streak yet. The real streak logic
+    // is server-side (off the server clock), so mock mode shows the entry state.
     return const UserStats(
       currentStreak: 0,
       longestStreak: 0,
-      freeUnlockCredits: 1,
       rankTier: 0,
       rankName: 'Amator kontrowersji',
       nextRankStreak: 3,
@@ -274,16 +191,6 @@ class MockQuestionRepository implements QuestionRepository {
       noCount: choice == VoteResult.no ? 41 : 40,
       myChoice: choice,
     );
-  }
-
-  @override
-  Future<Question?> revealFreeQuestion({
-    List<String> excludeIds = const [],
-  }) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    // Offline preview: same as the ad reveal — the credit accounting is
-    // server-side, so mock just hands back a readable pool question.
-    return revealAdQuestion();
   }
 
   @override
@@ -431,54 +338,10 @@ class SupabaseQuestionRepository implements QuestionRepository {
   }
 
   @override
-  Future<({String id, String teaser})?> peekNextQuestion({
-    List<String> excludeIds = const [],
-  }) async {
-    // SECURITY DEFINER RPC: previews the next UNVOTED pick's teaser without
-    // revealing it (no text, not marked seen). Empty = nothing left. p_exclude_ids
-    // keeps the teaser off a question already revealed this session.
-    final data = await _db.rpc(
-      'peek_next_question',
-      params: {
-        'p_locale': locale,
-        'p_date': dateOnlyKey(DateTime.now()),
-        'p_exclude_ids': excludeIds,
-      },
-    );
-    final rows = (data as List).cast<Map<String, dynamic>>();
-    if (rows.isEmpty) return null;
-    final row = rows.first;
-    return (id: row['id'].toString(), teaser: row['teaser'] as String? ?? '');
-  }
-
-  @override
-  Future<Question?> revealAdQuestion({
-    String? questionId,
-    List<String> excludeIds = const [],
-  }) async {
-    // SECURITY DEFINER RPC: reveals the peeked question (when still eligible) or
-    // a random UNVOTED, non-daily one, records it in question_seen, and returns it
-    // WITH text. Empty result = nothing unvoted left. p_exclude_ids skips this
-    // session's already-revealed ids on the random pick.
-    final data = await _db.rpc(
-      'reveal_ad_question',
-      params: {
-        'p_locale': locale,
-        'p_date': dateOnlyKey(DateTime.now()),
-        'p_question_id': ?questionId,
-        'p_exclude_ids': excludeIds,
-      },
-    );
-    final rows = (data as List).cast<Map<String, dynamic>>();
-    if (rows.isEmpty) return null;
-    return Question.fromJson(rows.first).copyWith(isLocked: false);
-  }
-
-  @override
   Future<UserStats?> syncUserState() async {
-    // SECURITY DEFINER RPC: returns the server's view of streak / credits / rank
-    // and tops up today's free credit (once per UTC day, capped at 1) as a side
-    // effect. Returns a single row.
+    // SECURITY DEFINER RPC: returns the server's view of streak / rank as a
+    // single row. (Server-side it still tops up the legacy daily credit for
+    // older app versions; this client ignores those fields.)
     final data = await _db.rpc('sync_user_state', params: {'p_locale': locale});
 
     final rows = (data as List).cast<Map<String, dynamic>>();
@@ -517,26 +380,6 @@ class SupabaseQuestionRepository implements QuestionRepository {
     final rows = (data as List).cast<Map<String, dynamic>>();
     if (rows.isEmpty) return VoteResult.empty;
     return VoteResult.fromJson(rows.first);
-  }
-
-  @override
-  Future<Question?> revealFreeQuestion({
-    List<String> excludeIds = const [],
-  }) async {
-    // SECURITY DEFINER RPC: same pick as reveal_ad_question (unvoted pool) but
-    // charges one daily credit (real accounts only). Empty result = nothing left
-    // (no charge). Throws on no-credit / premium / guest — the caller surfaces it.
-    final data = await _db.rpc(
-      'reveal_free_question',
-      params: {
-        'p_locale': locale,
-        'p_date': dateOnlyKey(DateTime.now()),
-        'p_exclude_ids': excludeIds,
-      },
-    );
-    final rows = (data as List).cast<Map<String, dynamic>>();
-    if (rows.isEmpty) return null;
-    return Question.fromJson(rows.first).copyWith(isLocked: false);
   }
 
   @override
@@ -650,10 +493,3 @@ String dateOnlyKey(DateTime date) {
   final day = local.day.toString().padLeft(2, '0');
   return '${local.year}-$month-$day';
 }
-
-/// The first two words of [text], used as the locked-card teaser in mock mode.
-///
-/// Mirrors what the `get_questions` RPC computes server-side, so the offline
-/// preview shows the same "two words + ellipsis" tease as production.
-String _teaserOf(String text) =>
-    text.trim().split(RegExp(r'\s+')).take(2).join(' ');

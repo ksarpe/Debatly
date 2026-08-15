@@ -7,8 +7,7 @@
 /// flutter run \
 ///   --dart-define=SUPABASE_URL=https://xyz.supabase.co \
 ///   --dart-define=SUPABASE_ANON_KEY=... \
-///   --dart-define=REVENUECAT_API_KEY=... \
-///   --dart-define=ADMOB_REWARDED_ID=...
+///   --dart-define=REVENUECAT_API_KEY=...
 /// ```
 class AppConfig {
   AppConfig._();
@@ -33,36 +32,6 @@ class AppConfig {
     'REVENUECAT_API_KEY',
     defaultValue: '',
   );
-
-  /// Rewarded ad unit shown by the "Unlock next question" sheet.
-  ///
-  /// Defaults to Google's public Android *test* rewarded unit so real ads only
-  /// appear once a real id is supplied. The iOS test unit is
-  /// `ca-app-pub-3940256099942544/1712485313` — pass it via ADMOB_REWARDED_ID
-  /// for iOS builds, and use your real ids before release.
-  static const String admobRewardedId = String.fromEnvironment(
-    'ADMOB_REWARDED_ID',
-    defaultValue: 'ca-app-pub-3940256099942544/5224354917',
-  );
-
-  /// Comma-separated AdMob **test-device** ids. When set, AdMob serves *test*
-  /// ads to these devices even on the real ad unit id — so you can exercise the
-  /// real rewarded unit (and its SSV callback) during development WITHOUT
-  /// generating invalid traffic on live ads, which risks an AdMob ban.
-  ///
-  /// Grab the id from the device log the first time an ad loads, e.g.:
-  /// `Use RequestConfiguration.Builder.setTestDeviceIds(["33BE2250…"])`.
-  /// Leave empty for store builds. Wired in [AdsService.initialise].
-  static const String _admobTestDeviceIdsRaw = String.fromEnvironment(
-    'ADMOB_TEST_DEVICE_IDS',
-    defaultValue: '',
-  );
-
-  static List<String> get admobTestDeviceIds => _admobTestDeviceIdsRaw
-      .split(',')
-      .map((s) => s.trim())
-      .where((s) => s.isNotEmpty)
-      .toList();
 
   /// Public URL of the privacy policy, opened from the Privacy & data screen.
   /// Defaults to the live page on the marketing site (a public, non-secret URL,

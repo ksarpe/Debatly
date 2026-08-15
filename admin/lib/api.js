@@ -33,14 +33,24 @@ export const api = {
   me: () => rpc('admin_me'),
   claimInvite: () => rpc('admin_claim_invite'),
 
-  listQuestions: ({ search = null, onlyActive = true, onlyEnReview = false, limit = 50, offset = 0 } = {}) =>
+  // Cały dashboard /stats jednym strzałem; p_days = null → od początku.
+  // Konta wewnętrzne (nasze maile) są domyślnie wycięte z każdej liczby.
+  dashboardStats: (days = null, includeInternal = false) =>
+    rpc('admin_dashboard_stats', { p_days: days, p_include_internal: includeInternal }),
+
+  listQuestions: ({ search = null, onlyActive = true, onlyEnReview = false, onlyFavorites = false, limit = 50, offset = 0 } = {}) =>
     rpc('admin_list_questions', {
       p_search: search,
       p_only_active: onlyActive,
       p_only_en_review: onlyEnReview,
+      p_only_favorites: onlyFavorites,
       p_limit: limit,
       p_offset: offset,
     }),
+
+  // Gwiazdka "ulubione" — per admin, bez draftu. Zwraca nowy stan (true = on).
+  toggleFavorite: (questionId) =>
+    rpc('admin_toggle_favorite', { p_question_id: questionId }),
 
   getQuestion: (id) => rpc('admin_get_question', { p_id: id }),
 

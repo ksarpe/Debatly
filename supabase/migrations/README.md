@@ -161,3 +161,35 @@ catastrophe. Do not "fix" it by flattening the folders back.
   change until the values are curated by hand. The seed values themselves are
   curated manually (Excel round-trip; export query in the file header) and are
   NOT tracked as migrations.
+- `20260815130000_rls_auth_uid_initplan.sql` (wraps `auth.uid()` in a scalar
+  subselect in the 8 RLS policies the advisor flagged with
+  `0003_auth_rls_initplan`) — **applied to prod 2026-08-15** via MCP as
+  `rls_auth_uid_initplan`. `alter policy` only, so names / commands / roles are
+  untouched and there is no instant with a policy missing. Verified live: the
+  advisor's 8 `auth_rls_initplan` WARNs are gone, and a session impersonating a
+  real user still sees exactly its own rows (40 votes, 0 belonging to anyone
+  else, 1 profile). Idempotent.
+  Found on the way, fixed separately in
+  `20260815150000_question_translations_policy_without_is_premium.sql` (below):
+  the `read question text (gated)` policy on `question_translations` called
+  `public.is_premium(...)`, whose EXECUTE is postgres-only since the 2026-07-02
+  least-privilege pass, so a direct PostgREST read of that table by
+  `anon`/`authenticated` raised 42501 instead of returning zero rows.
+- `20260815150000_question_translations_policy_without_is_premium.sql` (inlines
+  the premium check into the `read question text (gated)` policy and narrows it
+  to `authenticated`) — **applied to prod 2026-08-15** via MCP as
+  `question_translations_policy_without_is_premium`. The 42501 above was
+  pre-existing and inert (all question text is read through the SECURITY
+  DEFINER RPCs) and fail-closed, so nothing leaked; the fix is *not* a grant,
+  because `grant execute on is_premium to authenticated` would publish
+  `/rest/v1/rpc/is_premium?uid=<any uuid>` as an entitlement oracle for other
+  people's accounts. The inlined predicate is the body of `is_premium`
+  verbatim, `premium_until` included, and reads `profiles` as the invoker, so
+  profiles' own "read own profile" policy keeps the subquery to the caller's
+  row. `anon` is dropped from the policy on purpose: it has no SELECT grant on
+  `profiles`, so keeping it would only swap one 42501 for another, and with no
+  policy covering it a keyless read now returns zero rows. Verified live
+  against real accounts: PRO user 1120 rows (was 42501), non-PRO 0 rows, anon
+  0 rows, both without error; `get_questions('pl', today)` as the PRO user
+  still returns 560/560 rows with text. Idempotent (`drop policy if exists` +
+  `create policy`).

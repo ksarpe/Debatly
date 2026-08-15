@@ -11,7 +11,6 @@
 #      SUPABASE_URL              — https://….supabase.co
 #      SUPABASE_ANON_KEY         — anon key z Supabase
 #      REVENUECAT_API_KEY_IOS    — klucz appl_… (RevenueCat → apka App Store → Public API Key)
-#      ADMOB_REWARDED_ID_IOS     — iOS-owy rewarded ad unit (ca-app-pub-…/…)
 #      GOOGLE_SERVER_CLIENT_ID   — ten sam web client ID co na Androidzie
 #      SENTRY_DSN                — DSN z Sentry
 #    Opcjonalnie (czytelne, deobfuskowane stack trace w Sentry — patrz SENTRY_SETUP.md §5):
@@ -20,7 +19,13 @@
 #                                  potrzebny tu sekret — org (akn-software) i project (debatly)
 #                                  są zaszyte w bloku `sentry:` w pubspec.yaml.
 #    Bez SENTRY_AUTH_TOKEN krok wgrywania symboli jest po prostu pomijany (build i tak przechodzi).
+#    ADMOB_REWARDED_ID_IOS z czasów freemium jest już nieużywany — można go z grupy usunąć.
 # 4. Start new build → workflow "ios-testflight".
+#
+# Pierwszy krok builda ("Verify release configuration") twardo przerywa build,
+# jeśli brakuje SUPABASE_URL / SUPABASE_ANON_KEY / REVENUECAT_API_KEY_IOS albo
+# klucz RC ma zły kształt. Przy twardym paywallu taki artefakt to aplikacja,
+# której nikt nie może kupić — lepiej wywalić się tu niż w sklepie.
 #
 # Numer builda (CFBundleVersion) bierze się z auto-inkrementującego licznika
 # Codemagic ($BUILD_NUMBER) — każdy build dostaje unikalny, rosnący numer, więc
@@ -48,6 +53,68 @@ workflows:
     scripts:
       - name: Flutter packages
         script: flutter pub get
+      - name: Verify release configuration
+        script: |
+          # Runs FIRST (before the ~10 min signing + build) because these
+          # secrets decide whether the artifact is usable at all.
+          #
+          # Debatly is a HARD PAYWALL: the entire app sits behind a purchase.
+          # A release IPA without a RevenueCat key is therefore not "degraded",
+          # it is DEAD — nobody can buy, so every new user is stuck on a wall
+          # whose offer never loads. And the keyless mock-premium fallback in
+          # SessionNotifier._load needs BOTH Supabase and RevenueCat absent, so
+          # it does not rescue a build that has one and not the other.
+          #
+          # Deliberately no `set -e`: the checks below accumulate, so ONE build
+          # reports every missing secret instead of one per attempt.
+          fail=0
+
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "❌ SUPABASE_URL is empty — no backend, no questions."
+            fail=1
+          fi
+          if [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "❌ SUPABASE_ANON_KEY is empty — no backend, no questions."
+            fail=1
+          fi
+
+          # Mirrors PurchasesService.isUsableKey. The native RevenueCat SDK
+          # ABORTS THE PROCESS on an invalid key ("app will close now to
+          # protect the security"), so a placeholder ships worse than nothing.
+          case "$REVENUECAT_API_KEY_IOS" in
+            "")
+              echo "❌ REVENUECAT_API_KEY_IOS is empty — nobody could ever buy PRO."
+              fail=1 ;;
+            *REPLACE*)
+              echo "❌ REVENUECAT_API_KEY_IOS is still the env-file placeholder."
+              fail=1 ;;
+            test_*)
+              echo "❌ REVENUECAT_API_KEY_IOS is a legacy 'test_' sample key."
+              fail=1 ;;
+            appl_*)
+              ;;  # the only shape an iOS build can use
+            *)
+              echo "❌ REVENUECAT_API_KEY_IOS must start with 'appl_'."
+              echo "   A goog_… (Android) key builds fine here and then fails on device."
+              fail=1 ;;
+          esac
+
+          # Not fatal — the app still runs and still sells.
+          if [ -z "$GOOGLE_SERVER_CLIENT_ID" ]; then
+            echo "⚠️  GOOGLE_SERVER_CLIENT_ID empty — Google sign-in is disabled."
+            echo "   Sign in with Apple still covers iOS, so PRO stays recoverable."
+          fi
+          if [ -z "$SENTRY_DSN" ]; then
+            echo "⚠️  SENTRY_DSN empty — release crashes will go unreported."
+          fi
+
+          if [ "$fail" != 0 ]; then
+            echo ""
+            echo "Release configuration invalid — refusing to build a dead app."
+            echo "Fix in Codemagic → app → Environment variables → 'debatly_secrets'."
+            exit 1
+          fi
+          echo "✅ Release configuration OK."
       - name: Apply signing profiles to Xcode project
         script: xcode-project use-profiles
       - name: Validate privacy manifests (ITMS-91064 guard)
@@ -116,7 +183,6 @@ workflows:
             --dart-define=SUPABASE_URL=$SUPABASE_URL \
             --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
             --dart-define=REVENUECAT_API_KEY=$REVENUECAT_API_KEY_IOS \
-            --dart-define=ADMOB_REWARDED_ID=$ADMOB_REWARDED_ID_IOS \
             --dart-define=GOOGLE_SERVER_CLIENT_ID=$GOOGLE_SERVER_CLIENT_ID \
             --dart-define=SENTRY_DSN=$SENTRY_DSN \
             --dart-define=SENTRY_ENVIRONMENT=production

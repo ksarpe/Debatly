@@ -3,13 +3,11 @@ import 'package:purchases_flutter/purchases_flutter.dart'
     show Package, PackageType;
 
 import '../../../core/locale/l10n_extension.dart';
-import '../../../core/theme/app_theme.dart';
-import 'paywall_cta_button.dart';
 import 'paywall_plan_card.dart';
 
-/// The loaded offer: package cards side by side, the CTA and the small
-/// store-terms note. Pure presentation — selection state, analytics and the
-/// purchase flow stay with the sheet that owns them.
+/// The loaded offer: the plan cards side by side. Pure presentation —
+/// selection state, analytics and the purchase flow stay with the owner (the
+/// CTA itself lives in the paywall's sticky bottom bar).
 class PaywallOfferSection extends StatelessWidget {
   const PaywallOfferSection({
     super.key,
@@ -17,14 +15,12 @@ class PaywallOfferSection extends StatelessWidget {
     required this.selected,
     required this.busy,
     required this.onSelect,
-    required this.onBuy,
   });
 
   final List<Package> packages;
   final Package selected;
   final bool busy;
   final ValueChanged<Package> onSelect;
-  final VoidCallback onBuy;
 
   /// Price-anchoring subline for the lifetime card: the lifetime price
   /// expressed in months of the monthly subscription ("less than N months").
@@ -56,59 +52,53 @@ class PaywallOfferSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lifetimeSubline = _lifetimeSubline(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // IntrinsicHeight + stretch keep both cards the same height even
-        // though only the lifetime one carries the comparison subline.
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (var i = 0; i < packages.length; i++) ...[
-                if (i > 0) const SizedBox(width: 12),
-                Expanded(
-                  child: PaywallPlanCard(
-                    package: packages[i],
-                    selected: packages[i] == selected,
-                    recommended: i == 0 && packages.length > 1,
-                    subline: packages[i].packageType == PackageType.lifetime
-                        ? lifetimeSubline
-                        : null,
-                    onTap: busy ? null : () => onSelect(packages[i]),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        PaywallCtaButton(
-          label: context.l10n.paywallCta,
-          busy: busy,
-          onTap: onBuy,
-        ),
-        const SizedBox(height: 14),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.verified_user_outlined,
-              size: 15,
-              color: context.colors.subtle,
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                selected.packageType == PackageType.lifetime
-                    ? context.l10n.paywallLifetimeNote
-                    : context.l10n.paywallSubscriptionNote,
-                style: TextStyle(color: context.colors.subtle, fontSize: 12.5),
-              ),
-            ),
+    // The "best value" tag follows the lifetime plan (the one the paywall
+    // preselects and pitches), wherever the offering ordered it.
+    var recommendedIndex = packages.indexWhere(
+      (p) => p.packageType == PackageType.lifetime,
+    );
+    if (recommendedIndex < 0) recommendedIndex = 0;
+
+    PaywallPlanCard card(int i) => PaywallPlanCard(
+      package: packages[i],
+      selected: packages[i] == selected,
+      recommended: i == recommendedIndex && packages.length > 1,
+      subline: packages[i].packageType == PackageType.lifetime
+          ? lifetimeSubline
+          : null,
+      onTap: busy ? null : () => onSelect(packages[i]),
+    );
+
+    // Three plans don't fit across a phone: the labels ("Dożywotni", the
+    // lifetime-vs-monthly subline) start wrapping and ellipsing, and this is
+    // the offering — someone adding an annual package in the RevenueCat
+    // dashboard would reshape this screen with no code change at all. So past
+    // two, the cards stack full-width instead.
+    if (packages.length > 2) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < packages.length; i++) ...[
+            // Room for the floating "best value" tag, which overhangs the top.
+            if (i > 0) const SizedBox(height: 14),
+            card(i),
           ],
-        ),
-      ],
+        ],
+      );
+    }
+
+    // IntrinsicHeight + stretch keep both cards the same height even though
+    // only the lifetime one carries the comparison subline.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < packages.length; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
+            Expanded(child: card(i)),
+          ],
+        ],
+      ),
     );
   }
 }

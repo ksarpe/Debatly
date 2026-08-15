@@ -10,13 +10,26 @@ import 'styled_question_text.dart';
 /// Whenever [text] changes the build replays from scratch. [onWordLanded] fires
 /// once for each word the moment it settles — the natural seam for adding a
 /// haptic tick per landing later on.
+///
+/// Pass `animate: false` where the sentence is already familiar — a stage that
+/// re-shows a question the user has just read — and it renders fully assembled
+/// with identical layout, so nothing shifts.
 class FallingWordsText extends StatefulWidget {
-  const FallingWordsText(this.text, {super.key, this.onWordLanded});
+  const FallingWordsText(
+    this.text, {
+    super.key,
+    this.onWordLanded,
+    this.animate = true,
+  });
 
   final String text;
 
   /// Called once per word as it lands. Intended for haptic feedback.
   final VoidCallback? onWordLanded;
+
+  /// Whether the words fall in. When false the text appears whole and
+  /// [onWordLanded] never fires — no word ever was in flight.
+  final bool animate;
 
   @override
   State<FallingWordsText> createState() => _FallingWordsTextState();
@@ -46,7 +59,9 @@ class _FallingWordsTextState extends State<FallingWordsText>
   @override
   void didUpdateWidget(FallingWordsText oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.text != widget.text) _play(widget.text);
+    if (oldWidget.text != widget.text || oldWidget.animate != widget.animate) {
+      _play(widget.text);
+    }
   }
 
   @override
@@ -57,13 +72,21 @@ class _FallingWordsTextState extends State<FallingWordsText>
     super.dispose();
   }
 
-  /// (Re)start the staggered build for [text].
+  /// (Re)start the staggered build for [text] — or, with `animate: false`, jump
+  /// straight to the assembled sentence.
   void _play(String text) {
     _words = text.trim().split(RegExp(r'\s+'));
-    _landed = 0;
     final count = _words.length;
     // Total span covers every word's stagger offset plus one full word fall.
     _controller.duration = _stagger * (count - 1) + _wordDuration;
+    if (!widget.animate) {
+      // Marked landed *before* the jump: setting the value notifies listeners,
+      // and nothing should read as having "just landed" when it never fell.
+      _landed = count;
+      _controller.value = 1;
+      return;
+    }
+    _landed = 0;
     _controller.forward(from: 0);
   }
 

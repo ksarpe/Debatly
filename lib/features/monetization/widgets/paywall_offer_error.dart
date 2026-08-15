@@ -13,10 +13,14 @@ class PaywallOfferError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return SizedBox(
-      height: 220,
+    // Min-height (not a fixed box): the section keeps its visual weight while
+    // the offer is absent, but large accessibility text sizes may legitimately
+    // need more room — a fixed 220 overflowed at 1.6x.
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 220),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.wifi_off_rounded, color: colors.subtle, size: 32),
           const SizedBox(height: 12),

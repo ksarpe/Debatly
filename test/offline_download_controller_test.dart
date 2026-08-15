@@ -184,22 +184,6 @@ class _FakeRepo implements QuestionRepository {
   Future<UserStats?> syncUserState() async => null;
 
   @override
-  Future<({String id, String teaser})?> peekNextQuestion({
-    List<String> excludeIds = const [],
-  }) async => null;
-
-  @override
-  Future<Question?> revealAdQuestion({
-    String? questionId,
-    List<String> excludeIds = const [],
-  }) async => null;
-
-  @override
-  Future<Question?> revealFreeQuestion({
-    List<String> excludeIds = const [],
-  }) async => null;
-
-  @override
   Future<VoteResult> getDailyVoteState(String questionId) async =>
       VoteResult.empty;
 

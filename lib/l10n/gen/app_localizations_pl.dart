@@ -36,6 +36,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get noPreviousPurchase => 'Nie znaleziono wcześniejszego zakupu.';
 
   @override
+  String get purchaseSyncPending =>
+      'Zakup się powiódł, ale nie udało się go jeszcze potwierdzić. Spróbuj za chwilę „Przywróć zakup”.';
+
+  @override
   String get restoreSignInTitle => 'Przywrócić zakup?';
 
   @override
@@ -409,13 +413,6 @@ class AppLocalizationsPl extends AppLocalizations {
       'Twój status Premium, obsługiwany przez App Store lub Google Play. Nigdy nie widzimy danych Twojej karty.';
 
   @override
-  String get privacyDataAdsTitle => 'Reklamy';
-
-  @override
-  String get privacyDataAdsBody =>
-      'Użytkownicy darmowi widzą reklamy przez Google AdMob, które mogą używać identyfikatorów urządzenia. Premium całkowicie usuwa reklamy.';
-
-  @override
   String get settingsPremiumActiveToast => 'Premium aktywne. 🎉';
 
   @override
@@ -426,6 +423,16 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get manageSubStatusCancelled => 'Anulowano — nie odnowi się';
+
+  @override
+  String get manageSubStatusLifetime => 'Dostęp dożywotni';
+
+  @override
+  String get manageSubNoteLifetime =>
+      'To jednorazowy zakup — nie ma żadnej subskrypcji do anulowania. Premium zostaje na tym koncie na zawsze.';
+
+  @override
+  String get manageSubClose => 'Zamknij';
 
   @override
   String manageSubRenewsOn(String date) {
@@ -608,13 +615,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get streakTooltip => 'Twoja seria';
 
   @override
-  String get freeUnlockTooltip => 'Darmowe odblokowanie';
-
-  @override
-  String get freeUnlockExplain =>
-      'Masz jedno darmowe odblokowanie — przesuń na kolejne pytanie, a odblokuje się automatycznie.';
-
-  @override
   String get newQuestionBadge => 'Nowe';
 
   @override
@@ -631,56 +631,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get voteFailed => 'Nie udało się zagłosować.';
 
   @override
-  String get revealFailed =>
-      'Nie udało się odsłonić pytania — spróbuj ponownie.';
-
-  @override
-  String get adLoading => 'Reklama jeszcze się ładuje — spróbuj za chwilę.';
-
-  @override
-  String get adNoReward =>
-      'Brak nagrody — obejrzyj całe wideo, aby odblokować.';
-
-  @override
   String get noConnection => 'Brak połączenia — spróbuj ponownie za chwilę.';
 
   @override
-  String get noMoreTitle => 'To wszystkie pytania na teraz';
-
-  @override
-  String get noMoreBody =>
-      'Wróć jutro po nowe pytania — albo przejdź na PRO, by czytać bez limitu.';
-
-  @override
   String get backToLatestQuestion => 'Wróć do najnowszego pytania';
-
-  @override
-  String get nextQuestionWaiting => 'Kolejne pytanie czeka';
-
-  @override
-  String get adLimitReachedInfo =>
-      'Dzisiejsze darmowe odblokowania wykorzystane. Wróć jutro — albo odblokuj wszystko z PRO.';
-
-  @override
-  String get adLimitReachedToast =>
-      'Dzienny limit odblokowań za reklamy został osiągnięty.';
-
-  @override
-  String adLimitResetInHM(int hours, int minutes) {
-    return 'Nowe odblokowania za $hours godz. $minutes min';
-  }
-
-  @override
-  String adLimitResetInM(int minutes) {
-    return 'Nowe odblokowania za $minutes min';
-  }
-
-  @override
-  String get orSignInFreeQuestion =>
-      'Albo zaloguj się po jedno darmowe pytanie.';
-
-  @override
-  String get unlockWithAd => 'Odblokuj reklamą';
 
   @override
   String get proActiveTitle => 'PRO aktywne 🎉';
@@ -852,18 +806,22 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get onboardingTasteSmaczek1 =>
-      'Za cięższą walizkę płacisz przecież dodatkowo.';
+      'Za kilka kilogramów walizki musisz przecież dopłacić.';
 
   @override
   String get onboardingTasteSmaczek2 =>
-      'A co z komfortem osoby siedzącej obok?';
+      'Co z komfortem osoby obok? Zapłaciła tyle samo, a ma ciaśniej.';
 
   @override
   String get onboardingTasteSmaczek3 =>
-      'Jak to weryfikować? Jakaś bramka przed wejściem?';
+      'Jak chcesz to weryfikować? Bramka przed wejściem do samolotu?';
 
   @override
-  String get onboardingTasteRead => 'Przeczytane!';
+  String get onboardingTasteSmaczek4 =>
+      'A ci, którzy tyją przez chorobę? Pokrzywdzeni na zawsze?';
+
+  @override
+  String get onboardingTasteRead => 'Dobra, głosuję!';
 
   @override
   String get onboardingTasteRevoteKicker => 'ZAGŁOSUJ PONOWNIE';
@@ -872,24 +830,52 @@ class AppLocalizationsPl extends AppLocalizations {
   String get onboardingTasteContinue => 'Dalej';
 
   @override
-  String get onboardingChoiceTitle => 'Jak chcesz zacząć?';
+  String get onboardingTasteNextTitle => 'Spróbujmy z kolejnym…';
 
   @override
-  String get onboardingChoiceBody =>
-      'Zalogować się możesz w każdej chwili później, w ustawieniach.';
+  String get onboardingTasteQuestion2 =>
+      'Czy powinieneś mówić nowemu partnerowi, z iloma osobami spałeś?';
 
   @override
-  String get onboardingSignInCta => 'Zaloguj / Załóż konto';
+  String get onboardingTasteSureTitle => 'Czy aby na pewno?';
 
   @override
-  String get onboardingSignInHint =>
-      'Passa, ulubione i historia głosów — na każdym urządzeniu';
+  String get onboardingTasteQ2Smaczek1 =>
+      'Kłótni nie będzie tylko wtedy, gdy wasze liczby są podobne.';
 
   @override
-  String get onboardingStartAnon => 'Zacznij anonimowo';
+  String get onboardingTasteQ2Smaczek2 =>
+      'Nie będzie cię to gryzło, gdy już się dowiesz? A partnera?';
 
   @override
-  String get onboardingStartAnonHint => 'Szybki start, bez zakładania konta';
+  String get onboardingTasteQ2Smaczek3 =>
+      'Jeśli to nie jest setka — co to właściwie zmienia?';
+
+  @override
+  String get onboardingTasteQ2Smaczek4 =>
+      'A jeśli jednak setka? Wolałbyś wiedzieć, czy powiedzieć?';
+
+  @override
+  String get onboardingCatalogTitle => 'A takich pytań mamy ponad 500';
+
+  @override
+  String get onboardingCatalogBody =>
+      'Każde z wynikami głosowania całego świata. Zagłosuj i sprawdź, czy myślisz jak większość — czy to cały świat się myli. A przy każdym pytaniu czekają argumenty, które potrafią zmienić zdanie.';
+
+  @override
+  String get onboardingCatalogPerfectFor => 'IDEALNE NA';
+
+  @override
+  String get onboardingCatalogUse1 => 'randki';
+
+  @override
+  String get onboardingCatalogUse2 => 'spotkania towarzyskie';
+
+  @override
+  String get onboardingCatalogUse3 => 'wieczory we dwoje';
+
+  @override
+  String get onboardingCatalogUse4 => 'rozmowy przy rodzinnym stole';
 
   @override
   String get onboardingNotifyTitle => 'Jutro czeka nowe pytanie';
@@ -912,11 +898,11 @@ class AppLocalizationsPl extends AppLocalizations {
   String get paywallTitle => 'Zyskaj dostęp do wszystkich pytań i głosów';
 
   @override
-  String get paywallTitleReadingLimit =>
-      'Czytaj dalej — bez limitów i czekania';
+  String get paywallTitleHardWall => 'Zobacz, jak zagłosował cały świat';
 
   @override
-  String get paywallTitleAdLimit => 'Nie czekaj do jutra — odblokuj wszystko';
+  String get paywallSubtitleHardWall =>
+      'Ponad 500 pytań, które dzielą znajomych — i wszystkie argumenty, żeby obronić swoje zdanie.';
 
   @override
   String get paywallTitleSmaczki =>
@@ -929,25 +915,49 @@ class AppLocalizationsPl extends AppLocalizations {
   String get paywallTitleHistory => 'Wszystkie Twoje głosy w jednym miejscu';
 
   @override
-  String get paywallBenefitUnlimitedTitle => 'Nieograniczone pytania';
+  String get paywallWhatYouGet => 'WSZYSTKO, CO ZYSKUJESZ';
+
+  @override
+  String get paywallBenefitUnlimitedTitle => 'Cały katalog 500+ pytań';
 
   @override
   String get paywallBenefitUnlimitedBody =>
-      'Czytaj całą bibliotekę ponad 500 pytań — bez dziennych limitów i czekania.';
+      'Wszystkie pytania „pod włos” od ręki — bez limitów i bez czekania.';
 
   @override
-  String get paywallBenefitNoAdsTitle => 'Zero reklam';
+  String get paywallBenefitOfflineTitle => 'Działa offline';
 
   @override
-  String get paywallBenefitNoAdsBody =>
-      'Bez reklam z nagrodami, bez przerywników — tylko kolejne pytanie.';
+  String get paywallBenefitOfflineBody =>
+      'Pobierz cały katalog i czytaj dalej bez internetu.';
 
   @override
-  String get paywallBenefitSmaczkiTitle => 'Argumenty do każdego pytania';
+  String get paywallBenefitSmaczkiTitle => 'Argumenty ZA i PRZECIW';
 
   @override
   String get paywallBenefitSmaczkiBody =>
-      'Odblokuj wszystkie tematy do dyskusji, które pogłębiają rozmowę.';
+      'Smaczki do każdego pytania — amunicja, z którą nie przegrasz żadnej dyskusji.';
+
+  @override
+  String get paywallBenefitSplitTitle => 'Głosy z całego świata';
+
+  @override
+  String get paywallBenefitSplitBody =>
+      'Po każdym głosie widzisz, jak zagłosował cały świat — ilu ludzi myśli jak Ty, a ilu wręcz przeciwnie.';
+
+  @override
+  String get paywallBenefitFreshTitle => 'Dziesiątki nowych pytań';
+
+  @override
+  String get paywallBenefitFreshBody =>
+      'Katalog ciągle rośnie — na bieżąco dodajemy dziesiątki nowych pytań.';
+
+  @override
+  String get paywallBenefitStreakTitle => 'Seria i rangi';
+
+  @override
+  String get paywallBenefitStreakBody =>
+      'Głosuj codziennie, podtrzymuj serię i wspinaj się po drabince rang.';
 
   @override
   String get paywallBenefitFavoritesTitle => 'Ulubione i historia głosów';
@@ -955,6 +965,9 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get paywallBenefitFavoritesBody =>
       'Zapisuj najlepsze pytania i wracaj do każdego oddanego głosu.';
+
+  @override
+  String get paywallSignInLink => 'Zaloguj się';
 
   @override
   String get paywallLifetime => 'Dożywotni';
@@ -995,7 +1008,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get paywallSubscriptionNote =>
-      'Bez zobowiązań — anulujesz w każdej chwili';
+      'Odnawia się automatycznie — anulujesz w każdej chwili';
 
   @override
   String get paywallLoadError =>

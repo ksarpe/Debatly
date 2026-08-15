@@ -1,45 +1,31 @@
 import 'package:debatly/core/locale/app_locale.dart';
-import 'package:debatly/data/models/question.dart';
-import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
-import 'package:debatly/features/account/providers/stats_providers.dart';
-import 'package:debatly/features/questions/providers/question_providers.dart';
-import 'package:debatly/features/questions/widgets/wind_question_view.dart';
-import 'package:flutter/material.dart';
+import 'package:debatly/features/monetization/screens/hard_paywall_screen.dart';
+import 'package:flutter/material.dart' show AlertDialog;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:purchases_flutter/purchases_flutter.dart' show Package;
 
+import 'support/fakes.dart';
 import 'support/localized_test_app.dart';
 import 'support/test_prefs.dart';
 
-/// The "Przywróć zakup" affordance on the reveal-slot paywall. It exists there
-/// precisely because a guest can't reach Settings (the gear is account-only), so
-/// the paywall is a guest's only restore path. For a guest the tap first opens a
-/// chooser (confirmGuestRestore): a store restore would TRANSFER the receipt onto
-/// this fresh anonymous identity, so someone who bought PRO on a real account is
-/// steered to sign back in instead — while "restore on this device" keeps the
-/// store path available (Apple requires it). RevenueCat is unconfigured in
-/// tests, so restorePurchases() reports "no purchase found" without any network
-/// call.
+/// The "Przywróć zakup" affordance on the hard paywall. The wall is a guest's
+/// only surface (the feed is PRO-only), so the restore path must live right on
+/// it. For a guest the tap first opens a chooser (confirmGuestRestore): a store
+/// restore would TRANSFER the receipt onto this fresh anonymous identity, so
+/// someone who bought PRO on a real account is steered to sign back in instead
+/// — while "restore on this device" keeps the store path available (Apple
+/// requires it). RevenueCat is unconfigured in tests, so restorePurchases()
+/// reports "no purchase found" without any network call.
 void main() {
-  Question q(String id) => Question(
-    id: id,
-    category: id.toUpperCase(),
-    questionText: 'Question $id?',
-  );
-
   Future<void> pumpGuestPaywall(WidgetTester tester) async {
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(
           await mockSharedPreferences(),
         ),
-        questionsProvider.overrideWith((ref) async => const <Question>[]),
-        todaysDailyQuestionProvider.overrideWith((ref) async => q('daily')),
-        isPremiumProvider.overrideWithValue(false),
-        freeUnlockCreditsProvider.overrideWithValue(0),
-        deckShuffleSeedProvider.overrideWithValue(1),
-        questionRepositoryProvider.overrideWithValue(_RevealRepo()),
+        sessionProvider.overrideWith(() => FakeSession(guestSession())),
       ],
     );
     addTearDown(container.dispose);
@@ -47,44 +33,27 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const LocalizedTestApp(
-          home: Scaffold(
-            body: Center(
-              child: SizedBox(
-                width: 300,
-                height: 600,
-                child: WindQuestionView(),
-              ),
-            ),
-          ),
+        child: LocalizedTestApp(
+          home: HardPaywallScreen(loadPackages: () async => const <Package>[]),
         ),
       ),
     );
     await tester.pumpAndSettle();
-
-    // Swipe a free user with no credit onto the reveal slot → the paywall.
-    await tester.fling(
-      find.byType(WindQuestionView),
-      const Offset(-300, 0),
-      1000,
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 260));
-    await tester.pump(const Duration(milliseconds: 120));
-    await tester.pump();
-    await tester.pump();
-    await tester.pumpAndSettle();
   }
 
-  testWidgets('a guest sees the restore affordance on the paywall', (
+  testWidgets('a guest sees the restore affordance on the hard paywall', (
     tester,
   ) async {
     await pumpGuestPaywall(tester);
 
-    // Sanity: we're on the paywall (the ad CTA is the anchor) ...
-    expect(find.text('Odblokuj reklamą'.toUpperCase()), findsOneWidget);
-    // ... and the store-restore path is offered right there.
+    // Sanity: we're on the hard wall (its headline is the anchor) ...
+    expect(find.text('Zobacz, jak zagłosował cały świat'), findsOneWidget);
+    // ... and the store-restore path is offered right there (below the fold
+    // on a short test viewport — scrolling to it is fine, hiding it is not).
     expect(find.text('Przywróć zakup'), findsOneWidget);
+    // A guest also gets the sign-in path, right next to restore in the
+    // sticky bar's links row.
+    expect(find.text('Zaloguj się'), findsOneWidget);
   });
 
   testWidgets('a guest tapping restore gets the sign-in-or-restore chooser', (
@@ -92,12 +61,21 @@ void main() {
   ) async {
     await pumpGuestPaywall(tester);
 
+    await tester.ensureVisible(find.text('Przywróć zakup'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Przywróć zakup'));
     await tester.pumpAndSettle();
 
-    // The chooser is up, offering both paths; nothing has run yet.
+    // The chooser is up, offering both paths; nothing has run yet. (The
+    // sticky bar carries its own "Zaloguj się" link, so scope to the dialog.)
     expect(find.text('Przywrócić zakup?'), findsOneWidget);
-    expect(find.text('Zaloguj się'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Zaloguj się'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Przywróć na tym urządzeniu'), findsOneWidget);
   });
 
@@ -106,6 +84,8 @@ void main() {
   ) async {
     await pumpGuestPaywall(tester);
 
+    await tester.ensureVisible(find.text('Przywróć zakup'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Przywróć zakup'));
     await tester.pumpAndSettle();
 
@@ -129,10 +109,17 @@ void main() {
   ) async {
     await pumpGuestPaywall(tester);
 
+    await tester.ensureVisible(find.text('Przywróć zakup'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Przywróć zakup'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Zaloguj się'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Zaloguj się'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     // The auth sheet is up (its social button is the telltale) and the store
@@ -144,12 +131,4 @@ void main() {
       reason: 'no store restore may run when the user chose to sign in',
     );
   });
-}
-
-/// Minimal repo: a teaser to peek, no reveals expected on this path.
-class _RevealRepo extends MockQuestionRepository {
-  @override
-  Future<({String id, String teaser})?> peekNextQuestion({
-    List<String> excludeIds = const [],
-  }) async => (id: 'peek', teaser: 'Czy coś');
 }

@@ -19,7 +19,7 @@ import 'question_repository.dart';
 /// the existing "you're offline, retry" screen still shows. A real server error
 /// (4xx/5xx) is never masked by cache — it rethrows.
 ///
-/// WRITES (vote, reveal, favorite toggle, mark-seen) are pass-through: they
+/// WRITES (vote, favorite toggle, mark-seen) are pass-through: they
 /// inherently need the server, so offline they throw and the UI surfaces a
 /// "you're offline" message rather than queueing.
 ///
@@ -105,8 +105,8 @@ class CachingQuestionRepository implements QuestionRepository {
       return fresh;
     } catch (e) {
       if (!isOfflineError(e)) rethrow;
-      // Stats are not gated content (just the user's own streak/credits), so no
-      // premium guard — serve the last sync so the chips don't reset offline.
+      // Stats are not gated content (just the user's own streak/rank), so no
+      // premium guard — serve the last sync so the chip doesn't reset offline.
       return cache.readStats();
     }
   }
@@ -154,21 +154,6 @@ class CachingQuestionRepository implements QuestionRepository {
   // These need the server every time (entitlement, server clock, fresh tallies),
   // so they go straight to the inner repo. Offline they throw and the caller
   // surfaces a "you're offline" message — we deliberately do NOT queue.
-
-  @override
-  Future<({String id, String teaser})?> peekNextQuestion({
-    List<String> excludeIds = const [],
-  }) => inner.peekNextQuestion(excludeIds: excludeIds);
-
-  @override
-  Future<Question?> revealAdQuestion({
-    String? questionId,
-    List<String> excludeIds = const [],
-  }) => inner.revealAdQuestion(questionId: questionId, excludeIds: excludeIds);
-
-  @override
-  Future<Question?> revealFreeQuestion({List<String> excludeIds = const []}) =>
-      inner.revealFreeQuestion(excludeIds: excludeIds);
 
   // The history's vote tallies are live (they keep changing) and premium-gated,
   // so it goes straight to the server every open rather than serving a stale

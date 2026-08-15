@@ -120,8 +120,35 @@ th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--bo
 th { color: var(--text-faint); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
 tbody tr { cursor: pointer; }
 tbody tr:hover { background: var(--bg-soft); }
-td.q { font-weight: 500; }
+tbody tr.open { background: var(--bg-soft); }
+td.q { font-weight: 500; user-select: text; }
 td.en { color: var(--text-dim); font-size: 13.5px; }
+
+/* Star ("ulubione") column */
+td.star-cell { width: 36px; padding-right: 0; cursor: default; }
+.star-btn {
+  background: transparent; border: 0; padding: 2px 5px; border-radius: 6px;
+  font-size: 17px; line-height: 1; cursor: pointer; color: var(--text-faint);
+  transition: color .12s, transform .08s;
+}
+.star-btn:hover { color: var(--warn); }
+.star-btn:active { transform: scale(1.2); }
+.star-btn.on { color: var(--warn); }
+
+/* Inline editor expanded underneath a row */
+tbody tr.editor-row, tbody tr.editor-row:hover { background: var(--bg-soft); cursor: default; }
+tr.editor-row > td {
+  padding: 16px 16px 18px;
+  border-bottom: 2px solid var(--border);
+  box-shadow: inset 0 8px 8px -8px rgb(0 0 0 / .25);
+}
+
+/* Numbered pagination */
+.pager { gap: 6px; }
+.pager .btn.cur {
+  border-color: var(--accent); color: var(--accent);
+  font-weight: 700; opacity: 1;
+}
 
 .badge {
   display: inline-block; padding: 2px 8px; border-radius: 999px;
@@ -257,6 +284,70 @@ details.sec > .body { padding: 0 16px 16px; }
   border: 1px solid var(--border-soft); border-radius: 5px; padding: 2px 6px;
 }
 .dirty { font-size: 12.5px; color: var(--warn); }
+
+/* ---------- /stats dashboard ---------- */
+.stat-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px; margin-bottom: 14px;
+}
+.stat-tile { margin-bottom: 0; }
+.stat-tile.warn { border-color: var(--warn); }
+.stat-label {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--text-faint); font-weight: 600;
+}
+.stat-value {
+  font-size: 26px; font-weight: 700; letter-spacing: -0.02em;
+  margin: 2px 0; font-variant-numeric: tabular-nums;
+}
+.stat-tile.warn .stat-value { color: var(--warn); }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+@media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+.funnel { display: flex; flex-direction: column; gap: 7px; }
+.funnel-row {
+  display: grid; grid-template-columns: minmax(120px, 190px) 1fr 88px;
+  gap: 10px; align-items: center; font-size: 13.5px;
+}
+.funnel-name { color: var(--text-dim); text-align: right; }
+.funnel-track { height: 18px; border-left: 2px solid var(--border); }
+.funnel-bar {
+  display: block; height: 100%; background: var(--accent);
+  border-radius: 0 4px 4px 0; min-width: 2px;
+}
+.funnel-bar.soft { opacity: .45; }
+.funnel-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.tbl-scroll { overflow-x: auto; }
+.stats-table th.num, .stats-table td.num {
+  text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.stats-table tbody tr { cursor: default; }
+.stats-table tbody tr:hover { background: transparent; }
+.stats-table td.q-cell { max-width: 320px; }
+.warn-cell { color: var(--warn); font-weight: 600; }
+.ok-cell { color: var(--ok); font-weight: 600; }
+code.uid {
+  font-size: 12px; background: var(--bg-soft); border: 1px solid var(--border-soft);
+  border-radius: 5px; padding: 1px 5px;
+}
+
+.daily-chart { width: 100%; height: auto; display: block; margin-bottom: 8px; }
+.daily-chart .bar { fill: var(--accent); opacity: .75; }
+.daily-chart .bar:hover { opacity: 1; }
+.daily-chart .line {
+  fill: none; stroke: var(--warn); stroke-width: 2;
+  stroke-linejoin: round; stroke-linecap: round;
+}
+.daily-chart .dot-purchase { fill: var(--ok); }
+.legend { float: right; font-size: 12px; color: var(--text-dim); font-weight: 400; }
+.legend .swatch {
+  display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+  margin: 0 5px 0 12px; vertical-align: baseline;
+}
+.legend .swatch.bar { background: var(--accent); opacity: .75; }
+.legend .swatch.line { background: var(--warn); height: 3px; vertical-align: middle; }
 .hist { font-size: 13.5px; border-bottom: 1px solid var(--border-soft); padding: 9px 0; }
 .hist:last-child { border-bottom: 0; }
 .spin { color: var(--text-faint); padding: 40px 0; text-align: center; }

@@ -63,15 +63,18 @@ void main() {
   ) async {
     await pumpSheet(tester, loadPackages: () async => [lifetime, monthly]);
 
-    // Headline + the four benefit rows.
+    // Headline + the full "everything you get" list.
     expect(
       find.text('Zyskaj dostęp do wszystkich pytań i głosów'),
       findsOneWidget,
     );
-    expect(find.text('Nieograniczone pytania'), findsOneWidget);
-    expect(find.text('Zero reklam'), findsOneWidget);
-    expect(find.text('Argumenty do każdego pytania'), findsOneWidget);
+    expect(find.text('Cały katalog 500+ pytań'), findsOneWidget);
+    expect(find.text('Głosy z całego świata'), findsOneWidget);
+    expect(find.text('Dziesiątki nowych pytań'), findsOneWidget);
+    expect(find.text('Argumenty ZA i PRZECIW'), findsOneWidget);
+    expect(find.text('Seria i rangi'), findsOneWidget);
     expect(find.text('Ulubione i historia głosów'), findsOneWidget);
+    expect(find.text('Działa offline'), findsOneWidget);
 
     // Both plans with their store-formatted prices; monthly gets the suffix.
     expect(find.text('Dożywotni'), findsOneWidget);
@@ -103,14 +106,10 @@ void main() {
       findsNothing,
     );
 
-    // The smaczki benefit is reordered above the default lead (unlimited).
-    final smaczkiY = tester
-        .getTopLeft(find.text('Argumenty do każdego pytania'))
-        .dy;
-    final unlimitedY = tester
-        .getTopLeft(find.text('Nieograniczone pytania'))
-        .dy;
-    expect(smaczkiY, lessThan(unlimitedY));
+    // The smaczki benefit is reordered above the default lead (the catalog).
+    final smaczkiY = tester.getTopLeft(find.text('Argumenty ZA i PRZECIW')).dy;
+    final catalogY = tester.getTopLeft(find.text('Cały katalog 500+ pytań')).dy;
+    expect(smaczkiY, lessThan(catalogY));
   });
 
   testWidgets('history source leads with the favorites & history benefit', (
@@ -127,28 +126,24 @@ void main() {
     final favoritesY = tester
         .getTopLeft(find.text('Ulubione i historia głosów'))
         .dy;
-    final unlimitedY = tester
-        .getTopLeft(find.text('Nieograniczone pytania'))
-        .dy;
-    expect(favoritesY, lessThan(unlimitedY));
+    final catalogY = tester.getTopLeft(find.text('Cały katalog 500+ pytań')).dy;
+    expect(favoritesY, lessThan(catalogY));
   });
 
-  testWidgets('reading-limit source keeps the default benefit order', (
+  testWidgets('hard-wall source shows its headline and default order', (
     tester,
   ) async {
     await pumpSheet(
       tester,
       loadPackages: () async => [lifetime, monthly],
-      source: PaywallSource.readingLimit,
+      source: PaywallSource.hardWall,
     );
 
-    expect(find.text('Czytaj dalej — bez limitów i czekania'), findsOneWidget);
+    expect(find.text('Zobacz, jak zagłosował cały świat'), findsOneWidget);
 
-    final unlimitedY = tester
-        .getTopLeft(find.text('Nieograniczone pytania'))
-        .dy;
-    final noAdsY = tester.getTopLeft(find.text('Zero reklam')).dy;
-    expect(unlimitedY, lessThan(noAdsY));
+    final catalogY = tester.getTopLeft(find.text('Cały katalog 500+ pytań')).dy;
+    final smaczkiY = tester.getTopLeft(find.text('Argumenty ZA i PRZECIW')).dy;
+    expect(catalogY, lessThan(smaczkiY));
   });
 
   testWidgets('lifetime card carries the months-of-subscription comparison', (
@@ -208,6 +203,34 @@ void main() {
     expect(find.textContaining('Mniej niż'), findsNothing);
   });
 
+  testWidgets('a third plan stacks instead of squeezing into the row', (
+    tester,
+  ) async {
+    // The offering's shape is set in the RevenueCat dashboard, so adding an
+    // annual package reshapes this screen with no code change at all — and
+    // three cards across a phone start ellipsing their own labels.
+    final annual = fakePackage(PackageType.annual, r'$39.99', price: 39.99);
+    await pumpSheet(
+      tester,
+      loadPackages: () async => [lifetime, annual, monthly],
+    );
+
+    expect(find.text('Dożywotni'), findsOneWidget);
+    expect(find.text('Roczny'), findsOneWidget);
+    expect(find.text('Miesięczny'), findsOneWidget);
+
+    // Stacked full-width: one column, increasing tops. (The left edges differ
+    // by a fraction of a pixel — the SELECTED card draws a 2px border where
+    // the others draw 1.4 — so match the column, not the exact offset.)
+    final first = tester.getRect(find.text('Dożywotni'));
+    final second = tester.getRect(find.text('Roczny'));
+    final third = tester.getRect(find.text('Miesięczny'));
+    expect(second.left, closeTo(first.left, 1));
+    expect(third.left, closeTo(first.left, 1));
+    expect(second.top, greaterThan(first.bottom));
+    expect(third.top, greaterThan(second.bottom));
+  });
+
   testWidgets('selecting the monthly plan switches the reassurance note', (
     tester,
   ) async {
@@ -217,8 +240,11 @@ void main() {
     await tester.tap(find.text('Miesięczny'));
     await tester.pumpAndSettle();
 
+    // The subscription note has to state the auto-renewal, not just the
+    // cancel-anytime reassurance — App Store guideline 3.1.2 asks for it on
+    // the purchase screen itself.
     expect(
-      find.text('Bez zobowiązań — anulujesz w każdej chwili'),
+      find.text('Odnawia się automatycznie — anulujesz w każdej chwili'),
       findsOneWidget,
     );
     expect(find.text('Jedna płatność — na zawsze'), findsNothing);

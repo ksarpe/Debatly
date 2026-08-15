@@ -29,7 +29,6 @@ void main() {
       UserStats(
         currentStreak: streak,
         longestStreak: longest,
-        freeUnlockCredits: 0,
         rankTier: 0,
         rankName: '',
         graceDaysLeft: graceDaysLeft,

@@ -67,17 +67,18 @@ void main() {
       expect(none.hasAccount, isFalse);
     });
 
-    test(
-      'mock mode (isAnonymous unknown/null) counts as having an account',
-      () {
-        // Documented on purpose: with no backend there is nothing to secure,
-        // so the "secure your account" prompts must stay silent — hasAccount
-        // true is what silences them.
-        const mock = SessionState(userId: 'u1');
-        expect(mock.isAnonymous, isNull);
-        expect(mock.hasAccount, isTrue);
-      },
-    );
+    test('mock mode has no identity at all — signed out, no account', () {
+      // Exactly what `SessionNotifier._load` returns with neither Supabase nor
+      // RevenueCat keys: premium (so the feed stays browsable in keyless dev)
+      // but with NO uuid, because there is no backend to mint one. An earlier
+      // version of this test asserted hasAccount == true here, off a
+      // `SessionState(userId: 'u1')` the mock branch never produces — so it
+      // pinned a guarantee the app didn't have. Mock mode reads as a guest,
+      // account prompts and all.
+      const mock = SessionState(isPremium: true);
+      expect(mock.isSignedIn, isFalse);
+      expect(mock.hasAccount, isFalse);
+    });
   });
 
   group('RankCelebrationController.evaluate', () {

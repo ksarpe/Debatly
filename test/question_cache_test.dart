@@ -99,7 +99,6 @@ void main() {
     const stats = UserStats(
       currentStreak: 5,
       longestStreak: 9,
-      freeUnlockCredits: 1,
       rankTier: 2,
       rankName: 'Podżegacz',
       nextRankStreak: 7,
@@ -108,7 +107,6 @@ void main() {
 
     final read = cache.readStats();
     expect(read?.currentStreak, 5);
-    expect(read?.freeUnlockCredits, 1);
     expect(read?.rankName, 'Podżegacz');
   });
 

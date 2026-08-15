@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/analytics.dart';
-import '../../account/screens/auth_screen.dart';
-import '../widgets/onboarding_choice_card.dart';
+import '../widgets/onboarding_catalog_card.dart';
 import '../widgets/onboarding_dots.dart';
 import '../widgets/onboarding_intro_card.dart';
 import '../widgets/onboarding_notifications_card.dart';
@@ -14,16 +13,22 @@ import '../widgets/taste_vote_card.dart';
 
 /// The first-launch tutorial: a swipeable deck that welcomes the user, lands
 /// them straight on a real question to vote on (with a taste of the smaczki
-/// behind it), asks for the daily reminder, and ends on the account choice —
-/// start anonymously, or sign in to keep progress.
+/// behind it), tells them how much more of that there is, and asks for the
+/// daily reminder — then hands over to the home gate, which for a
+/// not-yet-entitled user is the hard paywall.
 ///
-/// It owns no persistence; reaching the end (via either choice) calls [onFinish],
-/// and `AppEntry` records that the tutorial is done and swaps in the live app.
+/// There is deliberately NO account step here: the session starts anonymously
+/// on its own, sign-in for returning PRO users lives as a link on the paywall,
+/// and account creation is pitched AFTER a purchase (see promptSaveProAccount)
+/// — asking before the offer only adds friction in front of the price.
+///
+/// It owns no persistence; reaching the end calls [onFinish], and `AppEntry`
+/// records that the tutorial is done and swaps in the live app.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, required this.onFinish});
 
-  /// Invoked once the user is through onboarding — after picking a path on the
-  /// final card (anonymous) or after the sign-in sheet closes.
+  /// Invoked once the user is through onboarding — off the last card, or via
+  /// "Skip".
   final VoidCallback onFinish;
 
   @override
@@ -34,10 +39,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _controller = PageController();
   int _index = 0;
 
-  /// Number of intro cards shown before the final account-choice page. Set from
-  /// the page list each build (it's constant in practice); the choice card sits
-  /// at this index.
-  int _introCount = 0;
+  /// Index of the taste-vote page / the catalog pitch / the notifications page
+  /// in the deck. Set from the page list each build (constant in practice).
+  int _votePageIndex = 0;
+  int _catalogPageIndex = 0;
+  int _notifyPageIndex = 0;
 
   /// Funnel steps already reported, so swiping back and forth doesn't re-count
   /// a page as "reached" twice.
@@ -63,16 +69,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   /// covered by `onboarding_started`; the interactive pages are the funnel.
   void _onPageChanged(int i) {
     setState(() => _index = i);
-    if (i == _introCount) {
-      _logStep('onboarding_choice_shown');
-    } else if (i == _introCount - 1) {
+    if (i == _notifyPageIndex) {
       _logStep('onboarding_notify_shown');
-    } else if (i == _introCount - 2) {
+    } else if (i == _catalogPageIndex) {
+      _logStep('onboarding_catalog_shown');
+    } else if (i == _votePageIndex) {
       _logStep('onboarding_taste_shown');
     }
   }
-
-  bool get _isChoicePage => _index >= _introCount;
 
   void _next() {
     _controller.nextPage(
@@ -81,26 +85,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  /// "Skip" jumps straight to the account-choice card (the last page).
+  /// "Skip" leaves the tutorial immediately — the next screen is the home
+  /// gate (the paywall for a not-yet-entitled user), and nothing in here is
+  /// required to use the app.
   void _skip() {
     Analytics.log('onboarding_skipped', {'from_page': _index});
-    _controller.animateToPage(
-      _introCount,
-      duration: const Duration(milliseconds: 380),
-      curve: Curves.easeOutCubic,
-    );
+    _finish('skipped');
   }
 
-  Future<void> _signIn() async {
-    _logStep('onboarding_finished', {'path': 'sign_in'});
-    // The sheet handles its own success/cancel; either way the tutorial is done
-    // afterwards, so land the user on the daily.
-    await showAuthSheet(context);
-    if (mounted) widget.onFinish();
-  }
-
-  void _startAnonymous() {
-    _logStep('onboarding_finished', {'path': 'anonymous'});
+  void _finish(String path) {
+    _logStep('onboarding_finished', {'path': path});
     widget.onFinish();
   }
 
@@ -126,18 +120,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     // voting unveils its own "Continue".
     final votePage = TasteVoteCard(onContinue: _next);
 
+    // Having just lived the loop twice, the user is told how much more of it
+    // is waiting — 500+ questions of the same kind, and the occasions they're
+    // for. It carries no buttons; the deck's shared "Next" moves it along.
+    const catalogPage = OnboardingCatalogCard();
+
     // Straight after the aha, while the app still feels fresh, we ask to turn on
     // the daily reminder. The card carries its own buttons (Enable / Not now),
-    // both of which advance to the account choice.
-    final notifyPage = OnboardingNotificationsCard(onContinue: _next);
+    // both of which end the tutorial — the paywall is next.
+    final notifyPage = OnboardingNotificationsCard(
+      onContinue: () => _finish('direct'),
+    );
 
-    final votePageIndex = introCards.length;
-    final notifyPageIndex = introCards.length + 1;
+    _votePageIndex = introCards.length;
+    _catalogPageIndex = introCards.length + 1;
+    _notifyPageIndex = introCards.length + 2;
 
-    // Account choice comes after the taste vote + the notifications ask.
-    _introCount = introCards.length + 2;
-
-    final pageCount = _introCount + 1; // + the account-choice card
+    final pageCount = _notifyPageIndex + 1;
 
     return Scaffold(
       backgroundColor: context.colors.background,
@@ -150,22 +149,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             constraints: const BoxConstraints(maxWidth: 480),
             child: Column(
               children: [
-                // Top bar: a quiet "Skip" that jumps to the account choice. Hidden on
-                // the choice page itself (nothing left to skip).
+                // Top bar: a quiet "Skip" that leaves the tutorial.
                 SizedBox(
                   height: 48,
                   child: Align(
                     alignment: Alignment.centerRight,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 200),
-                      opacity: _isChoicePage ? 0 : 1,
-                      child: TextButton(
-                        onPressed: _isChoicePage ? null : _skip,
-                        style: TextButton.styleFrom(
-                          foregroundColor: context.colors.subtle,
-                        ),
-                        child: Text(l10n.onboardingSkip),
+                    child: TextButton(
+                      onPressed: _skip,
+                      style: TextButton.styleFrom(
+                        foregroundColor: context.colors.subtle,
                       ),
+                      child: Text(l10n.onboardingSkip),
                     ),
                   ),
                 ),
@@ -173,19 +167,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: PageView(
                     controller: _controller,
                     onPageChanged: _onPageChanged,
+                    // The taste-vote page is a gate, not a slide: swiping is
+                    // disabled there, so the only ways off it are living the
+                    // vote loop (its own "Continue") or the "Skip" up top.
+                    // Everywhere else the deck swipes normally.
+                    physics: _index == _votePageIndex
+                        ? const NeverScrollableScrollPhysics()
+                        : null,
                     children: [
                       ...introCards,
                       votePage,
+                      catalogPage,
                       notifyPage,
-                      OnboardingChoiceCard(
-                        onStartAnonymous: _startAnonymous,
-                        onSignIn: _signIn,
-                      ),
                     ],
                   ),
                 ),
-                // Progress dots + the "Next" CTA on intro pages; the choice card
-                // carries its own buttons, so only the dots remain there.
+                // Progress dots + the "Next" CTA on the pages that are pure
+                // copy (welcome, the catalog pitch); the taste-vote page (its
+                // "Continue" revealed after voting) and the notifications page
+                // carry their own buttons.
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
                   child: Column(
@@ -195,14 +195,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       AnimatedSize(
                         duration: const Duration(milliseconds: 220),
                         curve: Curves.easeOut,
-                        // The taste-vote page (its "Continue" revealed after voting),
-                        // the notifications page and the choice page each carry their
-                        // own buttons, so the global "Next" only drives the plain
-                        // intro cards.
                         child:
-                            (_isChoicePage ||
-                                _index == votePageIndex ||
-                                _index == notifyPageIndex)
+                            (_index == _votePageIndex ||
+                                _index == _notifyPageIndex)
                             ? const SizedBox(width: double.infinity)
                             : OnboardingPrimaryButton(
                                 label: l10n.onboardingNext,
