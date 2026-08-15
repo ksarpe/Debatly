@@ -4,6 +4,7 @@ import 'package:purchases_flutter/purchases_flutter.dart' show Package;
 
 import '../../../core/theme/app_theme.dart';
 import '../../../services/analytics.dart';
+import '../../../services/purchases_service.dart' show PurchaseOutcome;
 import 'paywall_content.dart';
 
 export 'paywall_content.dart' show PaywallSource;
@@ -61,7 +62,7 @@ class ProPaywallSheet extends ConsumerStatefulWidget {
 
   final PaywallSource source;
   final Future<List<Package>> Function()? loadPackages;
-  final Future<bool> Function(Package package)? buy;
+  final Future<PurchaseOutcome> Function(Package package)? buy;
 
   @override
   ConsumerState<ProPaywallSheet> createState() => _ProPaywallSheetState();

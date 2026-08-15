@@ -246,17 +246,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     // this screen ever opens for a guest (the paywall restore is the live path).
     if (!await confirmGuestRestore(context, ref)) return;
     if (!mounted) return;
-    final restored = await PurchasesService.restorePurchases();
+    final outcome = await PurchasesService.restorePurchases();
     if (!mounted) return;
-    if (restored) {
+    if (outcome == RestoreOutcome.restored) {
       await ref.read(sessionProvider.notifier).refresh();
     }
     if (!mounted) return;
+    // A store we never reached is not "you own nothing" — see [RestoreOutcome].
     _showMessage(
-      restored
-          ? context.l10n.purchaseRestored
-          : context.l10n.noPreviousPurchase,
-      type: restored ? ToastType.success : ToastType.info,
+      switch (outcome) {
+        RestoreOutcome.restored => context.l10n.purchaseRestored,
+        RestoreOutcome.none => context.l10n.noPreviousPurchase,
+        RestoreOutcome.failed => context.l10n.storeUnreachable,
+      },
+      type: switch (outcome) {
+        RestoreOutcome.restored => ToastType.success,
+        RestoreOutcome.none => ToastType.info,
+        RestoreOutcome.failed => ToastType.error,
+      },
     );
   }
 

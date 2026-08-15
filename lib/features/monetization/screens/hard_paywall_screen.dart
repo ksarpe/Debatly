@@ -4,6 +4,7 @@ import 'package:purchases_flutter/purchases_flutter.dart' show Package;
 
 import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
+import '../../../services/purchases_service.dart' show PurchaseOutcome;
 import '../../account/providers/session_providers.dart';
 import '../widgets/paywall_content.dart';
 
@@ -37,7 +38,7 @@ class HardPaywallScreen extends ConsumerWidget {
 
   /// Test seams, passed straight through to [ProPaywallContent].
   final Future<List<Package>> Function()? loadPackages;
-  final Future<bool> Function(Package package)? buy;
+  final Future<PurchaseOutcome> Function(Package package)? buy;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

@@ -1,4 +1,7 @@
+import 'dart:async' show TimeoutException;
+
 import 'package:debatly/services/purchases_service.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
@@ -153,6 +156,94 @@ void main() {
       final gone = status(isActive: false, willRenew: false);
       expect(gone.isLifetime, isFalse);
       expect(gone.isCancelled, isFalse);
+    });
+  });
+
+  // How a caught store failure is triaged: retry it or give up, page us or
+  // breadcrumb it. Wrong on the first axis and the paywall is a retry button
+  // for anyone whose Play client blinks; wrong on the second and the real
+  // purchase bugs drown in offline noise.
+  group('store failure classification', () {
+    /// A RevenueCat failure as it actually arrives: a PlatformException whose
+    /// `code` is the [PurchasesErrorCode] index as a string.
+    PlatformException rcError(PurchasesErrorCode code) => PlatformException(
+      code: '${code.index}',
+      message: 'Error performing request.',
+      details: {'readableErrorCode': code.name},
+    );
+
+    test('reads the RevenueCat code off the platform exception', () {
+      // The live incident: Play answering product lookup with NETWORK_ERROR,
+      // which arrives as code "10".
+      expect(
+        PurchasesService.errorCodeOf(rcError(PurchasesErrorCode.networkError)),
+        PurchasesErrorCode.networkError,
+      );
+      expect(PurchasesService.errorCodeOf(StateError('nope')), isNull);
+    });
+
+    test('a non-RevenueCat PlatformException does not blow up the lookup', () {
+      // `PurchasesErrorHelper.getErrorCode` does a bare `num.parse(e.code)`, so
+      // a channel error from any other plugin used to throw a FormatException
+      // out of the catch block that was meant to contain it.
+      expect(
+        PurchasesService.errorCodeOf(
+          PlatformException(code: 'channel-error', message: 'Unable to call'),
+        ),
+        isNull,
+      );
+    });
+
+    test('the store/network failures are retryable and not our bug', () {
+      const environmental = [
+        PurchasesErrorCode.networkError,
+        PurchasesErrorCode.offlineConnectionError,
+        PurchasesErrorCode.storeProblemError,
+        PurchasesErrorCode.productRequestTimeout,
+      ];
+      for (final code in environmental) {
+        expect(PurchasesService.isEnvironmentFailure(rcError(code)), isTrue);
+        expect(PurchasesService.isRetryableFailure(rcError(code)), isTrue);
+      }
+      // DNS-blocked RevenueCat is the user's network too, but retrying it in
+      // the next two seconds fixes nothing.
+      final blocked = rcError(PurchasesErrorCode.apiEndpointBlocked);
+      expect(PurchasesService.isEnvironmentFailure(blocked), isTrue);
+      expect(PurchasesService.isRetryableFailure(blocked), isFalse);
+    });
+
+    test('a broken configuration is reported and never retried', () {
+      // These fail identically forever — retrying just delays the error state,
+      // and they are exactly the ones that must reach Sentry.
+      for (final code in const [
+        PurchasesErrorCode.configurationError,
+        PurchasesErrorCode.invalidCredentialsError,
+        PurchasesErrorCode.invalidAppUserIdError,
+      ]) {
+        expect(PurchasesService.isEnvironmentFailure(rcError(code)), isFalse);
+        expect(PurchasesService.isRetryableFailure(rcError(code)), isFalse);
+      }
+    });
+
+    test('a backend blip is retried but still reported', () {
+      for (final code in const [
+        PurchasesErrorCode.unknownBackendError,
+        PurchasesErrorCode.unexpectedBackendResponseError,
+      ]) {
+        expect(PurchasesService.isRetryableFailure(rcError(code)), isTrue);
+        expect(PurchasesService.isEnvironmentFailure(rcError(code)), isFalse);
+      }
+    });
+
+    test('a dropped connection counts even without a RevenueCat code', () {
+      // The bounded fetch in [paywallPackages] surfaces a hung request as a
+      // TimeoutException, which carries no RevenueCat code at all.
+      final timeout = TimeoutException('getOfferings', kOfferFetchTimeout);
+      expect(PurchasesService.isRetryableFailure(timeout), isTrue);
+      expect(PurchasesService.isEnvironmentFailure(timeout), isTrue);
+      // An ordinary bug is neither.
+      expect(PurchasesService.isRetryableFailure(StateError('bug')), isFalse);
+      expect(PurchasesService.isEnvironmentFailure(StateError('bug')), isFalse);
     });
   });
 }

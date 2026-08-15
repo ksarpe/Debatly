@@ -10,6 +10,7 @@
   "purchaseRestored": "Zakup przywrócony.",
   "purchaseRestoredCelebrate": "Zakup przywrócony. 🎉",
   "noPreviousPurchase": "Nie znaleziono wcześniejszego zakupu.",
+  "storeUnreachable": "Nie udało się połączyć ze sklepem. Sprawdź połączenie i spróbuj ponownie.",
   "purchaseSyncPending": "Zakup się powiódł, ale nie udało się go jeszcze potwierdzić. Spróbuj za chwilę „Przywróć zakup”.",
   "restoreSignInTitle": "Przywrócić zakup?",
   "restoreSignInBody": "Jeśli kupiłeś PRO będąc zalogowanym na konto, zaloguj się na nie — PRO i wszystkie Twoje dane wrócą automatycznie.",

@@ -36,6 +36,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noPreviousPurchase => 'No previous purchase found.';
 
   @override
+  String get storeUnreachable =>
+      'Couldn\'t reach the store. Check your connection and try again.';
+
+  @override
   String get purchaseSyncPending =>
       'Your purchase went through, but we couldn\'t confirm it yet. Try “Restore purchase” in a moment.';
 

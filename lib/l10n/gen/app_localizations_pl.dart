@@ -36,6 +36,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get noPreviousPurchase => 'Nie znaleziono wcześniejszego zakupu.';
 
   @override
+  String get storeUnreachable =>
+      'Nie udało się połączyć ze sklepem. Sprawdź połączenie i spróbuj ponownie.';
+
+  @override
   String get purchaseSyncPending =>
       'Zakup się powiódł, ale nie udało się go jeszcze potwierdzić. Spróbuj za chwilę „Przywróć zakup”.';
 

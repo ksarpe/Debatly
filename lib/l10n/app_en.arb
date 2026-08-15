@@ -9,6 +9,7 @@
   "purchaseRestored": "Purchase restored.",
   "purchaseRestoredCelebrate": "Purchase restored. 🎉",
   "noPreviousPurchase": "No previous purchase found.",
+  "storeUnreachable": "Couldn't reach the store. Check your connection and try again.",
   "purchaseSyncPending": "Your purchase went through, but we couldn't confirm it yet. Try “Restore purchase” in a moment.",
   "restoreSignInTitle": "Restore purchase?",
   "restoreSignInBody": "If you bought PRO while signed in to an account, sign in to it — PRO and all your data will come back automatically.",

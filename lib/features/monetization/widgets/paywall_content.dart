@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart'
-    show Package, PackageType, PurchasesErrorHelper;
+    show Package, PackageType;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_config.dart';
@@ -62,7 +61,24 @@ class ProPaywallContent extends ConsumerStatefulWidget {
     this.fillHeight = false,
     this.loadPackages,
     this.buy,
+    this.retryBackoff,
   });
+
+  /// How long to wait before each automatic re-fetch of the offering, and
+  /// therefore how many of them there are.
+  ///
+  /// Play's billing client routinely isn't ready in the first seconds of a
+  /// session — and on a flaky connection isn't ready at all for a while — and
+  /// answers product lookups with a flat `NETWORK_ERROR`. One shot at
+  /// `initState` turned that into a paywall the user had to rescue by hand,
+  /// which on a hard-walled app means the whole product is a retry button.
+  /// Three quiet attempts absorb the blip without making a genuinely-down
+  /// store feel hung. Tests pass their own schedule (`const []` disables the
+  /// automatic retries entirely).
+  static const List<Duration> defaultRetryBackoff = [
+    Duration(milliseconds: 800),
+    Duration(milliseconds: 2500),
+  ];
 
   final PaywallSource source;
 
@@ -89,13 +105,18 @@ class ProPaywallContent extends ConsumerStatefulWidget {
   final bool fillHeight;
 
   final Future<List<Package>> Function()? loadPackages;
-  final Future<bool> Function(Package package)? buy;
+  final Future<PurchaseOutcome> Function(Package package)? buy;
+
+  /// Overrides [defaultRetryBackoff] — for tests, which need the retry
+  /// schedule to be deterministic (and usually absent).
+  final List<Duration>? retryBackoff;
 
   @override
   ConsumerState<ProPaywallContent> createState() => _ProPaywallContentState();
 }
 
-class _ProPaywallContentState extends ConsumerState<ProPaywallContent> {
+class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
+    with WidgetsBindingObserver {
   /// null while the offering is loading; empty list = nothing to sell (renders
   /// the same retry state as a failed fetch).
   List<Package>? _packages;
@@ -108,6 +129,11 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent> {
   /// Blocks every interaction while a purchase or restore is in flight.
   bool _busy = false;
 
+  /// Bumped by every (re)start of the offering load, so a retry still sleeping
+  /// on the backoff can tell it has been superseded — by a manual "try again"
+  /// tap, or by this surface going away entirely.
+  int _loadGeneration = 0;
+
   void _setBusy(bool value) {
     setState(() => _busy = value);
     widget.onBusyChanged?.call(value);
@@ -116,8 +142,30 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     Analytics.log('paywall_shown', {'source': widget.source.name});
     _loadOffer();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _loadGeneration++;
+    super.dispose();
+  }
+
+  /// Re-fetches a failed offer when the user comes back to the app.
+  ///
+  /// The realistic recovery from a store/network failure is the user leaving
+  /// to do something about it — toggle airplane mode, find signal, update the
+  /// Play Store — and the wall they return to must not still be the dead one
+  /// they left. Only when the offer actually failed: a resume after the store's
+  /// own purchase sheet (or any other trip out) has nothing to reload.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (!_loadFailed || _busy) return;
+    _retryLoad();
   }
 
   void _retryLoad() {
@@ -128,55 +176,103 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent> {
     _loadOffer();
   }
 
-  /// Fetches the offering, reporting an unusable one (fetch failure or empty —
-  /// both render as the retry state) so funnel drop-offs between `shown` and
+  /// Fetches the offering — retrying transient store failures on its own
+  /// before falling back to the manual retry state, and reporting an offer we
+  /// never managed to show so funnel drop-offs between `shown` and
   /// `purchase_started` can be told apart from plain disinterest.
   Future<void> _loadOffer() async {
-    final List<Package> packages;
-    try {
-      packages =
-          await (widget.loadPackages ?? PurchasesService.paywallPackages)();
-    } catch (e, st) {
-      // Live installs hit this persistently (fresh Play-store users retrying
-      // for minutes, then churning) and a bare `reason: error` made the cause
-      // undiagnosable — carry the RevenueCat error code and tell Sentry.
-      final code = e is PlatformException
-          ? PurchasesErrorHelper.getErrorCode(e).name
-          : e.runtimeType.toString();
-      Analytics.log('paywall_offer_unavailable', {
-        'source': widget.source.name,
-        'reason': 'error',
-        'code': code,
+    final generation = ++_loadGeneration;
+    final backoff =
+        widget.retryBackoff ?? ProPaywallContent.defaultRetryBackoff;
+
+    for (var attempt = 0; ; attempt++) {
+      final List<Package> packages;
+      try {
+        packages =
+            await (widget.loadPackages ?? PurchasesService.paywallPackages)();
+      } catch (e, st) {
+        // Live installs hit this persistently (Play answering product lookups
+        // with NETWORK_ERROR) and a bare `reason: error` made the cause
+        // undiagnosable — carry the RevenueCat error code through.
+        final code =
+            PurchasesService.errorCodeOf(e)?.name ?? e.runtimeType.toString();
+        final willRetry =
+            attempt < backoff.length && PurchasesService.isRetryableFailure(e);
+        Monitoring.addBreadcrumb(
+          'Paywall offer fetch failed: $code',
+          category: 'purchases',
+          data: {
+            'source': widget.source.name,
+            'attempt': attempt + 1,
+            'will_retry': willRetry,
+          },
+        );
+        if (willRetry) {
+          await Future<void>.delayed(backoff[attempt]);
+          if (!mounted || generation != _loadGeneration) return;
+          continue;
+        }
+        // Only now is the offer really unavailable to this user: one row per
+        // user who gave up, not one per attempt, so the funnel keeps meaning
+        // what it meant.
+        Analytics.log('paywall_offer_unavailable', {
+          'source': widget.source.name,
+          'reason': 'error',
+          'code': code,
+          'attempts': attempt + 1,
+        });
+        // Environmental failures (offline, store outage, the Play pre-launch
+        // bots that have no billing account at all) are breadcrumbed instead
+        // of raised — they'd otherwise bury the real bugs in this feature.
+        if (!PurchasesService.isEnvironmentFailure(e)) {
+          await Monitoring.captureException(
+            e,
+            stackTrace: st,
+            feature: 'purchases',
+            extra: {
+              'paywall_source': widget.source.name,
+              'rc_code': code,
+              'attempts': attempt + 1,
+            },
+          );
+        }
+        if (mounted && generation == _loadGeneration) {
+          setState(() => _loadFailed = true);
+        }
+        return;
+      }
+
+      if (packages.isEmpty) {
+        // Deliberately NOT retried: an offering that resolves with nothing in
+        // it is a dashboard/product-configuration state, not a blip — the same
+        // fetch keeps returning the same nothing.
+        Analytics.log('paywall_offer_unavailable', {
+          'source': widget.source.name,
+          'reason': 'empty',
+        });
+      } else if (attempt > 0) {
+        // How much the automatic retries are actually saving.
+        Analytics.log('paywall_offer_recovered', {
+          'source': widget.source.name,
+          'attempts': attempt + 1,
+        });
+      }
+      if (!mounted || generation != _loadGeneration) return;
+      setState(() {
+        _packages = packages;
+        // Commit the default selection (not just render it), otherwise the CTA
+        // has nothing to buy until a card is tapped — the preselected card
+        // already LOOKS selected, so a straight-to-CTA tap must work. The
+        // lifetime plan is the one the paywall leads with.
+        if (packages.isNotEmpty) {
+          _selected = packages.firstWhere(
+            (p) => p.packageType == PackageType.lifetime,
+            orElse: () => packages.first,
+          );
+        }
       });
-      await Monitoring.captureException(
-        e,
-        stackTrace: st,
-        feature: 'purchases',
-        extra: {'paywall_source': widget.source.name, 'rc_code': code},
-      );
-      if (mounted) setState(() => _loadFailed = true);
       return;
     }
-    if (packages.isEmpty) {
-      Analytics.log('paywall_offer_unavailable', {
-        'source': widget.source.name,
-        'reason': 'empty',
-      });
-    }
-    if (!mounted) return;
-    setState(() {
-      _packages = packages;
-      // Commit the default selection (not just render it), otherwise the CTA
-      // has nothing to buy until a card is tapped — the preselected card
-      // already LOOKS selected, so a straight-to-CTA tap must work. The
-      // lifetime plan is the one the paywall leads with.
-      if (packages.isNotEmpty) {
-        _selected = packages.firstWhere(
-          (p) => p.packageType == PackageType.lifetime,
-          orElse: () => packages.first,
-        );
-      }
-    });
   }
 
   void _selectPackage(Package package) {
@@ -198,27 +294,47 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent> {
       'plan': package.packageType.name,
     });
 
-    final purchased = await (widget.buy ?? PurchasesService.purchase)(package);
-    if (purchased) {
-      Analytics.log('paywall_purchased', {
-        'source': widget.source.name,
-        'plan': package.packageType.name,
-        'price': package.storeProduct.price,
-        'currency': package.storeProduct.currencyCode,
-      });
-    } else {
-      Analytics.log('paywall_purchase_abandoned', {
-        'source': widget.source.name,
-        'plan': package.packageType.name,
-      });
+    final outcome = await (widget.buy ?? PurchasesService.purchase)(package);
+    switch (outcome) {
+      case PurchaseOutcome.entitled:
+      case PurchaseOutcome.pending:
+        Analytics.log('paywall_purchased', {
+          'source': widget.source.name,
+          'plan': package.packageType.name,
+          'price': package.storeProduct.price,
+          'currency': package.storeProduct.currencyCode,
+          // Paid, but the entitlement wasn't visible yet — the reconcile below
+          // is what resolves it, and it can come back still not premium.
+          if (outcome == PurchaseOutcome.pending) 'pending': true,
+        });
+      case PurchaseOutcome.cancelled:
+        Analytics.log('paywall_purchase_abandoned', {
+          'source': widget.source.name,
+          'plan': package.packageType.name,
+        });
+      case PurchaseOutcome.failed:
+        Analytics.log('paywall_purchase_failed', {
+          'source': widget.source.name,
+          'plan': package.packageType.name,
+        });
     }
     if (!mounted) return;
 
-    if (purchased) {
-      await _settleEntitled();
-    } else {
-      // Cancelled or failed — stay open so the user can try the other plan.
-      _setBusy(false);
+    switch (outcome) {
+      // The money left their account either way: hand it to the owner, whose
+      // reconcile decides, and which already has something to say if the
+      // entitlement still doesn't land.
+      case PurchaseOutcome.entitled:
+      case PurchaseOutcome.pending:
+        await _settleEntitled();
+      // Their own decision — no toast, just give the surface back.
+      case PurchaseOutcome.cancelled:
+        _setBusy(false);
+      // The store refused. Saying nothing here is what left users tapping the
+      // CTA over and over on a paywall that looked broken.
+      case PurchaseOutcome.failed:
+        AppToast.error(context, context.l10n.storeUnreachable);
+        _setBusy(false);
     }
   }
 
@@ -247,18 +363,25 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent> {
     if (!mounted) return;
     _setBusy(true);
 
-    final restored = await PurchasesService.restorePurchases();
-    if (restored) {
+    final outcome = await PurchasesService.restorePurchases();
+    if (outcome == RestoreOutcome.restored) {
       Analytics.log('paywall_restored', {'source': widget.source.name});
     }
     if (!mounted) return;
 
-    if (restored) {
-      AppToast.success(context, context.l10n.purchaseRestoredCelebrate);
-      await _settleEntitled();
-    } else {
-      AppToast.info(context, context.l10n.noPreviousPurchase);
-      _setBusy(false);
+    switch (outcome) {
+      case RestoreOutcome.restored:
+        AppToast.success(context, context.l10n.purchaseRestoredCelebrate);
+        await _settleEntitled();
+      case RestoreOutcome.none:
+        AppToast.info(context, context.l10n.noPreviousPurchase);
+        _setBusy(false);
+      // Never "no previous purchase" for a store we never reached — that
+      // reads as "your purchase is gone" to the one user most likely to be
+      // tapping restore.
+      case RestoreOutcome.failed:
+        AppToast.error(context, context.l10n.storeUnreachable);
+        _setBusy(false);
     }
   }
 

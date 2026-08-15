@@ -1,5 +1,8 @@
+import 'package:debatly/features/monetization/widgets/paywall_content.dart';
 import 'package:debatly/features/monetization/widgets/pro_paywall_sheet.dart';
+import 'package:debatly/services/purchases_service.dart' show PurchaseOutcome;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -39,7 +42,7 @@ void main() {
   Future<void> pumpSheet(
     WidgetTester tester, {
     required Future<List<Package>> Function() loadPackages,
-    Future<bool> Function(Package)? buy,
+    Future<PurchaseOutcome> Function(Package)? buy,
     PaywallSource source = PaywallSource.general,
   }) async {
     await tester.pumpWidget(
@@ -271,7 +274,7 @@ void main() {
                         loadPackages: () async => [lifetime, monthly],
                         buy: (p) async {
                           bought = p;
-                          return true;
+                          return PurchaseOutcome.entitled;
                         },
                       ),
                     );
@@ -314,7 +317,7 @@ void main() {
           bought = p;
           // Keep the sheet open (no pop) — this harness has no enclosing
           // modal route to pop.
-          return false;
+          return PurchaseOutcome.cancelled;
         },
       );
 
@@ -330,7 +333,7 @@ void main() {
     await pumpSheet(
       tester,
       loadPackages: () async => [lifetime, monthly],
-      buy: (_) async => false,
+      buy: (_) async => PurchaseOutcome.cancelled,
     );
 
     await tester.ensureVisible(find.text('Odblokuj pełny dostęp'));
@@ -393,6 +396,191 @@ void main() {
     final sheetBottom = tester.getRect(find.byType(ProPaywallSheet)).bottom;
     final restoreBottom = tester.getBottomLeft(find.text('Przywróć zakup')).dy;
     expect(restoreBottom, lessThanOrEqualTo(sheetBottom - inset));
+  });
+
+  testWidgets('a refused purchase says so instead of failing silently', (
+    tester,
+  ) async {
+    // The store refusing (Play unreachable, payment declined) used to be
+    // indistinguishable from the user backing out: no message either way, so a
+    // failed purchase read as a dead CTA and got tapped again and again.
+    await pumpSheet(
+      tester,
+      loadPackages: () async => [lifetime, monthly],
+      buy: (_) async => PurchaseOutcome.failed,
+    );
+
+    await tester.ensureVisible(find.text('Odblokuj pełny dostęp'));
+    await tester.tap(find.text('Odblokuj pełny dostęp'));
+    await tester.pump(); // resolve buy()
+    await tester.pump(); // let the toast mount
+
+    expect(
+      find.text(
+        'Nie udało się połączyć ze sklepem. Sprawdź połączenie i spróbuj ponownie.',
+      ),
+      findsOneWidget,
+    );
+    // And the paywall is usable again — the CTA renders its label, not a spinner.
+    expect(find.text('Odblokuj pełny dostęp'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('a transient store failure is retried before the user sees it', (
+    tester,
+  ) async {
+    // The live incident: Play answers the product lookup with NETWORK_ERROR
+    // (code 10) for the first seconds of a session. One shot at initState left
+    // a hard-walled user staring at a retry button they had to tap themselves.
+    var calls = 0;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: LocalizedTestApp(
+          home: Scaffold(
+            body: ProPaywallContent(
+              source: PaywallSource.hardWall,
+              onEntitled: () async {},
+              retryBackoff: const [
+                Duration(milliseconds: 10),
+                Duration(milliseconds: 10),
+              ],
+              loadPackages: () async {
+                calls++;
+                if (calls < 3) {
+                  throw PlatformException(
+                    code: '${PurchasesErrorCode.networkError.index}',
+                    message: 'Error performing request.',
+                  );
+                }
+                return [lifetime, monthly];
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    await tester.pumpAndSettle();
+
+    expect(calls, 3);
+    expect(find.text(r'$22.99'), findsOneWidget);
+    expect(find.text('Odblokuj pełny dostęp'), findsOneWidget);
+    // The user was never shown the failure at all.
+    expect(find.text('Spróbuj ponownie'), findsNothing);
+  });
+
+  testWidgets('a store failure that keeps failing lands on the retry state', (
+    tester,
+  ) async {
+    var calls = 0;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: LocalizedTestApp(
+          home: Scaffold(
+            body: ProPaywallContent(
+              source: PaywallSource.hardWall,
+              onEntitled: () async {},
+              retryBackoff: const [Duration(milliseconds: 10)],
+              loadPackages: () async {
+                calls++;
+                throw PlatformException(
+                  code: '${PurchasesErrorCode.networkError.index}',
+                  message: 'Error performing request.',
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    await tester.pumpAndSettle();
+
+    // Bounded by the backoff schedule: one initial attempt plus one retry.
+    expect(calls, 2);
+    expect(
+      find.text(
+        'Nie udało się wczytać oferty. Sprawdź połączenie i spróbuj ponownie.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Spróbuj ponownie'), findsOneWidget);
+  });
+
+  testWidgets('coming back to the app re-fetches a failed offer', (
+    tester,
+  ) async {
+    // The realistic fix for a store failure is the user leaving to sort their
+    // connection out. Returning to the same dead wall — with a "try again" they
+    // have to find and tap — is how a hard-walled app loses someone who was
+    // actively trying to pay it.
+    var calls = 0;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: LocalizedTestApp(
+          home: Scaffold(
+            body: ProPaywallContent(
+              source: PaywallSource.hardWall,
+              onEntitled: () async {},
+              retryBackoff: const [],
+              loadPackages: () async {
+                calls++;
+                if (calls == 1) {
+                  throw PlatformException(
+                    code: '${PurchasesErrorCode.networkError.index}',
+                    message: 'Error performing request.',
+                  );
+                }
+                return [lifetime, monthly];
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Spróbuj ponownie'), findsOneWidget);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(calls, 2);
+    expect(find.text(r'$22.99'), findsOneWidget);
+    expect(find.text('Odblokuj pełny dostęp'), findsOneWidget);
+  });
+
+  testWidgets('a configuration failure is not retried at all', (tester) async {
+    // Nothing on the device fixes a broken offering — retrying just delays the
+    // error state the user has to act on.
+    var calls = 0;
+    await tester.pumpWidget(
+      ProviderScope(
+        child: LocalizedTestApp(
+          home: Scaffold(
+            body: ProPaywallContent(
+              source: PaywallSource.hardWall,
+              onEntitled: () async {},
+              retryBackoff: const [Duration(milliseconds: 10)],
+              loadPackages: () async {
+                calls++;
+                throw PlatformException(
+                  code: '${PurchasesErrorCode.configurationError.index}',
+                  message: 'There is an issue with your configuration.',
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(calls, 1);
+    expect(find.text('Spróbuj ponownie'), findsOneWidget);
   });
 
   testWidgets('offering failure shows a retryable error state', (tester) async {

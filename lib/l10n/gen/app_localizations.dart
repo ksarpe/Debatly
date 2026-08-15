@@ -152,6 +152,12 @@ abstract class AppLocalizations {
   /// **'No previous purchase found.'**
   String get noPreviousPurchase;
 
+  /// No description provided for @storeUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the store. Check your connection and try again.'**
+  String get storeUnreachable;
+
   /// No description provided for @purchaseSyncPending.
   ///
   /// In en, this message translates to:

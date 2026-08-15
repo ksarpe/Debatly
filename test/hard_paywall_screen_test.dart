@@ -2,6 +2,7 @@ import 'package:debatly/core/locale/app_locale.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
 import 'package:debatly/features/monetization/screens/hard_paywall_screen.dart';
 import 'package:debatly/features/settings/screens/settings_screen.dart';
+import 'package:debatly/services/purchases_service.dart' show PurchaseOutcome;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -52,7 +53,7 @@ void main() {
     WidgetTester tester, {
     required SessionState session,
     List<Package>? packages,
-    Future<bool> Function(Package)? buy,
+    Future<PurchaseOutcome> Function(Package)? buy,
     bool entitledOnRefresh = true,
   }) async {
     final notifier = _RecordingSession(session, entitledOnRefresh);
@@ -145,7 +146,7 @@ void main() {
     final session = await pumpWall(
       tester,
       session: guestSession(),
-      buy: (_) async => true,
+      buy: (_) async => PurchaseOutcome.entitled,
     );
 
     await tester.ensureVisible(find.text('Odblokuj pełny dostęp'));
@@ -175,7 +176,7 @@ void main() {
     final session = await pumpWall(
       tester,
       session: guestSession(),
-      buy: (_) async => true,
+      buy: (_) async => PurchaseOutcome.entitled,
       entitledOnRefresh: false,
     );
 
@@ -205,7 +206,7 @@ void main() {
     final session = await pumpWall(
       tester,
       session: guestSession(),
-      buy: (_) async => false,
+      buy: (_) async => PurchaseOutcome.cancelled,
     );
 
     await tester.ensureVisible(find.text('Odblokuj pełny dostęp'));
