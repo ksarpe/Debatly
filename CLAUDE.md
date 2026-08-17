@@ -1,51 +1,67 @@
 # Debatly — agent brief
 
 Flutter app (Dart) + Supabase backend. TAK/NIE questions with a community split.
-Riverpod state, RevenueCat subscriptions (hard paywall), Sentry monitoring.
+Riverpod state, RevenueCat subscriptions (freemium: 1 free daily question),
+Sentry monitoring.
 Package / app id: `debatly` / `com.aknsoftware.debatly` (the GitHub repo is still
 named `questionapp` — same project).
 
 ## Product model — get this right before touching the feed
 
-**Debatly is a HARD-PAYWALL app (since the 2026-08 rebuild).** There is no
-free tier: after onboarding a non-PRO session lands on the full-screen
-`HardPaywallScreen` (via `HomeGate` in `app_entry.dart`) and never reaches the
-feed. Buy / restore / sign-in-to-an-entitled-account flips `isPremium` and the
-gate swaps in the feed.
+**Debatly is a FREEMIUM app (since the 2026-08 freemium rework): one free
+question a day, PRO for the whole catalog.** Every session — free or PRO —
+lands on the feed (`HomeGate` → `QuestionScreen`). There is no hard paywall
+screen anymore; the paywall is the dismissible `ProPaywallSheet`, and the
+free tier's `DayWallView` (the "day wall") is the main conversion surface.
 
+| | Free | PRO |
+|---|---|---|
+| Daily question (1/day, local-midnight rollover) | ✅ | ✅ |
+| Community split, streak & ranks, share card, smaczek #1 | ✅ | ✅ |
+| Rest of the catalog (500+), all smaczki, history, favorites, offline | ❌ | ✅ |
+
+- **The free rows are the growth engine — don't paywall them.** Community
+  split, streak and the share card must stay free; without them a free user
+  has no reason to return and nothing to share.
+- **Scarcity is the product.** No rewarded ads, no reveal credits — a free
+  user who wants more than the daily pays or comes back tomorrow. Do not
+  reintroduce ad reveals.
+- **The free deck is `[daily]`.** A forward swipe off it shows the day wall:
+  blurred teaser of the next question (`peek_next_question` — a pure read,
+  first 4 words, consumes nothing), live countdown to LOCAL midnight, the
+  streak, the unlock CTA, and a real "come back tomorrow" exit. Never a trap.
+- **Sheet-opening rules:** auto at most once per local day, on the first wall
+  hit AFTER the daily vote; always on the wall/bridge unlock CTAs and on
+  tapping a locked feature (star / history / locked smaczki); never at app
+  start, in onboarding, or before the user's first vote. Always dismissible.
+- **Onboarding:** welcome → 2 taste questions (ARB text + hard-coded ids for
+  the live split; votes are NOT cast) → the bridge (`OnboardingBridgeCard`,
+  free path is the dominant CTA) → reminder opt-in → the feed. No wall.
+- **Paywall sheet:** headline escalates with streak via
+  `kStreakHeadlineTiers` (0–2 / 3–6 / 7+; adding a tier = one map entry + an
+  l10n key). No preselected plan, no "best value" badge. Offering live from
+  RevenueCat: weekly 9,99 zł / monthly 19,99 zł / lifetime 69,99 zł (PL).
+- **Review ask:** exactly once per milestone — the day the streak completes
+  3, right after the rank-up celebration (`RankCelebrationListener`), and
+  nowhere else.
 - **Buy to play; sign in to secure.** Every user gets an anonymous Supabase
   UUID at launch and the entitlement rides on THAT — a guest can hold PRO
   indefinitely. An account exists only to make a purchase survive a reinstall
-  or a new phone, and is pitched AFTER the buy (`promptSaveProAccount`). The
-  auth sheet is sign-in-only until `isPremium` (no register tab), so no
-  accounts are minted in front of the wall. "Account without PRO" is not a
-  state the product creates anymore — a few legacy ones exist and hit the same
-  wall as everyone else.
-- **The wall is identical for everyone, signed in or not.** No profile entry,
-  no Settings, no chrome — just the pitch plus restore / sign-in / legal in
-  the sticky footer. Don't add a side door to it. (Consequence: in-app account
-  deletion is unreachable pre-purchase; the `DELETE_ACCOUNT_URL` web link on
-  the privacy page is what covers those legacy accounts.)
-- **The feed is PRO-only.** Position 0 is the **personal daily question** —
-  drawn server-side per user from questions *that user has not voted on yet*,
-  stored in `user_daily_questions`, stable for that **local** date, personal
-  (not the same for everybody). After it: the whole catalog, unseen-first,
-  seeded shuffle, wrapping forward.
-- **The old free tier is GONE from the client** — no daily credits, no
-  rewarded-ad reveals, no reveal slot, no `revealedFeedProvider`, no AdMob/UMP
-  consent at all. The server RPCs (`reveal_free_question`,
-  `reveal_ad_question`, `peek_next_question`, `admob-ssv`) are **still live
-  for old app versions** — do not revoke or repurpose them.
+  or a new phone, pitched AFTER the buy (`promptSaveProAccount`). The auth
+  sheet is sign-in-only until `isPremium` (no register tab).
+- **The 2025 reveal tier stays gone from the client** — no daily credits, no
+  rewarded-ad reveals, no `revealedFeedProvider`, no AdMob/UMP. The server
+  RPCs (`reveal_free_question`, `reveal_ad_question`, `admob-ssv`) are
+  **still live for old app versions** — do not revoke or repurpose them.
+  (`peek_next_question` is live again — the day wall uses it.)
 - **Mock mode is premium.** With no Supabase/RevenueCat keys the session
   resolves `isPremium: true` so keyless dev and widget tests see the feed.
 - **Two clocks on purpose:** the daily rolls over at the user's *local*
-  midnight; the streak counts *UTC* days. Don't "fix" one to match the other.
-- Voting is allowed on any question; the split shown is the **all-time**
-  tally, not "today's result". The streak advances on any vote, at most once
-  per UTC day, and decays one rank per 3 missed days.
-- Both paywall surfaces share `ProPaywallContent`; prices come live from the
-  RevenueCat offering (nothing hard-coded). The smaczki/favorites/history
-  upsell hooks remain only as defence in depth for a mid-session lapse.
+  midnight (countdown + `DailyRolloverWatcher` handle it in-session); the
+  streak counts *UTC* days. Don't "fix" one to match the other.
+- Voting is allowed on any readable question; the split shown is the
+  **all-time** tally, not "today's result". The streak advances on any vote,
+  at most once per UTC day, and decays one rank per 3 missed days.
 - `daily_questions` (global calendar) is **legacy** — no longer written to.
   `question_seen` is the old `question_unlocks`.
 
@@ -114,16 +130,16 @@ lib/
 supabase/
   schema.sql             Bootstrap only — the ORIGINAL base tables, not today's
                          shape (see the hard rule above)
-  migrations/schema/     42 files: tables, RPCs, views, RLS, grants (has DDL).
+  migrations/schema/     58 files: tables, RPCs, views, RLS, grants (has DDL).
                          The real schema; newest file wins per object
-  migrations/data/       30 files: question seeds + catalog edits (no DDL, 3× bigger)
+  migrations/data/       32 files: question seeds + catalog edits (no DDL, 3× bigger)
   functions/             Edge functions (Deno/TS): revenuecat-webhook,
                          sync-entitlement, admob-ssv, send-auth-email,
                          delete-account
   backups/               Pre-edit row snapshots for data/ migrations — data, not code
 admin/                   Next.js admin panel (own package.json, own node_modules)
 tool/                    Python helper scripts (splash gen, regional pricing)
-test/                    44 widget/unit test files — all green on master
+test/                    47 widget/unit test files — all green on master
 ```
 
 ## Running
