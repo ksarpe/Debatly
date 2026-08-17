@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../account/providers/session_providers.dart';
 import '../../account/widgets/save_pro_prompt.dart';
-import '../../monetization/screens/hard_paywall_screen.dart';
 import '../../questions/screens/question_screen.dart';
 import '../../questions/widgets/load_error.dart';
 import '../providers/onboarding_providers.dart';
@@ -57,7 +56,7 @@ class _AppEntryState extends ConsumerState<AppEntry> {
 
   void _finishOnboarding() {
     // Persist so the tutorial never runs again, then reveal the live app —
-    // which for a not-yet-entitled user means the hard paywall (see [HomeGate]).
+    // every tier lands on the feed with today's daily (see [HomeGate]).
     ref.read(onboardingControllerProvider.notifier).complete();
     if (mounted) setState(() => _phase = _Phase.home);
   }
@@ -81,24 +80,22 @@ class _AppEntryState extends ConsumerState<AppEntry> {
   }
 }
 
-/// The hard-paywall gate in front of the feed: Debatly's content is PRO-only,
-/// so the resolved session decides what "home" is.
+/// Home for every tier: the question feed with today's daily at position 0.
+/// There is no hard paywall anymore — a free session gets the daily, the day
+/// wall behind it, and the paywall SHEET as the conversion surface; premium
+/// gets the whole catalog. The session still has to resolve first, because
+/// the feed's shape (free vs premium deck) rides on it.
 ///
-///   * still resolving → a quiet spinner (the splash has just faded out),
-///   * not entitled → [HardPaywallScreen], with no way past it,
-///   * entitled → the question feed.
-///
-/// The gate outlives both branches, so it is also where the guest
-/// "save your PRO to an account" nudge fires after a purchase — the paywall
-/// itself unmounts on the entitlement flip and cannot show it.
+/// The gate outlives the entitlement flip, so it is also where the guest
+/// "save your PRO to an account" nudge fires after a purchase.
 class HomeGate extends ConsumerWidget {
   const HomeGate({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // A guest's fresh entitlement (bought or restored on the wall) should be
-    // attached to a recoverable account; the prompt no-ops for account holders.
-    // Trigger only on a RESOLVED free→premium flip: the launch resolution
+    // A guest's fresh entitlement (bought or restored) should be attached to a
+    // recoverable account; the prompt no-ops for account holders. Trigger only
+    // on a RESOLVED free→premium flip: the launch resolution
     // (loading→premium for an already-entitled user) must not re-prompt on
     // every open.
     ref.listen(sessionProvider, (prev, next) {
@@ -113,10 +110,9 @@ class HomeGate extends ConsumerWidget {
     if (session.isLoading && !session.hasValue) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    // A session that ERRORED outright resolves to "not premium", which under a
-    // hard paywall means the app shows a paying user the wall because of a
-    // transient failure — and the wall has no retry, only a second purchase.
-    // Offer the retry instead of silently downgrading them.
+    // A session that ERRORED outright resolves to "not premium", which would
+    // silently downgrade a paying user's feed over a transient failure —
+    // offer the retry instead.
     if (session.hasError && !session.hasValue) {
       return Scaffold(
         body: SafeArea(
@@ -124,7 +120,6 @@ class HomeGate extends ConsumerWidget {
         ),
       );
     }
-    if (!ref.watch(isPremiumProvider)) return const HardPaywallScreen();
     return const QuestionScreen();
   }
 }

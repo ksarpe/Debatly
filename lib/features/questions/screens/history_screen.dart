@@ -56,6 +56,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    // Tapping a locked feature opens the paywall sheet, always: a free user
+    // who opened History gets the sheet right over the upsell body. Dismissing
+    // it lands them back on the upsell (with its own "go PRO" button), never
+    // out of the screen.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || ref.read(isPremiumProvider)) return;
+      showProPaywall(context, source: PaywallSource.history);
+    });
   }
 
   @override

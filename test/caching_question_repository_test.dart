@@ -224,6 +224,11 @@ class _FakeRepo implements QuestionRepository {
   Future<Question?> fetchDailyQuestion(DateTime date) async => _read(daily);
 
   @override
+  Future<String?> peekNextQuestion({
+    List<String> excludeIds = const [],
+  }) async => _read(null);
+
+  @override
   Future<List<Smaczek>> fetchSmaczki(String questionId) async => _read(smaczki);
 
   @override

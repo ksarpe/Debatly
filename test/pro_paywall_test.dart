@@ -1,3 +1,5 @@
+import 'package:debatly/data/models/user_stats.dart';
+import 'package:debatly/features/account/providers/stats_providers.dart';
 import 'package:debatly/features/monetization/widgets/paywall_content.dart';
 import 'package:debatly/features/monetization/widgets/pro_paywall_sheet.dart';
 import 'package:debatly/services/purchases_service.dart' show PurchaseOutcome;
@@ -44,9 +46,22 @@ void main() {
     required Future<List<Package>> Function() loadPackages,
     Future<PurchaseOutcome> Function(Package)? buy,
     PaywallSource source = PaywallSource.general,
+    int streak = 0,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          // The streak the headline map personalises on.
+          userStatsProvider.overrideWith(
+            (ref) async => UserStats(
+              currentStreak: streak,
+              longestStreak: streak,
+              rankTier: 0,
+              rankName: 'Tester',
+              nextRankStreak: 3,
+            ),
+          ),
+        ],
         child: LocalizedTestApp(
           home: Scaffold(
             body: ProPaywallSheet(
@@ -61,39 +76,82 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('renders benefits, live prices and preselects the first plan', (
-    tester,
-  ) async {
+  testWidgets('renders the benefit list in spec order, the Free/PRO table, '
+      'live prices — no badge, nothing preselected', (tester) async {
     await pumpSheet(tester, loadPackages: () async => [lifetime, monthly]);
 
-    // Headline + the full "everything you get" list.
+    // Streak 0 → the default headline, with the freemium subtitle under it.
+    expect(find.text('Zostało 500 pytań'), findsOneWidget);
     expect(
-      find.text('Zyskaj dostęp do wszystkich pytań i głosów'),
+      find.text(
+        'Jedno pytanie dziennie zostaje darmowe. PRO zdejmuje limit i '
+        'otwiera wszystkie argumenty.',
+      ),
       findsOneWidget,
     );
-    expect(find.text('Cały katalog 500+ pytań'), findsOneWidget);
-    expect(find.text('Głosy z całego świata'), findsOneWidget);
-    expect(find.text('Nowy zestaw pytań co tydzień'), findsOneWidget);
-    expect(find.text('Argumenty ZA i PRZECIW'), findsOneWidget);
+
+    // The six benefits, arguments second — the one differentiator no
+    // competitor has, so it must sit above the fold.
+    expect(find.text('Bez limitu dziennego'), findsOneWidget);
+    expect(find.text('Wszystkie argumenty ZA i PRZECIW'), findsOneWidget);
+    expect(find.text('Zero reklam'), findsOneWidget);
+    expect(find.text('Historia Twoich głosów'), findsOneWidget);
+    expect(find.text('Nowe pytania co tydzień'), findsOneWidget);
+    // Benefit row + comparison-table row share the label.
+    expect(find.text('Tryb offline'), findsNWidgets(2));
+
+    // The Free/PRO comparison table — the daily-limit row is the pitch.
+    expect(find.text('Limit dzienny'), findsOneWidget);
+    expect(find.text('1 pytanie'), findsOneWidget);
+    expect(find.text('Bez limitu'), findsOneWidget);
+    expect(find.text('Wynik społeczności'), findsOneWidget);
     expect(find.text('Seria i rangi'), findsOneWidget);
-    expect(find.text('Ulubione i historia głosów'), findsOneWidget);
-    expect(find.text('Działa offline'), findsOneWidget);
 
     // Both plans with their store-formatted prices; monthly gets the suffix.
     expect(find.text('Dożywotni'), findsOneWidget);
     expect(find.text(r'$22.99'), findsOneWidget);
     expect(find.text('Miesięczny'), findsOneWidget);
     expect(find.text(r'$5.49/mies.'), findsOneWidget);
-    expect(find.text('NAJLEPSZA OFERTA'), findsOneWidget);
 
-    // Lifetime is preselected, so the reassurance line is the one-time one.
-    expect(find.text('Jedna płatność — na zawsze'), findsOneWidget);
+    // No steering: no badge, and no plan preselected (no selected-card check
+    // icon anywhere until the user taps one).
+    expect(find.text('NAJLEPSZA OFERTA'), findsNothing);
+    expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
     expect(find.text('Odblokuj pełny dostęp'), findsOneWidget);
   });
 
-  testWidgets('smaczki source swaps the headline and leads with arguments', (
+  testWidgets('the streak escalates the headline: 3–6 days is personal', (
     tester,
   ) async {
+    await pumpSheet(
+      tester,
+      loadPackages: () async => [lifetime, monthly],
+      source: PaywallSource.wall,
+      streak: 4,
+    );
+
+    expect(
+      find.text('Masz 4-dniową serię. Nie przerywaj jej.'),
+      findsOneWidget,
+    );
+    expect(find.text('Zostało 500 pytań'), findsNothing);
+  });
+
+  testWidgets('…and 7+ days gets the earned-it headline', (tester) async {
+    await pumpSheet(
+      tester,
+      loadPackages: () async => [lifetime, monthly],
+      source: PaywallSource.wall,
+      streak: 8,
+    );
+
+    expect(
+      find.text('8 dni z rzędu. Należy Ci się cały katalog.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('smaczki source keeps its contextual headline', (tester) async {
     await pumpSheet(
       tester,
       loadPackages: () async => [lifetime, monthly],
@@ -104,20 +162,18 @@ void main() {
       find.text('Poznaj wszystkie argumenty do każdego pytania'),
       findsOneWidget,
     );
-    expect(
-      find.text('Zyskaj dostęp do wszystkich pytań i głosów'),
-      findsNothing,
-    );
+    expect(find.text('Zostało 500 pytań'), findsNothing);
 
-    // The smaczki benefit is reordered above the default lead (the catalog).
-    final smaczkiY = tester.getTopLeft(find.text('Argumenty ZA i PRZECIW')).dy;
-    final catalogY = tester.getTopLeft(find.text('Cały katalog 500+ pytań')).dy;
-    expect(smaczkiY, lessThan(catalogY));
+    // The list order is fixed regardless of source: catalog first, then the
+    // arguments row.
+    final catalogY = tester.getTopLeft(find.text('Bez limitu dziennego')).dy;
+    final smaczkiY = tester
+        .getTopLeft(find.text('Wszystkie argumenty ZA i PRZECIW'))
+        .dy;
+    expect(catalogY, lessThan(smaczkiY));
   });
 
-  testWidgets('history source leads with the favorites & history benefit', (
-    tester,
-  ) async {
+  testWidgets('history source keeps its contextual headline', (tester) async {
     await pumpSheet(
       tester,
       loadPackages: () async => [lifetime, monthly],
@@ -125,28 +181,7 @@ void main() {
     );
 
     expect(find.text('Wszystkie Twoje głosy w jednym miejscu'), findsOneWidget);
-
-    final favoritesY = tester
-        .getTopLeft(find.text('Ulubione i historia głosów'))
-        .dy;
-    final catalogY = tester.getTopLeft(find.text('Cały katalog 500+ pytań')).dy;
-    expect(favoritesY, lessThan(catalogY));
-  });
-
-  testWidgets('hard-wall source shows its headline and default order', (
-    tester,
-  ) async {
-    await pumpSheet(
-      tester,
-      loadPackages: () async => [lifetime, monthly],
-      source: PaywallSource.hardWall,
-    );
-
-    expect(find.text('Zobacz, jak zagłosował cały świat'), findsOneWidget);
-
-    final catalogY = tester.getTopLeft(find.text('Cały katalog 500+ pytań')).dy;
-    final smaczkiY = tester.getTopLeft(find.text('Argumenty ZA i PRZECIW')).dy;
-    expect(catalogY, lessThan(smaczkiY));
+    expect(find.text('Historia Twoich głosów'), findsOneWidget);
   });
 
   testWidgets('lifetime card carries the months-of-subscription comparison', (
@@ -206,51 +241,53 @@ void main() {
     expect(find.textContaining('Mniej niż'), findsNothing);
   });
 
-  testWidgets('a third plan stacks instead of squeezing into the row', (
-    tester,
-  ) async {
-    // The offering's shape is set in the RevenueCat dashboard, so adding an
-    // annual package reshapes this screen with no code change at all — and
-    // three cards across a phone start ellipsing their own labels.
-    final annual = fakePackage(PackageType.annual, r'$39.99', price: 39.99);
+  testWidgets('the weekly entry plan renders and three plans stack '
+      'instead of squeezing into the row', (tester) async {
+    // The offering's shape is set in the RevenueCat dashboard: adding the
+    // 9,99 zł weekly reshapes this screen with no code change at all — and
+    // three cards across a phone would start ellipsing their own labels.
+    final weekly = fakePackage(PackageType.weekly, '9,99 zł', price: 9.99);
     await pumpSheet(
       tester,
-      loadPackages: () async => [lifetime, annual, monthly],
+      loadPackages: () async => [lifetime, monthly, weekly],
     );
 
     expect(find.text('Dożywotni'), findsOneWidget);
-    expect(find.text('Roczny'), findsOneWidget);
     expect(find.text('Miesięczny'), findsOneWidget);
+    expect(find.text('Tygodniowy'), findsOneWidget);
+    expect(find.text('9,99 zł'), findsOneWidget);
 
     // Stacked full-width: one column, increasing tops. (The left edges differ
-    // by a fraction of a pixel — the SELECTED card draws a 2px border where
+    // by a fraction of a pixel — a SELECTED card draws a 2px border where
     // the others draw 1.4 — so match the column, not the exact offset.)
     final first = tester.getRect(find.text('Dożywotni'));
-    final second = tester.getRect(find.text('Roczny'));
-    final third = tester.getRect(find.text('Miesięczny'));
+    final second = tester.getRect(find.text('Miesięczny'));
+    final third = tester.getRect(find.text('Tygodniowy'));
     expect(second.left, closeTo(first.left, 1));
     expect(third.left, closeTo(first.left, 1));
     expect(second.top, greaterThan(first.bottom));
     expect(third.top, greaterThan(second.bottom));
   });
 
-  testWidgets('selecting the monthly plan switches the reassurance note', (
-    tester,
-  ) async {
+  testWidgets('the reassurance note follows the selected plan', (tester) async {
     await pumpSheet(tester, loadPackages: () async => [lifetime, monthly]);
 
-    await tester.ensureVisible(find.text('Miesięczny'));
-    await tester.tap(find.text('Miesięczny'));
-    await tester.pumpAndSettle();
-
-    // The subscription note has to state the auto-renewal, not just the
-    // cancel-anytime reassurance — App Store guideline 3.1.2 asks for it on
-    // the purchase screen itself.
+    // Nothing selected yet → the generic auto-renewal note (App Store
+    // guideline 3.1.2 wants renewal terms on the purchase screen itself).
     expect(
       find.text('Odnawia się automatycznie — anulujesz w każdej chwili'),
       findsOneWidget,
     );
-    expect(find.text('Jedna płatność — na zawsze'), findsNothing);
+
+    await tester.ensureVisible(find.text('Dożywotni'));
+    await tester.tap(find.text('Dożywotni'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Jedna płatność — na zawsze'), findsOneWidget);
+    expect(
+      find.text('Odnawia się automatycznie — anulujesz w każdej chwili'),
+      findsNothing,
+    );
   });
 
   testWidgets('CTA purchases the selected package and pops with true', (
@@ -304,19 +341,17 @@ void main() {
   });
 
   testWidgets(
-    'CTA buys the preselected first plan without tapping a card first',
+    'with nothing preselected the CTA stays disabled until a plan is tapped',
     (tester) async {
-      // Regression: _selected used to stay null until a card was tapped, so a
-      // straight-to-CTA tap silently did nothing even though the first card
-      // rendered as selected.
+      // The deliberate inverse of the old behaviour: no plan is preselected,
+      // so a straight-to-CTA tap buys NOTHING — the pick has to be the
+      // user's own.
       Package? bought;
       await pumpSheet(
         tester,
         loadPackages: () async => [lifetime, monthly],
         buy: (p) async {
           bought = p;
-          // Keep the sheet open (no pop) — this harness has no enclosing
-          // modal route to pop.
           return PurchaseOutcome.cancelled;
         },
       );
@@ -324,8 +359,16 @@ void main() {
       await tester.ensureVisible(find.text('Odblokuj pełny dostęp'));
       await tester.tap(find.text('Odblokuj pełny dostęp'));
       await tester.pumpAndSettle();
+      expect(bought, isNull);
 
-      expect(bought, lifetime);
+      // Tapping a plan arms it.
+      await tester.ensureVisible(find.text('Miesięczny'));
+      await tester.tap(find.text('Miesięczny'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Odblokuj pełny dostęp'));
+      await tester.tap(find.text('Odblokuj pełny dostęp'));
+      await tester.pumpAndSettle();
+      expect(bought, monthly);
     },
   );
 
@@ -410,6 +453,11 @@ void main() {
       buy: (_) async => PurchaseOutcome.failed,
     );
 
+    // Arm a plan first — nothing is preselected anymore.
+    await tester.ensureVisible(find.text('Dożywotni'));
+    await tester.tap(find.text('Dożywotni'));
+    await tester.pumpAndSettle();
+
     await tester.ensureVisible(find.text('Odblokuj pełny dostęp'));
     await tester.tap(find.text('Odblokuj pełny dostęp'));
     await tester.pump(); // resolve buy()
@@ -438,7 +486,7 @@ void main() {
         child: LocalizedTestApp(
           home: Scaffold(
             body: ProPaywallContent(
-              source: PaywallSource.hardWall,
+              source: PaywallSource.wall,
               onEntitled: () async {},
               retryBackoff: const [
                 Duration(milliseconds: 10),
@@ -480,7 +528,7 @@ void main() {
         child: LocalizedTestApp(
           home: Scaffold(
             body: ProPaywallContent(
-              source: PaywallSource.hardWall,
+              source: PaywallSource.wall,
               onEntitled: () async {},
               retryBackoff: const [Duration(milliseconds: 10)],
               loadPackages: () async {
@@ -524,7 +572,7 @@ void main() {
         child: LocalizedTestApp(
           home: Scaffold(
             body: ProPaywallContent(
-              source: PaywallSource.hardWall,
+              source: PaywallSource.wall,
               onEntitled: () async {},
               retryBackoff: const [],
               loadPackages: () async {
@@ -562,7 +610,7 @@ void main() {
         child: LocalizedTestApp(
           home: Scaffold(
             body: ProPaywallContent(
-              source: PaywallSource.hardWall,
+              source: PaywallSource.wall,
               onEntitled: () async {},
               retryBackoff: const [Duration(milliseconds: 10)],
               loadPackages: () async {

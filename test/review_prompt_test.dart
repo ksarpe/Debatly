@@ -7,29 +7,30 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The in-app review ask is gated by a single pure decision so its timing is
-/// fully testable without the OS sheet: ask once the user is engaged (a 3-day
-/// streak), then at most about once a week, and back off again if the streak
-/// decays below the milestone.
+/// fully testable without the OS sheet: ask EXACTLY on the day the streak
+/// completes 3 (after the rank-up animation — the moment of satisfaction) and
+/// nowhere else; a decayed streak re-climbing through 3 may ask again only
+/// after the cooldown.
 ///
 /// The controller group then pins the SIDE EFFECT the pure function can't: a due
-/// ask arms the weekly cooldown in SharedPreferences (so the OS dropping the
+/// ask arms the cooldown in SharedPreferences (so the OS dropping the
 /// sheet — which it usually does — can't make us re-fire on the next vote), a
 /// premature ask writes nothing, and a not-due ask never slides the window.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('shouldPromptForReview', () {
-    test('below the first milestone never asks', () {
+    test('below the milestone never asks', () {
       expect(
         shouldPromptForReview(streak: 2, lastPromptedDay: null, todayDay: 100),
         isFalse,
       );
     });
 
-    test('first time reaching the milestone asks', () {
+    test('completing the 3-day streak asks', () {
       expect(
         shouldPromptForReview(
-          streak: kReviewFirstStreakMilestone,
+          streak: kReviewStreakMilestone,
           lastPromptedDay: null,
           todayDay: 100,
         ),
@@ -37,25 +38,34 @@ void main() {
       );
     });
 
-    test('a long streak with no prior ask still asks', () {
+    test('past the milestone never asks — the 3-day completion is the one '
+        'moment ("nigdzie indziej")', () {
+      expect(
+        shouldPromptForReview(streak: 4, lastPromptedDay: null, todayDay: 100),
+        isFalse,
+      );
       expect(
         shouldPromptForReview(streak: 30, lastPromptedDay: null, todayDay: 100),
-        isTrue,
-      );
-    });
-
-    test('within the weekly cooldown does not re-ask', () {
-      // 4 days since the last ask — still inside the 7-day window.
-      expect(
-        shouldPromptForReview(streak: 10, lastPromptedDay: 96, todayDay: 100),
         isFalse,
       );
     });
 
-    test('exactly at the cooldown boundary asks again', () {
+    test('re-hitting 3 within the cooldown does not re-ask', () {
+      // Decayed and re-climbed to 3 just 4 days after the last ask.
       expect(
         shouldPromptForReview(
-          streak: 10,
+          streak: kReviewStreakMilestone,
+          lastPromptedDay: 96,
+          todayDay: 100,
+        ),
+        isFalse,
+      );
+    });
+
+    test('re-hitting 3 at the cooldown boundary asks again', () {
+      expect(
+        shouldPromptForReview(
+          streak: kReviewStreakMilestone,
           lastPromptedDay: 100 - kReviewCooldownDays,
           todayDay: 100,
         ),
@@ -64,7 +74,7 @@ void main() {
       // One day short of the boundary still holds.
       expect(
         shouldPromptForReview(
-          streak: 10,
+          streak: kReviewStreakMilestone,
           lastPromptedDay: 100 - kReviewCooldownDays + 1,
           todayDay: 100,
         ),
@@ -104,7 +114,7 @@ void main() {
       final c = await containerWith({});
       await c
           .read(reviewPromptControllerProvider.notifier)
-          .maybePromptForStreak(kReviewFirstStreakMilestone);
+          .maybePromptForStreak(kReviewStreakMilestone);
 
       // Read through the SAME injected instance the controller wrote to — a
       // second getInstance() wouldn't reflect the write (shared_preferences
@@ -123,7 +133,7 @@ void main() {
         final c = await containerWith({});
         await c
             .read(reviewPromptControllerProvider.notifier)
-            .maybePromptForStreak(kReviewFirstStreakMilestone - 1);
+            .maybePromptForStreak(kReviewStreakMilestone - 1);
 
         final sp = c.read(sharedPreferencesProvider);
         expect(
@@ -142,7 +152,7 @@ void main() {
         final c = await containerWith({lastPromptedKey: recent});
         await c
             .read(reviewPromptControllerProvider.notifier)
-            .maybePromptForStreak(10);
+            .maybePromptForStreak(kReviewStreakMilestone);
 
         final sp = c.read(sharedPreferencesProvider);
         expect(

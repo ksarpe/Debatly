@@ -1,10 +1,32 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/locale/app_locale.dart';
+import '../../../core/time/epoch_day.dart';
 
 /// SharedPreferences key holding whether the first-launch tutorial has been
 /// completed (or skipped). Absent until the user gets through onboarding once.
 const String kOnboardingCompletePrefKey = 'onboarding_complete';
+
+/// SharedPreferences key: the local epoch day (days since 1970) onboarding was
+/// completed — "day 0" of this install's life, the anchor for the `day_number`
+/// analytics property on `wall_reached`.
+const String kOnboardingCompletedDayPrefKey = 'onboarding_completed_day';
+
+/// Which day of this install's life today is (0 = the onboarding day), for the
+/// `wall_reached` funnel split. Installs from before the key existed are
+/// backfilled to "today is day 0" on first use — a floor, not a lie the other
+/// way (their walls can only look YOUNGER than they are).
+int installDayNumber(SharedPreferences prefs) {
+  final today = epochDay(DateTime.now());
+  final stored = prefs.getInt(kOnboardingCompletedDayPrefKey);
+  if (stored == null) {
+    // Fire-and-forget: a failed persist just re-backfills tomorrow.
+    prefs.setInt(kOnboardingCompletedDayPrefKey, today);
+    return 0;
+  }
+  return today - stored;
+}
 
 /// Whether the welcome tutorial has already been seen.
 ///
@@ -25,9 +47,15 @@ class OnboardingController extends Notifier<bool> {
   Future<void> complete() async {
     if (state) return;
     state = true;
-    await ref
-        .read(sharedPreferencesProvider)
-        .setBool(kOnboardingCompletePrefKey, true);
+    final prefs = ref.read(sharedPreferencesProvider);
+    // Stamp day 0 of this install (see [installDayNumber]) alongside the flag.
+    if (prefs.getInt(kOnboardingCompletedDayPrefKey) == null) {
+      await prefs.setInt(
+        kOnboardingCompletedDayPrefKey,
+        epochDay(DateTime.now()),
+      );
+    }
+    await prefs.setBool(kOnboardingCompletePrefKey, true);
   }
 
   /// DEV tools only: clears the persisted flag so the tutorial runs again on

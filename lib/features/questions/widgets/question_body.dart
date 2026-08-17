@@ -6,6 +6,7 @@ import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/fit_or_scroll.dart';
 import '../../account/providers/session_providers.dart';
+import '../../monetization/widgets/day_wall_view.dart';
 import '../providers/question_providers.dart';
 import '../providers/swipe_hint_providers.dart';
 import '../screens/history_screen.dart';
@@ -36,6 +37,11 @@ class QuestionBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // The free tier's day wall takes over the whole body when a forward swipe
+    // lands on it (see dayWallVisibleProvider) — it owns its own gestures and
+    // its own layout, so nothing below renders behind it.
+    if (ref.watch(dayWallVisibleProvider)) return const DayWallView();
+
     // The question currently on screen. A locked question is a pure paywall —
     // WindQuestionView renders its lock + unlock CTA — so it gets NO bottom
     // overlay and NO smaczki affordance. Only a readable question does.

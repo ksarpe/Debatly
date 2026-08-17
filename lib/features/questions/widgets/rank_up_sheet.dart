@@ -10,8 +10,10 @@ import '../../../core/theme/app_theme.dart';
 import '../../../data/models/rank.dart';
 import '../../../data/models/user_stats.dart';
 import '../../../l10n/gen/app_localizations.dart';
+import '../../../services/analytics.dart';
 import '../../account/providers/rank_celebration_providers.dart';
 import '../../account/providers/stats_providers.dart';
+import '../../settings/providers/review_providers.dart';
 import 'confetti_overlay.dart';
 import 'rank_share_card.dart';
 import 'rank_sheet.dart' show rankIcon;
@@ -110,6 +112,7 @@ class _RankUpViewState extends State<_RankUpView>
         : null;
 
     setState(() => _sharing = true);
+    Analytics.log('share_card_opened', {'type': 'rank'});
     try {
       final params = await _buildShareParams(
         l10n: l10n,
@@ -495,6 +498,15 @@ class _RankCelebrationListenerState
         rank: rank,
         streak: stats.currentStreak,
       );
+      // The store-review ask rides right behind the closed celebration — the
+      // moment of satisfaction. Only the 3-day-streak completion qualifies
+      // (streak 3 IS a promotion day, so the celebration is guaranteed to
+      // have just played); every other rank-up is a no-op inside.
+      if (mounted) {
+        await ref
+            .read(reviewPromptControllerProvider.notifier)
+            .maybePromptForStreak(stats.currentStreak);
+      }
     } finally {
       _busy = false;
     }

@@ -6,20 +6,19 @@ import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 
 /// A selectable plan card. The selected card gets the spark border + glow and
-/// a filled check; the recommended one carries the floating "best value" tag.
+/// a filled check. No "best value" tag and no preselection — every card
+/// starts equal, so the picks in the data are the users' own.
 class PaywallPlanCard extends StatelessWidget {
   const PaywallPlanCard({
     super.key,
     required this.package,
     required this.selected,
-    required this.recommended,
     required this.onTap,
     this.subline,
   });
 
   final Package package;
   final bool selected;
-  final bool recommended;
   final VoidCallback? onTap;
 
   /// Optional quiet line under the price (e.g. the lifetime-vs-monthly
@@ -120,41 +119,13 @@ class PaywallPlanCard extends StatelessWidget {
       ),
     );
 
-    return Stack(
-      clipBehavior: Clip.none,
-      // Pass the Row's stretched height through so both cards fill it.
-      fit: StackFit.passthrough,
-      children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(18),
-            onTap: onTap,
-            child: card,
-          ),
-        ),
-        if (recommended)
-          Positioned(
-            top: -9,
-            left: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppTheme.spark,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                context.l10n.paywallBestValue,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ),
-          ),
-      ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: card,
+      ),
     );
   }
 }

@@ -1,6 +1,6 @@
 import 'package:debatly/core/locale/app_locale.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
-import 'package:debatly/features/monetization/screens/hard_paywall_screen.dart';
+import 'package:debatly/features/monetization/widgets/pro_paywall_sheet.dart';
 import 'package:flutter/material.dart' show AlertDialog;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,9 +10,9 @@ import 'support/fakes.dart';
 import 'support/localized_test_app.dart';
 import 'support/test_prefs.dart';
 
-/// The "Przywróć zakup" affordance on the hard paywall. The wall is a guest's
-/// only surface (the feed is PRO-only), so the restore path must live right on
-/// it. For a guest the tap first opens a chooser (confirmGuestRestore): a store
+/// The "Przywróć zakup" affordance on the paywall sheet — the freemium
+/// model's one paywall surface, so the restore path must live right on it.
+/// For a guest the tap first opens a chooser (confirmGuestRestore): a store
 /// restore would TRANSFER the receipt onto this fresh anonymous identity, so
 /// someone who bought PRO on a real account is steered to sign back in instead
 /// — while "restore on this device" keeps the store path available (Apple
@@ -34,20 +34,20 @@ void main() {
       UncontrolledProviderScope(
         container: container,
         child: LocalizedTestApp(
-          home: HardPaywallScreen(loadPackages: () async => const <Package>[]),
+          home: ProPaywallSheet(loadPackages: () async => const <Package>[]),
         ),
       ),
     );
     await tester.pumpAndSettle();
   }
 
-  testWidgets('a guest sees the restore affordance on the hard paywall', (
+  testWidgets('a guest sees the restore affordance on the paywall sheet', (
     tester,
   ) async {
     await pumpGuestPaywall(tester);
 
-    // Sanity: we're on the hard wall (its headline is the anchor) ...
-    expect(find.text('Zobacz, jak zagłosował cały świat'), findsOneWidget);
+    // Sanity: we're on the sheet (the streak-0 headline is the anchor) ...
+    expect(find.text('Zostało 500 pytań'), findsOneWidget);
     // ... and the store-restore path is offered right there (below the fold
     // on a short test viewport — scrolling to it is fine, hiding it is not).
     expect(find.text('Przywróć zakup'), findsOneWidget);

@@ -81,6 +81,19 @@ class CachingQuestionRepository implements QuestionRepository {
     }
   }
 
+  // The wall's next-question teaser is bait, not content: offline the wall
+  // simply shows no preview instead of erroring or serving a stale tease for a
+  // question the server may no longer pick tomorrow. Never cached.
+  @override
+  Future<String?> peekNextQuestion({List<String> excludeIds = const []}) async {
+    try {
+      return await inner.peekNextQuestion(excludeIds: excludeIds);
+    } catch (e) {
+      if (!isOfflineError(e)) rethrow;
+      return null;
+    }
+  }
+
   @override
   Future<List<Smaczek>> fetchSmaczki(String questionId) async {
     try {

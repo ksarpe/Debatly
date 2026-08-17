@@ -8,6 +8,9 @@ import 'paywall_plan_card.dart';
 /// The loaded offer: the plan cards side by side. Pure presentation —
 /// selection state, analytics and the purchase flow stay with the owner (the
 /// CTA itself lives in the paywall's sticky bottom bar).
+///
+/// [selected] is null until the user taps a card: no plan is preselected and
+/// no card carries a "best value" badge — what people pick is what they chose.
 class PaywallOfferSection extends StatelessWidget {
   const PaywallOfferSection({
     super.key,
@@ -18,7 +21,7 @@ class PaywallOfferSection extends StatelessWidget {
   });
 
   final List<Package> packages;
-  final Package selected;
+  final Package? selected;
   final bool busy;
   final ValueChanged<Package> onSelect;
 
@@ -52,17 +55,10 @@ class PaywallOfferSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lifetimeSubline = _lifetimeSubline(context);
-    // The "best value" tag follows the lifetime plan (the one the paywall
-    // preselects and pitches), wherever the offering ordered it.
-    var recommendedIndex = packages.indexWhere(
-      (p) => p.packageType == PackageType.lifetime,
-    );
-    if (recommendedIndex < 0) recommendedIndex = 0;
 
     PaywallPlanCard card(int i) => PaywallPlanCard(
       package: packages[i],
       selected: packages[i] == selected,
-      recommended: i == recommendedIndex && packages.length > 1,
       subline: packages[i].packageType == PackageType.lifetime
           ? lifetimeSubline
           : null,
@@ -79,8 +75,7 @@ class PaywallOfferSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (var i = 0; i < packages.length; i++) ...[
-            // Room for the floating "best value" tag, which overhangs the top.
-            if (i > 0) const SizedBox(height: 14),
+            if (i > 0) const SizedBox(height: 12),
             card(i),
           ],
         ],

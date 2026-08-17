@@ -13,7 +13,6 @@ import '../../../services/reminder_scheduler.dart';
 import '../../account/providers/stats_providers.dart';
 import '../../account/widgets/secure_streak_prompt.dart';
 import '../../settings/providers/reminder_providers.dart';
-import '../../settings/providers/review_providers.dart';
 import '../providers/question_providers.dart';
 import 'suggest_question_nudge.dart';
 import 'vote_visuals.dart';
@@ -149,10 +148,11 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
 
   /// After a successful vote — a natural high point, especially when it just
   /// extended a streak — run at most ONE follow-up prompt: first offer a guest
-  /// the "secure your streak" account nudge; only when that doesn't show,
-  /// consider the store-review ask. One dialog per vote, so the moment never
-  /// turns into a gauntlet. Each prompt enforces its own milestone + cooldown,
-  /// so the vast majority of votes ask for nothing.
+  /// the "secure your streak" account nudge, then the one-time "suggest a
+  /// question" toast. One dialog per vote, so the moment never turns into a
+  /// gauntlet. (The store-review ask does NOT live here anymore: it fires
+  /// exclusively after the rank-up celebration on the 3-day-streak day — see
+  /// RankCelebrationListener.)
   ///
   /// Best-effort and fired last: a prompt must never interfere with the vote
   /// that already counted, so any failure (offline stats refetch, missing prefs
@@ -172,6 +172,12 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       if (!mounted) return;
       final streak = stats?.currentStreak ?? 0;
 
+      // The freemium funnel's activation event, with the post-vote streak the
+      // engagement mechanics ride on. Only the served daily counts here.
+      if (widget.isDaily) {
+        Analytics.log('daily_question_voted', {'streak': streak});
+      }
+
       // On the day the streak crosses into a new rank, the rank-up celebration
       // (confetti + share card) owns the moment — neither prompt fires on top
       // of it. Both come around again on the next eligible day.
@@ -189,14 +195,9 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       if (nudged || isPromotionDay) return;
 
       // The one-time "got an idea? send it in" toast — after the second vote,
-      // once the loop has been felt. Skips the review ask when it shows, same
-      // one-prompt-per-vote rule as above.
+      // once the loop has been felt.
       if (!mounted) return;
-      if (await maybePromptSuggestQuestion(context, ref)) return;
-
-      await ref
-          .read(reviewPromptControllerProvider.notifier)
-          .maybePromptForStreak(streak);
+      await maybePromptSuggestQuestion(context, ref);
     } catch (_) {
       // Non-critical: skipping the ask is always an acceptable outcome.
     }

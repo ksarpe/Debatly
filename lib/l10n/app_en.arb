@@ -405,27 +405,62 @@
   "onboardingTasteQ2Smaczek2": "Once you know, will it stop bugging you? Will it stop bugging them?",
   "onboardingTasteQ2Smaczek3": "If the number isn't 100, what does it actually change?",
   "onboardingTasteQ2Smaczek4": "And if it is 100 — would you rather know, or rather tell?",
-  "onboardingCatalogTitle": "And we've got 500+ more like these",
-  "onboardingCatalogBody": "Every single one with vote results from the whole world. Cast your vote and find out whether you think like the majority — or the whole world has it wrong. And each question comes with arguments that can change your mind.",
-  "onboardingCatalogPerfectFor": "PERFECT FOR",
-  "onboardingCatalogUse1": "dates",
-  "onboardingCatalogUse2": "get-togethers with friends",
-  "onboardingCatalogUse3": "evenings for two",
-  "onboardingCatalogUse4": "talks around the family table",
+  "bridgeTitle": "That was two. 500 to go.",
+  "@bridgeTitle": {
+    "description": "Headline of the bridge screen shown right after the onboarding taste votes — it explains the freemium model instead of walling the user."
+  },
+  "bridgeBody": "You get one new question every day. Free, forever. Don't want to wait until tomorrow? Unlock the whole catalogue right away.",
+  "bridgeCtaPrimary": "Get today's question",
+  "@bridgeCtaPrimary": {
+    "description": "Primary (visually dominant) bridge CTA — continues into the app for free."
+  },
+  "bridgeCtaSecondary": "Unlock all 500",
+  "@bridgeCtaSecondary": {
+    "description": "Secondary bridge CTA — opens the paywall sheet."
+  },
   "onboardingNotifyTitle": "Tomorrow's question is waiting",
   "onboardingNotifyBody": "One notification a day, at a time you pick. Voting takes 10 seconds — and your streak grows every day.",
   "onboardingNotifyEnable": "Turn on reminders",
   "onboardingNotifySkip": "Not now",
   "onboardingNotifyFootnote": "You can turn reminders off or change the time in settings.",
-  "paywallTitle": "Unlock every question and vote",
-  "paywallTitleHardWall": "See how the whole world voted",
-  "@paywallTitleHardWall": {
-    "description": "Headline of the full-screen hard paywall every non-PRO user lands on after onboarding."
+  "wallCountdown": "Next free question in {time}",
+  "@wallCountdown": {
+    "description": "Live countdown on the day-wall screen; {time} is a preformatted HH:MM:SS string ticking down to the user's local midnight.",
+    "placeholders": {
+      "time": { "type": "String" }
+    }
   },
-  "paywallSubtitleHardWall": "500+ questions that split the room — and every argument you need to defend your take.",
-  "@paywallSubtitleHardWall": {
-    "description": "Hook line under the hard-paywall headline, teasing the catalog and the arguments."
+  "wallStreak": "Your streak: {n, plural, one{{n} day} other{{n} days}}",
+  "@wallStreak": {
+    "description": "Streak line on the day-wall screen — what the user stands to lose by not coming back.",
+    "placeholders": {
+      "n": { "type": "int" }
+    }
   },
+  "wallCtaUnlock": "Don't wait — unlock all 500",
+  "wallCtaTomorrow": "or come back tomorrow",
+  "@wallCtaTomorrow": {
+    "description": "The honest exit on the day-wall screen: a real, tappable button back to today's question, not a dead caption."
+  },
+  "paywallTitleDefault": "500 questions left",
+  "@paywallTitleDefault": {
+    "description": "Paywall sheet headline for streaks of 0–2 days."
+  },
+  "paywallTitleStreak": "You're {n} days in. Don't break it.",
+  "@paywallTitleStreak": {
+    "description": "Paywall sheet headline for streaks of 3–6 days.",
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
+  "paywallTitleStreakLong": "{n} days straight. You've earned the full catalogue.",
+  "@paywallTitleStreakLong": {
+    "description": "Paywall sheet headline for streaks of 7+ days.",
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
+  "paywallSubtitle": "One question a day stays free. PRO removes the limit and opens every argument.",
   "paywallTitleSmaczki": "Unlock every argument, for every question",
   "paywallTitleFavorites": "Keep your favorite questions forever",
   "paywallTitleHistory": "Every vote you've cast, in one place",
@@ -433,27 +468,44 @@
   "@paywallWhatYouGet": {
     "description": "Uppercase section header above the paywall benefit list."
   },
-  "paywallBenefitUnlimitedTitle": "The full 500+ question catalog",
-  "paywallBenefitUnlimitedBody": "Every divisive question at your fingertips — no limits, no waiting.",
-  "paywallBenefitOfflineTitle": "Works offline",
-  "paywallBenefitOfflineBody": "Download the whole catalog and keep reading with no connection.",
-  "paywallBenefitSmaczkiTitle": "Arguments FOR and AGAINST",
-  "paywallBenefitSmaczkiBody": "Talking points for every question — ammunition so you never lose a debate.",
-  "paywallBenefitSplitTitle": "Votes from around the world",
-  "paywallBenefitSplitBody": "After every vote, see how the whole world split — how many think like you, and how many don't.",
-  "paywallBenefitFreshTitle": "A new set of questions every week",
-  "paywallBenefitFreshBody": "Fresh dilemmas land every week — revisit your history, check the results and watch the scales tip.",
-  "paywallBenefitStreakTitle": "Streaks & ranks",
-  "paywallBenefitStreakBody": "Vote daily, keep your streak alive and climb the rank ladder.",
-  "paywallBenefitFavoritesTitle": "Favorites & voting history",
-  "paywallBenefitFavoritesBody": "Save the best questions and look back at every vote you've cast.",
+  "paywallBenefitUnlimitedTitle": "No daily limit",
+  "paywallBenefitUnlimitedBody": "All 500+ questions right away. No more waiting until tomorrow.",
+  "paywallBenefitSmaczkiTitle": "Every argument FOR and AGAINST",
+  "paywallBenefitSmaczkiBody": "Not just the first one. The full set of counterarguments for every question.",
+  "paywallBenefitNoAdsTitle": "Zero ads",
+  "paywallBenefitNoAdsBody": "A clean screen, just the question.",
+  "paywallBenefitHistoryTitle": "Your voting history",
+  "paywallBenefitHistoryBody": "Go back to everything you've ever answered.",
+  "paywallBenefitFreshTitle": "New questions every week",
+  "paywallBenefitFreshBody": "Fresh dilemmas every week.",
+  "paywallBenefitOfflineTitle": "Offline mode",
+  "paywallBenefitOfflineBody": "The whole catalogue on your phone.",
+  "paywallCompareFree": "FREE",
+  "paywallComparePro": "PRO",
+  "paywallCompareRowDaily": "Daily limit",
+  "paywallCompareRowDailyFree": "1 question",
+  "paywallCompareRowDailyPro": "Unlimited",
+  "paywallCompareRowSmaczki": "Arguments",
+  "paywallCompareRowSmaczkiFree": "First one",
+  "paywallCompareRowSmaczkiPro": "All of them",
+  "paywallCompareRowSplit": "Community results",
+  "paywallCompareRowStreak": "Streak & ranks",
+  "paywallCompareRowHistory": "History & favorites",
+  "paywallCompareRowOffline": "Offline mode",
+  "paywallCompareIncluded": "Included",
+  "@paywallCompareIncluded": {
+    "description": "Accessibility label for the check mark in the Free-vs-PRO comparison table."
+  },
+  "paywallCompareExcluded": "Not included",
+  "@paywallCompareExcluded": {
+    "description": "Accessibility label for the dash/cross in the Free-vs-PRO comparison table."
+  },
   "paywallSignInLink": "Sign in",
   "paywallLifetime": "Lifetime",
   "paywallAnnual": "Yearly",
   "paywallMonthly": "Monthly",
   "paywallWeekly": "Weekly",
   "paywallPerMonth": "/mo",
-  "paywallBestValue": "BEST VALUE",
   "paywallCta": "Unlock full access",
   "paywallLifetimeVsMonthly": "{months, plural, one{Less than {months} month of the subscription} other{Less than {months} months of the subscription}}",
   "@paywallLifetimeVsMonthly": {

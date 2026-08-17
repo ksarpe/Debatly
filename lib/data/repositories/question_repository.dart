@@ -19,6 +19,17 @@ abstract class QuestionRepository {
 
   Future<Question?> fetchDailyQuestion(DateTime date);
 
+  /// The first words of the NEXT question waiting for the caller — the day
+  /// wall's blurred teaser ("Czy osoba otyła powinna…").
+  ///
+  /// Calls `peek_next_question`, a pure read: the server picks a random active
+  /// question the caller hasn't voted on (outside their own daily-assignment
+  /// window) and returns only its first few words — never the full text, and
+  /// nothing is consumed or recorded (`question_seen` stays untouched, so the
+  /// wall may peek every day for free). [excludeIds] keeps the served daily
+  /// out of the pick. Null when there is nothing left to tease.
+  Future<String?> peekNextQuestion({List<String> excludeIds = const []});
+
   /// The discussion prompts ("smaczki") for a single question.
   ///
   /// The source applies the premium gate: a free user gets the first smaczek
@@ -137,6 +148,19 @@ class MockQuestionRepository implements QuestionRepository {
     return kMockQuestions[date.day % kMockQuestions.length].copyWith(
       isLocked: false,
     );
+  }
+
+  @override
+  Future<String?> peekNextQuestion({List<String> excludeIds = const []}) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    // First non-excluded mock question, cut to the server teaser length.
+    for (final q in kMockQuestions) {
+      if (excludeIds.contains(q.id)) continue;
+      final words = q.questionText.trim().split(RegExp(r'\s+'));
+      if (words.isEmpty) continue;
+      return words.take(4).join(' ');
+    }
+    return null;
   }
 
   @override
@@ -334,6 +358,28 @@ class SupabaseQuestionRepository implements QuestionRepository {
 
     final question = Question.fromJson(rows.first);
     return question.questionText.trim().isEmpty ? null : question;
+  }
+
+  @override
+  Future<String?> peekNextQuestion({List<String> excludeIds = const []}) async {
+    // SECURITY DEFINER RPC, read-only by design: {id, teaser} for one random
+    // eligible question, the teaser cut server-side to the first few words —
+    // the full text never reaches a non-premium client, and the peek records
+    // nothing (no question_seen row, no spend).
+    final data = await _db.rpc(
+      'peek_next_question',
+      params: {
+        'p_locale': locale,
+        'p_date': dateOnlyKey(DateTime.now()),
+        'p_exclude_ids': excludeIds,
+      },
+    );
+
+    final rows = (data as List).cast<Map<String, dynamic>>();
+    if (rows.isEmpty) return null;
+    final teaser = rows.first['teaser'] as String?;
+    if (teaser == null || teaser.trim().isEmpty) return null;
+    return teaser.trim();
   }
 
   @override

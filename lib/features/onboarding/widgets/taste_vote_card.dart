@@ -134,6 +134,9 @@ class _TasteVoteCardState extends State<TasteVoteCard>
       'choice': choice == VoteResult.yes ? 'tak' : 'nie',
       'round': _round + 1,
     });
+    // The freemium funnel's canonical per-question event (0-indexed); the
+    // richer taste event above stays for continuity.
+    Analytics.log('onboarding_q_voted', {'index': _round});
   }
 
   void _onArgumentsRead() {
@@ -168,6 +171,9 @@ class _TasteVoteCardState extends State<TasteVoteCard>
     _interludeTimer = Timer(const Duration(seconds: 2), () {
       if (!mounted) return;
       setState(() => _stage = _Stage.vote);
+      // Round two's question is on stage (round one's `onboarding_q_shown`
+      // fires from the screen when the taste page is reached).
+      Analytics.log('onboarding_q_shown', {'index': _round});
     });
   }
 

@@ -5,9 +5,9 @@ import 'package:debatly/data/models/vote_result.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
 import 'package:debatly/features/account/screens/auth_screen.dart';
-import 'package:debatly/features/monetization/screens/hard_paywall_screen.dart';
+import 'package:debatly/features/monetization/widgets/pro_paywall_sheet.dart';
 import 'package:debatly/features/onboarding/screens/onboarding_screen.dart';
-import 'package:debatly/features/onboarding/widgets/onboarding_catalog_card.dart';
+import 'package:debatly/features/onboarding/widgets/onboarding_bridge_card.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/screens/history_screen.dart';
 import 'package:debatly/features/questions/widgets/question_body.dart';
@@ -146,10 +146,11 @@ void main() {
     });
   });
 
-  group('the hard paywall never hides its exits', () {
+  group('the paywall sheet never hides its exits', () {
     // "Przywróć zakup" and the sign-in link are the only ways an already-
-    // entitled user gets past the wall (App Review must be able to reach the
-    // restore), so they have to survive short windows and large fonts.
+    // entitled user recovers PRO from the sheet (App Review must be able to
+    // reach the restore), so they have to survive short windows and large
+    // fonts.
     const viewports = <String, (Size, double)>{
       'short window': (Size(812, 375), 1.0),
       'phone': (Size(375, 667), 1.0),
@@ -183,8 +184,10 @@ void main() {
                   data: MediaQuery.of(
                     context,
                   ).copyWith(textScaler: TextScaler.linear(scale)),
-                  child: HardPaywallScreen(
-                    loadPackages: () async => const <Package>[],
+                  child: Scaffold(
+                    body: ProPaywallSheet(
+                      loadPackages: () async => const <Package>[],
+                    ),
                   ),
                 ),
               ),
@@ -254,9 +257,9 @@ void main() {
         expect(tester.takeException(), isNull);
       });
 
-      // The tallest card in the deck — glyph, title, body, kicker and four
-      // use-cases — so it is the one that overflows first.
-      testWidgets('the catalog pitch does not clip its copy — $name', (
+      // The tallest card in the deck — glyph, title, body and two CTAs — so
+      // it is the one that overflows first.
+      testWidgets('the bridge card does not clip its copy — $name', (
         tester,
       ) async {
         final (size, scale) = spec;
@@ -271,7 +274,7 @@ void main() {
                 data: MediaQuery.of(
                   context,
                 ).copyWith(textScaler: TextScaler.linear(scale)),
-                child: const Scaffold(body: OnboardingCatalogCard()),
+                child: Scaffold(body: OnboardingBridgeCard(onContinue: () {})),
               ),
             ),
           ),

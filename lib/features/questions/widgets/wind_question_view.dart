@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/models/question.dart';
+import '../../account/providers/session_providers.dart';
 import '../providers/question_providers.dart';
 import '../providers/swipe_hint_providers.dart';
 import 'falling_words_text.dart';
@@ -13,11 +14,10 @@ import 'falling_words_text.dart';
 /// assembles itself word by word, each word dropping in from above (see
 /// [FallingWordsText]). No cards, no flips: just text in motion.
 ///
-/// Swiping LEFT always goes forward through the catalog, wrapping around;
-/// swiping RIGHT steps back through what was already on screen, stopping at
-/// the daily (index 0) with a small bounce. Only entitled sessions reach this
-/// widget — the hard paywall gates the whole feed — so there is no reveal
-/// slot, no credits and no ad path here anymore.
+/// Swiping LEFT goes forward through the catalog, wrapping around — except at
+/// the end of a FREE user's deck (the daily), where the forward swipe lands on
+/// the day wall instead of wrapping. Swiping RIGHT steps back through what was
+/// already on screen, stopping at the daily (index 0) with a small bounce.
 class WindQuestionView extends ConsumerStatefulWidget {
   const WindQuestionView({super.key});
 
@@ -121,6 +121,21 @@ class WindQuestionViewState extends ConsumerState<WindQuestionView>
       notifier.backLinear();
       _settleIn(ref.read(currentQuestionProvider));
       _animating = false;
+      return;
+    }
+
+    // LEFT swipe past the end of a FREE user's deck — the day wall takes over
+    // instead of the catalog wrapping (a free deck is just the daily, so a
+    // wrap would replay the same question and read as a dead swipe). The wall
+    // replaces this widget entirely; it comes back fresh on the back swipe.
+    final deckLength = ref.read(questionDeckProvider).length;
+    final atDeckEnd = ref.read(questionIndexProvider) >= deckLength - 1;
+    if (atDeckEnd && !ref.read(isPremiumProvider)) {
+      _animating = true;
+      await _animateOut(direction);
+      _animating = false;
+      if (!mounted) return;
+      ref.read(dayWallVisibleProvider.notifier).show();
       return;
     }
 

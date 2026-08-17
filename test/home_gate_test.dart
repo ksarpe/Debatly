@@ -1,7 +1,6 @@
 import 'package:debatly/core/locale/app_locale.dart';
 import 'package:debatly/data/models/question.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
-import 'package:debatly/features/monetization/screens/hard_paywall_screen.dart';
 import 'package:debatly/features/onboarding/screens/app_entry.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/screens/question_screen.dart';
@@ -12,8 +11,9 @@ import 'support/fakes.dart';
 import 'support/localized_test_app.dart';
 import 'support/test_prefs.dart';
 
-/// The hard-paywall gate in front of the feed ([HomeGate]): the app's content
-/// is PRO-only, so the resolved session decides what "home" is.
+/// [HomeGate] under the freemium model: EVERY resolved session lands on the
+/// feed — a free user gets their daily (the day wall waits behind a swipe),
+/// premium gets the catalog. There is no hard paywall screen anymore.
 void main() {
   Question q(String id) => Question(
     id: id,
@@ -49,36 +49,32 @@ void main() {
     return (container, mutable);
   }
 
-  testWidgets('a non-premium session lands on the hard paywall', (
-    tester,
-  ) async {
-    await pumpGate(tester, session: guestSession());
+  testWidgets('a non-premium session lands on the feed with its daily — '
+      'not on any wall', (tester) async {
+    final (container, _) = await pumpGate(tester, session: guestSession());
 
-    expect(find.byType(HardPaywallScreen), findsOneWidget);
-    expect(find.byType(QuestionScreen), findsNothing);
-    // The wall's offer can't load (RevenueCat unconfigured in tests) — it
-    // shows the retry state, never a way through to the feed.
-    expect(find.text('Zobacz, jak zagłosował cały świat'), findsOneWidget);
+    expect(find.byType(QuestionScreen), findsOneWidget);
+    // The daily question is on screen, votable — the free tier's whole point.
+    // (The wind view renders it word by word, so assert through the provider.)
+    expect(container.read(currentQuestionProvider)?.id, 'daily');
   });
 
   testWidgets('a premium session lands on the feed', (tester) async {
     await pumpGate(tester, session: guestSession(isPremium: true));
 
     expect(find.byType(QuestionScreen), findsOneWidget);
-    expect(find.byType(HardPaywallScreen), findsNothing);
   });
 
-  testWidgets('a resolved free→premium flip swaps the wall for the feed '
+  testWidgets('a resolved free→premium flip keeps the feed '
       'and nudges the guest to save their PRO', (tester) async {
     final (_, session) = await pumpGate(tester, session: guestSession());
-    expect(find.byType(HardPaywallScreen), findsOneWidget);
+    expect(find.byType(QuestionScreen), findsOneWidget);
 
     session.emit(guestSession(isPremium: true));
     await tester.pumpAndSettle();
 
     expect(find.byType(QuestionScreen), findsOneWidget);
-    // The guest save-your-PRO dialog fires from the gate (the paywall itself
-    // unmounted on the flip).
+    // The guest save-your-PRO dialog fires from the gate.
     expect(find.text('PRO aktywne 🎉'), findsOneWidget);
     await tester.tap(find.text('Później'));
     await tester.pumpAndSettle();
@@ -94,12 +90,12 @@ void main() {
     expect(find.text('PRO aktywne 🎉'), findsNothing);
   });
 
-  testWidgets('a session that failed to load offers a retry, not the wall', (
+  testWidgets('a session that failed to load offers a retry, not the feed', (
     tester,
   ) async {
-    // `isPremiumProvider` reads an errored session as "not premium", which
-    // under a hard paywall means a transient failure shows a PAYING user the
-    // wall — whose only affordance is buying the thing they already own.
+    // An errored session resolves to "not premium", which would silently
+    // reshape a paying user's feed over a transient failure — so the gate
+    // surfaces the retry instead of guessing a tier.
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(
@@ -118,15 +114,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(HardPaywallScreen), findsNothing);
     expect(find.byType(QuestionScreen), findsNothing);
     expect(find.text('Spróbuj ponownie'), findsOneWidget);
   });
 
-  testWidgets('an entitlement lapse swaps the feed back for the wall', (
-    tester,
-  ) async {
-    final (_, session) = await pumpGate(
+  testWidgets('an entitlement lapse keeps the user on the feed '
+      '(the deck reshapes; no wall screen appears)', (tester) async {
+    final (container, session) = await pumpGate(
       tester,
       session: guestSession(isPremium: true),
     );
@@ -135,8 +129,9 @@ void main() {
     session.emit(guestSession());
     await tester.pumpAndSettle();
 
-    expect(find.byType(HardPaywallScreen), findsOneWidget);
-    expect(find.byType(QuestionScreen), findsNothing);
+    expect(find.byType(QuestionScreen), findsOneWidget);
+    // Their daily is still there — the free tier's feed, not a dead end.
+    expect(container.read(currentQuestionProvider)?.id, 'daily');
   });
 }
 

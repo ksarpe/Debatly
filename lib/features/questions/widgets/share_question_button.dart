@@ -7,6 +7,7 @@ import '../../../core/locale/l10n_extension.dart';
 import '../../../core/share/widget_to_image.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../l10n/gen/app_localizations.dart';
+import '../../../services/analytics.dart';
 import 'share_question_card.dart';
 
 /// A visible "share" pill shown beneath the question (under the vote panel on
@@ -58,6 +59,7 @@ class _ShareQuestionButtonState extends State<ShareQuestionButton> {
         : null;
 
     setState(() => _busy = true);
+    Analytics.log('share_card_opened', {'type': 'question'});
     try {
       final params = await _buildShareParams(
         text: text,

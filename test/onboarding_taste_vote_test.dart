@@ -166,16 +166,17 @@ void main() {
     expect(find.byIcon(Icons.check_rounded), findsOneWidget);
   });
 
-  // The catalog pitch between the taste card and the reminder ask: no buttons
-  // of its own, so the deck's bottom "Dalej" carries it.
-  Future<void> passCatalogPitch(WidgetTester tester) async {
-    expect(find.text('A takich pytań mamy ponad 500'), findsOneWidget);
-    expect(find.text('IDEALNE NA'), findsOneWidget);
-    await tapText(tester, 'Dalej');
+  // The bridge between the taste card and the reminder ask: it explains the
+  // freemium model and carries its own CTAs (the deck's bottom "Dalej" is
+  // suppressed there) — the dominant one continues for free.
+  Future<void> passBridge(WidgetTester tester) async {
+    expect(find.text('To były dwa. Zostało 500.'), findsOneWidget);
+    expect(find.text('Odblokuj wszystkie 500'), findsOneWidget);
+    await tapText(tester, 'Odbierz dzisiejsze pytanie');
     await settlePage(tester);
   }
 
-  testWidgets('Continue after the reveal advances to the catalog pitch and '
+  testWidgets('Continue after the reveal advances to the bridge and '
       'then the notifications ask, and "Not now" finishes onboarding', (
     tester,
   ) async {
@@ -204,18 +205,18 @@ void main() {
     await settlePage(tester);
 
     // The card's own "Dalej" (the bottom Next is suppressed on this page)
-    // lands on the catalog pitch, and its "Dalej" on the reminder opt-in —
+    // lands on the bridge, and its primary CTA on the reminder opt-in —
     // the final card, no account step follows.
     await tapText(tester, 'Dalej');
     await settlePage(tester);
-    await passCatalogPitch(tester);
+    await passBridge(tester);
 
     expect(find.text('Jutro czeka nowe pytanie'), findsOneWidget);
     expect(find.text('Włącz przypomnienia'), findsOneWidget);
     expect(finished, 0);
 
-    // "Not now" ends the tutorial without enabling — the home gate (paywall
-    // for a non-PRO session) is next.
+    // "Not now" ends the tutorial without enabling — the home gate (the feed
+    // with today's daily) is next.
     await tapText(tester, 'Nie teraz');
     await settlePage(tester);
 
@@ -236,9 +237,9 @@ void main() {
     await completeTasteLoop(tester); // round one
     await passInterlude(tester);
     await completeTasteLoop(tester); // round two
-    await tapText(tester, 'Dalej'); // taste result → catalog pitch
+    await tapText(tester, 'Dalej'); // taste result → the bridge
     await settlePage(tester);
-    await passCatalogPitch(tester); // → reminder ask
+    await passBridge(tester); // → reminder ask
 
     await tapText(tester, 'Włącz przypomnienia');
     await settlePage(tester);

@@ -46,10 +46,10 @@ final questionRepositoryProvider = Provider<QuestionRepository>((ref) {
   );
 });
 
-/// Loads the full question catalog once — for PREMIUM users only. The hard
-/// paywall keeps non-PRO sessions out of the feed entirely, so a non-premium
-/// read gets an empty list without any fetch (defense in depth: RLS withholds
-/// the catalog server-side too).
+/// Loads the full question catalog once — for PREMIUM users only. The free
+/// tier's whole deck is the personal daily (the day wall stands where the
+/// catalog would continue), so a non-premium read gets an empty list without
+/// any fetch (defense in depth: the server withholds the text anyway).
 final questionsProvider = FutureProvider<List<Question>>((ref) async {
   // Hold the first fetch until the session's initial load has resolved, so the
   // catalog is fetched ONCE with the final identity + premium tier — not once on
@@ -302,11 +302,13 @@ final devPinnedQuestionProvider =
 
 /// The ordered deck the home screen walks through.
 ///
-/// Position 0 is always today's daily; the whole catalog follows, ordered
-/// UNSEEN-FIRST so fresh questions surface before the archive (each is
-/// recorded as seen the moment the user lands on it — see `markQuestionSeen`).
-/// Only entitled sessions ever render the feed (the hard paywall gates it),
-/// so there is no free-tier deck shape anymore.
+/// Position 0 is always today's daily; for PREMIUM users the whole catalog
+/// follows, ordered UNSEEN-FIRST so fresh questions surface before the archive
+/// (each is recorded as seen the moment the user lands on it — see
+/// `markQuestionSeen`). For a FREE user the pool is empty, so the deck is just
+/// the daily — swiping forward off it lands on the day wall (see
+/// [dayWallVisibleProvider]), which is a visual state over the feed, not a
+/// deck entry.
 ///
 /// While the daily is still loading the deck stays empty on purpose, so the
 /// screen shows its spinner rather than flashing a non-daily question first.
@@ -383,3 +385,70 @@ final isShowingDailyProvider = Provider<bool>((ref) {
   if (current == null || daily == null) return false;
   return current.id == daily.id;
 });
+
+/// Whether the free tier's day wall currently covers the feed.
+///
+/// The wall is a VISUAL STATE over the feed, not a deck entry: a free user's
+/// forward swipe off the daily shows it, a back swipe (or "come back
+/// tomorrow") hides it. Anything that reshapes the feed resets it to hidden —
+/// a premium flip (the wall is a free-tier surface) and every re-resolve of
+/// the daily (midnight rollover, identity switch, offline→online refetch) —
+/// by watching those providers in [build].
+class DayWallVisibleNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    ref.watch(isPremiumProvider);
+    ref.watch(todaysDailyQuestionProvider);
+    return false;
+  }
+
+  void show() => state = true;
+
+  void hide() => state = false;
+}
+
+final dayWallVisibleProvider = NotifierProvider<DayWallVisibleNotifier, bool>(
+  DayWallVisibleNotifier.new,
+);
+
+/// Teaser of the next question waiting behind the wall — the first few words
+/// the server is willing to show a free user (see `peek_next_question`, a pure
+/// read that consumes nothing). Excludes the served daily so the wall never
+/// teases the question sitting right behind the back swipe. autoDispose: the
+/// pick is random server-side anyway, so each wall visit fetches a fresh one.
+final wallTeaserProvider = FutureProvider.autoDispose<String?>((ref) async {
+  final daily = ref.watch(todaysDailyQuestionProvider).asData?.value;
+  final repo = ref.watch(questionRepositoryProvider);
+  return repo.peekNextQuestion(excludeIds: [if (daily != null) daily.id]);
+});
+
+/// The local calendar day the current daily was (re)fetched for.
+///
+/// [todaysDailyQuestionProvider] deliberately captures "now" once per build so
+/// it doesn't refetch on every rebuild — which also means an app left open
+/// across local midnight would keep serving yesterday's daily forever. This
+/// provider recomputes alongside it, so comparing its value against today (see
+/// [maybeRolloverDaily]) detects exactly that staleness.
+final dailyFetchDayProvider = Provider<String>((ref) {
+  ref.watch(todaysDailyQuestionProvider);
+  return dateOnlyKey(DateTime.now());
+});
+
+/// Rolls the feed over to the new local day when the daily on screen was
+/// fetched for a date that has since passed — the "app left open across
+/// midnight" fix, called from the day wall's countdown and the feed's
+/// lifecycle watcher. A no-op while the fetch day is still today, so it is
+/// safe to call every tick.
+///
+/// Invalidating [todaysDailyQuestionProvider] re-draws the daily for the new
+/// date (the server assigns per LOCAL date), drops the stale vote snapshots,
+/// and — via the notifier's watch — hides the day wall; the index snaps back
+/// so every tier opens the new day on its daily.
+void maybeRolloverDaily(WidgetRef ref) {
+  if (ref.read(dailyFetchDayProvider) == dateOnlyKey(DateTime.now())) return;
+  ref.invalidate(todaysDailyQuestionProvider);
+  ref.invalidate(dailyVoteStateProvider);
+  ref.invalidate(questionsProvider);
+  ref.read(questionIndexProvider.notifier).toDaily();
+  ref.read(furthestIndexProvider.notifier).reset();
+}
