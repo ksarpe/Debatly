@@ -61,6 +61,9 @@ export default function QuestionEditor({
   const [err, setErr] = useState(null);
   const [msg, setMsg] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [pasteErr, setPasteErr] = useState(null);
 
   useEffect(() => { api.me().then((m) => setRole(m?.role)).catch(() => {}); }, []);
 
@@ -261,6 +264,45 @@ export default function QuestionEditor({
     copyTimer.current = setTimeout(() => setCopied(false), 2000);
   }
 
+  // Odwrotność "Kopiuj dla agenta": wkleja JSON od agenta i wypełnia formularz.
+  // Akceptuje { question: { pl, en }, smaczki: [{ id?, pl, en }] } — pola
+  // nieobecne w JSON-ie zostają bez zmian.
+  function parsePaste() {
+    setPasteErr(null);
+    let json;
+    try {
+      json = JSON.parse(pasteText);
+    } catch (e) {
+      setPasteErr('Nieprawidłowy JSON: ' + e.message);
+      return;
+    }
+    if (json === null || typeof json !== 'object' || Array.isArray(json)) {
+      setPasteErr('Oczekiwano obiektu JSON.');
+      return;
+    }
+    const q = json.question && typeof json.question === 'object' ? json.question : json;
+    const next = {};
+    if (typeof q.pl === 'string') next.pl = q.pl;
+    if (typeof q.en === 'string') next.en = q.en;
+    if (Array.isArray(json.smaczki)) {
+      next.smaczki = [...json.smaczki]
+        .sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0))
+        .map((s) => ({ pl: String(s?.pl ?? ''), en: String(s?.en ?? '') }))
+        .filter((s) => s.pl !== '' || s.en !== '');
+      if (next.smaczki.length === 0) delete next.smaczki;
+    }
+    if (typeof json.category === 'string' && CATEGORIES.includes(json.category)) {
+      next.category = json.category;
+    }
+    if (Object.keys(next).length === 0) {
+      setPasteErr('JSON nie zawiera żadnego z pól: question.pl, question.en, smaczki.');
+      return;
+    }
+    setForm((f) => ({ ...f, ...next }));
+    setPasteOpen(false);
+    setPasteText('');
+  }
+
   // Bezpośredni toggle flagi na żywej wersji (bez draftu).
   const setFlag = (flag) => run(async () => {
     await api.setEnReview(id, flag);
@@ -332,6 +374,11 @@ export default function QuestionEditor({
               <button className="btn sm ghost" type="button" onClick={copyForAgent}
                       title="Kopiuje pytanie i smaczki (PL + EN) w formacie do wklejenia agentowi weryfikującemu">
                 {copied ? 'Skopiowano ✓' : '📋 Kopiuj dla agenta'}
+              </button>
+              <button className="btn sm ghost" type="button" disabled={pending}
+                      onClick={() => { setPasteErr(null); setPasteOpen(true); }}
+                      title="Wklej JSON od agenta i wypełnij formularz jego treścią">
+                📥 Wklej
               </button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
@@ -449,6 +496,40 @@ export default function QuestionEditor({
           <button className="btn ghost" onClick={onBack}>{inline ? 'Zwiń ▴' : 'Wróć'}</button>
         )}
       </div>
+
+      {pasteOpen && (
+        <div role="dialog" aria-modal="true"
+             style={{
+               position: 'fixed', inset: 0, zIndex: 100,
+               background: 'rgba(0,0,0,.55)',
+               display: 'flex', alignItems: 'center', justifyContent: 'center',
+               padding: 16,
+             }}
+             onClick={(e) => { if (e.target === e.currentTarget) setPasteOpen(false); }}
+             onKeyDown={(e) => { if (e.key === 'Escape') setPasteOpen(false); }}>
+          <div className="card" style={{ width: 'min(640px, 100%)', margin: 0 }}>
+            <h3 style={{ marginTop: 0 }}>Wklej JSON od agenta</h3>
+            <p className="faint" style={{ marginTop: 0 }}>
+              Format: {'{ "question": { "pl", "en" }, "smaczki": [{ "pl", "en" }] }'} —
+              pola nieobecne w JSON-ie zostaną bez zmian.
+            </p>
+            <textarea rows={12} value={pasteText} autoFocus
+                      style={{ width: '100%', fontFamily: 'monospace', fontSize: 13 }}
+                      placeholder='{"question": {"pl": "…", "en": "…"}, "smaczki": [{"pl": "…", "en": "…"}]}'
+                      onChange={(e) => { setPasteText(e.target.value); setPasteErr(null); }} />
+            {pasteErr && <div className="alert err" style={{ marginTop: 10 }}>{pasteErr}</div>}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>
+              <button className="btn ghost" type="button" onClick={() => setPasteOpen(false)}>
+                Anuluj
+              </button>
+              <button className="btn primary" type="button" onClick={parsePaste}
+                      disabled={pasteText.trim() === ''}>
+                Parsuj
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {!isNew && (
         <details className="sec">

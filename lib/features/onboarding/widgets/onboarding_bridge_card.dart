@@ -4,7 +4,7 @@ import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/fit_or_scroll.dart';
 import '../../../services/analytics.dart';
-import '../../monetization/widgets/pro_paywall_sheet.dart';
+import '../../monetization/widgets/pro_paywall_screen.dart';
 import 'onboarding_glyph_bubble.dart';
 import 'onboarding_primary_button.dart';
 

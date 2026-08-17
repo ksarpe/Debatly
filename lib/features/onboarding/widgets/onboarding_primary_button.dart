@@ -18,23 +18,15 @@ class OnboardingPrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFEA6A12), Color(0xFFD9510B)],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.spark.withValues(alpha: 0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        gradient: AppTheme.ctaGradient,
+        borderRadius: AppTheme.ctaRadius,
+        boxShadow: AppTheme.ctaGlow,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: AppTheme.ctaRadius,
           child: SizedBox(
             height: 56,
             width: double.infinity,
@@ -42,7 +34,7 @@ class OnboardingPrimaryButton extends StatelessWidget {
               child: Text(
                 label,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.ctaForeground,
                   fontWeight: FontWeight.w700,
                   fontSize: 16,
                 ),

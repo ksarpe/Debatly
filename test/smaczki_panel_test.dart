@@ -10,7 +10,7 @@ import 'support/localized_test_app.dart';
 
 /// The smaczki sheet is a monetization gate: a free user must see exactly the
 /// first prompt readable, the locked rest as placeholders (never real text —
-/// the server sends null), and one "go PRO" hook. Premium sees everything and
+/// the server sends null), and one "unlock" hook. Premium sees everything and
 /// no upsell. These are the release-blocking guarantees checked here.
 void main() {
   Future<void> pumpSheet(
@@ -46,8 +46,8 @@ void main() {
   }
 
   testWidgets(
-    'free user: first smaczek readable, locked rest blurred with PRO badges '
-    'and a single go-PRO hook — no real locked text anywhere',
+    'free user: first smaczek readable, locked rest blurred with lock icons '
+    'and a single unlock button — no real locked text anywhere',
     (tester) async {
       await pumpSheet(
         tester,
@@ -60,12 +60,12 @@ void main() {
 
       // The free teaser is readable.
       expect(find.text('Pierwszy argument.'), findsOneWidget);
-      // Both locked rows carry the PRO badge and only the dummy blur filler —
+      // Both locked rows carry the lock icon and only the dummy blur filler —
       // the server sent text=null, so nothing real can leak.
-      expect(find.text('PRO'), findsNWidgets(2));
+      expect(find.byIcon(Icons.lock_rounded), findsNWidgets(2));
       expect(find.textContaining('aaabbbb'), findsNWidgets(2));
       // Exactly one upsell hook.
-      expect(find.text('Przejdź na PRO'), findsOneWidget);
+      expect(find.text('Odblokuj'), findsOneWidget);
     },
   );
 
@@ -84,8 +84,8 @@ void main() {
     expect(find.text('Pierwszy argument.'), findsOneWidget);
     expect(find.text('Drugi argument.'), findsOneWidget);
     expect(find.text('Trzeci pod włos.'), findsOneWidget);
-    expect(find.text('PRO'), findsNothing);
-    expect(find.text('Przejdź na PRO'), findsNothing);
+    expect(find.byIcon(Icons.lock_rounded), findsNothing);
+    expect(find.text('Odblokuj'), findsNothing);
   });
 
   testWidgets('a question without smaczki shows the quiet empty note', (
@@ -97,7 +97,7 @@ void main() {
       find.text('Do tego pytania nie ma jeszcze smaczków.'),
       findsOneWidget,
     );
-    expect(find.text('Przejdź na PRO'), findsNothing);
+    expect(find.text('Odblokuj'), findsNothing);
   });
 
   testWidgets('a failed fetch renders the error line, not a crash', (

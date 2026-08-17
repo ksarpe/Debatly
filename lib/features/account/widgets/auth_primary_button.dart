@@ -22,23 +22,15 @@ class AuthPrimaryButton extends StatelessWidget {
       opacity: enabled ? 1 : 0.5,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFFEA6A12), Color(0xFFD9510B)],
-          ),
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.spark.withValues(alpha: 0.35),
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
-          ],
+          gradient: AppTheme.ctaGradient,
+          borderRadius: AppTheme.ctaRadius,
+          boxShadow: enabled ? AppTheme.ctaGlow : null,
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: enabled ? onPressed : null,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: AppTheme.ctaRadius,
             child: SizedBox(
               height: 56,
               child: Center(
@@ -47,7 +39,7 @@ class AuthPrimaryButton extends StatelessWidget {
                         dimension: 22,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: AppTheme.ctaForeground,
                         ),
                       )
                     : Row(
@@ -56,7 +48,7 @@ class AuthPrimaryButton extends StatelessWidget {
                           Text(
                             label,
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppTheme.ctaForeground,
                               fontWeight: FontWeight.w700,
                               fontSize: 16,
                             ),
@@ -64,7 +56,7 @@ class AuthPrimaryButton extends StatelessWidget {
                           const SizedBox(width: 8),
                           const Icon(
                             Icons.arrow_forward,
-                            color: Colors.white,
+                            color: AppTheme.ctaForeground,
                             size: 20,
                           ),
                         ],

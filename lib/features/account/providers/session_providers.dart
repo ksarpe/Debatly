@@ -22,6 +22,28 @@ import '../../../services/supabase_service.dart';
 bool isIdentityChangingAuthEvent(AuthChangeEvent event) =>
     event == AuthChangeEvent.signedOut || event == AuthChangeEvent.userUpdated;
 
+/// Whether the auth listener should answer [event] with a session reload,
+/// given which in-app flow currently owns its own reload. An in-app sign-out
+/// suppresses the `signedOut` it emits ([SessionNotifier.signOutAndReload]);
+/// an in-app register / social link suppresses the `userUpdated` it emits
+/// ([SessionNotifier.runAuthFlowAndReload]). Each flow ends with exactly one
+/// explicit reload, so suppressing the listener's duplicate halves the
+/// entitlement network per flow without ever skipping a genuine out-of-band
+/// change. Extracted so the suppression rule is pinned by a unit test.
+@visibleForTesting
+bool shouldReloadOnAuthEvent(
+  AuthChangeEvent event, {
+  required bool selfDrivenSignOut,
+  required bool selfDrivenUserUpdate,
+}) {
+  if (!isIdentityChangingAuthEvent(event)) return false;
+  if (selfDrivenSignOut && event == AuthChangeEvent.signedOut) return false;
+  if (selfDrivenUserUpdate && event == AuthChangeEvent.userUpdated) {
+    return false;
+  }
+  return true;
+}
+
 /// Resolves the EFFECTIVE premium flag from the three sources in precedence:
 /// the reconciled store↔DB sync wins; else the raw profile flag (so a
 /// promotional / admin grant with no purchase behind it still unlocks); else
@@ -118,6 +140,12 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
   /// converged by the listener.
   bool _selfDrivenSignOut = false;
 
+  /// True while an in-app auth flow (email/password register, social identity
+  /// link) drives its own reload via [runAuthFlowAndReload], so the auth
+  /// listener ignores the `userUpdated` the flow emits mid-way. The
+  /// `userUpdated` twin of [_selfDrivenSignOut].
+  bool _selfDrivenUserUpdate = false;
+
   @override
   Future<SessionState> build() {
     _subscribeToAuthChanges();
@@ -168,10 +196,16 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
   void _subscribeToAuthChanges() {
     if (!SupabaseService.isInitialised) return;
     final sub = SupabaseService.client.auth.onAuthStateChange.listen((data) {
-      if (!isIdentityChangingAuthEvent(data.event)) return;
-      // An in-app sign-out owns its own reload (see [signOutAndReload]); don't
-      // double up on the `signedOut` it emits.
-      if (_selfDrivenSignOut && data.event == AuthChangeEvent.signedOut) return;
+      // An in-app sign-out / register / social link owns its own reload (see
+      // [signOutAndReload] and [runAuthFlowAndReload]); don't double up on the
+      // event it emits.
+      if (!shouldReloadOnAuthEvent(
+        data.event,
+        selfDrivenSignOut: _selfDrivenSignOut,
+        selfDrivenUserUpdate: _selfDrivenUserUpdate,
+      )) {
+        return;
+      }
       refresh();
     });
     ref.onDispose(sub.cancel);
@@ -191,6 +225,28 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
       await refresh();
     } finally {
       _selfDrivenSignOut = false;
+    }
+  }
+
+  /// Runs an in-app auth flow that emits `userUpdated` mid-way — the
+  /// email/password register, a social identity link — and reloads the session
+  /// exactly once afterwards, iff [flow] reports an identity change (`true`).
+  ///
+  /// Without this the reload ran TWICE, concurrently: once from the auth
+  /// listener answering the flow's `userUpdated`, once from the flow's own
+  /// follow-up refresh — two full entitlement reconciles per registration
+  /// (visible in prod as doubled `sync-entitlement` calls). The suppression
+  /// flag spans the reload too, because the event is delivered asynchronously
+  /// and can land after the auth call itself has returned.
+  ///
+  /// A `false` from [flow] (a cancelled social picker) skips the reload:
+  /// nothing changed, and an entitlement reconcile is not free.
+  Future<void> runAuthFlowAndReload(Future<bool> Function() flow) async {
+    _selfDrivenUserUpdate = true;
+    try {
+      if (await flow()) await refresh();
+    } finally {
+      _selfDrivenUserUpdate = false;
     }
   }
 

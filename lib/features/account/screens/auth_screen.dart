@@ -85,18 +85,17 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     final media = MediaQuery.of(context);
     final isConfigured = SupabaseService.isInitialised;
 
-    // Registration is a POST-purchase feature, and that is the whole account
-    // model: you buy PRO and play on the anonymous identity every user gets at
-    // launch; an account exists only to SECURE that purchase (see
-    // `promptSaveProAccount`). So before PRO the sheet is sign-in only — no
-    // accounts are minted in front of the paywall, and someone who already
-    // bought just signs back in to reach their purchase. The social buttons
-    // stay for them (a Google/Apple account holder has no password to type);
-    // Supabase's id-token flow cannot refuse a brand-new social identity,
-    // which is an accepted edge — such a user still lands on the wall,
-    // entitled to nothing.
-    final canRegister = ref.watch(isPremiumProvider);
-    if (!canRegister && _mode == AuthMode.register) _mode = AuthMode.password;
+    // Registration is open to everyone, free players included: an account
+    // never gates content (identity does — see the session model), it only
+    // SECURES what the user already has. For PRO that's the purchase
+    // (`promptSaveProAccount`), for a free player it's the streak, votes and
+    // favourites riding on the anonymous UUID (`maybePromptSecureStreak`).
+    // Email/password registration and the social buttons alike upgrade that
+    // anonymous user in place — same UUID, nothing lost (`updateUser` and
+    // `linkIdentityWithIdToken` respectively; see
+    // `SupabaseService.signInWithIdTokenOn`). Only when the picked Google/Apple
+    // identity already belongs to another Supabase account does the social flow
+    // switch to that account instead — a genuine "sign back in".
     final canUseGoogle = isConfigured && AppConfig.hasGoogleSignIn;
     // Apple platforms get BOTH social buttons, Apple first; Android gets Google
     // alone. See `_buildSocialButtons` for why.
@@ -141,16 +140,12 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                       _buildCloseRow(context),
                       _buildBrandHeader(context),
                       const SizedBox(height: 20),
-                      // Pre-PRO the register tab doesn't exist — the sheet
-                      // opens straight on the sign-in form, no tab bar at all.
-                      if (canRegister) ...[
-                        AuthSegmentedTabs(
-                          mode: _mode,
-                          enabled: !_isSubmitting,
-                          onChanged: _changeMode,
-                        ),
-                        const SizedBox(height: 14),
-                      ],
+                      AuthSegmentedTabs(
+                        mode: _mode,
+                        enabled: !_isSubmitting,
+                        onChanged: _changeMode,
+                      ),
+                      const SizedBox(height: 14),
                       if (!isConfigured) ...[
                         AuthNotice(
                           icon: Icons.info_outline,
@@ -384,7 +379,7 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.spark.withValues(alpha: 0.30),
+                color: AppTheme.sparkGlow.withValues(alpha: 0.28),
                 blurRadius: 22,
                 offset: const Offset(0, 10),
               ),
@@ -516,23 +511,33 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
           if (!mounted) return;
           Navigator.of(context).maybePop();
         case AuthMode.register:
-          await SupabaseService.registerWithPassword(
-            email: email,
-            password: password,
-            locale: ref.read(localeControllerProvider).languageCode,
-          );
-          await session.refresh();
-          if (!mounted) return;
-          final created = SupabaseService.currentUserHasAccount;
-          _showMessage(
-            created
-                ? context.l10n.authAccountCreated
-                : context.l10n.authConfirmEmail,
-            type: created ? ToastType.success : ToastType.info,
-          );
-          if (SupabaseService.currentUserHasAccount) {
-            Navigator.of(context).maybePop();
-          }
+          // The session reload is owned by [runAuthFlowAndReload], which also
+          // suppresses the auth listener's duplicate — one registration costs
+          // ONE entitlement reconcile, not two concurrent ones.
+          await session.runAuthFlowAndReload(() async {
+            await SupabaseService.registerWithPassword(
+              email: email,
+              password: password,
+              locale: ref.read(localeControllerProvider).languageCode,
+            );
+            // Surface the outcome BEFORE the session reload: the confirmation
+            // mail is already on its way the moment the register call returns,
+            // while the reload reconciles the entitlement over the network and
+            // can take seconds. Holding the message hostage to it left the
+            // user staring at a spinner with no idea a mail had been sent —
+            // and if they closed the sheet meanwhile, no message at all.
+            if (mounted) {
+              final created = SupabaseService.currentUserHasAccount;
+              _showMessage(
+                created
+                    ? context.l10n.authAccountCreated
+                    : context.l10n.authConfirmEmail,
+                type: created ? ToastType.success : ToastType.info,
+              );
+              if (created) Navigator.of(context).maybePop();
+            }
+            return true;
+          });
       }
     } on AuthException catch (error) {
       if (mounted) _showMessage(error.message, type: ToastType.error);
@@ -550,8 +555,9 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
       _socialSignIn(SupabaseService.signInWithApple);
 
   /// Shared body for both social buttons: run the native flow, carry a guest's
-  /// entitlement over to the identity it just created, then re-read the
-  /// session. A cancelled picker / sheet comes back null and is not an error.
+  /// entitlement over if the flow switched to a different identity, then
+  /// re-read the session. A cancelled picker / sheet comes back null and is
+  /// not an error.
   Future<void> _socialSignIn(Future<User?> Function() signIn) async {
     if (_isSubmitting) return;
     setState(() => _isSubmitting = true);
@@ -561,11 +567,18 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     final session = ref.read(sessionProvider.notifier);
     final previous = ref.read(sessionProvider).value;
     try {
-      final user = await signIn();
-      if (user == null) return; // user cancelled the picker / sheet
-      await _carryEntitlementToNewIdentity(previous: previous, next: user.id);
-      await session.refresh();
-      if (!mounted) return;
+      // As with registration, [runAuthFlowAndReload] owns the reload and
+      // suppresses the auth listener's duplicate `userUpdated` reload (the
+      // in-place identity link emits one mid-flow).
+      var signedIn = false;
+      await session.runAuthFlowAndReload(() async {
+        final user = await signIn();
+        if (user == null) return false; // user cancelled the picker / sheet
+        await _carryEntitlementToNewIdentity(previous: previous, next: user.id);
+        signedIn = true;
+        return true;
+      });
+      if (!signedIn || !mounted) return;
       Navigator.of(context).maybePop();
     } on AuthException catch (error) {
       if (mounted) _showMessage(error.message, type: ToastType.error);
@@ -578,15 +591,17 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
 
   /// Moves a just-bought entitlement onto the account the user signed into.
   ///
-  /// Registering with email/password UPGRADES the anonymous user in place
-  /// (`updateUser`, same UUID), so PRO follows on its own. The social buttons
-  /// cannot: `signInWithIdToken` mints a SEPARATE Supabase user, and
+  /// Registering with email/password and the social buttons both UPGRADE the
+  /// anonymous user in place (`updateUser` / `linkIdentityWithIdToken`, same
+  /// UUID), so PRO normally follows on its own and the same-uid guard below
+  /// makes this a no-op. The one flow that still switches identities is a
+  /// social sign-in whose Google/Apple identity already belongs to ANOTHER
+  /// Supabase account (a reinstall / new phone signing back in) — and
   /// RevenueCat does not move purchases between two identified app user ids on
-  /// `logIn` alone. Left as-is, a guest who buys PRO and then takes the
-  /// "save your PRO to an account" nudge straight to Google lands on a fresh
-  /// uid RevenueCat has never seen — `sync-entitlement` gets a 404, `isPremium`
-  /// goes false, and the hard paywall slams shut on someone who paid a minute
-  /// ago.
+  /// `logIn` alone. Left as-is, a guest who buys PRO and then signs back into
+  /// an old account lands on a uid RevenueCat has never seen —
+  /// `sync-entitlement` gets a 404, `isPremium` goes false, and the paywall
+  /// slams shut on someone who paid a minute ago.
   ///
   /// So the receipt is re-posted against the NEW identity before the session is
   /// re-read. Identify first: RevenueCat is still logged in as the old uid at

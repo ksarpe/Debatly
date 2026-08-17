@@ -120,7 +120,8 @@ class SupabaseService {
   /// Google ID token for a Supabase session. Returns null if the user cancels.
   ///
   /// First sign-in creates the account, so this covers both login and
-  /// registration.
+  /// registration — and for an anonymous guest the "create" half upgrades
+  /// their existing user in place (see [signInWithIdTokenOn]).
   ///
   /// Uses the google_sign_in v7 API: a singleton initialised once with the
   /// "Web" OAuth client id (so Google mints an ID token Supabase will accept),
@@ -163,19 +164,20 @@ class SupabaseService {
     final authorization = await account.authorizationClient
         .authorizationForScopes(const ['email']);
 
-    final response = await client.auth.signInWithIdToken(
+    return signInWithIdTokenOn(
+      client.auth,
       provider: OAuthProvider.google,
       idToken: idToken,
       accessToken: authorization?.accessToken,
     );
-    return response.user;
   }
 
   /// Signs in with Apple via the native iOS/macOS sheet, then exchanges Apple's
   /// identity token for a Supabase session. Returns null if the user cancels.
   ///
   /// First sign-in creates the account, so this covers both login and
-  /// registration. A cryptographic nonce ties Apple's token to this request:
+  /// registration — for an anonymous guest via an in-place upgrade, see
+  /// [signInWithIdTokenOn]. A cryptographic nonce ties Apple's token to this request:
   /// we hand Apple the SHA-256 hash and Supabase the raw value, which it
   /// re-hashes and compares to reject replayed tokens.
   ///
@@ -209,10 +211,69 @@ class SupabaseService {
       throw const AuthException('Apple did not return an identity token.');
     }
 
-    final response = await client.auth.signInWithIdToken(
+    return signInWithIdTokenOn(
+      client.auth,
       provider: OAuthProvider.apple,
       idToken: idToken,
       nonce: rawNonce,
+    );
+  }
+
+  /// GoTrue's error code for "this Google/Apple identity is already linked to
+  /// another user" — the expected outcome when an existing user signs back in
+  /// on a fresh install or a new phone.
+  static const String _kIdentityAlreadyExists = 'identity_already_exists';
+
+  /// The id-token exchange itself, on an injectable auth client: an anonymous
+  /// CURRENT user links the identity IN PLACE (`linkIdentityWithIdToken` keeps
+  /// the same UUID, so the guest's streak, votes and favourites survive — the
+  /// social twin of [registerWithPasswordOn]). Only when that identity already
+  /// belongs to another Supabase account does it fall back to
+  /// `signInWithIdToken` and switch to that account — a genuine "sign back
+  /// in", where abandoning the throwaway guest is what the user asked for.
+  /// With no anonymous session it signs in directly. Extracted so the "don't
+  /// lose a guest's progress" rule is pinned by a unit test.
+  ///
+  /// Requires "allow manual linking" to be enabled in the project's Auth
+  /// settings. Any unexpected link failure (that flag being off included)
+  /// still falls back to a plain sign-in — a working login on a fresh uid
+  /// beats a dead button — but is reported, because silently minting new users
+  /// for guests is exactly the lost-progress bug this branch exists to fix.
+  @visibleForTesting
+  static Future<User?> signInWithIdTokenOn(
+    GoTrueClient auth, {
+    required OAuthProvider provider,
+    required String idToken,
+    String? accessToken,
+    String? nonce,
+  }) async {
+    if (auth.currentUser?.isAnonymous == true) {
+      try {
+        final response = await auth.linkIdentityWithIdToken(
+          provider: provider,
+          idToken: idToken,
+          accessToken: accessToken,
+          nonce: nonce,
+        );
+        return response.user;
+      } on AuthException catch (e, st) {
+        if (e.code == _kIdentityAlreadyExists) {
+          Monitoring.addBreadcrumb(
+            'Social identity already linked to another account; '
+            'signing into it instead of upgrading the guest',
+            category: 'auth',
+          );
+        } else {
+          await Monitoring.captureException(e, stackTrace: st, feature: 'auth');
+        }
+      }
+    }
+
+    final response = await auth.signInWithIdToken(
+      provider: provider,
+      idToken: idToken,
+      accessToken: accessToken,
+      nonce: nonce,
     );
     return response.user;
   }
@@ -284,8 +345,12 @@ class SupabaseService {
     final data = {'locale': locale};
     final current = auth.currentUser;
     if (current?.isAnonymous == true) {
+      // `emailRedirectTo` is a method argument here, not a `UserAttributes`
+      // field — it steers the confirmation link to the "email confirmed" page
+      // instead of the project's bare Site URL.
       final response = await auth.updateUser(
         UserAttributes(email: email.trim(), password: password, data: data),
+        emailRedirectTo: AppConfig.emailConfirmedUrl,
       );
       return response.user;
     }
@@ -294,6 +359,7 @@ class SupabaseService {
       email: email.trim(),
       password: password,
       data: data,
+      emailRedirectTo: AppConfig.emailConfirmedUrl,
     );
     return response.user;
   }
@@ -369,10 +435,20 @@ class SupabaseService {
   /// (`profiles.is_premium`, read by every question/smaczki RPC) matches what the
   /// device knows, without waiting on — or depending on — the async webhook ever
   /// landing.
+  /// How long the entitlement reconcile may hold up a session reload. The
+  /// function caps its own RevenueCat call at 6 s and degrades to the DB
+  /// truth, so a healthy round trip always answers well within this; past it
+  /// the caller's fallback chain (profile flag, then the device receipt)
+  /// reaches the same answer without pinning the UI on a slow store API —
+  /// observed at 30–40 s per call, which read as a frozen spinner.
+  static const _syncEntitlementTimeout = Duration(seconds: 10);
+
   static Future<bool?> syncEntitlement() async {
     if (!_initialised || client.auth.currentUser == null) return null;
     try {
-      final res = await client.functions.invoke('sync-entitlement');
+      final res = await client.functions
+          .invoke('sync-entitlement')
+          .timeout(_syncEntitlementTimeout);
       final data = res.data;
       if (data is Map && data['is_premium'] is bool) {
         return data['is_premium'] as bool;

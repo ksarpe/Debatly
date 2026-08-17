@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
+import '../../../core/theme/app_theme.dart';
 import 'settings_primitives.dart';
 
 /// "Sign out" row for the bottom of the "Account" card: red label, no chevron
@@ -65,16 +66,15 @@ class SecureAccountButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFEA6A12), Color(0xFFD9510B)],
-        ),
-        borderRadius: BorderRadius.circular(16),
+        gradient: AppTheme.ctaGradient,
+        borderRadius: AppTheme.ctaRadius,
+        boxShadow: AppTheme.ctaGlow,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppTheme.ctaRadius,
           child: SizedBox(
             height: 54,
             child: Row(
@@ -82,14 +82,14 @@ class SecureAccountButton extends StatelessWidget {
               children: [
                 const Icon(
                   Icons.shield_outlined,
-                  color: Colors.white,
+                  color: AppTheme.ctaForeground,
                   size: 20,
                 ),
                 const SizedBox(width: 10),
                 Text(
                   context.l10n.secureAccount,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppTheme.ctaForeground,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),

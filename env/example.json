@@ -1,11 +1,12 @@
 {
   "SUPABASE_URL": "https://your-project-ref.supabase.co",
   "SUPABASE_ANON_KEY": "your-publishable-anon-key",
-  "REVENUECAT_API_KEY": "test_PzfkAxUznyhnalLmjICQTfUDqXV",
+  "REVENUECAT_API_KEY": "goog_or_appl_your-publishable-sdk-key",
   "GOOGLE_SERVER_CLIENT_ID": "xxxxxxxx.apps.googleusercontent.com",
   "PRIVACY_POLICY_URL": "https://debatly.app/privacy",
   "TERMS_OF_SERVICE_URL": "https://debatly.app/terms",
   "DELETE_ACCOUNT_URL": "https://debatly.app/delete-account",
+  "EMAIL_CONFIRMED_URL": "https://debatly.app/email-potwierdzony",
   "SENTRY_DSN": "https://examplePublicKey@o123456.ingest.de.sentry.io/7891011",
   "SENTRY_ENVIRONMENT": "production",
   "SENTRY_TRACES_SAMPLE_RATE": "0.2"

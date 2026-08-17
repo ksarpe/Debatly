@@ -6,7 +6,7 @@ import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
 import 'package:debatly/features/account/providers/stats_providers.dart';
 import 'package:debatly/features/monetization/widgets/day_wall_view.dart';
-import 'package:debatly/features/monetization/widgets/pro_paywall_sheet.dart';
+import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/widgets/question_body.dart';
 import 'package:debatly/features/questions/widgets/wind_question_view.dart';
@@ -19,10 +19,10 @@ import 'support/localized_test_app.dart';
 import 'support/test_prefs.dart';
 
 /// The freemium day wall: a free user's forward swipe off the daily lands on
-/// the wall (teaser + live countdown + streak + unlock CTA + a real "come
-/// back tomorrow" exit) — and the paywall SHEET auto-opens at most once per
-/// local day, only after today's daily has been voted on. The wall must never
-/// be a trap: the exit button and a back swipe both return to the daily.
+/// the wall (teaser + live countdown + unlock CTA) — and the fullscreen
+/// paywall auto-opens at most once per local day, only after today's daily has
+/// been voted on. The ways back to the daily are the back swipe and the
+/// system back gesture — the wall is never a trap.
 void main() {
   Question q(String id, [String? text]) => Question(
     id: id,
@@ -87,6 +87,15 @@ void main() {
     }
   }
 
+  /// A rightward fling on the wall — one of its two ways back to the daily
+  /// (the other is the system back gesture, tested separately).
+  Future<void> swipeBack(WidgetTester tester) async {
+    await tester.fling(find.byType(DayWallView), const Offset(300, 0), 1200);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 150));
+    }
+  }
+
   Future<void> pumpABit(WidgetTester tester, [int frames = 6]) async {
     for (var i = 0; i < frames; i++) {
       await tester.pump(const Duration(milliseconds: 150));
@@ -94,7 +103,7 @@ void main() {
   }
 
   testWidgets('a free user swiping forward off the daily lands on the wall — '
-      'teaser, countdown, streak, both CTAs', (tester) async {
+      'teaser, countdown, the unlock CTA', (tester) async {
     final container = await pumpFreeFeed(tester, voted: false);
     // The daily is on screen (the wind view renders it word by word, so
     // assert through the provider).
@@ -104,23 +113,46 @@ void main() {
     await swipeForward(tester);
 
     expect(find.byType(DayWallView), findsOneWidget);
-    // The blurred preview leads with the server's 4-word teaser.
-    expect(find.textContaining('Czy cztery pierwsze słowa'), findsOneWidget);
-    // Live countdown to local midnight and the streak at stake.
-    expect(find.textContaining('Następne darmowe pytanie za'), findsOneWidget);
-    expect(find.textContaining('Twoja seria: 3 dni'), findsOneWidget);
-    // The fork: unlock, or a REAL tappable way back.
+    // The blurred preview leads with the server's 4-word teaser, rendered in
+    // the real question's style: uppercased, as two stacked text layers
+    // (stroke below, fill on top).
+    expect(find.textContaining('CZY CZTERY PIERWSZE SŁOWA'), findsNWidgets(2));
+    // Live countdown to local midnight: the big timer plus its caption.
+    expect(
+      find.text('Odliczanie do kolejnego darmowego pytania'),
+      findsOneWidget,
+    );
+    // The streak line was dropped from the wall — the caption must stay gone.
+    expect(find.textContaining('Twoja seria'), findsNothing);
+    // The single CTA: unlock. The way back is the back swipe.
     expect(find.text('Nie czekaj — odblokuj wszystkie 500'), findsOneWidget);
-    expect(find.text('albo wróć jutro'), findsOneWidget);
+    // The "come back tomorrow" button was dropped — it must stay gone.
+    expect(find.text('albo wróć jutro'), findsNothing);
   });
 
-  testWidgets('"albo wróć jutro" returns to the daily — the wall is not a '
+  testWidgets('a back swipe returns to the daily — the wall is not a '
       'trap', (tester) async {
     final container = await pumpFreeFeed(tester, voted: false);
     await swipeForward(tester);
     expect(find.byType(DayWallView), findsOneWidget);
 
-    await tester.tap(find.text('albo wróć jutro'));
+    await swipeBack(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DayWallView), findsNothing);
+    expect(find.byType(WindQuestionView), findsOneWidget);
+    expect(container.read(currentQuestionProvider)?.id, 'daily');
+  });
+
+  testWidgets('system back on the wall returns to the daily instead of '
+      'leaving the app', (tester) async {
+    final container = await pumpFreeFeed(tester, voted: false);
+    await swipeForward(tester);
+    expect(find.byType(DayWallView), findsOneWidget);
+
+    // The Android back button/gesture. The wall's PopScope swallows it and
+    // hides the wall — backing out of the wall must never exit the app.
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     expect(find.byType(DayWallView), findsNothing);
@@ -133,26 +165,27 @@ void main() {
     await pumpFreeFeed(tester, voted: true);
 
     await swipeForward(tester);
-    expect(find.byType(DayWallView), findsOneWidget);
+    // The fullscreen paywall covers the wall, which stays underneath offstage.
+    expect(find.byType(DayWallView, skipOffstage: false), findsOneWidget);
     expect(
-      find.byType(ProPaywallSheet),
+      find.byType(ProPaywallScreen),
       findsOneWidget,
-      reason: 'first wall hit of the day + voted → the sheet opens itself',
+      reason: 'first wall hit of the day + voted → the paywall opens itself',
     );
 
     // Dismiss it — the sheet is closable and lands the user back on the wall.
     await tester.tap(find.byIcon(Icons.close_rounded));
     await pumpABit(tester);
-    expect(find.byType(ProPaywallSheet), findsNothing);
+    expect(find.byType(ProPaywallScreen), findsNothing);
     expect(find.byType(DayWallView), findsOneWidget);
 
     // Back to the daily and forward again: the wall shows, the sheet stays
     // shut — once per local day means once.
-    await tester.tap(find.text('albo wróć jutro'));
+    await swipeBack(tester);
     await pumpABit(tester);
     await swipeForward(tester);
     expect(find.byType(DayWallView), findsOneWidget);
-    expect(find.byType(ProPaywallSheet), findsNothing);
+    expect(find.byType(ProPaywallScreen), findsNothing);
   });
 
   testWidgets('the sheet never auto-opens before the daily has been voted on', (
@@ -164,14 +197,14 @@ void main() {
 
     expect(find.byType(DayWallView), findsOneWidget);
     expect(
-      find.byType(ProPaywallSheet),
+      find.byType(ProPaywallScreen),
       findsNothing,
       reason: 'no paywall before the first vote of the day',
     );
     // The manual CTA still works, of course.
     await tester.tap(find.text('Nie czekaj — odblokuj wszystkie 500'));
     await pumpABit(tester);
-    expect(find.byType(ProPaywallSheet), findsOneWidget);
+    expect(find.byType(ProPaywallScreen), findsOneWidget);
   });
 
   testWidgets('a premium user swiping forward gets the next question, '

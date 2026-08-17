@@ -357,7 +357,7 @@ class _ResultPanel extends StatelessWidget {
                       maxLines: 1,
                       style: TextStyle(
                         color: pctColor,
-                        fontSize: 22,
+                        fontSize: 24,
                         fontWeight: FontWeight.w800,
                         height: 1.1,
                       ),

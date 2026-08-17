@@ -33,6 +33,11 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const PREMIUM_ENTITLEMENT = Deno.env.get("PREMIUM_ENTITLEMENT") ?? "premium";
 const RC_API_KEY = Deno.env.get("REVENUECAT_REST_API_KEY");
 
+// How long the RevenueCat lookup may run. The app's session reload awaits this
+// function, so a slow store API must degrade to the DB truth instead of pinning
+// the client's spinner (observed: 30-40 s RevenueCat responses).
+const RC_TIMEOUT_MS = 6_000;
+
 const json = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), {
     status,
@@ -44,6 +49,29 @@ const admin = createClient(
   SUPABASE_URL,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
+
+// The DB-side EFFECTIVE flag, unreconciled — the answer whenever the store
+// side can't be asked (no API key, RevenueCat down or over RC_TIMEOUT_MS).
+// Promotional grants and store users already reflected by the webhook stay
+// valid, and the client treats `reconciled: false` results as authoritative
+// for the DB side while still consulting the on-device receipt.
+const dbTruth = async (uid: string, why: string) => {
+  console.warn(`store side unavailable (${why}) — returning DB truth without reconciliation`);
+  const { data, error } = await admin
+    .from("profiles")
+    .select("is_premium, premium_until")
+    .eq("id", uid)
+    .maybeSingle();
+  if (error) {
+    console.error("profiles read failed:", error);
+    return json(500, { error: "db_error" });
+  }
+  return json(200, {
+    is_premium: data?.is_premium ?? false,
+    premium_until: data?.premium_until ?? null,
+    reconciled: false,
+  });
+};
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
@@ -60,29 +88,9 @@ Deno.serve(async (req) => {
   const { data: { user }, error: userErr } = await userClient.auth.getUser();
   if (userErr || !user) return json(401, { error: "unauthorized" });
 
-  // The STORE key being absent must NOT break premium. We can't reconcile the
-  // store source without it, but promotional grants and store users already
-  // reflected by the webhook are still valid — so return the current EFFECTIVE
-  // flag straight from the DB instead of failing the whole entitlement read.
-  if (!RC_API_KEY) {
-    console.warn(
-      "REVENUECAT_REST_API_KEY not set — returning DB truth without store reconciliation.",
-    );
-    const { data, error } = await admin
-      .from("profiles")
-      .select("is_premium, premium_until")
-      .eq("id", user.id)
-      .maybeSingle();
-    if (error) {
-      console.error("profiles read failed:", error);
-      return json(500, { error: "db_error" });
-    }
-    return json(200, {
-      is_premium: data?.is_premium ?? false,
-      premium_until: data?.premium_until ?? null,
-      reconciled: false,
-    });
-  }
+  // The STORE side being unreachable must NOT break premium (or hold it up) —
+  // every failure below degrades to the DB truth instead of an error status.
+  if (!RC_API_KEY) return dbTruth(user.id, "REVENUECAT_REST_API_KEY not set");
 
   // --- Ask RevenueCat for THIS identity's entitlements ---
   // app_user_id == auth.uid() because the app calls Purchases.logIn(uid).
@@ -91,7 +99,10 @@ Deno.serve(async (req) => {
   try {
     const rcRes = await fetch(
       `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(user.id)}`,
-      { headers: { Authorization: `Bearer ${RC_API_KEY}` } },
+      {
+        headers: { Authorization: `Bearer ${RC_API_KEY}` },
+        signal: AbortSignal.timeout(RC_TIMEOUT_MS),
+      },
     );
 
     if (rcRes.ok) {
@@ -108,11 +119,12 @@ Deno.serve(async (req) => {
       isActive = false;
     } else {
       console.error("RevenueCat API error", rcRes.status, await rcRes.text());
-      return json(502, { error: "revenuecat_error" });
+      return dbTruth(user.id, `RevenueCat responded ${rcRes.status}`);
     }
   } catch (e) {
+    // Network failure or the AbortSignal timeout firing.
     console.error("RevenueCat fetch failed:", e);
-    return json(502, { error: "revenuecat_unreachable" });
+    return dbTruth(user.id, "RevenueCat unreachable or over the timeout");
   }
 
   // --- Fold the STORE result into the DB via the source-aware reconciler. It

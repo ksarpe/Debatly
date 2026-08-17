@@ -75,7 +75,7 @@ class _TasteVoteCardState extends State<TasteVoteCard>
 
   /// Times the takeover: the title stands alone for the first second, the
   /// arguments land at 1.0s / 2.0s / 3.0s / 4.0s, then a full beat of silence
-  /// before the "Dobra, głosuję!" button closes the run at 5.3s. See the
+  /// before the "Głosuję jeszcze raz!" button closes the run at 5.3s. See the
   /// [Interval]s in [_argumentsStage].
   static const double _argsRunMs = 5600;
 
@@ -276,9 +276,9 @@ class _TasteVoteCardState extends State<TasteVoteCard>
 
   /// The takeover between the two votes: a bare title — "Ale chwila…" in round
   /// one, "Czy aby na pewno?" in round two — alone at centre stage, then the
-  /// four arguments landing one by one — no card chrome, just the numbered
-  /// dot and a larger line — and finally, after a beat of silence, the
-  /// "Dobra, głosuję!" button.
+  /// four arguments landing one by one — no card chrome, just a bare orange
+  /// number and a larger line — and finally, after a beat of silence, the
+  /// "Głosuję jeszcze raz!" button.
   Widget _argumentsStage(BuildContext context) {
     final l10n = context.l10n;
     final title = _round == 0
@@ -405,8 +405,8 @@ class _StaggeredIn extends StatelessWidget {
   }
 }
 
-/// One argument in the takeover — no card background, just the numbered orange
-/// dot (the smaczki identity) and the line itself, a step larger than body
+/// One argument in the takeover — no card background, just a bare orange
+/// number (the smaczki identity) and the line itself, a step larger than body
 /// text so it reads like a statement, not a list item.
 class _ArgumentLine extends StatelessWidget {
   const _ArgumentLine({required this.number, required this.text});
@@ -420,21 +420,13 @@ class _ArgumentLine extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 28,
-          height: 28,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
+        Text(
+          '$number',
+          style: const TextStyle(
             color: AppTheme.spark,
-            shape: BoxShape.circle,
-          ),
-          child: Text(
-            '$number',
-            style: TextStyle(
-              color: context.colors.ink,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            height: 1.15,
           ),
         ),
         const SizedBox(width: 12),

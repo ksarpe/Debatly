@@ -1,6 +1,7 @@
 import 'package:debatly/data/models/vote_history_entry.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
+import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/screens/history_screen.dart';
 import 'package:flutter/material.dart';
@@ -63,6 +64,13 @@ void main() {
   ) async {
     final repo = await pumpHistory(tester, premium: false, entries: [entry()]);
 
+    // The fullscreen paywall opens itself right over the upsell body…
+    expect(find.byType(ProPaywallScreen), findsOneWidget);
+
+    // …and dismissing it lands on the upsell, never out of the screen.
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProPaywallScreen), findsNothing);
     expect(find.text('Historia to funkcja PRO'), findsOneWidget);
     expect(find.text('Przejdź na PRO'), findsOneWidget);
     // The gate must short-circuit BEFORE any data renders or is even fetched.

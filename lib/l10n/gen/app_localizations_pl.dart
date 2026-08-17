@@ -713,6 +713,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get smaczkiEmpty => 'Do tego pytania nie ma jeszcze smaczków.';
 
   @override
+  String get smaczkiUnlockCta => 'Odblokuj';
+
+  @override
   String get ranksLoadError => 'Nie udało się wczytać rang.';
 
   @override
@@ -864,7 +867,7 @@ class AppLocalizationsPl extends AppLocalizations {
       'A ci, którzy tyją przez chorobę? Pokrzywdzeni na zawsze?';
 
   @override
-  String get onboardingTasteRead => 'Dobra, głosuję!';
+  String get onboardingTasteRead => 'Głosuję jeszcze raz!';
 
   @override
   String get onboardingTasteRevoteKicker => 'ZAGŁOSUJ PONOWNIE';
@@ -929,139 +932,33 @@ class AppLocalizationsPl extends AppLocalizations {
       'Przypomnienia wyłączysz lub zmienisz ich godzinę w ustawieniach.';
 
   @override
-  String wallCountdown(String time) {
-    return 'Następne darmowe pytanie za $time';
-  }
-
-  @override
-  String wallStreak(int n) {
-    String _temp0 = intl.Intl.pluralLogic(
-      n,
-      locale: localeName,
-      other: '$n dnia',
-      many: '$n dni',
-      few: '$n dni',
-      one: '$n dzień',
-    );
-    return 'Twoja seria: $_temp0';
-  }
+  String get wallCountdownCaption =>
+      'Odliczanie do kolejnego darmowego pytania';
 
   @override
   String get wallCtaUnlock => 'Nie czekaj — odblokuj wszystkie 500';
 
   @override
-  String get wallCtaTomorrow => 'albo wróć jutro';
+  String get paywallBrand => 'DEBATLY PRO';
 
   @override
-  String get paywallTitleDefault => 'Zostało 500 pytań';
-
-  @override
-  String paywallTitleStreak(int n) {
-    return 'Masz $n-dniową serię. Nie przerywaj jej.';
-  }
-
-  @override
-  String paywallTitleStreakLong(int n) {
-    return '$n dni z rzędu. Należy Ci się cały katalog.';
-  }
+  String get paywallTitleDefault => 'Bez limitu.\nBez końca.\nGlobalnie.';
 
   @override
   String get paywallSubtitle =>
-      'Jedno pytanie dziennie zostaje darmowe. PRO zdejmuje limit i otwiera wszystkie argumenty.';
+      '500+ pytań, wszystkie argumenty ZA i PRZECIW, cała Twoja historia głosów.';
 
   @override
-  String get paywallTitleSmaczki =>
-      'Poznaj wszystkie argumenty do każdego pytania';
+  String get paywallFeatureUnlimited => 'Pytania bez limitu dziennego';
 
   @override
-  String get paywallTitleFavorites => 'Zachowaj ulubione pytania na zawsze';
+  String get paywallFeatureSmaczki => 'Wszystkie argumenty, nie pierwszy';
 
   @override
-  String get paywallTitleHistory => 'Wszystkie Twoje głosy w jednym miejscu';
+  String get paywallFeatureHistory => 'Historia i ulubione na zawsze';
 
   @override
-  String get paywallWhatYouGet => 'WSZYSTKO, CO ZYSKUJESZ';
-
-  @override
-  String get paywallBenefitUnlimitedTitle => 'Bez limitu dziennego';
-
-  @override
-  String get paywallBenefitUnlimitedBody =>
-      'Wszystkie 500+ pytań od ręki. Koniec z czekaniem do jutra.';
-
-  @override
-  String get paywallBenefitSmaczkiTitle => 'Wszystkie argumenty ZA i PRZECIW';
-
-  @override
-  String get paywallBenefitSmaczkiBody =>
-      'Nie tylko pierwszy. Pełny zestaw kontrargumentów do każdego pytania.';
-
-  @override
-  String get paywallBenefitNoAdsTitle => 'Zero reklam';
-
-  @override
-  String get paywallBenefitNoAdsBody => 'Czysty ekran, samo pytanie.';
-
-  @override
-  String get paywallBenefitHistoryTitle => 'Historia Twoich głosów';
-
-  @override
-  String get paywallBenefitHistoryBody =>
-      'Wróć do wszystkiego, na co kiedykolwiek odpowiedziałeś.';
-
-  @override
-  String get paywallBenefitFreshTitle => 'Nowe pytania co tydzień';
-
-  @override
-  String get paywallBenefitFreshBody => 'Świeże dylematy co tydzień.';
-
-  @override
-  String get paywallBenefitOfflineTitle => 'Tryb offline';
-
-  @override
-  String get paywallBenefitOfflineBody => 'Cały katalog na telefonie.';
-
-  @override
-  String get paywallCompareFree => 'FREE';
-
-  @override
-  String get paywallComparePro => 'PRO';
-
-  @override
-  String get paywallCompareRowDaily => 'Limit dzienny';
-
-  @override
-  String get paywallCompareRowDailyFree => '1 pytanie';
-
-  @override
-  String get paywallCompareRowDailyPro => 'Bez limitu';
-
-  @override
-  String get paywallCompareRowSmaczki => 'Argumenty';
-
-  @override
-  String get paywallCompareRowSmaczkiFree => 'Pierwszy';
-
-  @override
-  String get paywallCompareRowSmaczkiPro => 'Wszystkie';
-
-  @override
-  String get paywallCompareRowSplit => 'Wynik społeczności';
-
-  @override
-  String get paywallCompareRowStreak => 'Seria i rangi';
-
-  @override
-  String get paywallCompareRowHistory => 'Historia i ulubione';
-
-  @override
-  String get paywallCompareRowOffline => 'Tryb offline';
-
-  @override
-  String get paywallCompareIncluded => 'W cenie';
-
-  @override
-  String get paywallCompareExcluded => 'Niedostępne';
+  String get paywallFeatureNoAds => 'Zero reklam, tryb offline';
 
   @override
   String get paywallSignInLink => 'Zaloguj się';
@@ -1073,7 +970,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get paywallAnnual => 'Roczny';
 
   @override
-  String get paywallMonthly => 'Miesięczny';
+  String get paywallMonthly => 'Miesięcznie';
 
   @override
   String get paywallPerMonth => '/mies.';
@@ -1086,12 +983,17 @@ class AppLocalizationsPl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       months,
       locale: localeName,
-      other: 'Mniej niż $months miesiąca subskrypcji',
-      many: 'Mniej niż $months miesięcy subskrypcji',
-      few: 'Mniej niż $months miesiące subskrypcji',
-      one: 'Mniej niż $months miesiąc subskrypcji',
+      other: 'Jednorazowo. Taniej niż $months miesiąca.',
+      many: 'Jednorazowo. Taniej niż $months miesięcy.',
+      few: 'Jednorazowo. Taniej niż $months miesiące.',
+      one: 'Jednorazowo. Taniej niż $months miesiąc.',
     );
     return '$_temp0';
+  }
+
+  @override
+  String paywallMonthlyWeekly(String price) {
+    return 'To ok. $price tygodniowo';
   }
 
   @override

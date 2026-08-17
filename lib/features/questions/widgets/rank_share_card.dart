@@ -173,7 +173,7 @@ class _Badge extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.spark.withValues(alpha: 0.45),
+            color: AppTheme.sparkGlow.withValues(alpha: 0.45),
             blurRadius: diameter * 0.4,
             spreadRadius: diameter * 0.02,
           ),

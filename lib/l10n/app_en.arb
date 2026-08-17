@@ -295,6 +295,7 @@
     }
   },
   "smaczkiEmpty": "No tidbits for this question yet.",
+  "smaczkiUnlockCta": "Unlock",
   "ranksLoadError": "Could not load ranks.",
   "rankLadder": "Rank ladder",
   "yourRankUpper": "YOUR RANK",
@@ -395,7 +396,7 @@
   "onboardingTasteSmaczek2": "What about the person squeezed next to you? Same fare, worse seat.",
   "onboardingTasteSmaczek3": "And how would you check who pays? A gate scale before boarding?",
   "onboardingTasteSmaczek4": "What about people whose weight comes from illness? Punished for life?",
-  "onboardingTasteRead": "Okay, let me vote!",
+  "onboardingTasteRead": "Let me vote again!",
   "onboardingTasteRevoteKicker": "VOTE AGAIN",
   "onboardingTasteContinue": "Continue",
   "onboardingTasteNextTitle": "Let's try another one…",
@@ -423,95 +424,48 @@
   "onboardingNotifyEnable": "Turn on reminders",
   "onboardingNotifySkip": "Not now",
   "onboardingNotifyFootnote": "You can turn reminders off or change the time in settings.",
-  "wallCountdown": "Next free question in {time}",
-  "@wallCountdown": {
-    "description": "Live countdown on the day-wall screen; {time} is a preformatted HH:MM:SS string ticking down to the user's local midnight.",
-    "placeholders": {
-      "time": { "type": "String" }
-    }
-  },
-  "wallStreak": "Your streak: {n, plural, one{{n} day} other{{n} days}}",
-  "@wallStreak": {
-    "description": "Streak line on the day-wall screen — what the user stands to lose by not coming back.",
-    "placeholders": {
-      "n": { "type": "int" }
-    }
+  "wallCountdownCaption": "Countdown to the next free question",
+  "@wallCountdownCaption": {
+    "description": "Small caption under the day wall's big HH:MM:SS timer ticking down to the user's local midnight."
   },
   "wallCtaUnlock": "Don't wait — unlock all 500",
-  "wallCtaTomorrow": "or come back tomorrow",
-  "@wallCtaTomorrow": {
-    "description": "The honest exit on the day-wall screen: a real, tappable button back to today's question, not a dead caption."
+  "paywallBrand": "DEBATLY PRO",
+  "@paywallBrand": {
+    "description": "Small uppercase brand label at the top of the paywall sheet. A brand mark — identical in every locale."
   },
-  "paywallTitleDefault": "500 questions left",
+  "paywallTitleDefault": "No limits.\nNo end.\nWorldwide.",
   "@paywallTitleDefault": {
-    "description": "Paywall sheet headline for streaks of 0–2 days."
+    "description": "The paywall headline — the same fixed slogan for every entry point. Three short lines separated by explicit newlines."
   },
-  "paywallTitleStreak": "You're {n} days in. Don't break it.",
-  "@paywallTitleStreak": {
-    "description": "Paywall sheet headline for streaks of 3–6 days.",
-    "placeholders": {
-      "n": { "type": "int" }
-    }
+  "paywallSubtitle": "500+ questions, every argument FOR and AGAINST, your entire voting history.",
+  "paywallFeatureUnlimited": "Questions with no daily limit",
+  "@paywallFeatureUnlimited": {
+    "description": "First row of the paywall's compact feature list."
   },
-  "paywallTitleStreakLong": "{n} days straight. You've earned the full catalogue.",
-  "@paywallTitleStreakLong": {
-    "description": "Paywall sheet headline for streaks of 7+ days.",
-    "placeholders": {
-      "n": { "type": "int" }
-    }
-  },
-  "paywallSubtitle": "One question a day stays free. PRO removes the limit and opens every argument.",
-  "paywallTitleSmaczki": "Unlock every argument, for every question",
-  "paywallTitleFavorites": "Keep your favorite questions forever",
-  "paywallTitleHistory": "Every vote you've cast, in one place",
-  "paywallWhatYouGet": "EVERYTHING YOU GET",
-  "@paywallWhatYouGet": {
-    "description": "Uppercase section header above the paywall benefit list."
-  },
-  "paywallBenefitUnlimitedTitle": "No daily limit",
-  "paywallBenefitUnlimitedBody": "All 500+ questions right away. No more waiting until tomorrow.",
-  "paywallBenefitSmaczkiTitle": "Every argument FOR and AGAINST",
-  "paywallBenefitSmaczkiBody": "Not just the first one. The full set of counterarguments for every question.",
-  "paywallBenefitNoAdsTitle": "Zero ads",
-  "paywallBenefitNoAdsBody": "A clean screen, just the question.",
-  "paywallBenefitHistoryTitle": "Your voting history",
-  "paywallBenefitHistoryBody": "Go back to everything you've ever answered.",
-  "paywallBenefitFreshTitle": "New questions every week",
-  "paywallBenefitFreshBody": "Fresh dilemmas every week.",
-  "paywallBenefitOfflineTitle": "Offline mode",
-  "paywallBenefitOfflineBody": "The whole catalogue on your phone.",
-  "paywallCompareFree": "FREE",
-  "paywallComparePro": "PRO",
-  "paywallCompareRowDaily": "Daily limit",
-  "paywallCompareRowDailyFree": "1 question",
-  "paywallCompareRowDailyPro": "Unlimited",
-  "paywallCompareRowSmaczki": "Arguments",
-  "paywallCompareRowSmaczkiFree": "First one",
-  "paywallCompareRowSmaczkiPro": "All of them",
-  "paywallCompareRowSplit": "Community results",
-  "paywallCompareRowStreak": "Streak & ranks",
-  "paywallCompareRowHistory": "History & favorites",
-  "paywallCompareRowOffline": "Offline mode",
-  "paywallCompareIncluded": "Included",
-  "@paywallCompareIncluded": {
-    "description": "Accessibility label for the check mark in the Free-vs-PRO comparison table."
-  },
-  "paywallCompareExcluded": "Not included",
-  "@paywallCompareExcluded": {
-    "description": "Accessibility label for the dash/cross in the Free-vs-PRO comparison table."
-  },
+  "paywallFeatureSmaczki": "Every argument, not just the first",
+  "paywallFeatureHistory": "History and favorites forever",
+  "paywallFeatureNoAds": "Zero ads, offline mode",
   "paywallSignInLink": "Sign in",
   "paywallLifetime": "Lifetime",
   "paywallAnnual": "Yearly",
   "paywallMonthly": "Monthly",
   "paywallPerMonth": "/mo",
   "paywallCta": "Unlock full access",
-  "paywallLifetimeVsMonthly": "{months, plural, one{Less than {months} month of the subscription} other{Less than {months} months of the subscription}}",
+  "paywallLifetimeVsMonthly": "{months, plural, one{One payment. Cheaper than {months} month.} other{One payment. Cheaper than {months} months.}}",
   "@paywallLifetimeVsMonthly": {
-    "description": "Subline on the lifetime plan card: the lifetime price expressed as months of the monthly subscription, rounded so the claim is always true.",
+    "description": "Subline on the lifetime plan card: one-time payment, anchored against months of the monthly subscription, rounded so the claim is always true.",
     "placeholders": {
       "months": {
         "type": "int"
+      }
+    }
+  },
+  "paywallMonthlyWeekly": "That's about {price} a week",
+  "@paywallMonthlyWeekly": {
+    "description": "Subline on the monthly plan card: the monthly price recomputed as its weekly equivalent (price × 12 / 52), already formatted with the store currency.",
+    "placeholders": {
+      "price": {
+        "type": "String"
       }
     }
   },

@@ -11,8 +11,9 @@ named `questionapp` — same project).
 **Debatly is a FREEMIUM app (since the 2026-08 freemium rework): one free
 question a day, PRO for the whole catalog.** Every session — free or PRO —
 lands on the feed (`HomeGate` → `QuestionScreen`). There is no hard paywall
-screen anymore; the paywall is the dismissible `ProPaywallSheet`, and the
-free tier's `DayWallView` (the "day wall") is the main conversion surface.
+screen anymore; the paywall is the dismissible fullscreen `ProPaywallScreen`,
+and the free tier's `DayWallView` (the "day wall") is the main conversion
+surface.
 
 | | Free | PRO |
 |---|---|---|
@@ -28,28 +29,34 @@ free tier's `DayWallView` (the "day wall") is the main conversion surface.
   reintroduce ad reveals.
 - **The free deck is `[daily]`.** A forward swipe off it shows the day wall:
   blurred teaser of the next question (`peek_next_question` — a pure read,
-  first 4 words, consumes nothing), live countdown to LOCAL midnight, the
-  streak, the unlock CTA, and a real "come back tomorrow" exit. Never a trap.
-- **Sheet-opening rules:** auto at most once per local day, on the first wall
-  hit AFTER the daily vote; always on the wall/bridge unlock CTAs and on
+  first 4 words, consumes nothing), live countdown to LOCAL midnight and the
+  unlock CTA (the streak stays in the app-bar chip). Back swipe or system
+  back return to the daily — the wall intercepts back. Never a trap.
+- **Paywall-opening rules:** auto at most once per local day, on the first
+  wall hit AFTER the daily vote; always on the wall/bridge unlock CTAs and on
   tapping a locked feature (star / history / locked smaczki); never at app
-  start, in onboarding, or before the user's first vote. Always dismissible.
+  start, in onboarding, or before the user's first vote. Always dismissible
+  (floating X / system back).
 - **Onboarding:** welcome → 2 taste questions (ARB text + hard-coded ids for
   the live split; votes are NOT cast) → the bridge (`OnboardingBridgeCard`,
   free path is the dominant CTA) → reminder opt-in → the feed. No wall.
-- **Paywall sheet:** headline escalates with streak via
-  `kStreakHeadlineTiers` (0–2 / 3–6 / 7+; adding a tier = one map entry + an
-  l10n key). No preselected plan, no "best value" badge. Offering live from
-  RevenueCat: monthly 19,99 zł / lifetime 69,99 zł (PL) — no weekly, no
-  annual, no trial.
+- **Paywall:** fullscreen dialog, identical copy for EVERY entry point — the
+  fixed slogan headline ("Bez limitu. / Bez końca. / Globalnie.") + catalog
+  subline; no streak escalation, no per-feature headlines (`PaywallSource`
+  feeds analytics only). Monthly plan preselected, with a weekly-equivalent
+  price subline ("To ok. X zł tygodniowo"); no "best value" badge. Offering
+  live from RevenueCat: monthly 19,99 zł / lifetime 69,99 zł (PL) — no
+  weekly, no annual, no trial.
 - **Review ask:** exactly once per milestone — the day the streak completes
   3, right after the rank-up celebration (`RankCelebrationListener`), and
   nowhere else.
 - **Buy to play; sign in to secure.** Every user gets an anonymous Supabase
   UUID at launch and the entitlement rides on THAT — a guest can hold PRO
-  indefinitely. An account exists only to make a purchase survive a reinstall
-  or a new phone, pitched AFTER the buy (`promptSaveProAccount`). The auth
-  sheet is sign-in-only until `isPremium` (no register tab).
+  indefinitely. An account exists only to make progress survive a reinstall
+  or a new phone — the purchase for PRO (pitched AFTER the buy,
+  `promptSaveProAccount`), the streak for free players
+  (`maybePromptSecureStreak`). The register tab is open to everyone;
+  registering upgrades the anonymous user in place (same UUID).
 - **The 2025 reveal tier stays gone from the client** — no daily credits, no
   rewarded-ad reveals, no `revealedFeedProvider`, no AdMob/UMP. The server
   RPCs (`reveal_free_question`, `reveal_ad_question`, `admob-ssv`) are

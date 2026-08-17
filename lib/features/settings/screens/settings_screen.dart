@@ -15,7 +15,7 @@ import '../../../services/supabase_service.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/screens/auth_screen.dart';
 import '../../account/widgets/restore_sign_in_prompt.dart';
-import '../../monetization/widgets/pro_paywall_sheet.dart';
+import '../../monetization/widgets/pro_paywall_screen.dart';
 import '../../questions/providers/favorites_providers.dart';
 import '../../questions/widgets/suggest_question_sheet.dart';
 import '../providers/app_info_provider.dart';

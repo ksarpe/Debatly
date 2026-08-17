@@ -73,6 +73,14 @@ class QuestionBody extends ConsumerWidget {
       ref.watch(smaczkiProvider(questionId));
     }
 
+    // Same trick for the day wall's teaser: warm it while the free user is
+    // still on the feed, so the forward swipe lands on a wall whose first
+    // words are already readable instead of popping in after the peek RPC.
+    // Premium users never meet the wall, so they skip the fetch entirely.
+    if (!ref.watch(isPremiumProvider)) {
+      ref.watch(wallTeaserProvider);
+    }
+
     // The rows that sit under the question: the vote panel and the share /
     // history pills. Present on every readable question, absent on a locked
     // teaser.

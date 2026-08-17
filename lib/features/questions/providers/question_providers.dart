@@ -414,12 +414,20 @@ final dayWallVisibleProvider = NotifierProvider<DayWallVisibleNotifier, bool>(
 /// Teaser of the next question waiting behind the wall — the first few words
 /// the server is willing to show a free user (see `peek_next_question`, a pure
 /// read that consumes nothing). Excludes the served daily so the wall never
-/// teases the question sitting right behind the back swipe. autoDispose: the
-/// pick is random server-side anyway, so each wall visit fetches a fresh one.
-final wallTeaserProvider = FutureProvider.autoDispose<String?>((ref) async {
-  final daily = ref.watch(todaysDailyQuestionProvider).asData?.value;
+/// teases the question sitting right behind the back swipe.
+///
+/// Deliberately NOT autoDispose: QuestionBody warms it while the free user is
+/// still on the feed, so the wall arrives with the teaser already readable
+/// instead of popping it in a beat after the RPC returns. The cached pick then
+/// holds for the day — every wall visit shows the same tease — and refetches
+/// whenever the daily re-resolves (midnight rollover, identity switch).
+final wallTeaserProvider = FutureProvider<String?>((ref) async {
+  // Await the daily rather than reading its snapshot: peeking before it lands
+  // would fetch without the exclusion and refetch moments later.
+  final daily = await ref.watch(todaysDailyQuestionProvider.future);
+  if (daily == null) return null;
   final repo = ref.watch(questionRepositoryProvider);
-  return repo.peekNextQuestion(excludeIds: [if (daily != null) daily.id]);
+  return repo.peekNextQuestion(excludeIds: [daily.id]);
 });
 
 /// The local calendar day the current daily was (re)fetched for.

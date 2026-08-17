@@ -1,16 +1,69 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 
 /// The glowing "wejdz glebiej" pill. Tapping it opens the "Smaczki" panel from
-/// the bottom.
-class GoDeeperButton extends StatelessWidget {
+/// the bottom. Every few seconds it plays a short nudge — alternating between
+/// a shake and a heartbeat pulse — as a reminder that there is more behind
+/// the question.
+class GoDeeperButton extends StatefulWidget {
   const GoDeeperButton({super.key, required this.onTap});
 
   final VoidCallback onTap;
 
-  static const _radius = BorderRadius.all(Radius.circular(18));
+  @override
+  State<GoDeeperButton> createState() => _GoDeeperButtonState();
+}
+
+class _GoDeeperButtonState extends State<GoDeeperButton>
+    with SingleTickerProviderStateMixin {
+  static const _nudgeEvery = Duration(milliseconds: 4500);
+  static const _shakeDuration = Duration(milliseconds: 600);
+  static const _pulseDuration = Duration(milliseconds: 900);
+
+  late final AnimationController _nudge = AnimationController(
+    vsync: this,
+    duration: _shakeDuration,
+  );
+  Timer? _reminder;
+
+  /// Which variant the currently running (or next) nudge plays — the two
+  /// alternate so the reminder doesn't get monotonous.
+  bool _pulsing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _reminder = Timer.periodic(_nudgeEvery, (_) {
+      if (!mounted || _nudge.isAnimating) return;
+      // Honour the OS-level "reduce motion" setting.
+      if (MediaQuery.disableAnimationsOf(context)) return;
+      _pulsing = !_pulsing;
+      _nudge.duration = _pulsing ? _pulseDuration : _shakeDuration;
+      _nudge.forward(from: 0);
+    });
+  }
+
+  @override
+  void dispose() {
+    _reminder?.cancel();
+    _nudge.dispose();
+    super.dispose();
+  }
+
+  /// Damped side-to-side wiggle: a few oscillations that fade out.
+  double _shakeOffset(double t) => math.sin(t * math.pi * 6) * 3 * (1 - t);
+
+  /// Gentle grow-and-shrink riding the shake: peaks mid-animation, back to
+  /// normal size by the end.
+  double _shakeScale(double t) => 1 + 0.08 * math.sin(t * math.pi);
+
+  /// The alternate variant: three quick heartbeat-style pulses, no movement.
+  double _pulseScale(double t) => 1 + 0.08 * math.sin(t * math.pi * 3).abs();
 
   @override
   Widget build(BuildContext context) {
@@ -19,31 +72,34 @@ class GoDeeperButton extends StatelessWidget {
       label: context.l10n.goDeeper,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: onTap,
+        onTap: widget.onTap,
         child: Padding(
           padding: const EdgeInsets.all(10),
-          child: DecoratedBox(
-            // Tie the button to the orange "spark" it's built around — a tinted
-            // wash, a soft halo and an orange outline — so it reads as the lit
-            // "go deeper" affordance in BOTH themes. The old fixed navy outline
-            // looked heavy and out of place on the light off-white canvas.
-            decoration: const BoxDecoration(
-              borderRadius: _radius,
-              color: Color(0x24EA6A12),
-              border: Border.fromBorderSide(
-                BorderSide(color: Color(0xB3EA6A12)),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x40EA6A12),
-                  blurRadius: 16,
-                  spreadRadius: -4,
+          child: AnimatedBuilder(
+            animation: _nudge,
+            builder: (context, child) {
+              final t = _nudge.value;
+              return Transform.translate(
+                offset: Offset(_pulsing ? 0 : _shakeOffset(t), 0),
+                child: Transform.scale(
+                  scale: _pulsing ? _pulseScale(t) : _shakeScale(t),
+                  child: child,
                 ),
-              ],
-            ),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 22, vertical: 13),
-              child: _Label(),
+              );
+            },
+            // The shared accent-CTA look (spark gradient pill + orange glow),
+            // so the lit "go deeper" affordance reads the same as every other
+            // premium button in BOTH themes.
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: AppTheme.ctaRadius,
+                gradient: AppTheme.ctaGradient,
+                boxShadow: AppTheme.ctaGlow,
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 22, vertical: 13),
+                child: _Label(),
+              ),
             ),
           ),
         ),
@@ -61,7 +117,7 @@ class _Label extends StatelessWidget {
       context.l10n.goDeeper,
       textAlign: TextAlign.center,
       style: const TextStyle(
-        color: AppTheme.spark,
+        color: AppTheme.ctaForeground,
         fontSize: 13,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.1,

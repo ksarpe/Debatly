@@ -1,5 +1,5 @@
 import 'package:debatly/core/locale/app_locale.dart';
-import 'package:debatly/features/monetization/widgets/pro_paywall_sheet.dart';
+import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
 import 'package:debatly/features/onboarding/widgets/onboarding_bridge_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,7 +55,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(continued, isTrue);
-    expect(find.byType(ProPaywallSheet), findsNothing);
+    expect(find.byType(ProPaywallScreen), findsNothing);
   });
 
   testWidgets('the secondary CTA opens the sheet; dismissing it lands back '
@@ -65,12 +65,12 @@ void main() {
 
     await tester.tap(find.text('Odblokuj wszystkie 500'));
     await tester.pumpAndSettle();
-    expect(find.byType(ProPaywallSheet), findsOneWidget);
+    expect(find.byType(ProPaywallScreen), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.close_rounded));
     await tester.pumpAndSettle();
 
-    expect(find.byType(ProPaywallSheet), findsNothing);
+    expect(find.byType(ProPaywallScreen), findsNothing);
     expect(continued, isFalse);
     // Both paths are still on offer.
     expect(find.text('Odbierz dzisiejsze pytanie'), findsOneWidget);

@@ -6,10 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/spark_cta_button.dart';
 import '../../../data/models/smaczek.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/widgets/save_pro_prompt.dart';
-import '../../monetization/widgets/pro_paywall_sheet.dart';
+import '../../monetization/widgets/pro_paywall_screen.dart';
 import '../providers/question_providers.dart';
 
 /// Opens the "Smaczki" panel as a modal sheet that slides up from the bottom.
@@ -174,7 +175,7 @@ class _SmaczkiList extends StatelessWidget {
   }
 }
 
-/// A readable smaczek: a numbered orange dot and the prompt text.
+/// A readable smaczek: an orange index number and the prompt text.
 class _SmaczekCard extends StatelessWidget {
   const _SmaczekCard({required this.index, required this.text});
 
@@ -260,41 +261,14 @@ class _LockedSmaczekCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const _ProBadge(),
+          const Icon(Icons.lock_rounded, size: 18, color: AppTheme.spark),
         ],
       ),
     );
   }
 }
 
-/// Small yellow "PRO" pill marking a locked smaczek.
-class _ProBadge extends StatelessWidget {
-  const _ProBadge();
-
-  static const Color _gold = Color(0xFFF5C518);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: _gold.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: const Text(
-        'PRO',
-        style: TextStyle(
-          color: _gold,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-}
-
-/// Small numbered circle to the left of each smaczek; dimmed when locked.
+/// Number to the left of each smaczek: orange when readable, muted when locked.
 class _IndexDot extends StatelessWidget {
   const _IndexDot({required this.index, this.locked = false});
 
@@ -303,19 +277,17 @@ class _IndexDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: 26,
-      height: 26,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: locked ? context.colors.background : AppTheme.spark,
-        shape: BoxShape.circle,
-      ),
       child: Text(
         '$index',
+        textAlign: TextAlign.center,
         style: TextStyle(
-          color: locked ? context.colors.subtle : context.colors.ink,
-          fontSize: 13,
+          color: locked ? context.colors.subtle : AppTheme.spark,
+          fontSize: 18,
+          // Line box matches the 15px/1.4 smaczek text beside it, so the
+          // number stays centered on the first line.
+          height: 21 / 18,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -323,12 +295,10 @@ class _IndexDot extends StatelessWidget {
   }
 }
 
-/// A discreet "go PRO" link shown when some smaczki are locked. A null [onTap]
+/// The "unlock" button shown when some smaczki are locked. A null [onTap]
 /// (while busy) disables it and swaps the label for a small spinner.
 class _PremiumCta extends StatelessWidget {
   const _PremiumCta({required this.busy, required this.onTap});
-
-  static const Color _gold = Color(0xFFF5C518);
 
   final bool busy;
   final VoidCallback? onTap;
@@ -337,25 +307,12 @@ class _PremiumCta extends StatelessWidget {
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.center,
-      child: TextButton(
-        onPressed: onTap,
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        ),
-        child: busy
-            ? const SizedBox(
-                height: 16,
-                width: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: _gold),
-              )
-            : Text(
-                context.l10n.goPro,
-                style: const TextStyle(
-                  color: _gold,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+      child: SparkCtaButton(
+        label: context.l10n.smaczkiUnlockCta,
+        busy: busy,
+        fontSize: 14,
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+        onTap: onTap,
       ),
     );
   }

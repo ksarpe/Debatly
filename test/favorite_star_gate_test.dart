@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:debatly/core/locale/app_locale.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
-import 'package:debatly/features/monetization/widgets/pro_paywall_sheet.dart';
+import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/widgets/favorite_star_button.dart';
 import 'package:flutter/material.dart';
@@ -65,7 +65,7 @@ void main() {
     await tester.tap(find.byType(FavoriteStarButton));
     await tester.pumpAndSettle();
 
-    expect(find.byType(ProPaywallSheet), findsOneWidget);
+    expect(find.byType(ProPaywallScreen), findsOneWidget);
     expect(
       find.text('Nie udało się zaktualizować ulubionych.'),
       findsNothing,
@@ -89,7 +89,7 @@ void main() {
       find.text('Brak połączenia — spróbuj ponownie za chwilę.'),
       findsOneWidget,
     );
-    expect(find.byType(ProPaywallSheet), findsNothing);
+    expect(find.byType(ProPaywallScreen), findsNothing);
     await drainToasts(tester);
   });
 
@@ -104,7 +104,7 @@ void main() {
       find.text('Nie udało się zaktualizować ulubionych.'),
       findsOneWidget,
     );
-    expect(find.byType(ProPaywallSheet), findsNothing);
+    expect(find.byType(ProPaywallScreen), findsNothing);
     await drainToasts(tester);
   });
 }

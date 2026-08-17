@@ -9,7 +9,6 @@ import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/monitoring/monitoring.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../l10n/gen/app_localizations.dart';
 import '../../../services/analytics.dart';
 import '../../../services/purchases_service.dart';
 import '../../account/providers/session_providers.dart';
@@ -17,19 +16,15 @@ import '../../account/providers/stats_providers.dart';
 import '../../account/screens/auth_screen.dart';
 import '../../account/widgets/restore_sign_in_prompt.dart';
 import '../../settings/providers/app_info_provider.dart';
-import 'paywall_benefit_row.dart';
-import 'paywall_compare_table.dart';
 import 'paywall_cta_button.dart';
+import 'paywall_feature_list.dart';
 import 'paywall_footer_links.dart';
-import 'paywall_hero.dart';
 import 'paywall_offer_error.dart';
 import 'paywall_offer_section.dart';
 
-/// Where the user opened the paywall from. Feature-specific entry points lead
-/// with a headline naming the locked feature the user just tapped; the neutral
-/// ones (settings, the bridge, the day wall) get the streak-personalised
-/// pitch instead (see `streakHeadline`). The enum name doubles as the
-/// analytics `source` value in the paywall funnel events.
+/// Where the user opened the paywall from. Analytics-only: the pitch itself
+/// is identical for every entry point (one slogan headline, one subline), and
+/// the enum name becomes the `source` value in the paywall funnel events.
 enum PaywallSource {
   /// Settings row and other neutral entry points.
   general,
@@ -50,32 +45,16 @@ enum PaywallSource {
   history,
 }
 
-/// The streak-escalation ladder for the paywall headline: the offer gets more
-/// personal the more engaged the user is. Ordered highest-threshold first;
-/// adding another tier is ONE new entry here plus its l10n key — nothing else.
-final List<(int, String Function(AppLocalizations, int))> kStreakHeadlineTiers =
-    [
-      (7, (l10n, n) => l10n.paywallTitleStreakLong(n)),
-      (3, (l10n, n) => l10n.paywallTitleStreak(n)),
-      (0, (l10n, n) => l10n.paywallTitleDefault),
-    ];
-
-/// Resolves the paywall headline for [streak] off [kStreakHeadlineTiers].
-String streakHeadline(AppLocalizations l10n, int streak) {
-  for (final (minStreak, build) in kStreakHeadlineTiers) {
-    if (streak >= minStreak) return build(l10n, streak);
-  }
-  return l10n.paywallTitleDefault;
-}
-
-/// The paywall body inside the modal sheet ([ProPaywallSheet]): a scrollable
-/// pitch (hero + streak-aware headline + live package picker + Free/PRO table
-/// + benefit list + restore/legal footer) with the CTA pinned in a sticky bar
-/// underneath, so the buy button stays on screen while the user scrolls.
+/// The paywall body inside the fullscreen paywall ([ProPaywallScreen]): a
+/// scrollable pitch (brand label + slogan headline + live package stack +
+/// compact feature list) with the CTA pinned in a sticky bar underneath
+/// together with the restore/legal footer, so the buy button stays on screen
+/// while the user scrolls.
 ///
-/// No plan is preselected and no "best value" badge steers the pick — we want
-/// to see what people choose on their own. The CTA stays disabled until a
-/// plan is tapped.
+/// The monthly plan comes preselected (the CTA is armed as soon as the offer
+/// loads); no "best value" badge on top of that. Should the offering ever
+/// arrive without a monthly package, nothing is selected and the CTA stays
+/// disabled until a plan is tapped.
 ///
 /// The owner provides the chrome and decides what happens once the user is
 /// entitled ([onEntitled] — pop the sheet). [loadPackages]/[buy] exist for
@@ -152,8 +131,9 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
   List<Package>? _packages;
   bool _loadFailed = false;
 
-  /// The package the user has tapped. Deliberately null until they tap one —
-  /// no plan is preselected, so what people buy reflects what they chose.
+  /// The armed package: the monthly plan as soon as the offer loads
+  /// (preselected), then whatever the user taps. Null only while the offer is
+  /// loading or when the offering carries no monthly package.
   Package? _selected;
 
   /// Blocks every interaction while a purchase or restore is in flight.
@@ -292,9 +272,20 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
         });
       }
       if (!mounted || generation != _loadGeneration) return;
-      // No default selection on purpose: the CTA stays disabled until the user
-      // taps a plan, so the picks we see in the data are genuinely theirs.
-      setState(() => _packages = packages);
+      // The monthly plan comes preselected so the CTA is armed on open; a
+      // lifetime buyer makes one extra tap. `paywall_plan_selected` still only
+      // fires on real taps, so the analytics keep telling picks from defaults.
+      Package? monthly;
+      for (final package in packages) {
+        if (package.packageType == PackageType.monthly) {
+          monthly = package;
+          break;
+        }
+      }
+      setState(() {
+        _packages = packages;
+        _selected ??= monthly;
+      });
       return;
     }
   }
@@ -427,80 +418,6 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
     }
   }
 
-  /// The headline: feature-specific entry points name the locked feature the
-  /// user just tapped; the neutral ones (settings, bridge, day wall) get the
-  /// streak-personalised pitch — the more days in, the more the offer talks
-  /// about THEIR streak (see [kStreakHeadlineTiers]).
-  String _headline(BuildContext context) {
-    final l10n = context.l10n;
-    switch (widget.source) {
-      case PaywallSource.smaczki:
-        return l10n.paywallTitleSmaczki;
-      case PaywallSource.favorites:
-        return l10n.paywallTitleFavorites;
-      case PaywallSource.history:
-        return l10n.paywallTitleHistory;
-      case PaywallSource.general:
-      case PaywallSource.bridge:
-      case PaywallSource.wall:
-        return streakHeadline(l10n, ref.watch(currentStreakProvider));
-    }
-  }
-
-  /// The hook line under the headline: the freemium promise ("one question a
-  /// day stays free…") under the streak headlines; the contextual headlines
-  /// already name the desire that opened the sheet, so they carry none.
-  String? _subheadline(BuildContext context) {
-    switch (widget.source) {
-      case PaywallSource.general:
-      case PaywallSource.bridge:
-      case PaywallSource.wall:
-        return context.l10n.paywallSubtitle;
-      case PaywallSource.smaczki:
-      case PaywallSource.favorites:
-      case PaywallSource.history:
-        return null;
-    }
-  }
-
-  /// The "everything you get" list — fixed order for every entry point, the
-  /// arguments row second (it's the one differentiator no competing app has).
-  List<Widget> _benefits(BuildContext context) {
-    final l10n = context.l10n;
-    return [
-      PaywallBenefitRow(
-        icon: Icons.all_inclusive,
-        title: l10n.paywallBenefitUnlimitedTitle,
-        body: l10n.paywallBenefitUnlimitedBody,
-      ),
-      PaywallBenefitRow(
-        icon: Icons.psychology_alt_outlined,
-        title: l10n.paywallBenefitSmaczkiTitle,
-        body: l10n.paywallBenefitSmaczkiBody,
-      ),
-      PaywallBenefitRow(
-        icon: Icons.block_rounded,
-        title: l10n.paywallBenefitNoAdsTitle,
-        body: l10n.paywallBenefitNoAdsBody,
-      ),
-      PaywallBenefitRow(
-        icon: Icons.history_rounded,
-        title: l10n.paywallBenefitHistoryTitle,
-        body: l10n.paywallBenefitHistoryBody,
-      ),
-      PaywallBenefitRow(
-        icon: Icons.new_releases_outlined,
-        title: l10n.paywallBenefitFreshTitle,
-        body: l10n.paywallBenefitFreshBody,
-      ),
-      PaywallBenefitRow(
-        icon: Icons.download_for_offline_outlined,
-        title: l10n.paywallBenefitOfflineTitle,
-        body: l10n.paywallBenefitOfflineBody,
-      ),
-    ];
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
@@ -509,7 +426,6 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
     // entry, so for a signed-in user without PRO this link is the only way to
     // reach a DIFFERENT account, the one their purchase actually sits on.
     final showSignIn = widget.showSignInLink;
-    final subheadline = _subheadline(context);
     final hasOffer = _packages?.isNotEmpty ?? false;
 
     // Version + short user code, the paywall's only identity breadcrumb. The
@@ -531,48 +447,44 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
           )
         : null;
 
+    // Left-aligned editorial layout: the brand label anchors the top-left
+    // (the screen's floating X keeps the top-right), then the slogan headline
+    // over the pitch line, the plan stack, and the compact feature list. The
+    // copy is identical for every entry point — the source only feeds
+    // analytics.
     final scrollBody = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const PaywallHero(),
-        const SizedBox(height: 14),
+        const SizedBox(height: 6),
         Text(
-          _headline(context),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: colors.ink,
-            fontSize: 26,
-            fontWeight: FontWeight.w800,
-            height: 1.2,
-            letterSpacing: -0.5,
-          ),
-        ),
-        if (subheadline != null) ...[
-          const SizedBox(height: 10),
-          Text(
-            subheadline,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: colors.subtle, fontSize: 14, height: 1.4),
-          ),
-        ],
-        const SizedBox(height: 22),
-        _buildOffer(context),
-        // The Free/PRO table right under the plans: the daily-limit row is
-        // the whole pitch in one line, so it comes before the benefit list.
-        const SizedBox(height: 18),
-        const PaywallCompareTable(),
-        const SizedBox(height: 26),
-        Text(
-          context.l10n.paywallWhatYouGet,
+          context.l10n.paywallBrand,
           style: const TextStyle(
             color: AppTheme.spark,
             fontSize: 12,
             fontWeight: FontWeight.w800,
-            letterSpacing: 1.4,
+            letterSpacing: 1.6,
           ),
         ),
-        const SizedBox(height: 16),
-        ..._benefits(context),
+        const SizedBox(height: 18),
+        Text(
+          context.l10n.paywallTitleDefault,
+          style: TextStyle(
+            color: colors.ink,
+            fontSize: 34,
+            fontWeight: FontWeight.w800,
+            height: 1.12,
+            letterSpacing: -1,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          context.l10n.paywallSubtitle,
+          style: TextStyle(color: colors.subtle, fontSize: 14.5, height: 1.45),
+        ),
+        const SizedBox(height: 24),
+        _buildOffer(context),
+        const SizedBox(height: 10),
+        const PaywallFeatureList(),
       ],
     );
 
@@ -589,9 +501,10 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
         _StickyCtaBar(
           busy: _busy,
           stamp: supportStamp,
-          // No CTA without a loaded offer (the body shows the retry state);
-          // with an offer but no plan tapped yet the CTA renders DISABLED —
-          // nothing is preselected, so the user has to make the pick.
+          // No CTA without a loaded offer (the body shows the retry state).
+          // The monthly plan is preselected on load, so the CTA is usually
+          // armed immediately; the DISABLED variant only shows for an
+          // offering with no monthly package to preselect.
           onBuy: hasOffer && _selected != null ? _buy : null,
           showDisabledCta: hasOffer && _selected == null,
           note: _selected?.packageType == PackageType.lifetime
@@ -628,7 +541,7 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
     }
     return PaywallOfferSection(
       packages: packages,
-      // Null until the user taps a plan — nothing is preselected.
+      // The monthly plan on load, then whatever the user taps.
       selected: _selected,
       busy: _busy,
       onSelect: _selectPackage,
@@ -671,8 +584,9 @@ class _StickyCtaBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    // The sheet route leaves the bottom system inset to its content (see
-    // ProPaywallSheet), so the sticky bar pads itself past the gesture bar.
+    // The screen's SafeArea leaves the bottom system inset to its content
+    // (see ProPaywallScreen), so the sticky bar pads itself past the gesture
+    // bar.
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Container(

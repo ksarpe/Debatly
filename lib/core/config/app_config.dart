@@ -58,6 +58,15 @@ class AppConfig {
     defaultValue: 'https://debatly.app/delete-account',
   );
 
+  /// Landing page the confirmation link in the sign-up email redirects to once
+  /// Supabase has verified the address. Passed as `emailRedirectTo` when the
+  /// account is created; without it the user lands on the project's bare Site
+  /// URL. See [privacyPolicyUrl] for the baked-in/overridable rationale.
+  static const String emailConfirmedUrl = String.fromEnvironment(
+    'EMAIL_CONFIRMED_URL',
+    defaultValue: 'https://debatly.app/email-potwierdzony',
+  );
+
   /// Sentry DSN (the project's ingest URL, found in Sentry under
   /// `Settings → Projects → your project → Client Keys (DSN)`). When empty, Sentry is
   /// initialised in a disabled state so the app still runs against mock data with

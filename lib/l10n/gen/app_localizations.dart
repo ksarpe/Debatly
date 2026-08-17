@@ -1340,6 +1340,12 @@ abstract class AppLocalizations {
   /// **'No tidbits for this question yet.'**
   String get smaczkiEmpty;
 
+  /// No description provided for @smaczkiUnlockCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get smaczkiUnlockCta;
+
   /// No description provided for @ranksLoadError.
   ///
   /// In en, this message translates to:
@@ -1505,7 +1511,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingTasteRead.
   ///
   /// In en, this message translates to:
-  /// **'Okay, let me vote!'**
+  /// **'Let me vote again!'**
   String get onboardingTasteRead;
 
   /// No description provided for @onboardingTasteRevoteKicker.
@@ -1616,17 +1622,11 @@ abstract class AppLocalizations {
   /// **'You can turn reminders off or change the time in settings.'**
   String get onboardingNotifyFootnote;
 
-  /// Live countdown on the day-wall screen; {time} is a preformatted HH:MM:SS string ticking down to the user's local midnight.
+  /// Small caption under the day wall's big HH:MM:SS timer ticking down to the user's local midnight.
   ///
   /// In en, this message translates to:
-  /// **'Next free question in {time}'**
-  String wallCountdown(String time);
-
-  /// Streak line on the day-wall screen — what the user stands to lose by not coming back.
-  ///
-  /// In en, this message translates to:
-  /// **'Your streak: {n, plural, one{{n} day} other{{n} days}}'**
-  String wallStreak(int n);
+  /// **'Countdown to the next free question'**
+  String get wallCountdownCaption;
 
   /// No description provided for @wallCtaUnlock.
   ///
@@ -1634,215 +1634,47 @@ abstract class AppLocalizations {
   /// **'Don\'t wait — unlock all 500'**
   String get wallCtaUnlock;
 
-  /// The honest exit on the day-wall screen: a real, tappable button back to today's question, not a dead caption.
+  /// Small uppercase brand label at the top of the paywall sheet. A brand mark — identical in every locale.
   ///
   /// In en, this message translates to:
-  /// **'or come back tomorrow'**
-  String get wallCtaTomorrow;
+  /// **'DEBATLY PRO'**
+  String get paywallBrand;
 
-  /// Paywall sheet headline for streaks of 0–2 days.
+  /// The paywall headline — the same fixed slogan for every entry point. Three short lines separated by explicit newlines.
   ///
   /// In en, this message translates to:
-  /// **'500 questions left'**
+  /// **'No limits.\nNo end.\nWorldwide.'**
   String get paywallTitleDefault;
-
-  /// Paywall sheet headline for streaks of 3–6 days.
-  ///
-  /// In en, this message translates to:
-  /// **'You\'re {n} days in. Don\'t break it.'**
-  String paywallTitleStreak(int n);
-
-  /// Paywall sheet headline for streaks of 7+ days.
-  ///
-  /// In en, this message translates to:
-  /// **'{n} days straight. You\'ve earned the full catalogue.'**
-  String paywallTitleStreakLong(int n);
 
   /// No description provided for @paywallSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'One question a day stays free. PRO removes the limit and opens every argument.'**
+  /// **'500+ questions, every argument FOR and AGAINST, your entire voting history.'**
   String get paywallSubtitle;
 
-  /// No description provided for @paywallTitleSmaczki.
+  /// First row of the paywall's compact feature list.
   ///
   /// In en, this message translates to:
-  /// **'Unlock every argument, for every question'**
-  String get paywallTitleSmaczki;
+  /// **'Questions with no daily limit'**
+  String get paywallFeatureUnlimited;
 
-  /// No description provided for @paywallTitleFavorites.
+  /// No description provided for @paywallFeatureSmaczki.
   ///
   /// In en, this message translates to:
-  /// **'Keep your favorite questions forever'**
-  String get paywallTitleFavorites;
+  /// **'Every argument, not just the first'**
+  String get paywallFeatureSmaczki;
 
-  /// No description provided for @paywallTitleHistory.
+  /// No description provided for @paywallFeatureHistory.
   ///
   /// In en, this message translates to:
-  /// **'Every vote you\'ve cast, in one place'**
-  String get paywallTitleHistory;
+  /// **'History and favorites forever'**
+  String get paywallFeatureHistory;
 
-  /// Uppercase section header above the paywall benefit list.
+  /// No description provided for @paywallFeatureNoAds.
   ///
   /// In en, this message translates to:
-  /// **'EVERYTHING YOU GET'**
-  String get paywallWhatYouGet;
-
-  /// No description provided for @paywallBenefitUnlimitedTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'No daily limit'**
-  String get paywallBenefitUnlimitedTitle;
-
-  /// No description provided for @paywallBenefitUnlimitedBody.
-  ///
-  /// In en, this message translates to:
-  /// **'All 500+ questions right away. No more waiting until tomorrow.'**
-  String get paywallBenefitUnlimitedBody;
-
-  /// No description provided for @paywallBenefitSmaczkiTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Every argument FOR and AGAINST'**
-  String get paywallBenefitSmaczkiTitle;
-
-  /// No description provided for @paywallBenefitSmaczkiBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Not just the first one. The full set of counterarguments for every question.'**
-  String get paywallBenefitSmaczkiBody;
-
-  /// No description provided for @paywallBenefitNoAdsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Zero ads'**
-  String get paywallBenefitNoAdsTitle;
-
-  /// No description provided for @paywallBenefitNoAdsBody.
-  ///
-  /// In en, this message translates to:
-  /// **'A clean screen, just the question.'**
-  String get paywallBenefitNoAdsBody;
-
-  /// No description provided for @paywallBenefitHistoryTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Your voting history'**
-  String get paywallBenefitHistoryTitle;
-
-  /// No description provided for @paywallBenefitHistoryBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Go back to everything you\'ve ever answered.'**
-  String get paywallBenefitHistoryBody;
-
-  /// No description provided for @paywallBenefitFreshTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'New questions every week'**
-  String get paywallBenefitFreshTitle;
-
-  /// No description provided for @paywallBenefitFreshBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Fresh dilemmas every week.'**
-  String get paywallBenefitFreshBody;
-
-  /// No description provided for @paywallBenefitOfflineTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline mode'**
-  String get paywallBenefitOfflineTitle;
-
-  /// No description provided for @paywallBenefitOfflineBody.
-  ///
-  /// In en, this message translates to:
-  /// **'The whole catalogue on your phone.'**
-  String get paywallBenefitOfflineBody;
-
-  /// No description provided for @paywallCompareFree.
-  ///
-  /// In en, this message translates to:
-  /// **'FREE'**
-  String get paywallCompareFree;
-
-  /// No description provided for @paywallComparePro.
-  ///
-  /// In en, this message translates to:
-  /// **'PRO'**
-  String get paywallComparePro;
-
-  /// No description provided for @paywallCompareRowDaily.
-  ///
-  /// In en, this message translates to:
-  /// **'Daily limit'**
-  String get paywallCompareRowDaily;
-
-  /// No description provided for @paywallCompareRowDailyFree.
-  ///
-  /// In en, this message translates to:
-  /// **'1 question'**
-  String get paywallCompareRowDailyFree;
-
-  /// No description provided for @paywallCompareRowDailyPro.
-  ///
-  /// In en, this message translates to:
-  /// **'Unlimited'**
-  String get paywallCompareRowDailyPro;
-
-  /// No description provided for @paywallCompareRowSmaczki.
-  ///
-  /// In en, this message translates to:
-  /// **'Arguments'**
-  String get paywallCompareRowSmaczki;
-
-  /// No description provided for @paywallCompareRowSmaczkiFree.
-  ///
-  /// In en, this message translates to:
-  /// **'First one'**
-  String get paywallCompareRowSmaczkiFree;
-
-  /// No description provided for @paywallCompareRowSmaczkiPro.
-  ///
-  /// In en, this message translates to:
-  /// **'All of them'**
-  String get paywallCompareRowSmaczkiPro;
-
-  /// No description provided for @paywallCompareRowSplit.
-  ///
-  /// In en, this message translates to:
-  /// **'Community results'**
-  String get paywallCompareRowSplit;
-
-  /// No description provided for @paywallCompareRowStreak.
-  ///
-  /// In en, this message translates to:
-  /// **'Streak & ranks'**
-  String get paywallCompareRowStreak;
-
-  /// No description provided for @paywallCompareRowHistory.
-  ///
-  /// In en, this message translates to:
-  /// **'History & favorites'**
-  String get paywallCompareRowHistory;
-
-  /// No description provided for @paywallCompareRowOffline.
-  ///
-  /// In en, this message translates to:
-  /// **'Offline mode'**
-  String get paywallCompareRowOffline;
-
-  /// Accessibility label for the check mark in the Free-vs-PRO comparison table.
-  ///
-  /// In en, this message translates to:
-  /// **'Included'**
-  String get paywallCompareIncluded;
-
-  /// Accessibility label for the dash/cross in the Free-vs-PRO comparison table.
-  ///
-  /// In en, this message translates to:
-  /// **'Not included'**
-  String get paywallCompareExcluded;
+  /// **'Zero ads, offline mode'**
+  String get paywallFeatureNoAds;
 
   /// No description provided for @paywallSignInLink.
   ///
@@ -1880,11 +1712,17 @@ abstract class AppLocalizations {
   /// **'Unlock full access'**
   String get paywallCta;
 
-  /// Subline on the lifetime plan card: the lifetime price expressed as months of the monthly subscription, rounded so the claim is always true.
+  /// Subline on the lifetime plan card: one-time payment, anchored against months of the monthly subscription, rounded so the claim is always true.
   ///
   /// In en, this message translates to:
-  /// **'{months, plural, one{Less than {months} month of the subscription} other{Less than {months} months of the subscription}}'**
+  /// **'{months, plural, one{One payment. Cheaper than {months} month.} other{One payment. Cheaper than {months} months.}}'**
   String paywallLifetimeVsMonthly(int months);
+
+  /// Subline on the monthly plan card: the monthly price recomputed as its weekly equivalent (price × 12 / 52), already formatted with the store currency.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s about {price} a week'**
+  String paywallMonthlyWeekly(String price);
 
   /// No description provided for @paywallLifetimeNote.
   ///

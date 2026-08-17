@@ -26,9 +26,9 @@ Debatly start here.
 **Debatly is a freemium app (since the 2026-08 freemium rework): one free
 question a day, PRO for the whole catalog.** Every user — free or paying —
 lands on the feed with their personal daily question. The old hard paywall
-(`HardPaywallScreen`) is gone; the paywall is now a dismissible SHEET
-(`ProPaywallSheet`), and the free tier's **day wall** (`DayWallView`) is the
-main conversion surface. (The 2025 reveal feed — daily credits, rewarded-ad
+(`HardPaywallScreen`) is gone; the paywall is now a dismissible fullscreen
+dialog (`ProPaywallScreen`), and the free tier's **day wall** (`DayWallView`)
+is the main conversion surface. (The 2025 reveal feed — daily credits, rewarded-ad
 reveals — remains removed; its server RPCs stay live only for old app
 versions. `peek_next_question` was brought back into active use: it powers
 the day wall's blurred teaser.)
@@ -67,20 +67,24 @@ paywall before the user's first vote.**
 A free user's deck is `[daily]`. Swiping forward lands on the **day wall**:
 a blurred teaser of the next question (first 4 words via the read-only
 `peek_next_question` — it consumes nothing), a live countdown to the user's
-local midnight, their streak, the unlock CTA, and a real, tappable "or come
-back tomorrow" that returns to the daily. The wall is a fork, never a trap.
+local midnight and the unlock CTA (the streak stays visible in the app-bar
+chip above the wall). The way back to the daily is the back swipe or the
+system back gesture — the wall intercepts back so it never exits the app.
+The wall is a fork, never a trap.
 
-The **paywall sheet** opens: automatically at most once per local day on the
-first wall hit *after* the daily vote; always on the wall/bridge unlock CTAs
-and on tapping a locked feature (favorites star, history, locked smaczki);
-never at app start, in onboarding, or before the first vote. It is always
-dismissible (drag down, tap outside, X) and lands the user back where they
-were. Its headline escalates with the streak (`kStreakHeadlineTiers`: 0–2 →
-"Zostało 500 pytań", 3–6 → "Masz {n}-dniową serię…", 7+ → "{n} dni z
-rzędu…" — adding a tier is one map entry plus an l10n key). No plan is
-preselected and there is no "best value" badge — plan choice is the user's
-own. The offering is live from RevenueCat: monthly 19,99 zł / lifetime
-69,99 zł (PL) — no weekly plan, no trial.
+The **paywall** (a fullscreen dialog) opens: automatically at most once per
+local day on the first wall hit *after* the daily vote; always on the
+wall/bridge unlock CTAs and on tapping a locked feature (favorites star,
+history, locked smaczki); never at app start, in onboarding, or before the
+first vote. It is always dismissible (the floating X or system back) and
+lands the user back where they were. The pitch is identical for every entry
+point: the fixed slogan headline ("Bez limitu. / Bez końca. / Globalnie.")
+over the catalog subline — no streak escalation, no per-feature headline
+(the `PaywallSource` enum only feeds analytics). The monthly plan comes
+preselected (with a weekly-equivalent price subline, "To ok. 4,61 zł
+tygodniowo") so the CTA is armed on open; there is no "best value" badge.
+The offering is live from RevenueCat: monthly 19,99 zł / lifetime 69,99 zł
+(PL) — no weekly plan, no trial.
 
 The in-app review ask (`in_app_review`) fires exactly once per milestone: the
 day the streak completes 3, right after the rank-up animation closes — and
@@ -94,16 +98,17 @@ Identity and account are separate things, and only the identity gates content:
   are; the entitlement rides on it. A guest can hold PRO indefinitely.
 - **You buy PRO to play.** The purchase attaches to that anonymous identity —
   no account, no email, no sign-up in front of the paywall.
-- **An account only SECURES a purchase that already happened.** It makes PRO
-  (and the streak, votes, favorites) survive a reinstall or a new phone. It is
-  pitched right after the buy (`promptSaveProAccount`) and offered again in
+- **An account only SECURES what the user already has.** It makes PRO, the
+  streak, votes and favorites survive a reinstall or a new phone. It is
+  pitched right after the buy (`promptSaveProAccount`), after a free player's
+  streak reaches three (`maybePromptSecureStreak`), and offered again in
   Settings (`SecureAccountButton`).
 
-The auth sheet enforces this: before PRO it is **sign-in only** — no register
-tab, so no accounts are minted in front of the offer. Signing in there means
-"take me to the purchase I already made", which is why the link is on the
-paywall sheet for signed-in users too (their route to a *different*, entitled
-account).
+The auth sheet offers the register tab to **everyone** — a free player who
+wants to keep playing for free can still secure their streak with an account.
+Registering upgrades the anonymous user in place (same UUID), so nothing is
+lost and no entitlement is gained. The sign-in link on the paywall sheet
+remains the returning buyer's route to the account their PRO sits on.
 
 Every user — free included — has Settings and a profile now; account deletion
 for signed-in users works in-app again, and the web link
@@ -286,7 +291,7 @@ their local date and stored in `user_daily_questions`.
 | `question_seen` | Formerly `question_unlocks`. A row means "this user may read this question's text" (landed on in the feed; historically also free-tier reveals). |
 | `peek_next_question` | **Live again** — the day wall's blurred teaser. A pure read returning `{id, first-4-words}` for one random unvoted question; consumes nothing, writes nothing. |
 | free unlock credit / reveal slot / ad reveals | **Legacy 2025 free-tier machinery.** Still removed from the client; the RPCs (`reveal_free_question`, `reveal_ad_question`) stay live server-side only for old app versions. |
-| day wall | The free tier's end-of-deck screen (`DayWallView`): teaser + countdown to local midnight + streak + unlock CTA + "come back tomorrow". |
+| day wall | The free tier's end-of-deck screen (`DayWallView`): teaser + countdown to local midnight + unlock CTA. Back swipe / system back return to the daily. |
 | smaczki | Per-question arguments/prompts behind the "go deeper" button. Argument #1 is free on a seen question; the rest are PRO. |
 
 ### Edge functions
@@ -339,15 +344,16 @@ resolves as premium and runs on local data.
   identity in place, so the streak, votes and PRO survive. A guest who buys
   is nudged right after to attach the purchase to a real account.
 - **Premium.** RevenueCat handles billing; the one paywall surface is the
-  modal [`ProPaywallSheet`](lib/features/monetization/widgets/pro_paywall_sheet.dart)
+  fullscreen
+  [`ProPaywallScreen`](lib/features/monetization/widgets/pro_paywall_screen.dart)
   around [`ProPaywallContent`](lib/features/monetization/widgets/paywall_content.dart),
   opened from the day wall (auto once a day post-vote, or the CTA), the
   bridge, locked features and Settings. Packages and localized prices come
-  live from the current RevenueCat offering (monthly / lifetime; no
-  preselection, no badge); the purchase goes through `Purchases.purchase`.
+  live from the current RevenueCat offering (monthly / lifetime; monthly
+  preselected, no badge); the purchase goes through `Purchases.purchase`.
   The `revenuecat-webhook` edge function reflects entitlement changes onto
   `profiles.is_premium` (the flag the RLS gate reads). Restore-purchases is
-  reachable from Settings and the sheet (guests get a sign-in-first chooser
+  reachable from Settings and the paywall (guests get a sign-in-first chooser
   so a store restore can't hijack an account-held entitlement).
 - **Caching / offline.** In production the Supabase repository is wrapped in
   `CachingQuestionRepository`, scoped to the locale and the signed-in UUID, so

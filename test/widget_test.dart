@@ -178,11 +178,12 @@ void main() {
     );
   });
 
-  testWidgets('Auth sheet is sign-in only before PRO (no register tab)', (
+  testWidgets('Auth sheet offers registration to a free guest too', (
     WidgetTester tester,
   ) async {
-    // Registration is a post-purchase feature: a non-premium session (the hard
-    // paywall's sign-in link) must not offer account creation at all.
+    // Registration is open to everyone: a free player secures their streak and
+    // votes the same way a buyer secures PRO (the anonymous user is upgraded
+    // in place), so a non-premium session still gets the register tab.
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -193,8 +194,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('ZAŁÓŻ KONTO'), findsNothing);
-    expect(find.text('ZALOGUJ SIĘ'), findsNothing); // no tab bar at all
+    expect(find.text('ZAŁÓŻ KONTO'), findsOneWidget);
+    expect(find.text('ZALOGUJ SIĘ'), findsOneWidget);
     expect(find.text('Zaloguj się'), findsOneWidget); // the sign-in CTA stays
     // Social sign-in stays available — existing Google users have no password.
     expect(find.text('Kontynuuj z Google'), findsOneWidget);

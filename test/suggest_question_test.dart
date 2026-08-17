@@ -1,5 +1,6 @@
 import 'package:debatly/core/locale/app_locale.dart'
     show sharedPreferencesProvider;
+import 'package:debatly/core/widgets/spark_cta_button.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/widgets/suggest_question_nudge.dart';
@@ -97,7 +98,7 @@ void main() {
       await tester.enterText(find.byType(TextField), 'Czy?');
       await tester.pumpAndSettle();
       expect(
-        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        tester.widget<SparkCtaButton>(find.byType(SparkCtaButton)).onTap,
         isNull,
       );
 

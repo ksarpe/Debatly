@@ -106,7 +106,7 @@ class _SparkLogoState extends State<SparkLogo> with TickerProviderStateMixin {
           color: AppTheme.spark,
           shadows: [
             Shadow(
-              color: AppTheme.spark.withValues(alpha: glowAlpha),
+              color: AppTheme.sparkGlow.withValues(alpha: glowAlpha),
               blurRadius: glowBlur,
             ),
           ],
@@ -122,7 +122,7 @@ class _SparkLogoState extends State<SparkLogo> with TickerProviderStateMixin {
             height: 1,
             shadows: [
               Shadow(
-                color: AppTheme.spark.withValues(alpha: glowAlpha * 0.7),
+                color: AppTheme.sparkGlow.withValues(alpha: glowAlpha * 0.7),
                 blurRadius: glowBlur,
               ),
             ],

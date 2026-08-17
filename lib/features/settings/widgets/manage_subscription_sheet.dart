@@ -281,7 +281,7 @@ class _ManageButton extends StatelessWidget {
                     height: 22,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.4,
-                      color: Colors.black,
+                      color: AppTheme.ctaForeground,
                     ),
                   )
                 : Row(
@@ -289,14 +289,14 @@ class _ManageButton extends StatelessWidget {
                     children: [
                       const Icon(
                         Icons.open_in_new_rounded,
-                        color: Colors.black,
+                        color: AppTheme.ctaForeground,
                         size: 19,
                       ),
                       const SizedBox(width: 10),
                       Text(
                         label,
                         style: const TextStyle(
-                          color: Colors.black,
+                          color: AppTheme.ctaForeground,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),

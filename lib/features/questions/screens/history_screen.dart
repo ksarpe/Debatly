@@ -9,11 +9,8 @@ import '../../../core/widgets/sub_screen_chrome.dart';
 import '../../../data/models/vote_history_entry.dart';
 import '../../../data/models/vote_result.dart';
 import '../../account/providers/session_providers.dart';
-import '../../monetization/widgets/pro_paywall_sheet.dart';
+import '../../monetization/widgets/pro_paywall_screen.dart';
 import '../providers/question_providers.dart';
-
-/// Gold accent for the PRO upsell, matching the "go Premium" hooks elsewhere.
-const Color _kGold = Color(0xFFFFC857);
 
 /// Opens the PRO "question history": a full-screen table of every question the
 /// user voted on and how the community voted, so a past vote's split is never
@@ -502,10 +499,14 @@ class _HistoryUpsellState extends ConsumerState<_HistoryUpsell> {
             height: 64,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _kGold.withValues(alpha: 0.14),
-              border: Border.all(color: _kGold.withValues(alpha: 0.45)),
+              color: AppTheme.spark.withValues(alpha: 0.14),
+              border: Border.all(color: AppTheme.spark.withValues(alpha: 0.45)),
             ),
-            child: const Icon(Icons.history_rounded, color: _kGold, size: 30),
+            child: const Icon(
+              Icons.history_rounded,
+              color: AppTheme.spark,
+              size: 30,
+            ),
           ),
           const SizedBox(height: 18),
           Text(
@@ -544,44 +545,50 @@ class _GoProButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: _kGold,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: busy ? null : onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: SizedBox(
-          width: double.infinity,
-          height: 54,
-          child: Center(
-            child: busy
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.4,
-                      color: Colors.black,
-                    ),
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.workspace_premium_rounded,
-                        color: Colors.black,
-                        size: 20,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: AppTheme.ctaGradient,
+        borderRadius: AppTheme.ctaRadius,
+        boxShadow: busy ? null : AppTheme.ctaGlow,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: busy ? null : onTap,
+          borderRadius: AppTheme.ctaRadius,
+          child: SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: Center(
+              child: busy
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: AppTheme.ctaForeground,
                       ),
-                      const SizedBox(width: 10),
-                      Text(
-                        context.l10n.goPro,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.workspace_premium_rounded,
+                          color: AppTheme.ctaForeground,
+                          size: 20,
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 10),
+                        Text(
+                          context.l10n.goPro,
+                          style: const TextStyle(
+                            color: AppTheme.ctaForeground,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
           ),
         ),
       ),

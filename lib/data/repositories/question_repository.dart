@@ -152,7 +152,11 @@ class MockQuestionRepository implements QuestionRepository {
 
   @override
   Future<String?> peekNextQuestion({List<String> excludeIds = const []}) async {
-    await Future.delayed(const Duration(milliseconds: 150));
+    // No simulated latency, unlike the other mock methods: QuestionBody
+    // prefetches the teaser whenever a free feed is on screen, so a delay here
+    // would leave a pending fake timer failing any widget test that merely
+    // shows the free feed. (Mock-mode dev sessions are premium and never meet
+    // the wall, so nothing real exercised the delay anyway.)
     // First non-excluded mock question, cut to the server teaser length.
     for (final q in kMockQuestions) {
       if (excludeIds.contains(q.id)) continue;

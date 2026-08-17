@@ -12,6 +12,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///    (`updateUser`, same UUID → the guest's streak/votes/reveals survive);
 ///    only with no anonymous session does `signUp` mint a separate account.
 ///    Losing this branch silently orphans every guest who registers.
+///  * `signInWithIdToken` (social) — the same rule for the Google/Apple
+///    buttons: an anonymous session LINKS the identity in place
+///    (`linkIdentityWithIdToken`, same UUID); only an identity that already
+///    belongs to another account falls back to a plain sign-in, switching to
+///    that account.
 ///  * `signOut` — the global sign-out revokes the refresh token server-side,
 ///    which needs the network; when that fails the LOCAL fallback must still
 ///    log the user out without throwing (sign-out has to work offline).
@@ -189,6 +194,165 @@ void main() {
           reason: 'the send-auth-email hook reads this to pick the language',
         );
         expect(user?.id, 'new-1');
+      },
+    );
+  });
+
+  group('signInWithIdToken (social)', () {
+    /// Requests to the id-token grant endpoint, split by intent: linking
+    /// carries `link_identity: true` in the body, a plain sign-in doesn't.
+    bool isIdTokenGrant(http.Request r) =>
+        r.url.path.endsWith('/auth/v1/token') &&
+        r.url.queryParameters['grant_type'] == 'id_token';
+    bool isLink(http.Request r) =>
+        isIdTokenGrant(r) &&
+        (jsonDecode(r.body) as Map<String, dynamic>)['link_identity'] == true;
+
+    test('an anonymous session links the identity in place — same UUID, '
+        'no plain sign-in', () async {
+      final anon = userJson(id: 'anon-1', anonymous: true);
+      final linked = userJson(
+        id: 'anon-1',
+        email: 'user@gmail.com',
+        anonymous: false,
+      );
+      final log = <http.Request>[];
+      final client = buildClient(log, (request) {
+        if (request.url.path.endsWith('/auth/v1/signup')) {
+          return http.Response(
+            sessionJson(anon),
+            200,
+            request: request,
+            headers: jsonHeaders,
+          );
+        }
+        if (isLink(request)) {
+          return http.Response(
+            sessionJson(linked),
+            200,
+            request: request,
+            headers: jsonHeaders,
+          );
+        }
+        return null;
+      });
+
+      await client.auth.signInAnonymously();
+      expect(client.auth.currentUser?.isAnonymous, isTrue);
+
+      final user = await SupabaseService.signInWithIdTokenOn(
+        client.auth,
+        provider: OAuthProvider.google,
+        idToken: 'google-id-token',
+      );
+
+      expect(
+        user?.id,
+        'anon-1',
+        reason: 'the UUID must not change — it carries the guest\'s progress',
+      );
+      final grants = log.where(isIdTokenGrant).toList();
+      expect(grants, hasLength(1), reason: 'link only — no fallback needed');
+      expect(isLink(grants.single), isTrue);
+      expect(
+        (jsonDecode(grants.single.body) as Map<String, dynamic>)['id_token'],
+        'google-id-token',
+      );
+    });
+
+    test(
+      'an identity already on another account falls back to signing into it',
+      () async {
+        final anon = userJson(id: 'anon-1', anonymous: true);
+        final owner = userJson(
+          id: 'owner-1',
+          email: 'user@gmail.com',
+          anonymous: false,
+        );
+        final log = <http.Request>[];
+        final client = buildClient(log, (request) {
+          if (request.url.path.endsWith('/auth/v1/signup')) {
+            return http.Response(
+              sessionJson(anon),
+              200,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          if (isLink(request)) {
+            return http.Response(
+              jsonEncode({
+                'error_code': 'identity_already_exists',
+                'msg': 'Identity is already linked to another user',
+              }),
+              422,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          if (isIdTokenGrant(request)) {
+            return http.Response(
+              sessionJson(owner),
+              200,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          return null;
+        });
+
+        await client.auth.signInAnonymously();
+
+        final user = await SupabaseService.signInWithIdTokenOn(
+          client.auth,
+          provider: OAuthProvider.google,
+          idToken: 'google-id-token',
+        );
+
+        expect(
+          user?.id,
+          'owner-1',
+          reason: 'the existing account wins — this is a "sign back in"',
+        );
+        expect(client.auth.currentUser?.id, 'owner-1');
+        final grants = log.where(isIdTokenGrant).toList();
+        expect(grants, hasLength(2), reason: 'link attempt, then sign-in');
+        expect(isLink(grants.first), isTrue);
+        expect(isLink(grants.last), isFalse);
+      },
+    );
+
+    test(
+      'with no session a plain sign-in runs directly — no link attempt',
+      () async {
+        final owner = userJson(
+          id: 'owner-1',
+          email: 'user@gmail.com',
+          anonymous: false,
+        );
+        final log = <http.Request>[];
+        final client = buildClient(log, (request) {
+          if (isIdTokenGrant(request)) {
+            return http.Response(
+              sessionJson(owner),
+              200,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          return null;
+        });
+
+        final user = await SupabaseService.signInWithIdTokenOn(
+          client.auth,
+          provider: OAuthProvider.google,
+          idToken: 'google-id-token',
+        );
+
+        expect(user?.id, 'owner-1');
+        final grants = log.where(isIdTokenGrant).toList();
+        expect(grants, hasLength(1));
+        expect(isLink(grants.single), isFalse);
       },
     );
   });

@@ -34,7 +34,7 @@ void main() {
 
   // The arguments takeover runs a 5.6s staggered entrance (the title, a beat
   // of silence, one argument per second, a second of silence, then the
-  // button); pump all the way past it so the "Dobra, głosuję!" CTA is visible
+  // button); pump all the way past it so the "Głosuję jeszcze raz!" CTA is visible
   // and tappable.
   Future<void> settleArguments(WidgetTester tester) async {
     await settlePage(tester); // the 280ms stage cross-fade
@@ -68,7 +68,7 @@ void main() {
   }
 
   // Walks one round of the taste loop: first vote → arguments →
-  // "Dobra, głosuję!" → second vote. Lands on the split reveal (50/50 in the
+  // "Głosuję jeszcze raz!" → second vote. Lands on the split reveal (50/50 in the
   // test host).
   Future<void> completeTasteLoop(
     WidgetTester tester, {
@@ -77,7 +77,7 @@ void main() {
   }) async {
     await tapText(tester, first);
     await settleArguments(tester);
-    await tapText(tester, 'Dobra, głosuję!');
+    await tapText(tester, 'Głosuję jeszcze raz!');
     await settlePage(tester);
     // The revote stage (question + prompt + buttons) is taller than the test
     // viewport, so the buttons sit below the fold — scroll them in first.
@@ -137,7 +137,7 @@ void main() {
     expect(find.textContaining('komfortem'), findsOneWidget);
     expect(find.textContaining('Bramka'), findsOneWidget);
     expect(find.textContaining('chorobę'), findsOneWidget);
-    expect(find.text('Dobra, głosuję!'), findsOneWidget);
+    expect(find.text('Głosuję jeszcze raz!'), findsOneWidget);
   });
 
   testWidgets('after reading, the user votes again and the split is '
@@ -147,7 +147,7 @@ void main() {
 
     await tester.tap(find.text('TAK'));
     await settleArguments(tester);
-    await tapText(tester, 'Dobra, głosuję!');
+    await tapText(tester, 'Głosuję jeszcze raz!');
     await settlePage(tester);
 
     // The question returns for the second ask: the kicker flips to "ZAGŁOSUJ
@@ -199,7 +199,7 @@ void main() {
     await tapText(tester, 'TAK');
     await settleArguments(tester);
     expect(find.text('Czy aby na pewno?'), findsOneWidget);
-    await tapText(tester, 'Dobra, głosuję!');
+    await tapText(tester, 'Głosuję jeszcze raz!');
     await settlePage(tester);
     await tapText(tester, 'NIE');
     await settlePage(tester);

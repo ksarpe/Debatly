@@ -248,6 +248,7 @@
   "smaczkiSubtitle": "Podpowiedzi, jak pogłębić rozmowę wokół tego pytania.",
   "smaczkiLoadError": "Nie udało się wczytać smaczków.\n{error}",
   "smaczkiEmpty": "Do tego pytania nie ma jeszcze smaczków.",
+  "smaczkiUnlockCta": "Odblokuj",
 
   "ranksLoadError": "Nie udało się wczytać rang.",
   "rankLadder": "Drabinka rang",
@@ -299,7 +300,7 @@
   "onboardingTasteSmaczek2": "Co z komfortem osoby obok? Zapłaciła tyle samo, a ma ciaśniej.",
   "onboardingTasteSmaczek3": "Jak chcesz to weryfikować? Bramka przed wejściem do samolotu?",
   "onboardingTasteSmaczek4": "A ci, którzy tyją przez chorobę? Pokrzywdzeni na zawsze?",
-  "onboardingTasteRead": "Dobra, głosuję!",
+  "onboardingTasteRead": "Głosuję jeszcze raz!",
   "onboardingTasteRevoteKicker": "ZAGŁOSUJ PONOWNIE",
   "onboardingTasteContinue": "Dalej",
   "onboardingTasteNextTitle": "Spróbujmy z kolejnym…",
@@ -318,71 +319,23 @@
   "onboardingNotifyEnable": "Włącz przypomnienia",
   "onboardingNotifySkip": "Nie teraz",
   "onboardingNotifyFootnote": "Przypomnienia wyłączysz lub zmienisz ich godzinę w ustawieniach.",
-  "wallCountdown": "Następne darmowe pytanie za {time}",
-  "@wallCountdown": {
-    "placeholders": {
-      "time": { "type": "String" }
-    }
-  },
-  "wallStreak": "Twoja seria: {n, plural, one{{n} dzień} few{{n} dni} many{{n} dni} other{{n} dnia}}",
-  "@wallStreak": {
-    "placeholders": {
-      "n": { "type": "int" }
-    }
-  },
+  "wallCountdownCaption": "Odliczanie do kolejnego darmowego pytania",
   "wallCtaUnlock": "Nie czekaj — odblokuj wszystkie 500",
-  "wallCtaTomorrow": "albo wróć jutro",
-  "paywallTitleDefault": "Zostało 500 pytań",
-  "paywallTitleStreak": "Masz {n}-dniową serię. Nie przerywaj jej.",
-  "@paywallTitleStreak": {
-    "placeholders": {
-      "n": { "type": "int" }
-    }
-  },
-  "paywallTitleStreakLong": "{n} dni z rzędu. Należy Ci się cały katalog.",
-  "@paywallTitleStreakLong": {
-    "placeholders": {
-      "n": { "type": "int" }
-    }
-  },
-  "paywallSubtitle": "Jedno pytanie dziennie zostaje darmowe. PRO zdejmuje limit i otwiera wszystkie argumenty.",
-  "paywallTitleSmaczki": "Poznaj wszystkie argumenty do każdego pytania",
-  "paywallTitleFavorites": "Zachowaj ulubione pytania na zawsze",
-  "paywallTitleHistory": "Wszystkie Twoje głosy w jednym miejscu",
-  "paywallWhatYouGet": "WSZYSTKO, CO ZYSKUJESZ",
-  "paywallBenefitUnlimitedTitle": "Bez limitu dziennego",
-  "paywallBenefitUnlimitedBody": "Wszystkie 500+ pytań od ręki. Koniec z czekaniem do jutra.",
-  "paywallBenefitSmaczkiTitle": "Wszystkie argumenty ZA i PRZECIW",
-  "paywallBenefitSmaczkiBody": "Nie tylko pierwszy. Pełny zestaw kontrargumentów do każdego pytania.",
-  "paywallBenefitNoAdsTitle": "Zero reklam",
-  "paywallBenefitNoAdsBody": "Czysty ekran, samo pytanie.",
-  "paywallBenefitHistoryTitle": "Historia Twoich głosów",
-  "paywallBenefitHistoryBody": "Wróć do wszystkiego, na co kiedykolwiek odpowiedziałeś.",
-  "paywallBenefitFreshTitle": "Nowe pytania co tydzień",
-  "paywallBenefitFreshBody": "Świeże dylematy co tydzień.",
-  "paywallBenefitOfflineTitle": "Tryb offline",
-  "paywallBenefitOfflineBody": "Cały katalog na telefonie.",
-  "paywallCompareFree": "FREE",
-  "paywallComparePro": "PRO",
-  "paywallCompareRowDaily": "Limit dzienny",
-  "paywallCompareRowDailyFree": "1 pytanie",
-  "paywallCompareRowDailyPro": "Bez limitu",
-  "paywallCompareRowSmaczki": "Argumenty",
-  "paywallCompareRowSmaczkiFree": "Pierwszy",
-  "paywallCompareRowSmaczkiPro": "Wszystkie",
-  "paywallCompareRowSplit": "Wynik społeczności",
-  "paywallCompareRowStreak": "Seria i rangi",
-  "paywallCompareRowHistory": "Historia i ulubione",
-  "paywallCompareRowOffline": "Tryb offline",
-  "paywallCompareIncluded": "W cenie",
-  "paywallCompareExcluded": "Niedostępne",
+  "paywallBrand": "DEBATLY PRO",
+  "paywallTitleDefault": "Bez limitu.\nBez końca.\nGlobalnie.",
+  "paywallSubtitle": "500+ pytań, wszystkie argumenty ZA i PRZECIW, cała Twoja historia głosów.",
+  "paywallFeatureUnlimited": "Pytania bez limitu dziennego",
+  "paywallFeatureSmaczki": "Wszystkie argumenty, nie pierwszy",
+  "paywallFeatureHistory": "Historia i ulubione na zawsze",
+  "paywallFeatureNoAds": "Zero reklam, tryb offline",
   "paywallSignInLink": "Zaloguj się",
   "paywallLifetime": "Dożywotni",
   "paywallAnnual": "Roczny",
-  "paywallMonthly": "Miesięczny",
+  "paywallMonthly": "Miesięcznie",
   "paywallPerMonth": "/mies.",
   "paywallCta": "Odblokuj pełny dostęp",
-  "paywallLifetimeVsMonthly": "{months, plural, one{Mniej niż {months} miesiąc subskrypcji} few{Mniej niż {months} miesiące subskrypcji} many{Mniej niż {months} miesięcy subskrypcji} other{Mniej niż {months} miesiąca subskrypcji}}",
+  "paywallLifetimeVsMonthly": "{months, plural, one{Jednorazowo. Taniej niż {months} miesiąc.} few{Jednorazowo. Taniej niż {months} miesiące.} many{Jednorazowo. Taniej niż {months} miesięcy.} other{Jednorazowo. Taniej niż {months} miesiąca.}}",
+  "paywallMonthlyWeekly": "To ok. {price} tygodniowo",
   "paywallLifetimeNote": "Jedna płatność — na zawsze",
   "paywallSubscriptionNote": "Odnawia się automatycznie — anulujesz w każdej chwili",
   "paywallLoadError": "Nie udało się wczytać oferty. Sprawdź połączenie i spróbuj ponownie.",

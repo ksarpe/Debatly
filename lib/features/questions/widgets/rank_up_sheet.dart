@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/share/widget_to_image.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/spark_cta_button.dart';
 import '../../../data/models/rank.dart';
 import '../../../data/models/user_stats.dart';
 import '../../../l10n/gen/app_localizations.dart';
@@ -305,7 +306,7 @@ class _AnimatedBadge extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.spark.withValues(alpha: 0.35 + 0.35 * g),
+                  color: AppTheme.sparkGlow.withValues(alpha: 0.35 + 0.35 * g),
                   blurRadius: 38 + 26 * g,
                   spreadRadius: 2 + 4 * g,
                 ),
@@ -368,28 +369,11 @@ class _ShareButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton.icon(
-      onPressed: busy ? null : onTap,
-      style: FilledButton.styleFrom(
-        backgroundColor: AppTheme.spark,
-        foregroundColor: Colors.white,
-        disabledBackgroundColor: AppTheme.spark.withValues(alpha: 0.6),
-        disabledForegroundColor: Colors.white70,
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-      ),
-      icon: busy
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
-              ),
-            )
-          : const Icon(Icons.ios_share_rounded, size: 18),
-      label: Text(context.l10n.shareLabel),
+    return SparkCtaButton(
+      label: context.l10n.shareLabel,
+      icon: Icons.ios_share_rounded,
+      busy: busy,
+      onTap: onTap,
     );
   }
 }
@@ -429,8 +413,8 @@ class _RankUpBackdrop extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  AppTheme.spark.withValues(alpha: 0.30),
-                  AppTheme.spark.withValues(alpha: 0.0),
+                  AppTheme.sparkGlow.withValues(alpha: 0.28),
+                  AppTheme.sparkGlow.withValues(alpha: 0.0),
                 ],
               ),
             ),

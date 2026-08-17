@@ -5,9 +5,12 @@ import 'package:purchases_flutter/purchases_flutter.dart'
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 
-/// A selectable plan card. The selected card gets the spark border + glow and
-/// a filled check. No "best value" tag and no preselection — every card
-/// starts equal, so the picks in the data are the users' own.
+/// A selectable plan card in the stacked plan list. The lifetime plan gets the
+/// tall treatment — uppercase label, big price, the one-payment anchor line —
+/// while subscriptions render as a compact row (plus an optional quiet
+/// subline, e.g. the monthly plan's weekly-equivalent price). Selection is a
+/// spark border + glow and a filled radio; the owner preselects the monthly
+/// plan, but no card carries a "best value" tag.
 class PaywallPlanCard extends StatelessWidget {
   const PaywallPlanCard({
     super.key,
@@ -21,8 +24,8 @@ class PaywallPlanCard extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
-  /// Optional quiet line under the price (e.g. the lifetime-vs-monthly
-  /// comparison); null keeps the card exactly as before.
+  /// Optional quiet line under the price (the lifetime one-payment anchor,
+  /// the monthly weekly-equivalent price); null renders the card without it.
   final String? subline;
 
   /// Human label for the plan; the durations the product actually sells
@@ -49,14 +52,113 @@ class PaywallPlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final prominent = package.packageType == PackageType.lifetime;
     final priceSuffix = package.packageType == PackageType.monthly
         ? context.l10n.paywallPerMonth
         : '';
+    final price = '${package.storeProduct.priceString}$priceSuffix';
+
+    final radio = Icon(
+      selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+      size: 22,
+      color: selected ? AppTheme.spark : colors.subtle,
+    );
+
+    final body = prominent
+        ? Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _label(context).toUpperCase(),
+                      style: const TextStyle(
+                        color: AppTheme.spark,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      price,
+                      style: TextStyle(
+                        color: colors.ink,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        height: 1.1,
+                      ),
+                    ),
+                    if (subline != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subline!,
+                        style: TextStyle(
+                          color: colors.subtle,
+                          fontSize: 12.5,
+                          height: 1.3,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              radio,
+            ],
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    _label(context),
+                    style: TextStyle(
+                      color: colors.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      price,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.subtle,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  radio,
+                ],
+              ),
+              if (subline != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  subline!,
+                  style: TextStyle(
+                    color: colors.subtle,
+                    fontSize: 12.5,
+                    height: 1.3,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ],
+          );
 
     final card = AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
-      padding: const EdgeInsets.fromLTRB(14, 18, 14, 14),
+      padding: prominent
+          ? const EdgeInsets.fromLTRB(18, 16, 16, 16)
+          : const EdgeInsets.fromLTRB(18, 14, 16, 14),
       decoration: BoxDecoration(
         color: colors.cardSurface,
         borderRadius: BorderRadius.circular(18),
@@ -65,58 +167,15 @@ class PaywallPlanCard extends StatelessWidget {
           width: selected ? 2 : 1.4,
         ),
         boxShadow: selected
-            ? const [BoxShadow(color: Color(0x33EA6A12), blurRadius: 16)]
+            ? [
+                BoxShadow(
+                  color: AppTheme.sparkGlow.withValues(alpha: 0.28),
+                  blurRadius: 16,
+                ),
+              ]
             : null,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _label(context),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.ink,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Icon(
-                selected
-                    ? Icons.check_circle_rounded
-                    : Icons.radio_button_unchecked,
-                size: 20,
-                color: selected ? AppTheme.spark : colors.subtle,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            '${package.storeProduct.priceString}$priceSuffix',
-            style: TextStyle(
-              color: colors.ink,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          if (subline != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subline!,
-              style: TextStyle(
-                color: colors.subtle,
-                fontSize: 11.5,
-                height: 1.25,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ],
-      ),
+      child: body,
     );
 
     return Material(

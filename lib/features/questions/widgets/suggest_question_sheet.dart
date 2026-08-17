@@ -5,6 +5,7 @@ import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/network_error.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/spark_cta_button.dart';
 import '../providers/question_providers.dart';
 
 /// Shortest suggestion the server accepts — mirrors the
@@ -180,32 +181,16 @@ class _SuggestQuestionSheetState extends ConsumerState<SuggestQuestionSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              FilledButton(
-                onPressed: _canSend ? _submit : null,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppTheme.spark,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+              SparkCtaButton(
+                label: context.l10n.suggestQuestionSend,
+                busy: _busy,
+                expand: true,
+                fontSize: 16,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 15,
                 ),
-                child: _busy
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        context.l10n.suggestQuestionSend,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                onTap: _canSend ? _submit : null,
               ),
             ],
           ),

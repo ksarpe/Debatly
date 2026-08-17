@@ -1,6 +1,6 @@
 import 'package:debatly/core/locale/app_locale.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
-import 'package:debatly/features/monetization/widgets/pro_paywall_sheet.dart';
+import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
 import 'package:flutter/material.dart' show AlertDialog;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,7 +34,7 @@ void main() {
       UncontrolledProviderScope(
         container: container,
         child: LocalizedTestApp(
-          home: ProPaywallSheet(loadPackages: () async => const <Package>[]),
+          home: ProPaywallScreen(loadPackages: () async => const <Package>[]),
         ),
       ),
     );
@@ -47,7 +47,7 @@ void main() {
     await pumpGuestPaywall(tester);
 
     // Sanity: we're on the sheet (the streak-0 headline is the anchor) ...
-    expect(find.text('Zostało 500 pytań'), findsOneWidget);
+    expect(find.text('Bez limitu.\nBez końca.\nGlobalnie.'), findsOneWidget);
     // ... and the store-restore path is offered right there (below the fold
     // on a short test viewport — scrolling to it is fine, hiding it is not).
     expect(find.text('Przywróć zakup'), findsOneWidget);

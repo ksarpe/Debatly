@@ -104,6 +104,85 @@ void main() {
     });
   });
 
+  // In-app flows (sign-out, register, social link) end with exactly one
+  // explicit reload of their own, so the listener's answer to the event they
+  // emit is a DUPLICATE — a second concurrent entitlement reconcile per flow.
+  // Pin that each flow suppresses only ITS OWN event: an out-of-band change of
+  // the other kind arriving mid-flow must still reload.
+  group('shouldReloadOnAuthEvent', () {
+    test('with no in-app flow running, identity changes reload', () {
+      for (final event in [
+        AuthChangeEvent.signedOut,
+        AuthChangeEvent.userUpdated,
+      ]) {
+        expect(
+          shouldReloadOnAuthEvent(
+            event,
+            selfDrivenSignOut: false,
+            selfDrivenUserUpdate: false,
+          ),
+          isTrue,
+        );
+      }
+    });
+
+    test('an in-app sign-out suppresses only its own signedOut', () {
+      expect(
+        shouldReloadOnAuthEvent(
+          AuthChangeEvent.signedOut,
+          selfDrivenSignOut: true,
+          selfDrivenUserUpdate: false,
+        ),
+        isFalse,
+        reason: 'signOutAndReload owns this reload',
+      );
+      expect(
+        shouldReloadOnAuthEvent(
+          AuthChangeEvent.userUpdated,
+          selfDrivenSignOut: true,
+          selfDrivenUserUpdate: false,
+        ),
+        isTrue,
+        reason: 'an unrelated identity upgrade must still converge',
+      );
+    });
+
+    test(
+      'an in-app register / social link suppresses only its userUpdated',
+      () {
+        expect(
+          shouldReloadOnAuthEvent(
+            AuthChangeEvent.userUpdated,
+            selfDrivenSignOut: false,
+            selfDrivenUserUpdate: true,
+          ),
+          isFalse,
+          reason: 'runAuthFlowAndReload owns this reload',
+        );
+        expect(
+          shouldReloadOnAuthEvent(
+            AuthChangeEvent.signedOut,
+            selfDrivenSignOut: false,
+            selfDrivenUserUpdate: true,
+          ),
+          isTrue,
+          reason: 'a silent sign-out mid-flow must still mint a fresh guest',
+        );
+      },
+    );
+
+    test('non-identity events never reload, flags or not', () {
+      expect(
+        shouldReloadOnAuthEvent(
+          AuthChangeEvent.tokenRefreshed,
+          selfDrivenSignOut: false,
+          selfDrivenUserUpdate: false,
+        ),
+        isFalse,
+      );
+    });
+  });
+
   // Keyless development (and the whole widget-test suite) runs with neither
   // Supabase nor RevenueCat configured. Under the hard paywall a free session
   // there would wall the app off behind a purchase that CANNOT be made — no

@@ -41,10 +41,11 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color hairline;
 
   /// Dark theme — the original "pure black canvas", high-contrast and
-  /// distraction-free.
+  /// distraction-free. Ink is a warm cream (#FFE9DC), not pure white — the
+  /// brand text-on-dark colour.
   static const AppColors dark = AppColors(
     background: Color(0xFF000000),
-    ink: Color(0xFFFFFFFF),
+    ink: Color(0xFFFFE9DC),
     subtle: Color(0xFF8A8A8A),
     accent: Color(0xFF2A2A2A),
     cardSurface: Color(0xFF131318),
@@ -127,6 +128,12 @@ class AppTheme {
   // labels on the spark gradient washed out on the onboarding choice card.
   static const Color spark = Color(0xFFEA6A12);
 
+  /// The hue every orange glow is painted in (#FF6A1A) — a touch brighter than
+  /// [spark] so halos read as light, not as a solid orange surface. Callers
+  /// apply their own alpha; the canonical CTA value lives in [ctaGlow]
+  /// (rgba(255,106,26,.28)).
+  static const Color sparkGlow = Color(0xFFFF6A1A);
+
   /// Semantic vote colours: green for TAK, red for NIE. Used by the daily
   /// vote panel for the buttons' side hints and the post-vote split. Shared by
   /// both themes.
@@ -185,6 +192,34 @@ class AppTheme {
       extensions: [colors],
     );
   }
+
+  /// The "premium" accent-CTA look shared by every orange primary button —
+  /// the paywall CTA, onboarding "next", the auth submit and the settings
+  /// "secure account" action: a full stadium pill carrying the spark gradient
+  /// and an orange glow. Defined once so the buttons can't drift apart again.
+  static const Gradient ctaGradient = LinearGradient(
+    colors: [spark, Color(0xFFD9510B)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
+  /// Corner radius for the accent CTAs. A rounded rectangle, NOT a full
+  /// stadium — the sides keep a clear straight run. Tune the look here —
+  /// every accent button reads this.
+  static const BorderRadius ctaRadius = BorderRadius.all(Radius.circular(14));
+
+  /// The orange halo behind an *enabled* accent CTA — [sparkGlow] at 28%
+  /// (rgba(255,106,26,.28)). Disabled buttons drop it (a dimmed button that
+  /// still glows reads as tappable).
+  static const List<BoxShadow> ctaGlow = [
+    BoxShadow(color: Color(0x47FF6A1A), blurRadius: 22, spreadRadius: 1),
+  ];
+
+  /// Label/icon colour on the CTA gradient — a near-black warm brown
+  /// (#170A02), not white: on the spark orange dark reads at ~7:1 contrast
+  /// where white only manages ~3:1, and the brown keeps the warmth of the
+  /// palette where pure black looked stamped-on.
+  static const Color ctaForeground = Color(0xFF170A02);
 
   /// Base geometry for the question text. Colour/stroke are applied per-layer
   /// in [QuestionTextStyles], so this only carries size, weight and spacing.

@@ -14,10 +14,10 @@ import '../../onboarding/providers/onboarding_providers.dart'
     show installDayNumber;
 import '../../questions/providers/question_providers.dart';
 import 'paywall_cta_button.dart';
-import 'pro_paywall_sheet.dart';
+import 'pro_paywall_screen.dart';
 
 /// SharedPreferences key: the local `yyyy-MM-dd` date the wall last opened the
-/// paywall sheet automatically — the "at most once a day" latch. Absent until
+/// paywall automatically — the "at most once a day" latch. Absent until
 /// the first automatic open.
 const String kWallAutoPaywallDatePrefKey = 'wall_auto_paywall_date';
 
@@ -30,16 +30,16 @@ const double _kSwipeCommitDistance = 64;
 ///
 /// It shows, in order: a blurred teaser of the next question (the first few
 /// words, from the read-only `peek_next_question`), a live countdown to the
-/// user's LOCAL midnight (when the next free question arrives), the streak
-/// they'd lose by not coming back, the unlock CTA (opens the paywall sheet,
-/// always), and a real, tappable "or come back tomorrow" exit. The wall is an
-/// honest fork — pay or wait — never a trap: the exit button and a back swipe
-/// both return to today's daily.
+/// user's LOCAL midnight (when the next free question arrives) and the unlock
+/// CTA (opens the paywall, always). The way back to today's daily is a
+/// rightward swipe — the same gesture that browses the feed — or the system
+/// back gesture/button, which the wall intercepts so it never exits the app
+/// ("never a trap").
 ///
 /// On arrival it logs `wall_reached` and — at most once per local day, and
-/// only after today's daily has been voted on — opens the paywall sheet
-/// automatically. Every later arrival that day shows just the wall; the sheet
-/// then opens only from the CTA.
+/// only after today's daily has been voted on — opens the paywall
+/// automatically. Every later arrival that day shows just the wall; the
+/// paywall then opens only from the CTA.
 class DayWallView extends ConsumerStatefulWidget {
   const DayWallView({super.key});
 
@@ -110,8 +110,8 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
     if (!voted || prefs.getString(kWallAutoPaywallDatePrefKey) == today) {
       return;
     }
-    // Latched BEFORE the sheet resolves, so even an instantly-dismissed sheet
-    // spends the day's automatic open.
+    // Latched BEFORE the paywall resolves, so even an instantly-dismissed
+    // paywall spends the day's automatic open.
     await prefs.setString(kWallAutoPaywallDatePrefKey, today);
     if (!mounted) return;
     await _openPaywall(trigger: 'auto');
@@ -131,7 +131,7 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
     }
   }
 
-  /// The honest exit — back to today's daily (also the back swipe's target).
+  /// Back to today's daily — the back swipe's and system back's target.
   void _backToDaily() {
     ref.read(dayWallVisibleProvider.notifier).hide();
   }
@@ -159,87 +159,73 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final colors = context.colors;
-    final streak = ref.watch(currentStreakProvider);
     final teaser = ref.watch(wallTeaserProvider).asData?.value;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onHorizontalDragStart: _onDragStart,
-      onHorizontalDragUpdate: _onDragUpdate,
-      onHorizontalDragEnd: _onDragEnd,
-      child: Padding(
-        // The transparent app bar floats over the body; reserve its band so
-        // the wall centres in the visible area, like the feed does.
-        padding: EdgeInsets.only(
-          top: MediaQuery.paddingOf(context).top + kToolbarHeight,
-        ),
-        child: SafeArea(
-          top: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (teaser != null) ...[
-                      _TeaserPreview(teaser: teaser),
-                      const SizedBox(height: 30),
-                    ],
-                    Text(
-                      l10n.wallCountdown(_formatLeft(_left)),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: colors.ink,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        // Fixed-width digits so the ticking clock doesn't
-                        // wobble the line.
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    if (streak > 0) ...[
-                      const SizedBox(height: 10),
+    return PopScope(
+      // System back returns to today's daily instead of leaving the app — the
+      // wall is a fork, never a trap. Once hidden, this scope unmounts and
+      // back behaves normally again.
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _backToDaily();
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragStart: _onDragStart,
+        onHorizontalDragUpdate: _onDragUpdate,
+        onHorizontalDragEnd: _onDragEnd,
+        child: Padding(
+          // The transparent app bar floats over the body; reserve its band so
+          // the wall centres in the visible area, like the feed does.
+          padding: EdgeInsets.only(
+            top: MediaQuery.paddingOf(context).top + kToolbarHeight,
+          ),
+          child: SafeArea(
+            top: false,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (teaser != null) ...[
+                        _TeaserPreview(teaser: teaser),
+                        const SizedBox(height: 30),
+                      ],
                       Text(
-                        '🔥 ${l10n.wallStreak(streak)}',
+                        _formatLeft(_left),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.ink,
+                          fontSize: 44,
+                          fontWeight: FontWeight.w800,
+                          // Fixed-width digits so the ticking clock doesn't
+                          // wobble the line.
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.wallCountdownCaption,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: colors.subtle,
-                          fontSize: 14.5,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
+                      ),
+                      const SizedBox(height: 28),
+                      PaywallCtaButton(
+                        label: l10n.wallCtaUnlock,
+                        busy: false,
+                        onTap: () => _openPaywall(trigger: 'tap'),
                       ),
                     ],
-                    const SizedBox(height: 28),
-                    PaywallCtaButton(
-                      label: l10n.wallCtaUnlock,
-                      busy: false,
-                      onTap: () => _openPaywall(trigger: 'tap'),
-                    ),
-                    const SizedBox(height: 10),
-                    // A real button, not a resigned caption — the wall is a
-                    // fork, not a trap.
-                    TextButton(
-                      onPressed: _backToDaily,
-                      style: TextButton.styleFrom(
-                        foregroundColor: colors.subtle,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                      ),
-                      child: Text(
-                        l10n.wallCtaTomorrow,
-                        style: const TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w600,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -266,27 +252,37 @@ class _TeaserPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final questionStyle = TextStyle(
-      color: context.colors.ink,
-      fontSize: 24,
-      fontWeight: FontWeight.w800,
-      height: 1.3,
-    );
+    // Same signature look as the real question (uppercase Anton, white fill
+    // over a black stroke), sized as if teaser + hidden continuation were the
+    // whole question so it lands where a mid-length question would.
+    final fontSize = QuestionTextStyles.fontSizeFor('$teaser… $_dummy');
+
+    Widget styled(String text, {int? maxLines}) {
+      final upper = text.toUpperCase();
+      Text layer(TextStyle style) => Text(
+        upper,
+        textAlign: TextAlign.center,
+        maxLines: maxLines,
+        overflow: maxLines == null ? null : TextOverflow.clip,
+        style: style,
+      );
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          layer(QuestionTextStyles.strokeFor(fontSize)),
+          layer(QuestionTextStyles.fillFor(fontSize)),
+        ],
+      );
+    }
 
     return Column(
       children: [
-        Text('$teaser…', textAlign: TextAlign.center, style: questionStyle),
+        styled('$teaser…'),
         const SizedBox(height: 8),
         ClipRect(
           child: ImageFiltered(
             imageFilter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
-            child: Text(
-              _dummy,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.clip,
-              style: questionStyle.copyWith(color: context.colors.subtle),
-            ),
+            child: styled(_dummy, maxLines: 2),
           ),
         ),
       ],

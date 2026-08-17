@@ -92,7 +92,9 @@ class AuthSegmentedTabs extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? Colors.white : context.colors.subtle,
+              // On the spark gradient the label follows the CTA rule: dark
+              // brown, same as every other text on orange.
+              color: selected ? AppTheme.ctaForeground : context.colors.subtle,
               fontWeight: FontWeight.w700,
               fontSize: 12.5,
               letterSpacing: 0.8,

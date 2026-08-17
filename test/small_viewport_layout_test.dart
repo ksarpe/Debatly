@@ -5,7 +5,7 @@ import 'package:debatly/data/models/vote_result.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
 import 'package:debatly/features/account/screens/auth_screen.dart';
-import 'package:debatly/features/monetization/widgets/pro_paywall_sheet.dart';
+import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
 import 'package:debatly/features/onboarding/screens/onboarding_screen.dart';
 import 'package:debatly/features/onboarding/widgets/onboarding_bridge_card.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
@@ -185,7 +185,7 @@ void main() {
                     context,
                   ).copyWith(textScaler: TextScaler.linear(scale)),
                   child: Scaffold(
-                    body: ProPaywallSheet(
+                    body: ProPaywallScreen(
                       loadPackages: () async => const <Package>[],
                     ),
                   ),
