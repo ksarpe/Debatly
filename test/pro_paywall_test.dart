@@ -241,28 +241,28 @@ void main() {
     expect(find.textContaining('Mniej niż'), findsNothing);
   });
 
-  testWidgets('the weekly entry plan renders and three plans stack '
-      'instead of squeezing into the row', (tester) async {
-    // The offering's shape is set in the RevenueCat dashboard: adding the
-    // 9,99 zł weekly reshapes this screen with no code change at all — and
+  testWidgets('a third plan stacks instead of squeezing into the row', (
+    tester,
+  ) async {
+    // The offering's shape is set in the RevenueCat dashboard, so adding a
+    // package there reshapes this screen with no code change at all — and
     // three cards across a phone would start ellipsing their own labels.
-    final weekly = fakePackage(PackageType.weekly, '9,99 zł', price: 9.99);
+    final annual = fakePackage(PackageType.annual, r'$39.99', price: 39.99);
     await pumpSheet(
       tester,
-      loadPackages: () async => [lifetime, monthly, weekly],
+      loadPackages: () async => [lifetime, annual, monthly],
     );
 
     expect(find.text('Dożywotni'), findsOneWidget);
+    expect(find.text('Roczny'), findsOneWidget);
     expect(find.text('Miesięczny'), findsOneWidget);
-    expect(find.text('Tygodniowy'), findsOneWidget);
-    expect(find.text('9,99 zł'), findsOneWidget);
 
     // Stacked full-width: one column, increasing tops. (The left edges differ
     // by a fraction of a pixel — a SELECTED card draws a 2px border where
     // the others draw 1.4 — so match the column, not the exact offset.)
     final first = tester.getRect(find.text('Dożywotni'));
-    final second = tester.getRect(find.text('Miesięczny'));
-    final third = tester.getRect(find.text('Tygodniowy'));
+    final second = tester.getRect(find.text('Roczny'));
+    final third = tester.getRect(find.text('Miesięczny'));
     expect(second.left, closeTo(first.left, 1));
     expect(third.left, closeTo(first.left, 1));
     expect(second.top, greaterThan(first.bottom));

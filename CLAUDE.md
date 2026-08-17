@@ -40,7 +40,8 @@ free tier's `DayWallView` (the "day wall") is the main conversion surface.
 - **Paywall sheet:** headline escalates with streak via
   `kStreakHeadlineTiers` (0–2 / 3–6 / 7+; adding a tier = one map entry + an
   l10n key). No preselected plan, no "best value" badge. Offering live from
-  RevenueCat: weekly 9,99 zł / monthly 19,99 zł / lifetime 69,99 zł (PL).
+  RevenueCat: monthly 19,99 zł / lifetime 69,99 zł (PL) — no weekly, no
+  annual, no trial.
 - **Review ask:** exactly once per milestone — the day the streak completes
   3, right after the rank-up celebration (`RankCelebrationListener`), and
   nowhere else.

@@ -1057,9 +1057,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paywallMonthly => 'Monthly';
 
   @override
-  String get paywallWeekly => 'Weekly';
-
-  @override
   String get paywallPerMonth => '/mo';
 
   @override

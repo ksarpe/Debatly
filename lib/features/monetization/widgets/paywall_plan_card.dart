@@ -25,8 +25,9 @@ class PaywallPlanCard extends StatelessWidget {
   /// comparison); null keeps the card exactly as before.
   final String? subline;
 
-  /// Human label for the plan; predefined durations are localized, custom
-  /// packages fall back to the store product title.
+  /// Human label for the plan; the durations the product actually sells
+  /// (lifetime / yearly / monthly) are localized, anything else falls back to
+  /// the store product title. There is deliberately no weekly plan.
   String _label(BuildContext context) {
     switch (package.packageType) {
       case PackageType.lifetime:
@@ -36,7 +37,6 @@ class PaywallPlanCard extends StatelessWidget {
       case PackageType.monthly:
         return context.l10n.paywallMonthly;
       case PackageType.weekly:
-        return context.l10n.paywallWeekly;
       case PackageType.sixMonth:
       case PackageType.threeMonth:
       case PackageType.twoMonth:

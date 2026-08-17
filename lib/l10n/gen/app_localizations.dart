@@ -1868,12 +1868,6 @@ abstract class AppLocalizations {
   /// **'Monthly'**
   String get paywallMonthly;
 
-  /// No description provided for @paywallWeekly.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly'**
-  String get paywallWeekly;
-
   /// No description provided for @paywallPerMonth.
   ///
   /// In en, this message translates to:

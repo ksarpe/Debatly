@@ -79,8 +79,8 @@ were. Its headline escalates with the streak (`kStreakHeadlineTiers`: 0–2 →
 "Zostało 500 pytań", 3–6 → "Masz {n}-dniową serię…", 7+ → "{n} dni z
 rzędu…" — adding a tier is one map entry plus an l10n key). No plan is
 preselected and there is no "best value" badge — plan choice is the user's
-own. The offering is live from RevenueCat: weekly 9,99 zł / monthly 19,99 zł
-/ lifetime 69,99 zł (PL).
+own. The offering is live from RevenueCat: monthly 19,99 zł / lifetime
+69,99 zł (PL) — no weekly plan, no trial.
 
 The in-app review ask (`in_app_review`) fires exactly once per milestone: the
 day the streak completes 3, right after the rank-up animation closes — and
@@ -343,7 +343,7 @@ resolves as premium and runs on local data.
   around [`ProPaywallContent`](lib/features/monetization/widgets/paywall_content.dart),
   opened from the day wall (auto once a day post-vote, or the CTA), the
   bridge, locked features and Settings. Packages and localized prices come
-  live from the current RevenueCat offering (weekly / monthly / lifetime; no
+  live from the current RevenueCat offering (monthly / lifetime; no
   preselection, no badge); the purchase goes through `Purchases.purchase`.
   The `revenuecat-webhook` edge function reflects entitlement changes onto
   `profiles.is_premium` (the flag the RLS gate reads). Restore-purchases is

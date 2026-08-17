@@ -380,7 +380,6 @@
   "paywallLifetime": "Dożywotni",
   "paywallAnnual": "Roczny",
   "paywallMonthly": "Miesięczny",
-  "paywallWeekly": "Tygodniowy",
   "paywallPerMonth": "/mies.",
   "paywallCta": "Odblokuj pełny dostęp",
   "paywallLifetimeVsMonthly": "{months, plural, one{Mniej niż {months} miesiąc subskrypcji} few{Mniej niż {months} miesiące subskrypcji} many{Mniej niż {months} miesięcy subskrypcji} other{Mniej niż {months} miesiąca subskrypcji}}",

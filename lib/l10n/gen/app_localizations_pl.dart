@@ -1076,9 +1076,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get paywallMonthly => 'Miesięczny';
 
   @override
-  String get paywallWeekly => 'Tygodniowy';
-
-  @override
   String get paywallPerMonth => '/mies.';
 
   @override

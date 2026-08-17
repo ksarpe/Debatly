@@ -504,7 +504,6 @@
   "paywallLifetime": "Lifetime",
   "paywallAnnual": "Yearly",
   "paywallMonthly": "Monthly",
-  "paywallWeekly": "Weekly",
   "paywallPerMonth": "/mo",
   "paywallCta": "Unlock full access",
   "paywallLifetimeVsMonthly": "{months, plural, one{Less than {months} month of the subscription} other{Less than {months} months of the subscription}}",

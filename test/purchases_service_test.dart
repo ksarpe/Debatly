@@ -62,26 +62,29 @@ void main() {
         PackageType.threeMonth,
         PackageType.twoMonth,
         PackageType.monthly,
-        PackageType.weekly,
       ];
       for (var i = 1; i < order.length; i++) {
         expect(
           PurchasesService.packageRank(order[i - 1]),
           lessThan(PurchasesService.packageRank(order[i])),
           reason:
-              '${order[i - 1]} must sort before ${order[i]} — the sheet '
-              'preselects index 0, so this order IS the default plan',
+              '${order[i - 1]} must sort before ${order[i]} — this order is '
+              'how the sheet presents the offering',
         );
       }
-      // The catch-alls sort last, behind every real duration.
-      expect(
-        PurchasesService.packageRank(PackageType.custom),
-        greaterThan(PurchasesService.packageRank(PackageType.weekly)),
-      );
-      expect(
-        PurchasesService.packageRank(PackageType.unknown),
-        greaterThan(PurchasesService.packageRank(PackageType.weekly)),
-      );
+      // The catch-alls — weekly included, there is no weekly plan — sort
+      // last, behind every plan the product stands by.
+      for (final type in const [
+        PackageType.weekly,
+        PackageType.custom,
+        PackageType.unknown,
+      ]) {
+        expect(
+          PurchasesService.packageRank(type),
+          greaterThan(PurchasesService.packageRank(PackageType.monthly)),
+          reason: '$type must sort behind the real lineup',
+        );
+      }
     });
   });
 

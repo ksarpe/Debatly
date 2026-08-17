@@ -418,11 +418,12 @@ class PurchasesService {
         return 4;
       case PackageType.monthly:
         return 5;
+      // No weekly plan in the lineup — if one ever appears in the offering it
+      // sorts with the catch-alls, behind every plan the product stands by.
       case PackageType.weekly:
-        return 6;
       case PackageType.custom:
       case PackageType.unknown:
-        return 7;
+        return 6;
     }
   }
 
