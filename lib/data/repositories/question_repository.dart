@@ -95,6 +95,14 @@ abstract class QuestionRepository {
   /// not "nobody cares". Ids only (no text), so it's one cheap indexed read of
   /// the public `questions` table — the RPC return shapes stay untouched.
   Future<Set<String>> fetchRecentQuestionIds({required DateTime since});
+
+  /// Sends the user's own question idea ("Zaproponuj pytanie") to the team's
+  /// review inbox — raw text, not a published question.
+  ///
+  /// Server-side the RPC validates length (10–500 chars) and caps submissions
+  /// per day; violations and offline both throw, and the suggestion sheet turns
+  /// the failure into the right toast.
+  Future<void> submitQuestionSuggestion(String text);
 }
 
 /// Default implementation backed by the in-memory mock list.
@@ -257,6 +265,13 @@ class MockQuestionRepository implements QuestionRepository {
     // Offline preview: mark the first couple of pool questions "new" so the
     // badge can be eyeballed in dev without a backend.
     return {for (final q in kMockQuestions.take(2)) q.id};
+  }
+
+  @override
+  Future<void> submitQuestionSuggestion(String text) async {
+    // Offline preview: accept and drop — there is no backend inbox to keep, and
+    // the sheet only needs the success path to be exercisable in dev/tests.
+    await Future.delayed(const Duration(milliseconds: 250));
   }
 }
 
@@ -479,6 +494,17 @@ class SupabaseQuestionRepository implements QuestionRepository {
         .cast<Map<String, dynamic>>()
         .map((row) => row['id'].toString())
         .toSet();
+  }
+
+  @override
+  Future<void> submitQuestionSuggestion(String text) async {
+    // SECURITY DEFINER RPC: inserts into the admin-reviewed suggestions inbox,
+    // pinning the row to auth.uid() and enforcing length + a per-day cap
+    // server-side (TOO_SHORT / TOO_LONG / RATE_LIMITED).
+    await _db.rpc(
+      'submit_question_suggestion',
+      params: {'p_text': text, 'p_locale': locale},
+    );
   }
 }
 

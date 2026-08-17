@@ -15,6 +15,7 @@ import '../../account/widgets/secure_streak_prompt.dart';
 import '../../settings/providers/reminder_providers.dart';
 import '../../settings/providers/review_providers.dart';
 import '../providers/question_providers.dart';
+import 'suggest_question_nudge.dart';
 import 'vote_visuals.dart';
 
 /// The binary (TAK / NIE) vote shown under a question.
@@ -158,6 +159,13 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
   /// in tests) is swallowed.
   Future<void> _maybeNudgeAfterVote() async {
     try {
+      // Count this vote toward the one-time "suggest a question" nudge before
+      // any prompt below claims the moment — whichever one shows, the counter
+      // must reflect the vote (the nudge then fires on the next one).
+      await recordVoteForSuggestQuestionNudge(
+        ref.read(sharedPreferencesProvider),
+      );
+
       final stats = await ref.read(userStatsProvider.future);
       // Swiping away unmounts this panel; skipping the ask is always acceptable,
       // so bail rather than reach through a `ref` that's no longer usable.
@@ -179,6 +187,12 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
         isPromotionDay: isPromotionDay,
       );
       if (nudged || isPromotionDay) return;
+
+      // The one-time "got an idea? send it in" toast — after the second vote,
+      // once the loop has been felt. Skips the review ask when it shows, same
+      // one-prompt-per-vote rule as above.
+      if (!mounted) return;
+      if (await maybePromptSuggestQuestion(context, ref)) return;
 
       await ref
           .read(reviewPromptControllerProvider.notifier)

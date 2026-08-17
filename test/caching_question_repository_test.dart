@@ -260,4 +260,8 @@ class _FakeRepo implements QuestionRepository {
   @override
   Future<Set<String>> fetchRecentQuestionIds({required DateTime since}) async =>
       _read(const {});
+
+  @override
+  Future<void> submitQuestionSuggestion(String text) =>
+      throw UnimplementedError();
 }

@@ -1,0 +1,54 @@
+-- ============================================================================
+-- 2026-08-17: reset danych testowych sprzed startu marketingu (13.08).
+--
+-- Wykonane przez MCP execute_sql (operacja na danych telemetrycznych, nie
+-- migracja katalogu — dlatego nie ma pliku w migrations/data/).
+--
+-- CO USUNIĘTO
+--   * subscriptions: 3 wiersze store='APP_STORE' (konto właściciela
+--     janowskicorp@... + dwa konta @privaterelay.appleid.com — sandbox/TestFlight/
+--     recenzent; wszystkie wystartowały ~12.08). Została jedyna prawdziwa:
+--     PLAY_STORE INITIAL_PURCHASE z 2026-08-17 15:02 UTC (użytkownik anonimowy).
+--   * billing_events: 17 wierszy tych trzech użytkowników (łącznie z ich
+--     renewalami po 13.08). Został 1 wiersz prawdziwego zakupu.
+--   * Telemetria sprzed 2026-08-13 00:00 czasu polskiego
+--     (cutoff '2026-08-12 22:00:00+00'):
+--       app_events            483 z 1286
+--       question_votes        100 z 159
+--       question_seen         258 z 357
+--       user_daily_questions   58 z 84
+--       ad_reward_events        8 z 8 (wszystkie — reklam już nie ma)
+--
+-- CZEGO NIE RUSZONO (świadomie)
+--   * profiles / auth.users — nie zasilają dashboardu, a konta wewnętrzne
+--     (w tym właściciela) są potrzebne do logowania w panelu admina;
+--     dashboard i tak filtruje je po e-mailu.
+--   * question_vote_seeds — seedy splitów to osobna tabela, nietknięta.
+--   * Flagi premium na profiles testowych kont — bez wpływu na statystyki.
+--
+-- KOPIE ZAPASOWE (pełne wiersze, w bazie):
+--   backups.r20260817_subscriptions         (3)
+--   backups.r20260817_billing_events        (17)
+--   backups.r20260817_app_events            (483)
+--   backups.r20260817_question_votes        (100)
+--   backups.r20260817_question_seen         (258)
+--   backups.r20260817_user_daily_questions  (58)
+--   backups.r20260817_ad_reward_events      (8)
+--
+-- PRZYWRÓCENIE (przykład):
+--   insert into public.subscriptions select * from backups.r20260817_subscriptions;
+--   -- analogicznie dla pozostałych tabel.
+--
+-- Po miesiącu spokojnie można zrobić: drop schema backups cascade;
+-- ============================================================================
+
+-- Zapytania, które wykonano (dla potomności):
+
+-- delete from public.billing_events
+--  where user_id in (select user_id from public.subscriptions where store = 'APP_STORE');
+-- delete from public.subscriptions where store = 'APP_STORE';
+-- delete from public.app_events           where created_at  < '2026-08-12 22:00:00+00';
+-- delete from public.question_votes       where voted_at    < '2026-08-12 22:00:00+00';
+-- delete from public.question_seen        where unlocked_at < '2026-08-12 22:00:00+00';
+-- delete from public.user_daily_questions where created_at  < '2026-08-12 22:00:00+00';
+-- delete from public.ad_reward_events     where created_at  < '2026-08-12 22:00:00+00';

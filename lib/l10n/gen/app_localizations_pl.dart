@@ -659,6 +659,45 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get suggestQuestionTitle => 'Zaproponuj pytanie';
+
+  @override
+  String get suggestQuestionSettingsSubtitle =>
+      'Masz pomysł, który podzieli ludzi? Podrzuć go';
+
+  @override
+  String get suggestQuestionIntro =>
+      'Najlepsze pytania zaczynają się od „Czy…”, nie mają wygodnej odpowiedzi i dzielą ludzi pół na pół. Może być na surowo — my je doszlifujemy.';
+
+  @override
+  String get suggestQuestionHint => 'Czy…?';
+
+  @override
+  String get suggestQuestionMinChars => 'Co najmniej 10 znaków';
+
+  @override
+  String get suggestQuestionSend => 'Wyślij propozycję';
+
+  @override
+  String get suggestQuestionThanks =>
+      'Dzięki! Twoja propozycja właśnie do nas dotarła.';
+
+  @override
+  String get suggestQuestionFailed =>
+      'Nie udało się wysłać — spróbuj za chwilę.';
+
+  @override
+  String get suggestQuestionRateLimited =>
+      'Na dziś wystarczy — wróć jutro z kolejnym pomysłem.';
+
+  @override
+  String get suggestQuestionNudge =>
+      'Masz pomysł na pytanie, które utkwi ludziom w głowie? Podrzuć je!';
+
+  @override
+  String get suggestQuestionNudgeAction => 'Zaproponuj';
+
+  @override
   String get smaczkiTitle => 'Argumenty';
 
   @override
@@ -950,11 +989,11 @@ class AppLocalizationsPl extends AppLocalizations {
       'Po każdym głosie widzisz, jak zagłosował cały świat — ilu ludzi myśli jak Ty, a ilu wręcz przeciwnie.';
 
   @override
-  String get paywallBenefitFreshTitle => 'Dziesiątki nowych pytań';
+  String get paywallBenefitFreshTitle => 'Nowy zestaw pytań co tydzień';
 
   @override
   String get paywallBenefitFreshBody =>
-      'Katalog ciągle rośnie — na bieżąco dodajemy dziesiątki nowych pytań.';
+      'Świeże dylematy co tydzień — wracaj do historii, sprawdzaj wyniki i patrz, jak szala się przechyla.';
 
   @override
   String get paywallBenefitStreakTitle => 'Seria i rangi';
@@ -1023,4 +1062,9 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get paywallPrivacyLink => 'Prywatność';
+
+  @override
+  String paywallBuildStamp(String version, String build, String code) {
+    return 'v$version ($build) · ID $code';
+  }
 }

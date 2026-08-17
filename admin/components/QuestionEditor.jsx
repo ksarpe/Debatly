@@ -60,6 +60,7 @@ export default function QuestionEditor({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [msg, setMsg] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => { api.me().then((m) => setRole(m?.role)).catch(() => {}); }, []);
 
@@ -228,6 +229,38 @@ export default function QuestionEditor({
     return res;
   }, 'Zatwierdzone i opublikowane.');
 
+  // Kopiuje aktualną treść formularza w formacie do wklejenia agentowi
+  // weryfikującemu poprawność (PL/EN + wszystkie smaczki).
+  const copyTimer = useRef(null);
+  useEffect(() => () => clearTimeout(copyTimer.current), []);
+  async function copyForAgent() {
+    const lines = [
+      `Pytanie PL: ${form.pl.trim()}`,
+      `Pytanie EN: ${form.en.trim()}`,
+    ];
+    form.smaczki
+      .filter((s) => (s.pl ?? '').trim() !== '' || (s.en ?? '').trim() !== '')
+      .forEach((s, i) => {
+        lines.push(`Smaczek ${i + 1} PL: ${(s.pl ?? '').trim()}`);
+        lines.push(`Smaczek ${i + 1} EN: ${(s.en ?? '').trim()}`);
+      });
+    const text = lines.join('\n');
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // http bez TLS / starsze przeglądarki — fallback przez ukrytą textareę.
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    setCopied(true);
+    clearTimeout(copyTimer.current);
+    copyTimer.current = setTimeout(() => setCopied(false), 2000);
+  }
+
   // Bezpośredni toggle flagi na żywej wersji (bez draftu).
   const setFlag = (flag) => run(async () => {
     await api.setEnReview(id, flag);
@@ -294,7 +327,13 @@ export default function QuestionEditor({
       {!isDeleteDraft && (
         <>
           <div className="card">
-            <h3>Pytanie</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <h3 style={{ margin: 0 }}>Pytanie</h3>
+              <button className="btn sm ghost" type="button" onClick={copyForAgent}
+                      title="Kopiuje pytanie i smaczki (PL + EN) w formacie do wklejenia agentowi weryfikującemu">
+                {copied ? 'Skopiowano ✓' : '📋 Kopiuj dla agenta'}
+              </button>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
               <div className="fx">
                 <span className="flag" title="polski">🇵🇱</span>

@@ -38,12 +38,13 @@ export const api = {
   dashboardStats: (days = null, includeInternal = false) =>
     rpc('admin_dashboard_stats', { p_days: days, p_include_internal: includeInternal }),
 
-  listQuestions: ({ search = null, onlyActive = true, onlyEnReview = false, onlyFavorites = false, limit = 50, offset = 0 } = {}) =>
+  listQuestions: ({ search = null, onlyActive = true, onlyEnReview = false, onlyFavorites = false, onlyUnverified = false, limit = 50, offset = 0 } = {}) =>
     rpc('admin_list_questions', {
       p_search: search,
       p_only_active: onlyActive,
       p_only_en_review: onlyEnReview,
       p_only_favorites: onlyFavorites,
+      p_only_unverified: onlyUnverified,
       p_limit: limit,
       p_offset: offset,
     }),
@@ -51,6 +52,11 @@ export const api = {
   // Gwiazdka "ulubione" — per admin, bez draftu. Zwraca nowy stan (true = on).
   toggleFavorite: (questionId) =>
     rpc('admin_toggle_favorite', { p_question_id: questionId }),
+
+  // Zielony ptaszek "zweryfikowane" (pytanie + smaczki) — globalny, bez draftu.
+  // Zwraca nowy stan (true = zweryfikowane).
+  toggleVerified: (questionId) =>
+    rpc('admin_toggle_verified', { p_question_id: questionId }),
 
   getQuestion: (id) => rpc('admin_get_question', { p_id: id }),
 
@@ -90,6 +96,31 @@ export const api = {
   },
   rejectDraft: (draftId, note = null) =>
     rpc('admin_reject_draft', { p_draft_id: draftId, p_note: note }),
+
+  // Dziennik marketingowy: ręcznie wpisywane statystyki promocji, wiersz = dzień.
+  // Upsert nadpisuje cały wiersz (NULL = pole wyczyszczone), ostatni zapis wygrywa.
+  listMarketing: () => rpc('admin_list_marketing_stats'),
+  upsertMarketingDay: ({ day, video, videoViews, storeVisits, downloadsGoogle, downloadsAppstore, notes }) =>
+    rpc('admin_upsert_marketing_day', {
+      p_day: day,
+      p_video: video,
+      p_video_views: videoViews,
+      p_store_visits: storeVisits,
+      p_downloads_google: downloadsGoogle,
+      p_downloads_appstore: downloadsAppstore,
+      p_notes: notes,
+    }),
+  deleteMarketingDay: (day) => rpc('admin_delete_marketing_day', { p_day: day }),
+
+  // Propozycje pytań od użytkowników ("Zaproponuj pytanie" w aplikacji).
+  // Skrzynka wejściowa — przyjęcie propozycji niczego nie publikuje; przyjęty
+  // pomysł przepisuje się na pytanie zwykłym flow (+ Nowe pytanie).
+  listSuggestions: (status = null) =>
+    rpc('admin_list_question_suggestions', { p_status: status }),
+  // note: null = zostaw notatkę; '' = wyczyść; tekst = nadpisz.
+  setSuggestionStatus: (id, status, note = null) =>
+    rpc('admin_set_question_suggestion_status', { p_id: id, p_status: status, p_note: note }),
+  deleteSuggestion: (id) => rpc('admin_delete_question_suggestion', { p_id: id }),
 };
 
 /**

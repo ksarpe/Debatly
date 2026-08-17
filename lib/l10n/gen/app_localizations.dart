@@ -1250,6 +1250,72 @@ abstract class AppLocalizations {
   /// **'You\'re on a {streak}-day streak — but it only lives on this phone. Create an account (email or Google) and it will survive a reinstall or a new device.'**
   String secureStreakBody(int streak);
 
+  /// No description provided for @suggestQuestionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest a question'**
+  String get suggestQuestionTitle;
+
+  /// No description provided for @suggestQuestionSettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Got an idea that will split the room? Send it in'**
+  String get suggestQuestionSettingsSubtitle;
+
+  /// No description provided for @suggestQuestionIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'The best questions start with \"Should…\", have no comfortable answer and split the room in half. Rough ideas welcome — we\'ll polish it.'**
+  String get suggestQuestionIntro;
+
+  /// No description provided for @suggestQuestionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Should…?'**
+  String get suggestQuestionHint;
+
+  /// No description provided for @suggestQuestionMinChars.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 10 characters'**
+  String get suggestQuestionMinChars;
+
+  /// No description provided for @suggestQuestionSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send suggestion'**
+  String get suggestQuestionSend;
+
+  /// No description provided for @suggestQuestionThanks.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks! Your idea just reached us.'**
+  String get suggestQuestionThanks;
+
+  /// No description provided for @suggestQuestionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send it — try again in a moment.'**
+  String get suggestQuestionFailed;
+
+  /// No description provided for @suggestQuestionRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s plenty for today — come back tomorrow.'**
+  String get suggestQuestionRateLimited;
+
+  /// No description provided for @suggestQuestionNudge.
+  ///
+  /// In en, this message translates to:
+  /// **'Got an idea for a question that sticks in people\'s heads? Send it in!'**
+  String get suggestQuestionNudge;
+
+  /// No description provided for @suggestQuestionNudgeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest'**
+  String get suggestQuestionNudgeAction;
+
   /// No description provided for @smaczkiTitle.
   ///
   /// In en, this message translates to:
@@ -1661,13 +1727,13 @@ abstract class AppLocalizations {
   /// No description provided for @paywallBenefitFreshTitle.
   ///
   /// In en, this message translates to:
-  /// **'Dozens of new questions'**
+  /// **'A new set of questions every week'**
   String get paywallBenefitFreshTitle;
 
   /// No description provided for @paywallBenefitFreshBody.
   ///
   /// In en, this message translates to:
-  /// **'The catalog keeps growing — we add fresh questions all the time.'**
+  /// **'Fresh dilemmas land every week — revisit your history, check the results and watch the scales tip.'**
   String get paywallBenefitFreshBody;
 
   /// No description provided for @paywallBenefitStreakTitle.
@@ -1777,6 +1843,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Privacy'**
   String get paywallPrivacyLink;
+
+  /// Muted support stamp at the very bottom of the paywall: app version plus a short user code (last 4 characters of the Supabase uid) the user can read out so support can find their account.
+  ///
+  /// In en, this message translates to:
+  /// **'v{version} ({build}) · ID {code}'**
+  String paywallBuildStamp(String version, String build, String code);
 }
 
 class _AppLocalizationsDelegate

@@ -219,6 +219,12 @@ class CachingQuestionRepository implements QuestionRepository {
   Future<bool> toggleFavorite(String questionId) =>
       inner.toggleFavorite(questionId);
 
+  /// A write — offline it throws and the sheet shows "no connection"; nothing
+  /// to cache either way (the inbox lives server-side only).
+  @override
+  Future<void> submitQuestionSuggestion(String text) =>
+      inner.submitQuestionSuggestion(text);
+
   // ---- Helpers ---------------------------------------------------------------
 
   /// Reads from [read], but treats a premium-tagged cache as empty when the

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useParams, useRouter } from 'next/navigation';
-import QuestionEditor from '../../../components/QuestionEditor';
+import { useParams, useRouter } from "next/navigation";
+import QuestionEditor from "../../../components/QuestionEditor";
 
 /**
  * Standalone editor route. Kept for "+ Nowe pytanie" and deep links —
@@ -13,9 +13,9 @@ export default function QuestionEditorPage() {
   return (
     <QuestionEditor
       questionId={id}
-      onBack={() => router.push('/')}
+      onBack={() => router.push("/")}
       onCreated={(newId) => router.replace(`/q/${newId}`)}
-      onAfterDelete={() => router.replace('/')}
+      onAfterDelete={() => router.replace("/")}
     />
   );
 }

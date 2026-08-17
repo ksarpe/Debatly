@@ -273,6 +273,17 @@
   "@secureStreakBody": {
     "placeholders": { "streak": { "type": "int" } }
   },
+  "suggestQuestionTitle": "Suggest a question",
+  "suggestQuestionSettingsSubtitle": "Got an idea that will split the room? Send it in",
+  "suggestQuestionIntro": "The best questions start with \"Should…\", have no comfortable answer and split the room in half. Rough ideas welcome — we'll polish it.",
+  "suggestQuestionHint": "Should…?",
+  "suggestQuestionMinChars": "At least 10 characters",
+  "suggestQuestionSend": "Send suggestion",
+  "suggestQuestionThanks": "Thanks! Your idea just reached us.",
+  "suggestQuestionFailed": "Couldn't send it — try again in a moment.",
+  "suggestQuestionRateLimited": "That's plenty for today — come back tomorrow.",
+  "suggestQuestionNudge": "Got an idea for a question that sticks in people's heads? Send it in!",
+  "suggestQuestionNudgeAction": "Suggest",
   "smaczkiTitle": "Arguments",
   "smaczkiSubtitle": "Tips to deepen the conversation around this question.",
   "smaczkiLoadError": "Couldn't load tidbits.\n{error}",
@@ -430,8 +441,8 @@
   "paywallBenefitSmaczkiBody": "Talking points for every question — ammunition so you never lose a debate.",
   "paywallBenefitSplitTitle": "Votes from around the world",
   "paywallBenefitSplitBody": "After every vote, see how the whole world split — how many think like you, and how many don't.",
-  "paywallBenefitFreshTitle": "Dozens of new questions",
-  "paywallBenefitFreshBody": "The catalog keeps growing — we add fresh questions all the time.",
+  "paywallBenefitFreshTitle": "A new set of questions every week",
+  "paywallBenefitFreshBody": "Fresh dilemmas land every week — revisit your history, check the results and watch the scales tip.",
   "paywallBenefitStreakTitle": "Streaks & ranks",
   "paywallBenefitStreakBody": "Vote daily, keep your streak alive and climb the rank ladder.",
   "paywallBenefitFavoritesTitle": "Favorites & voting history",
@@ -457,5 +468,14 @@
   "paywallSubscriptionNote": "Auto-renews until cancelled — cancel anytime",
   "paywallLoadError": "Couldn't load the offers. Check your connection and try again.",
   "paywallTermsLink": "Terms",
-  "paywallPrivacyLink": "Privacy"
+  "paywallPrivacyLink": "Privacy",
+  "paywallBuildStamp": "v{version} ({build}) · ID {code}",
+  "@paywallBuildStamp": {
+    "description": "Muted support stamp at the very bottom of the paywall: app version plus a short user code (last 4 characters of the Supabase uid) the user can read out so support can find their account.",
+    "placeholders": {
+      "version": { "type": "String" },
+      "build": { "type": "String" },
+      "code": { "type": "String" }
+    }
+  }
 }

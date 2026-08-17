@@ -101,8 +101,6 @@ export default function StatsPage() {
             <Tile label="Głosy" value={nf.format(t.votes)} note={`${nf.format(t.voters)} głosujących`} />
             <Tile label="Zakupy PRO" value={nf.format(t.purchases)}
                   note={`${nf.format(t.active_subs)} aktywnych subskrypcji`} />
-            <Tile label="Reklamy (SSV)" value={nf.format(t.ads_watched)}
-                  note={t.ads_unverified > 0 ? `+${nf.format(t.ads_unverified)} niezweryfikowanych` : 'wszystkie zweryfikowane'} />
             <Tile label="Podejrzane konta" value={nf.format(t.suspects)} warn={t.suspects > 0}
                   note={`${nf.format(t.suspect_votes)} ich głosów (heurystyki, all-time)`} />
           </div>
@@ -132,8 +130,8 @@ export default function StatsPage() {
                 </tbody>
               </table>
               <p className="faint" style={{ marginBottom: 0 }}>
-                „Reklama” = odkrycia po obejrzeniu rewarded ad — to razem z kafelkiem
-                Reklamy (SSV) opisuje całą pętlę reklamową.
+                „Reklama” = odkrycia po rewarded ad w starych wersjach aplikacji —
+                nowe wersje nie mają już reklam.
               </p>
             </div>
           </div>
@@ -351,7 +349,7 @@ function DailyChart({ daily }) {
                 x={(PAD + bw * i + bw * 0.15).toFixed(1)} y={y(d.votes).toFixed(1)}
                 width={(bw * 0.7).toFixed(1)} height={(H - PAD - y(d.votes)).toFixed(1)}
                 className="bar">
-            <title>{`${d.day} — głosy: ${d.votes}, aktywne: ${d.active_installs}, nowe: ${d.new_installs}, reklamy: ${d.ads_watched}, zakupy: ${d.purchases}`}</title>
+            <title>{`${d.day} — głosy: ${d.votes}, aktywne: ${d.active_installs}, nowe: ${d.new_installs}, zakupy: ${d.purchases}`}</title>
           </rect>
         ))}
         <polyline points={line} className="line" />

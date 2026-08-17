@@ -656,6 +656,44 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get suggestQuestionTitle => 'Suggest a question';
+
+  @override
+  String get suggestQuestionSettingsSubtitle =>
+      'Got an idea that will split the room? Send it in';
+
+  @override
+  String get suggestQuestionIntro =>
+      'The best questions start with \"Should…\", have no comfortable answer and split the room in half. Rough ideas welcome — we\'ll polish it.';
+
+  @override
+  String get suggestQuestionHint => 'Should…?';
+
+  @override
+  String get suggestQuestionMinChars => 'At least 10 characters';
+
+  @override
+  String get suggestQuestionSend => 'Send suggestion';
+
+  @override
+  String get suggestQuestionThanks => 'Thanks! Your idea just reached us.';
+
+  @override
+  String get suggestQuestionFailed =>
+      'Couldn\'t send it — try again in a moment.';
+
+  @override
+  String get suggestQuestionRateLimited =>
+      'That\'s plenty for today — come back tomorrow.';
+
+  @override
+  String get suggestQuestionNudge =>
+      'Got an idea for a question that sticks in people\'s heads? Send it in!';
+
+  @override
+  String get suggestQuestionNudgeAction => 'Suggest';
+
+  @override
   String get smaczkiTitle => 'Arguments';
 
   @override
@@ -934,11 +972,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'After every vote, see how the whole world split — how many think like you, and how many don\'t.';
 
   @override
-  String get paywallBenefitFreshTitle => 'Dozens of new questions';
+  String get paywallBenefitFreshTitle => 'A new set of questions every week';
 
   @override
   String get paywallBenefitFreshBody =>
-      'The catalog keeps growing — we add fresh questions all the time.';
+      'Fresh dilemmas land every week — revisit your history, check the results and watch the scales tip.';
 
   @override
   String get paywallBenefitStreakTitle => 'Streaks & ranks';
@@ -1005,4 +1043,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paywallPrivacyLink => 'Privacy';
+
+  @override
+  String paywallBuildStamp(String version, String build, String code) {
+    return 'v$version ($build) · ID $code';
+  }
 }

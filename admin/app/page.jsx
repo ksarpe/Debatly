@@ -29,6 +29,7 @@ export default function QuestionList() {
   const [onlyActive, setOnlyActive] = useState(true);
   const [onlyEnReview, setOnlyEnReview] = useState(false);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [onlyUnverified, setOnlyUnverified] = useState(false);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -36,7 +37,7 @@ export default function QuestionList() {
   const [expandedId, setExpandedId] = useState(null);
   const [editorDirty, setEditorDirty] = useState(false);
 
-  const load = useCallback(async (q, active, enReview, favs, p, silent = false) => {
+  const load = useCallback(async (q, active, enReview, favs, unverified, p, silent = false) => {
     if (!silent) setLoading(true);
     setErr(null);
     try {
@@ -45,6 +46,7 @@ export default function QuestionList() {
         onlyActive: active,
         onlyEnReview: enReview,
         onlyFavorites: favs,
+        onlyUnverified: unverified,
         limit: PAGE,
         offset: p * PAGE,
       });
@@ -59,16 +61,16 @@ export default function QuestionList() {
 
   // debounce search
   useEffect(() => {
-    const t = setTimeout(() => { setPage(0); load(search, onlyActive, onlyEnReview, onlyFavorites, 0); }, 250);
+    const t = setTimeout(() => { setPage(0); load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, 0); }, 250);
     return () => clearTimeout(t);
-  }, [search, onlyActive, onlyEnReview, onlyFavorites, load]);
+  }, [search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, load]);
 
-  useEffect(() => { load(search, onlyActive, onlyEnReview, onlyFavorites, page); /* eslint-disable-next-line */ }, [page]);
+  useEffect(() => { load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, page); /* eslint-disable-next-line */ }, [page]);
 
   // Silent refresh after an inline save/publish — keeps the open editor mounted.
   const reload = useCallback(() => {
-    load(search, onlyActive, onlyEnReview, onlyFavorites, page, true);
-  }, [load, search, onlyActive, onlyEnReview, onlyFavorites, page]);
+    load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, page, true);
+  }, [load, search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, page]);
 
   const pages = Math.ceil(total / PAGE) || 1;
 
@@ -95,6 +97,17 @@ export default function QuestionList() {
       if (onlyFavorites) reload();
     } catch (e) {
       setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, is_favorite: r.is_favorite } : x)));
+      setErr(e.friendly || e.message);
+    }
+  }
+
+  async function toggleVerified(r) {
+    setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, is_verified: !x.is_verified } : x)));
+    try {
+      await api.toggleVerified(r.id);
+      if (onlyUnverified) reload();
+    } catch (e) {
+      setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, is_verified: r.is_verified } : x)));
       setErr(e.friendly || e.message);
     }
   }
@@ -135,6 +148,11 @@ export default function QuestionList() {
                  onChange={(e) => setOnlyFavorites(e.target.checked)} style={{ width: 'auto' }} />
           ★ tylko ulubione
         </label>
+        <label className="faint" style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
+          <input type="checkbox" checked={onlyUnverified}
+                 onChange={(e) => setOnlyUnverified(e.target.checked)} style={{ width: 'auto' }} />
+          ✓ ukryj zweryfikowane
+        </label>
       </div>
 
       {err && <div className="alert err">{err}</div>}
@@ -149,6 +167,7 @@ export default function QuestionList() {
             <thead>
               <tr>
                 <th style={{ width: 36 }} title="Ulubione">★</th>
+                <th style={{ width: 36 }} title="Zweryfikowane">✓</th>
                 <th style={{ width: '46%' }}>Pytanie (PL)</th>
                 <th>Kategoria</th>
                 <th style={{ width: 70 }}>Smaczki</th>
@@ -168,6 +187,15 @@ export default function QuestionList() {
                         {r.is_favorite ? '★' : '☆'}
                       </button>
                     </td>
+                    <td className="check-cell" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className={`check-btn ${r.is_verified ? 'on' : ''}`}
+                        title={r.is_verified ? 'Zweryfikowane (pytanie + smaczki) — kliknij, aby cofnąć' : 'Oznacz jako zweryfikowane (pytanie + smaczki)'}
+                        onClick={() => toggleVerified(r)}
+                      >
+                        {r.is_verified ? '✔' : '○'}
+                      </button>
+                    </td>
                     <td className="q">
                       {r.pl}
                       <div className="en">{r.en}</div>
@@ -183,7 +211,7 @@ export default function QuestionList() {
                   </tr>
                   {expandedId === r.id && (
                     <tr className="editor-row">
-                      <td colSpan={5}>
+                      <td colSpan={6}>
                         <QuestionEditor
                           inline
                           questionId={r.id}

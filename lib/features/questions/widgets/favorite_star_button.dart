@@ -74,26 +74,28 @@ class _FavoriteStarButtonState extends ConsumerState<FavoriteStarButton>
   }
 
   Future<void> _toggle() async {
+    final notifier = ref.read(favoriteIdsProvider.notifier);
+    // All feedback fires NOW, off the optimistic flip — the burst and the toast
+    // must not sit on the network round-trip. If the server later refuses, the
+    // provider rolls the star back and the toast is retracted below.
+    final adding = !notifier.isFavorite(widget.questionId);
+    if (adding && !_reduceMotion) _pop.forward(from: 0);
+    final toastId = adding
+        ? AppToast.success(
+            context,
+            context.l10n.favoriteAdded,
+            icon: Icons.star_rounded,
+          )
+        : AppToast.info(
+            context,
+            context.l10n.favoriteRemoved,
+            icon: Icons.star_border_rounded,
+          );
     try {
-      final nowFavorite = await ref
-          .read(favoriteIdsProvider.notifier)
-          .toggle(widget.questionId);
-      if (nowFavorite && !_reduceMotion) _pop.forward(from: 0);
-      if (!mounted) return;
-      if (nowFavorite) {
-        AppToast.success(
-          context,
-          context.l10n.favoriteAdded,
-          icon: Icons.star_rounded,
-        );
-      } else {
-        AppToast.info(
-          context,
-          context.l10n.favoriteRemoved,
-          icon: Icons.star_border_rounded,
-        );
-      }
+      await notifier.toggle(widget.questionId);
     } catch (e) {
+      // Take the now-false confirmation down with the rollback.
+      AppToast.dismiss(toastId);
       if (!mounted) return;
       // A premium gate the client didn't expect (e.g. lapsed mid-session) comes
       // back from the RPC as 'premium required' — route that to the paywall.

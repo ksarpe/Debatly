@@ -17,6 +17,7 @@ import '../../account/screens/auth_screen.dart';
 import '../../account/widgets/restore_sign_in_prompt.dart';
 import '../../monetization/widgets/pro_paywall_sheet.dart';
 import '../../questions/providers/favorites_providers.dart';
+import '../../questions/widgets/suggest_question_sheet.dart';
 import '../providers/app_info_provider.dart';
 import '../providers/dev_tools_providers.dart';
 import '../providers/reminder_providers.dart';
@@ -30,6 +31,7 @@ import '../widgets/settings_preferences_section.dart';
 import '../widgets/settings_primitives.dart';
 import '../widgets/settings_session_actions.dart';
 import '../widgets/streak_card.dart';
+import '../widgets/suggest_question_card.dart';
 import 'dev_tools_screen.dart';
 import 'favorites_screen.dart';
 import 'privacy_data_screen.dart';
@@ -141,6 +143,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                           ],
                         ),
                       ),
+                      const SizedBox(height: 14),
+
+                      // The one action that feeds the catalog back: pitch us a
+                      // question. Sits with the engagement cards, above the
+                      // preference plumbing, so it's visible without scrolling.
+                      SuggestQuestionCard(onTap: _openSuggestQuestion),
                       const SizedBox(height: 28),
 
                       SettingsPreferencesSection(
@@ -364,6 +372,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   }
 
   void _openAuth() => showAuthSheet(context);
+
+  /// Opens the "Suggest a question" sheet — the user's idea lands in the
+  /// team's review inbox, not in the catalog.
+  void _openSuggestQuestion() => showSuggestQuestionSheet(context);
 
   /// Turns the daily reminder on/off. Enabling reuses an existing grant or asks
   /// for one, scheduling + persisting only when granted. A denial (or a system

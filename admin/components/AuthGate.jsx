@@ -85,6 +85,8 @@ function Nav({ email, role }) {
       <Link href="/" className={is('/')}>Pytania</Link>
       <Link href="/drafts" className={is('/drafts')}>Do zatwierdzenia</Link>
       <Link href="/stats" className={is('/stats')}>Statystyki</Link>
+      <Link href="/marketing" className={is('/marketing')}>Marketing</Link>
+      <Link href="/suggestions" className={is('/suggestions')}>Propozycje</Link>
       <Link href="/q/new" className={is('/q/new')}>+ Nowe pytanie</Link>
       <div className="spacer" />
       <span className="who">{email} · {role}</span>

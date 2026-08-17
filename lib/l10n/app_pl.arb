@@ -232,6 +232,18 @@
     "placeholders": { "streak": { "type": "int" } }
   },
 
+  "suggestQuestionTitle": "Zaproponuj pytanie",
+  "suggestQuestionSettingsSubtitle": "Masz pomysł, który podzieli ludzi? Podrzuć go",
+  "suggestQuestionIntro": "Najlepsze pytania zaczynają się od „Czy…”, nie mają wygodnej odpowiedzi i dzielą ludzi pół na pół. Może być na surowo — my je doszlifujemy.",
+  "suggestQuestionHint": "Czy…?",
+  "suggestQuestionMinChars": "Co najmniej 10 znaków",
+  "suggestQuestionSend": "Wyślij propozycję",
+  "suggestQuestionThanks": "Dzięki! Twoja propozycja właśnie do nas dotarła.",
+  "suggestQuestionFailed": "Nie udało się wysłać — spróbuj za chwilę.",
+  "suggestQuestionRateLimited": "Na dziś wystarczy — wróć jutro z kolejnym pomysłem.",
+  "suggestQuestionNudge": "Masz pomysł na pytanie, które utkwi ludziom w głowie? Podrzuć je!",
+  "suggestQuestionNudgeAction": "Zaproponuj",
+
   "smaczkiTitle": "Argumenty",
   "smaczkiSubtitle": "Podpowiedzi, jak pogłębić rozmowę wokół tego pytania.",
   "smaczkiLoadError": "Nie udało się wczytać smaczków.\n{error}",
@@ -324,8 +336,8 @@
   "paywallBenefitSmaczkiBody": "Smaczki do każdego pytania — amunicja, z którą nie przegrasz żadnej dyskusji.",
   "paywallBenefitSplitTitle": "Głosy z całego świata",
   "paywallBenefitSplitBody": "Po każdym głosie widzisz, jak zagłosował cały świat — ilu ludzi myśli jak Ty, a ilu wręcz przeciwnie.",
-  "paywallBenefitFreshTitle": "Dziesiątki nowych pytań",
-  "paywallBenefitFreshBody": "Katalog ciągle rośnie — na bieżąco dodajemy dziesiątki nowych pytań.",
+  "paywallBenefitFreshTitle": "Nowy zestaw pytań co tydzień",
+  "paywallBenefitFreshBody": "Świeże dylematy co tydzień — wracaj do historii, sprawdzaj wyniki i patrz, jak szala się przechyla.",
   "paywallBenefitStreakTitle": "Seria i rangi",
   "paywallBenefitStreakBody": "Głosuj codziennie, podtrzymuj serię i wspinaj się po drabince rang.",
   "paywallBenefitFavoritesTitle": "Ulubione i historia głosów",
@@ -343,5 +355,6 @@
   "paywallSubscriptionNote": "Odnawia się automatycznie — anulujesz w każdej chwili",
   "paywallLoadError": "Nie udało się wczytać oferty. Sprawdź połączenie i spróbuj ponownie.",
   "paywallTermsLink": "Regulamin",
-  "paywallPrivacyLink": "Prywatność"
+  "paywallPrivacyLink": "Prywatność",
+  "paywallBuildStamp": "v{version} ({build}) · ID {code}"
 }

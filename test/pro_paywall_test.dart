@@ -73,7 +73,7 @@ void main() {
     );
     expect(find.text('Cały katalog 500+ pytań'), findsOneWidget);
     expect(find.text('Głosy z całego świata'), findsOneWidget);
-    expect(find.text('Dziesiątki nowych pytań'), findsOneWidget);
+    expect(find.text('Nowy zestaw pytań co tydzień'), findsOneWidget);
     expect(find.text('Argumenty ZA i PRZECIW'), findsOneWidget);
     expect(find.text('Seria i rangi'), findsOneWidget);
     expect(find.text('Ulubione i historia głosów'), findsOneWidget);

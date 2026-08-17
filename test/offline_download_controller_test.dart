@@ -203,4 +203,7 @@ class _FakeRepo implements QuestionRepository {
   @override
   Future<Set<String>> fetchRecentQuestionIds({required DateTime since}) async =>
       const {};
+
+  @override
+  Future<void> submitQuestionSuggestion(String text) async {}
 }

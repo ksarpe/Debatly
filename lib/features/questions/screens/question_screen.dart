@@ -135,6 +135,10 @@ class QuestionScreen extends ConsumerWidget {
         // streak on their anonymous identity too — the account nudge, not a
         // hidden chip, is what argues for signing in).
         automaticallyImplyLeading: false,
+        // The favorite star's save animation (pop + glow + sparkle burst)
+        // extends past the toolbar's bottom edge; the AppBar's default
+        // hard-edge ClipRect would slice it off mid-burst.
+        clipBehavior: Clip.none,
         // The offline strip rides in the app bar's `bottom` slot so it grows the
         // bar when offline and reserves no space when connected (rather than
         // overlaying the status chips).

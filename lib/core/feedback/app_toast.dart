@@ -46,21 +46,26 @@ class AppToast {
 
   /// A success confirmation (green). Pass [icon] to override the default tick —
   /// e.g. a star for "added to favourites".
-  static void success(BuildContext context, String message, {IconData? icon}) =>
+  ///
+  /// Returns an id accepted by [dismiss], so an optimistic confirmation can be
+  /// retracted if the action it announced later fails.
+  static int success(BuildContext context, String message, {IconData? icon}) =>
       show(context, message, type: ToastType.success, icon: icon);
 
   /// An error / failure (red).
-  static void error(BuildContext context, String message, {IconData? icon}) =>
+  static int error(BuildContext context, String message, {IconData? icon}) =>
       show(context, message, type: ToastType.error, icon: icon);
 
   /// A neutral, informational note (orange).
-  static void info(BuildContext context, String message, {IconData? icon}) =>
+  static int info(BuildContext context, String message, {IconData? icon}) =>
       show(context, message, type: ToastType.info, icon: icon);
 
   /// Resolves the root overlay from [context] and shows the toast. A no-op if
   /// the context has no overlay (e.g. already unmounted) — capture the overlay
   /// before an `await` with [capture] + [showOn] for those cases.
-  static void show(
+  ///
+  /// Returns the shown toast's id (for [dismiss]), or -1 if nothing was shown.
+  static int show(
     BuildContext context,
     String message, {
     ToastType type = ToastType.info,
@@ -84,7 +89,9 @@ class AppToast {
 
   /// Shows a toast on a previously [capture]d overlay. No-op if [overlay] is
   /// null.
-  static void showOn(
+  ///
+  /// Returns the shown toast's id (for [dismiss]), or -1 if nothing was shown.
+  static int showOn(
     OverlayState? overlay,
     String message, {
     ToastType type = ToastType.info,
@@ -92,14 +99,15 @@ class AppToast {
     Duration? duration,
     ToastAction? action,
   }) {
-    if (overlay == null) return;
+    if (overlay == null) return -1;
     _ensureHost(overlay);
     while (_controller.items.length >= _maxVisible) {
       _controller.removeAt(0);
     }
+    final id = _seq++;
     _controller.add(
       _ToastData(
-        id: _seq++,
+        id: id,
         message: message,
         type: type,
         icon: icon,
@@ -108,7 +116,13 @@ class AppToast {
             duration ?? (type == ToastType.error ? _errorHold : _defaultHold),
       ),
     );
+    return id;
   }
+
+  /// Removes a still-visible toast by the id [show]/[showOn] returned — for
+  /// retracting an optimistic confirmation whose action turned out to fail.
+  /// No-op if the toast already dismissed itself.
+  static void dismiss(int id) => _controller.removeId(id);
 
   /// Ensures a single host overlay entry is mounted in [overlay]. Re-creates it
   /// when the overlay changes (e.g. a fresh widget test), clearing any stale

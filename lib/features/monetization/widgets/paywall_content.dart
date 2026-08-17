@@ -11,8 +11,10 @@ import '../../../core/monitoring/monitoring.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/analytics.dart';
 import '../../../services/purchases_service.dart';
+import '../../account/providers/session_providers.dart';
 import '../../account/screens/auth_screen.dart';
 import '../../account/widgets/restore_sign_in_prompt.dart';
+import '../../settings/providers/app_info_provider.dart';
 import 'paywall_benefit_row.dart';
 import 'paywall_cta_button.dart';
 import 'paywall_footer_links.dart';
@@ -493,6 +495,25 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
     final subheadline = _subheadline(context);
     final hasOffer = _packages?.isNotEmpty ?? false;
 
+    // Version + short user code, the paywall's only identity breadcrumb. The
+    // wall has no Settings and no profile, so a walled user has NOTHING to
+    // read out when they contact support (or a promo grant is arranged for
+    // them) — every install looks like an anonymous uuid from the dashboard
+    // side. The last 4 uid characters are enough to find the account
+    // (`auth.users.id::text ilike '%<code>'`) without exposing the uuid
+    // itself. Hidden until both lookups resolve; nothing here is worth a
+    // loading state.
+    final appInfo = ref.watch(appInfoProvider).value;
+    final userId = ref.watch(sessionProvider).value?.userId;
+    final supportStamp =
+        (appInfo != null && userId != null && userId.length >= 4)
+        ? context.l10n.paywallBuildStamp(
+            appInfo.version,
+            appInfo.build,
+            userId.substring(userId.length - 4).toUpperCase(),
+          )
+        : null;
+
     final scrollBody = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -549,6 +570,7 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
           Flexible(child: scroll),
         _StickyCtaBar(
           busy: _busy,
+          stamp: supportStamp,
           // No CTA without a loaded offer — the body shows the retry state.
           onBuy: hasOffer ? _buy : null,
           note: _selected?.packageType == PackageType.lifetime
@@ -603,6 +625,7 @@ class _StickyCtaBar extends StatelessWidget {
     required this.note,
     required this.onBuy,
     required this.links,
+    this.stamp,
   });
 
   final bool busy;
@@ -613,6 +636,9 @@ class _StickyCtaBar extends StatelessWidget {
 
   /// The sign-in / restore / legal row pinned at the very bottom.
   final Widget links;
+
+  /// Version + short user code under the links; null hides the line.
+  final String? stamp;
 
   @override
   Widget build(BuildContext context) {
@@ -658,6 +684,18 @@ class _StickyCtaBar extends StatelessWidget {
             const SizedBox(height: 2),
           ],
           links,
+          if (stamp != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                stamp!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: colors.subtle.withValues(alpha: 0.65),
+                  fontSize: 11,
+                ),
+              ),
+            ),
         ],
       ),
     );
