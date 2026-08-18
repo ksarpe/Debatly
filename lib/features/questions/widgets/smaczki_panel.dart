@@ -8,6 +8,7 @@ import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/network_error.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../data/models/smaczek.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/widgets/save_pro_prompt.dart';
@@ -109,24 +110,22 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
                     Expanded(
                       child: Text.rich(
                         TextSpan(
-                          text: context.l10n.smaczkiTitle,
+                          text: context.l10n.smaczkiTitle.toUpperCase(),
                           children: [
                             // The "(smaczki)" aside — deliberately a different
-                            // cut than the headline: small, regular, italic.
+                            // cut than the condensed headline: small, quiet
+                            // Manrope, lowercase.
                             TextSpan(
                               text: ' ${context.l10n.smaczkiTitleTag}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                                fontStyle: FontStyle.italic,
-                                letterSpacing: 0.2,
-                                color: context.colors.subtle,
-                              ),
+                              style: AppTypography.support(
+                                fontSize: 13,
+                              ).copyWith(color: context.colors.subtle),
                             ),
                           ],
                         ),
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                        style: AppTypography.title(
+                          fontSize: 30,
+                        ).copyWith(color: context.colors.ink),
                       ),
                     ),
                     // Bare text button in the top-right corner — toggles the
@@ -143,11 +142,8 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
                         foregroundColor: AppTheme.spark,
                       ),
                       child: Text(
-                        context.l10n.smaczekSuggestCta,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        context.l10n.smaczekSuggestCta.toUpperCase(),
+                        style: AppTypography.action(fontSize: 12),
                       ),
                     ),
                   ],
@@ -155,7 +151,9 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
                 const SizedBox(height: 6),
                 Text(
                   context.l10n.smaczkiSubtitle,
-                  style: TextStyle(color: context.colors.subtle, fontSize: 13),
+                  style: AppTypography.support(
+                    fontSize: 13,
+                  ).copyWith(color: context.colors.subtle),
                 ),
                 const SizedBox(height: 16),
                 const Divider(),
@@ -177,7 +175,9 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
                       padding: const EdgeInsets.symmetric(vertical: 24),
                       child: Text(
                         context.l10n.smaczkiLoadError(e.toString()),
-                        style: TextStyle(color: context.colors.subtle),
+                        style: AppTypography.body(
+                          fontSize: 14,
+                        ).copyWith(color: context.colors.subtle),
                       ),
                     ),
                     data: (smaczki) => _SmaczkiList(
@@ -279,10 +279,12 @@ class _SmaczekComposerState extends ConsumerState<_SmaczekComposer> {
       ],
       onChanged: (_) => setState(() {}),
       onSubmitted: (_) => _submit(),
-      style: TextStyle(color: colors.ink, fontSize: 14),
+      style: AppTypography.body(fontSize: 14).copyWith(color: colors.ink),
       decoration: InputDecoration(
         hintText: context.l10n.smaczekSuggestHint,
-        hintStyle: TextStyle(color: colors.subtle),
+        hintStyle: AppTypography.support(
+          fontSize: 13,
+        ).copyWith(color: colors.subtle),
         isDense: true,
         // Nudges toward the minimum while typing the first few words, then
         // gets out of the way.
@@ -290,8 +292,8 @@ class _SmaczekComposerState extends ConsumerState<_SmaczekComposer> {
             _trimmedLength > 0 && _trimmedLength < kSmaczekSuggestionMinChars
             ? context.l10n.smaczekSuggestMinChars
             : null,
-        helperStyle: TextStyle(color: colors.subtle, fontSize: 12),
-        counterStyle: TextStyle(color: colors.subtle, fontSize: 12),
+        helperStyle: AppTypography.support().copyWith(color: colors.subtle),
+        counterStyle: AppTypography.support().copyWith(color: colors.subtle),
         suffixIcon: _busy
             ? const Padding(
                 padding: EdgeInsets.all(10),
@@ -339,7 +341,9 @@ class _SmaczkiList extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: Text(
           context.l10n.smaczkiEmpty,
-          style: TextStyle(color: context.colors.subtle),
+          style: AppTypography.body(
+            fontSize: 14,
+          ).copyWith(color: context.colors.subtle),
         ),
       );
     }
@@ -384,11 +388,10 @@ class _SmaczekCard extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                color: context.colors.ink,
+              style: AppTypography.body(
                 fontSize: 15,
                 height: 1.4,
-              ),
+              ).copyWith(color: context.colors.ink),
             ),
           ),
         ],
@@ -440,11 +443,10 @@ class _LockedSmaczekCard extends StatelessWidget {
                     _dummy,
                     maxLines: 2,
                     overflow: TextOverflow.clip,
-                    style: TextStyle(
-                      color: context.colors.subtle,
+                    style: AppTypography.body(
                       fontSize: 15,
                       height: 1.4,
-                    ),
+                    ).copyWith(color: context.colors.subtle),
                   ),
                 ),
               ),
@@ -453,12 +455,10 @@ class _LockedSmaczekCard extends StatelessWidget {
             const Icon(Icons.lock_rounded, size: 18, color: AppTheme.spark),
             const SizedBox(width: 6),
             Text(
-              context.l10n.smaczkiUnlockCta,
-              style: const TextStyle(
-                color: AppTheme.spark,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+              context.l10n.smaczkiUnlockCta.toUpperCase(),
+              style: AppTypography.action(
+                fontSize: 12,
+              ).copyWith(color: AppTheme.spark),
             ),
           ],
         ),
@@ -481,14 +481,12 @@ class _IndexDot extends StatelessWidget {
       child: Text(
         '$index',
         textAlign: TextAlign.center,
-        style: TextStyle(
-          color: locked ? context.colors.subtle : AppTheme.spark,
-          fontSize: 18,
-          // Line box matches the 15px/1.4 smaczek text beside it, so the
-          // number stays centered on the first line.
-          height: 21 / 18,
-          fontWeight: FontWeight.w700,
-        ),
+        // Line box matches the 15px/1.4 smaczek text beside it, so the
+        // number stays centered on the first line.
+        style: AppTypography.numeric(
+          20,
+          height: 21 / 20,
+        ).copyWith(color: locked ? context.colors.subtle : AppTheme.spark),
       ),
     );
   }

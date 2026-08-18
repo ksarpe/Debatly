@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../data/models/rank.dart';
 import '../../account/providers/stats_providers.dart';
 import 'animated_flame_icon.dart';
@@ -91,7 +92,9 @@ class _RankSheet extends ConsumerWidget {
             padding: const EdgeInsets.all(24),
             child: Text(
               context.l10n.ranksLoadError,
-              style: TextStyle(color: context.colors.subtle),
+              style: AppTypography.body(
+                fontSize: 14,
+              ).copyWith(color: context.colors.subtle),
             ),
           ),
           data: (ranks) {
@@ -116,13 +119,10 @@ class _RankSheet extends ConsumerWidget {
                 Divider(color: context.colors.accent, height: 1),
                 const SizedBox(height: 16),
                 Text(
-                  context.l10n.rankLadder,
-                  style: TextStyle(
-                    color: context.colors.subtle,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
+                  context.l10n.rankLadder.toUpperCase(),
+                  style: AppTypography.eyebrow(
+                    fontSize: 11,
+                  ).copyWith(color: context.colors.subtle),
                 ),
                 const SizedBox(height: 8),
                 Flexible(
@@ -198,22 +198,17 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                context.l10n.yourRankUpper,
-                style: TextStyle(
-                  color: context.colors.subtle,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.4,
-                ),
+                context.l10n.yourRankUpper.toUpperCase(),
+                style: AppTypography.eyebrow(
+                  fontSize: 10.5,
+                ).copyWith(color: context.colors.subtle),
               ),
               const SizedBox(height: 2),
               Text(
-                rank.nameFor(lang),
-                style: TextStyle(
-                  color: context.colors.ink,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
+                rank.nameFor(lang).toUpperCase(),
+                style: AppTypography.title(
+                  fontSize: 30,
+                ).copyWith(color: context.colors.ink),
               ),
               const SizedBox(height: 2),
               Row(
@@ -226,7 +221,9 @@ class _Header extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     context.l10n.streakDays(streak),
-                    style: TextStyle(color: context.colors.ink, fontSize: 14),
+                    style: AppTypography.body(
+                      fontSize: 14,
+                    ).copyWith(color: context.colors.ink),
                   ),
                 ],
               ),
@@ -262,11 +259,9 @@ class _GraceWarning extends StatelessWidget {
           Expanded(
             child: Text(
               context.l10n.streakGraceWarning(daysLeft),
-              style: TextStyle(
-                color: context.colors.ink,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppTypography.body(
+                fontSize: 14,
+              ).copyWith(color: context.colors.ink),
             ),
           ),
         ],
@@ -291,10 +286,7 @@ class _Progress extends StatelessWidget {
     if (next == null) {
       return Text(
         context.l10n.topRankRespect,
-        style: const TextStyle(
-          color: AppTheme.spark,
-          fontWeight: FontWeight.w600,
-        ),
+        style: AppTypography.body(fontSize: 14).copyWith(color: AppTheme.spark),
       );
     }
 
@@ -320,7 +312,9 @@ class _Progress extends StatelessWidget {
         // the ladder below until the streak actually unlocks it.
         Text(
           context.l10n.daysToNextRank(remaining),
-          style: TextStyle(color: context.colors.subtle, fontSize: 13),
+          style: AppTypography.support(
+            fontSize: 13,
+          ).copyWith(color: context.colors.subtle),
         ),
       ],
     );
@@ -344,7 +338,9 @@ class _LongestLine extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           context.l10n.longestStreakDays(longest),
-          style: TextStyle(color: context.colors.subtle, fontSize: 13),
+          style: AppTypography.support(
+            fontSize: 13,
+          ).copyWith(color: context.colors.subtle),
         ),
       ],
     );
@@ -396,19 +392,19 @@ class _LadderRow extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: _blur(
+              // One weight per role: the current row is already lit by its
+              // border + fill, so the name stays at BODY's single weight.
               Text(
                 rank.nameFor(lang),
-                style: TextStyle(
-                  color: fg,
-                  fontSize: 15,
-                  fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
-                ),
+                style: AppTypography.body(fontSize: 15).copyWith(color: fg),
               ),
             ),
           ),
           Text(
             context.l10n.rankFrom(rank.minStreak),
-            style: TextStyle(color: context.colors.subtle, fontSize: 12),
+            style: AppTypography.support().copyWith(
+              color: context.colors.subtle,
+            ),
           ),
           const SizedBox(width: 8),
           Icon(

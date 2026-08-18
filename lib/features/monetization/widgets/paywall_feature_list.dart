@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// The paywall's compact feature list: four one-line rows separated by
 /// hairlines. Replaces the old Free/PRO table + six-row benefit list — the
@@ -49,12 +50,10 @@ class _FeatureRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: TextStyle(
-                color: context.colors.ink,
+              style: AppTypography.body(
                 fontSize: 15,
-                fontWeight: FontWeight.w600,
-                height: 1.3,
-              ),
+                height: 1.32,
+              ).copyWith(color: context.colors.ink),
             ),
           ),
         ],

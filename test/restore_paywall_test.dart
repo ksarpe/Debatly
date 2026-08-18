@@ -47,7 +47,7 @@ void main() {
     await pumpGuestPaywall(tester);
 
     // Sanity: we're on the sheet (the streak-0 headline is the anchor) ...
-    expect(find.text('Bez limitu.\nBez końca.\nGlobalnie.'), findsOneWidget);
+    expect(find.text('BEZ LIMITU.\nBEZ KOŃCA.\nGLOBALNIE.'), findsOneWidget);
     // ... and the store-restore path is offered right there (below the fold
     // on a short test viewport — scrolling to it is fine, hiding it is not).
     expect(find.text('Przywróć zakup'), findsOneWidget);
@@ -68,15 +68,15 @@ void main() {
 
     // The chooser is up, offering both paths; nothing has run yet. (The
     // sticky bar carries its own "Zaloguj się" link, so scope to the dialog.)
-    expect(find.text('Przywrócić zakup?'), findsOneWidget);
+    expect(find.text('PRZYWRÓCIĆ ZAKUP?'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(AlertDialog),
-        matching: find.text('Zaloguj się'),
+        matching: find.text('ZALOGUJ SIĘ'),
       ),
       findsOneWidget,
     );
-    expect(find.text('Przywróć na tym urządzeniu'), findsOneWidget);
+    expect(find.text('PRZYWRÓĆ NA TYM URZĄDZENIU'), findsOneWidget);
   });
 
   testWidgets('choosing "restore on this device" runs the store flow', (
@@ -89,7 +89,7 @@ void main() {
     await tester.tap(find.text('Przywróć zakup'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Przywróć na tym urządzeniu'));
+    await tester.tap(find.text('PRZYWRÓĆ NA TYM URZĄDZENIU'));
     await tester.pump(); // pop the dialog + start the async restore
     await tester.pump(); // resolve restorePurchases() (false, unconfigured)
     await tester.pump(const Duration(milliseconds: 750)); // animate the toast
@@ -98,7 +98,7 @@ void main() {
     // (the sheet's social button is its telltale; tests report as Android).
     expect(find.text('Nie znaleziono wcześniejszego zakupu.'), findsOneWidget);
     expect(
-      find.text('Kontynuuj z Google'),
+      find.text('KONTYNUUJ Z GOOGLE'),
       findsNothing,
       reason: 'the explicit store path must not become a login',
     );
@@ -117,14 +117,14 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(AlertDialog),
-        matching: find.text('Zaloguj się'),
+        matching: find.text('ZALOGUJ SIĘ'),
       ),
     );
     await tester.pumpAndSettle();
 
     // The auth sheet is up (its social button is the telltale) and the store
     // flow never ran.
-    expect(find.text('Kontynuuj z Google'), findsOneWidget);
+    expect(find.text('KONTYNUUJ Z GOOGLE'), findsOneWidget);
     expect(
       find.text('Nie znaleziono wcześniejszego zakupu.'),
       findsNothing,

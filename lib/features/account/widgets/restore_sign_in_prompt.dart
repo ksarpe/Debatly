@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../providers/session_providers.dart';
 import '../screens/auth_screen.dart';
 
@@ -33,35 +34,34 @@ Future<bool> confirmGuestRestore(BuildContext context, WidgetRef ref) async {
       backgroundColor: context.colors.cardSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(
-        context.l10n.restoreSignInTitle,
-        style: TextStyle(
-          color: context.colors.ink,
-          fontSize: 19,
-          fontWeight: FontWeight.w700,
-        ),
+        context.l10n.restoreSignInTitle.toUpperCase(),
+        style: AppTypography.title(
+          fontSize: 30,
+        ).copyWith(color: context.colors.ink),
       ),
       content: Text(
         context.l10n.restoreSignInBody,
-        style: TextStyle(
-          color: context.colors.subtle,
+        style: AppTypography.body(
           height: 1.4,
-          fontSize: 14.5,
-        ),
+        ).copyWith(color: context.colors.subtle),
       ),
       actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          style: TextButton.styleFrom(foregroundColor: context.colors.subtle),
-          child: Text(context.l10n.restoreOnThisDevice),
+          style: TextButton.styleFrom(
+            foregroundColor: context.colors.subtle,
+            textStyle: AppTypography.action(),
+          ),
+          child: Text(context.l10n.restoreOnThisDevice.toUpperCase()),
         ),
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          style: TextButton.styleFrom(foregroundColor: AppTheme.spark),
-          child: Text(
-            context.l10n.signIn,
-            style: const TextStyle(fontWeight: FontWeight.w700),
+          style: TextButton.styleFrom(
+            foregroundColor: AppTheme.spark,
+            textStyle: AppTypography.action(),
           ),
+          child: Text(context.l10n.signIn.toUpperCase()),
         ),
       ],
     ),

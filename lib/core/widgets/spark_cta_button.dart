@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/app_typography.dart';
 
 /// The shared "premium" accent CTA: the spark gradient on a full stadium pill
 /// with the orange glow and a black label ([AppTheme.ctaGradient] /
@@ -19,7 +20,7 @@ class SparkCtaButton extends StatelessWidget {
     this.expand = false,
     this.onTap,
     this.padding = const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-    this.fontSize = 15,
+    this.fontSize = 14,
   });
 
   final String label;
@@ -64,13 +65,10 @@ class SparkCtaButton extends StatelessWidget {
             Icon(icon, color: AppTheme.ctaForeground, size: fontSize + 3),
           if (busy || icon != null) const SizedBox(width: 8),
           Text(
-            label,
-            style: TextStyle(
-              color: AppTheme.ctaForeground,
+            label.toUpperCase(),
+            style: AppTypography.action(
               fontSize: fontSize,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.3,
-            ),
+            ).copyWith(color: AppTheme.ctaForeground),
           ),
         ],
       );

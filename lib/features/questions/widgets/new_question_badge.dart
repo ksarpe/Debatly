@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// The small "NOWE" pill worn by a question added within the freshness window
 /// (see `newQuestionIdsProvider`).
@@ -32,12 +33,10 @@ class NewQuestionBadge extends StatelessWidget {
         ),
         child: Text(
           context.l10n.newQuestionBadge.toUpperCase(),
-          style: const TextStyle(
-            color: AppTheme.spark,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.2,
-          ),
+          style: AppTypography.eyebrow(
+            fontSize: 11,
+            tracking: 0.14,
+          ).copyWith(color: AppTheme.spark),
         ),
       ),
     );

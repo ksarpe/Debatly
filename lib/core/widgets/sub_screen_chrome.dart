@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/app_typography.dart';
 
 /// Soft radial glow bleeding down from the top of a sub-screen. Purely
 /// decorative; shared so every sub-screen (Favorites, Privacy, question
@@ -56,15 +57,10 @@ class SubScreenHeader extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(right: 44, top: 4),
           child: Text(
-            title,
+            title.toUpperCase(),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: AppTheme.spark,
-              fontSize: 23,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.2,
-            ),
+            style: AppTypography.title().copyWith(color: AppTheme.spark),
           ),
         ),
         Align(

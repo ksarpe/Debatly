@@ -5,6 +5,7 @@ import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/app_locale.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/widgets/sub_screen_chrome.dart';
 import '../../../l10n/gen/app_localizations.dart';
@@ -315,17 +316,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: context.colors.cardSurface,
-        title: Text(context.l10n.deleteAccountTitle),
-        content: Text(context.l10n.deleteAccountBody),
+        title: Text(
+          context.l10n.deleteAccountTitle.toUpperCase(),
+          style: AppTypography.title(
+            fontSize: 30,
+          ).copyWith(color: context.colors.ink),
+        ),
+        content: Text(
+          context.l10n.deleteAccountBody,
+          style: AppTypography.body().copyWith(color: context.colors.ink),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(context.l10n.cancel),
+            child: Text(
+              context.l10n.cancel.toUpperCase(),
+              style: AppTypography.action(),
+            ),
           ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: kDanger),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(context.l10n.deleteAccount),
+            child: Text(
+              context.l10n.deleteAccount.toUpperCase(),
+              style: AppTypography.action(),
+            ),
           ),
         ],
       ),
@@ -524,19 +539,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
                 child: Text(
-                  context.l10n.chooseLanguage,
-                  style: TextStyle(
-                    color: context.colors.ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  context.l10n.chooseLanguage.toUpperCase(),
+                  style: AppTypography.title(
+                    fontSize: 30,
+                  ).copyWith(color: context.colors.ink),
                 ),
               ),
               for (final locale in kSupportedLocales)
                 ListTile(
                   title: Text(
                     _languageName(locale.languageCode),
-                    style: TextStyle(color: context.colors.ink, fontSize: 15),
+                    style: AppTypography.body(
+                      fontSize: 15,
+                    ).copyWith(color: context.colors.ink),
                   ),
                   trailing: locale.languageCode == current.languageCode
                       ? const Icon(Icons.check_rounded, color: AppTheme.spark)
@@ -603,12 +618,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
                 child: Text(
-                  context.l10n.settingsChooseAppearance,
-                  style: TextStyle(
-                    color: context.colors.ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  context.l10n.settingsChooseAppearance.toUpperCase(),
+                  style: AppTypography.title(
+                    fontSize: 30,
+                  ).copyWith(color: context.colors.ink),
                 ),
               ),
               for (final mode in ThemeMode.values)
@@ -619,7 +632,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                   ),
                   title: Text(
                     _themeModeName(context, mode),
-                    style: TextStyle(color: context.colors.ink, fontSize: 15),
+                    style: AppTypography.body(
+                      fontSize: 15,
+                    ).copyWith(color: context.colors.ink),
                   ),
                   trailing: mode == current
                       ? const Icon(Icons.check_rounded, color: AppTheme.spark)

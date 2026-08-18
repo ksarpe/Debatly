@@ -29,8 +29,10 @@ import '../widgets/taste_vote_card.dart';
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key, required this.onFinish});
 
-  /// Invoked once the user is through onboarding — off the last card, or via
-  /// "Skip".
+  /// Invoked once the user is through onboarding — off the last card. There
+  /// is deliberately no "Skip" escape hatch: the deck is short, it ends in
+  /// the bridge (the conversion moment), and a hurried user can tap anywhere
+  /// to fast-forward the entrance animations instead (see [_fastForward]).
   final VoidCallback onFinish;
 
   @override
@@ -66,6 +68,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   /// a page as "reached" twice.
   final Set<String> _loggedSteps = {};
 
+  /// Bumped on every tap that lands on no control — the "hurry up" signal.
+  /// The animated cards listen and sprint their staggered entrances to the
+  /// resting frame, so an impatient user gets all the copy and buttons at
+  /// once instead of an exit; the deck itself is never skipped.
+  final ValueNotifier<int> _fastForward = ValueNotifier(0);
+
   @override
   void initState() {
     super.initState();
@@ -87,6 +95,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   void dispose() {
     _controller.dispose();
     _ctaEntrance.dispose();
+    _fastForward.dispose();
     super.dispose();
   }
 
@@ -117,12 +126,18 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  /// "Skip" leaves the tutorial immediately — the next screen is the home
-  /// gate (the feed with today's daily), and nothing in here is required to
-  /// use the app.
-  void _skip() {
-    Analytics.log('onboarding_skipped', {'from_page': _index});
-    _finish('skipped');
+  /// A tap that no button claimed: fast-forward whatever entrance is still
+  /// playing. The screen's own CTA fade sprints here; the cards pick the same
+  /// signal up off [_fastForward] and finish their staggers.
+  void _onFastForwardTap() {
+    if (!_ctaEntrance.isCompleted) {
+      _ctaEntrance.animateTo(
+        1,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    }
+    _fastForward.value++;
   }
 
   void _finish(String path) {
@@ -146,13 +161,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         title: l10n.onboardingWelcomeTitle,
         titlePunch: l10n.onboardingWelcomeTitlePunch,
         body: l10n.onboardingWelcomeBody,
+        fastForward: _fastForward,
       ),
     ];
 
     // The interactive "taste" vote sits among the intro pages. The user must vote
     // (or skip) to move on, so the split reveal — the payoff — isn't missed;
     // voting unveils its own "Continue".
-    final votePage = TasteVoteCard(onContinue: _next);
+    final votePage = TasteVoteCard(
+      onContinue: _next,
+      fastForward: _fastForward,
+    );
 
     // Having just lived the loop twice, the user gets the model explained on
     // the bridge: one free question a day forever, the whole catalog behind
@@ -176,82 +195,85 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     return Scaffold(
       backgroundColor: context.colors.background,
       body: SafeArea(
-        // Cap the content width and centre it so cards and buttons don't stretch
-        // edge-to-edge on tablets. Matches the auth sheet's 480 cap; a no-op on
-        // phones, which are narrower.
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Column(
-              children: [
-                // Top bar: a quiet "Skip" that leaves the tutorial.
-                SizedBox(
-                  height: 48,
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: _skip,
-                      style: TextButton.styleFrom(
-                        foregroundColor: context.colors.subtle,
-                      ),
-                      child: Text(l10n.onboardingSkip),
+        // Any tap that no button/PageView gesture claims is the "hurry up"
+        // signal (opaque, so it also catches taps on the empty margins).
+        // Buttons keep winning their own taps in the gesture arena, so this
+        // never steals a real press.
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _onFastForwardTap,
+          // Cap the content width and centre it so cards and buttons don't
+          // stretch edge-to-edge on tablets. Matches the auth sheet's 480 cap;
+          // a no-op on phones, which are narrower.
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Column(
+                children: [
+                  // Breathing room where the old "Skip" bar sat — the deck has
+                  // no exit shortcut anymore; tap-to-fast-forward covers the
+                  // impatient path.
+                  const SizedBox(height: 48),
+                  Expanded(
+                    child: PageView(
+                      controller: _controller,
+                      onPageChanged: _onPageChanged,
+                      // From the taste-vote page onward the deck is one-way and
+                      // button-driven: swiping is disabled on the vote page (a
+                      // gate, not a slide) AND on the bridge/notifications pages
+                      // — swiping back from there would rebuild the taste card
+                      // and restart the whole two-question loop. Each of those
+                      // pages carries its own "Continue", so swipe is only ever
+                      // needed on the intro card(s) before the vote.
+                      physics: _index >= _votePageIndex
+                          ? const NeverScrollableScrollPhysics()
+                          : null,
+                      children: [
+                        ...introCards,
+                        votePage,
+                        bridgePage,
+                        notifyPage,
+                      ],
                     ),
                   ),
-                ),
-                Expanded(
-                  child: PageView(
-                    controller: _controller,
-                    onPageChanged: _onPageChanged,
-                    // From the taste-vote page onward the deck is one-way and
-                    // button-driven: swiping is disabled on the vote page (a
-                    // gate, not a slide) AND on the bridge/notifications pages
-                    // — swiping back from there would rebuild the taste card
-                    // and restart the whole two-question loop. Each of those
-                    // pages carries its own "Continue", so swipe is only ever
-                    // needed on the intro card(s) before the vote.
-                    physics: _index >= _votePageIndex
-                        ? const NeverScrollableScrollPhysics()
-                        : null,
-                    children: [...introCards, votePage, bridgePage, notifyPage],
-                  ),
-                ),
-                // Progress dots + the "Let's begin" CTA on the pages that are pure
-                // copy (the welcome card); the taste-vote page (its
-                // "Continue" revealed after voting), the bridge (its own two
-                // CTAs) and the notifications page carry their own buttons.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
-                  child: Column(
-                    children: [
-                      OnboardingDots(count: pageCount, index: _index),
-                      const SizedBox(height: 20),
-                      AnimatedSize(
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeOut,
-                        child:
-                            (_index == _votePageIndex ||
-                                _index == _bridgePageIndex ||
-                                _index == _notifyPageIndex)
-                            ? const SizedBox(width: double.infinity)
-                            : AnimatedBuilder(
-                                animation: _ctaIn,
-                                builder: (context, child) => IgnorePointer(
-                                  ignoring: _ctaIn.value == 0,
-                                  child: Opacity(
-                                    opacity: _ctaIn.value,
-                                    child: child,
+                  // Progress dots + the "Let's begin" CTA on the pages that are pure
+                  // copy (the welcome card); the taste-vote page (its
+                  // "Continue" revealed after voting), the bridge (its own two
+                  // CTAs) and the notifications page carry their own buttons.
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+                    child: Column(
+                      children: [
+                        OnboardingDots(count: pageCount, index: _index),
+                        const SizedBox(height: 20),
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOut,
+                          child:
+                              (_index == _votePageIndex ||
+                                  _index == _bridgePageIndex ||
+                                  _index == _notifyPageIndex)
+                              ? const SizedBox(width: double.infinity)
+                              : AnimatedBuilder(
+                                  animation: _ctaIn,
+                                  builder: (context, child) => IgnorePointer(
+                                    ignoring: _ctaIn.value == 0,
+                                    child: Opacity(
+                                      opacity: _ctaIn.value,
+                                      child: child,
+                                    ),
+                                  ),
+                                  child: OnboardingPrimaryButton(
+                                    label: l10n.onboardingBegin,
+                                    onPressed: _next,
                                   ),
                                 ),
-                                child: OnboardingPrimaryButton(
-                                  label: l10n.onboardingBegin,
-                                  onPressed: _next,
-                                ),
-                              ),
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

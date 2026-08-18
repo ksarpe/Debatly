@@ -2,7 +2,7 @@ name: debatly
 description: "A minimalist app that sparks conversation with one thought-provoking question at a time."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.14.0
+version: 1.15.0
 
 environment:
   sdk: ^3.12.1
@@ -98,7 +98,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -115,10 +114,33 @@ flutter:
   assets:
     - assets/images/
 
+  # Brand typography (static files, latin + latin-ext subsets — Polish
+  # diacritics render with no fallback):
+  #   BarlowCondensed 600/700/800 — headlines and numerals, UPPERCASE only.
+  #   Manrope 400–800 — body copy, labels and every other piece of UI text
+  #   (also the ThemeData default family).
+  # The roles/sizes live in lib/core/theme/app_typography.dart.
   fonts:
-    - family: Anton
+    - family: BarlowCondensed
       fonts:
-        - asset: assets/fonts/Anton-Regular.ttf
+        - asset: assets/fonts/BarlowCondensed-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/BarlowCondensed-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/BarlowCondensed-ExtraBold.ttf
+          weight: 800
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Manrope-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Manrope-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Manrope-ExtraBold.ttf
+          weight: 800
 
   # To add assets to your application, add an assets section, like this:
   # assets:

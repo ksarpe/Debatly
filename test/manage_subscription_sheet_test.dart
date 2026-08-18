@@ -54,7 +54,7 @@ void main() {
     expect(find.textContaining('Odnowi się'), findsOneWidget);
     expect(find.text('Rozliczane przez Google Play'), findsOneWidget);
     expect(find.textContaining('subskrypcją zarządza Google'), findsOneWidget);
-    expect(find.text('Zarządzaj w Google Play'), findsOneWidget);
+    expect(find.text('ZARZĄDZAJ W GOOGLE PLAY'), findsOneWidget);
   });
 
   testWidgets('App Store: the Apple wording throughout', (tester) async {
@@ -62,7 +62,7 @@ void main() {
 
     expect(find.text('Rozliczane przez App Store'), findsOneWidget);
     expect(find.textContaining('subskrypcją zarządza Apple'), findsOneWidget);
-    expect(find.text('Zarządzaj w App Store'), findsOneWidget);
+    expect(find.text('ZARZĄDZAJ W APP STORE'), findsOneWidget);
   });
 
   testWidgets('web billing gets the generic wording', (tester) async {
@@ -70,7 +70,7 @@ void main() {
 
     expect(find.text('Rozliczane online'), findsOneWidget);
     // The generic button label equals the sheet title, so two occurrences.
-    expect(find.text('Zarządzaj subskrypcją'), findsNWidgets(2));
+    expect(find.text('ZARZĄDZAJ SUBSKRYPCJĄ'), findsNWidgets(2));
   });
 
   testWidgets('promotional/other billing shares the generic wording', (
@@ -79,7 +79,7 @@ void main() {
     await pumpSheet(tester, status: status(store: PremiumStore.other));
 
     expect(find.text('Rozliczane online'), findsOneWidget);
-    expect(find.text('Zarządzaj subskrypcją'), findsNWidgets(2));
+    expect(find.text('ZARZĄDZAJ SUBSKRYPCJĄ'), findsNWidgets(2));
   });
 
   testWidgets(
@@ -109,13 +109,13 @@ void main() {
       expect(find.text('Anulowano — nie odnowi się'), findsNothing);
       // There is no subscription to manage, so the store deep link — which
       // RevenueCat gives no URL for here anyway — goes away with it.
-      expect(find.text('Zarządzaj w Google Play'), findsNothing);
+      expect(find.text('ZARZĄDZAJ W GOOGLE PLAY'), findsNothing);
       expect(find.textContaining('subskrypcją zarządza Google'), findsNothing);
       expect(find.textContaining('jednorazowy zakup'), findsOneWidget);
       // ...which leaves the close action as the sheet's only button, so it
       // stops reading as "Later, I'll deal with this".
-      expect(find.text('Zamknij'), findsOneWidget);
-      expect(find.text('Później'), findsNothing);
+      expect(find.text('ZAMKNIJ'), findsOneWidget);
+      expect(find.text('PÓŹNIEJ'), findsNothing);
     },
   );
 
@@ -128,14 +128,14 @@ void main() {
       // of silently doing nothing or closing the sheet.
       await pumpSheet(tester, status: status(managementUrl: null));
 
-      await tester.tap(find.text('Zarządzaj w Google Play'));
+      await tester.tap(find.text('ZARZĄDZAJ W GOOGLE PLAY'));
       await tester.pumpAndSettle();
 
       expect(
         find.textContaining('Nie udało się otworzyć Google Play'),
         findsOneWidget,
       );
-      expect(find.text('Zarządzaj w Google Play'), findsOneWidget);
+      expect(find.text('ZARZĄDZAJ W GOOGLE PLAY'), findsOneWidget);
     },
   );
 }

@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/share/widget_to_image.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/spark_cta_button.dart';
 import '../../../data/models/rank.dart';
 import '../../../data/models/user_stats.dart';
@@ -217,26 +218,20 @@ class _RankUpViewState extends State<_RankUpView>
                           ),
                           const SizedBox(height: 28),
                           Text(
-                            l10n.rankUpEyebrow,
+                            l10n.rankUpEyebrow.toUpperCase(),
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: AppTheme.spark,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 3,
-                            ),
+                            style: AppTypography.eyebrow(
+                              fontSize: 11,
+                              tracking: 0.2,
+                            ).copyWith(color: AppTheme.spark),
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            widget.rank.nameFor(_lang),
+                            widget.rank.nameFor(_lang).toUpperCase(),
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontFamily: 'Anton',
-                              fontSize: 40,
-                              height: 1.05,
-                              letterSpacing: 0.5,
-                              color: Colors.white,
-                            ),
+                            style: AppTypography.display(
+                              44,
+                            ).copyWith(color: Colors.white),
                           ),
                           const SizedBox(height: 18),
                           _StreakChip(
@@ -251,11 +246,8 @@ class _RankUpViewState extends State<_RankUpView>
                               foregroundColor: Colors.white70,
                             ),
                             child: Text(
-                              l10n.rankUpDismiss,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              l10n.rankUpDismiss.toUpperCase(),
+                              style: AppTypography.action(fontSize: 13),
                             ),
                           ),
                         ],
@@ -347,11 +339,9 @@ class _StreakChip extends StatelessWidget {
           const SizedBox(width: 7),
           Text(
             text,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.92),
+            style: AppTypography.body(
               fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
+            ).copyWith(color: Colors.white.withValues(alpha: 0.92)),
           ),
         ],
       ),

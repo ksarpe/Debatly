@@ -91,7 +91,8 @@ void main() {
       tester,
     ) async {
       final repo = await pumpOpener(tester);
-      expect(find.text('Zaproponuj pytanie'), findsOneWidget);
+      // The sheet title is a TITLE, rendered uppercase.
+      expect(find.text('ZAPROPONUJ PYTANIE'), findsOneWidget);
 
       // Below the RPC's minimum the button must not be tappable — the server
       // TOO_SHORT error is a backstop, not the UX.
@@ -107,7 +108,7 @@ void main() {
         '  Czy pies to lepszy współlokator niż kot?  ',
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Wyślij propozycję'));
+      await tester.tap(find.text('WYŚLIJ PROPOZYCJĘ'));
       await tester.pumpAndSettle();
 
       expect(repo.submitted, ['Czy pies to lepszy współlokator niż kot?']);
@@ -130,7 +131,7 @@ void main() {
         'Czy sąsiad może grillować na balkonie?',
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Wyślij propozycję'));
+      await tester.tap(find.text('WYŚLIJ PROPOZYCJĘ'));
       await tester.pumpAndSettle();
 
       // Still open — the text isn't lost — and the cap line explains why.
@@ -196,7 +197,8 @@ void main() {
       expect(results, [false, true]);
       expect(find.text(nudge), findsOneWidget);
 
-      await tester.tap(find.text('Zaproponuj'));
+      // The toast's action label renders uppercase, like every ACTION.
+      await tester.tap(find.text('ZAPROPONUJ'));
       await tester.pumpAndSettle();
       expect(find.byType(SuggestQuestionSheet), findsOneWidget);
 

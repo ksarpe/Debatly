@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../data/models/conformity_stats.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../../services/analytics.dart';
@@ -114,10 +115,9 @@ class ConformityPanel extends ConsumerWidget {
                     child: Text(
                       l10n.conformityLoadError,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: context.colors.subtle,
+                      style: AppTypography.body(
                         fontSize: 14,
-                      ),
+                      ).copyWith(color: context.colors.subtle),
                     ),
                   ),
                 ),
@@ -148,23 +148,19 @@ class _ConformityView extends StatelessWidget {
         Row(
           children: [
             Text(
-              l10n.conformityTitle,
-              style: TextStyle(
-                color: context.colors.subtle,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 2,
-              ),
+              l10n.conformityTitle.toUpperCase(),
+              style: AppTypography.eyebrow(
+                fontSize: 11,
+                tracking: 0.18,
+              ).copyWith(color: context.colors.subtle),
             ),
             const Spacer(),
             if (stats.hasData)
               Text(
                 l10n.conformityPctLine(stats.majorityPct),
-                style: TextStyle(
-                  color: context.colors.subtle,
+                style: AppTypography.support(
                   fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                ),
+                ).copyWith(color: context.colors.subtle),
               ),
           ],
         ),
@@ -174,11 +170,10 @@ class _ConformityView extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
               l10n.conformityEmpty,
-              style: TextStyle(
-                color: context.colors.subtle,
+              style: AppTypography.body(
                 fontSize: 14,
                 height: 1.4,
-              ),
+              ).copyWith(color: context.colors.subtle),
             ),
           )
         else ...[
@@ -220,18 +215,15 @@ class _ConformityView extends StatelessWidget {
                     l10n.conformityNextTierLabel(
                       conformityTierName(l10n, next),
                     ),
-                    style: TextStyle(
-                      color: context.colors.ink,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: AppTypography.body(
+                      fontSize: 14,
+                    ).copyWith(color: context.colors.ink),
                   ),
                   const SizedBox(height: 3),
                   Text(
                     l10n.conformityVotesNeeded(votesNeeded),
-                    style: TextStyle(
+                    style: AppTypography.support().copyWith(
                       color: context.colors.subtle,
-                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -240,11 +232,7 @@ class _ConformityView extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               '+$deltaPct%',
-              style: const TextStyle(
-                color: AppTheme.spark,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
+              style: AppTypography.numeric(20).copyWith(color: AppTheme.spark),
             ),
           ],
         ),
@@ -282,12 +270,10 @@ class _TierBadgeRow extends StatelessWidget {
                         child: Text(
                           conformityTierName(l10n, tier).toUpperCase(),
                           maxLines: 1,
-                          style: const TextStyle(
-                            color: AppTheme.ctaForeground,
+                          style: AppTypography.eyebrow(
                             fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
-                          ),
+                            tracking: 0.12,
+                          ).copyWith(color: AppTheme.ctaForeground),
                         ),
                       ),
                     ),
@@ -367,18 +353,22 @@ class _TierLabelRow extends StatelessWidget {
       children: [
         for (final tier in ConformityTier.values)
           Expanded(
-            child: Text(
-              conformityTierName(l10n, tier).toUpperCase(),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              style: TextStyle(
-                color: tier.index == activeIndex
-                    ? AppTheme.spark
-                    : context.colors.subtle,
-                fontSize: 9,
-                height: 1.25,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
+            // FittedBox: the widest names ("NIEZALEŻNY") would overrun their
+            // fifth of the axis at the eyebrow's tracked 10px — shrink-to-fit
+            // beats a mid-word break.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                conformityTierName(l10n, tier).toUpperCase(),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                style: AppTypography.eyebrow(fontSize: 10, tracking: 0.12)
+                    .copyWith(
+                      height: 1.25,
+                      color: tier.index == activeIndex
+                          ? AppTheme.spark
+                          : context.colors.subtle,
+                    ),
               ),
             ),
           ),

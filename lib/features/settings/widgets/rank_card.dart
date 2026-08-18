@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../account/providers/stats_providers.dart';
 import '../../questions/widgets/rank_sheet.dart';
 import 'stat_card_shell.dart';
@@ -46,13 +47,10 @@ class RankCard extends ConsumerWidget {
           _RankName(rankName),
           const SizedBox(height: 4),
           Text(
-            context.l10n.rankLabel,
-            style: TextStyle(
-              color: context.colors.subtle,
+            context.l10n.rankLabel.toUpperCase(),
+            style: AppTypography.eyebrow(
               fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1,
-            ),
+            ).copyWith(color: context.colors.subtle),
           ),
           const SizedBox(height: 12),
           ClipRRect(
@@ -67,7 +65,9 @@ class RankCard extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: TextStyle(color: context.colors.subtle, fontSize: 11),
+            style: AppTypography.support(
+              fontSize: 11,
+            ).copyWith(color: context.colors.subtle),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
@@ -98,15 +98,12 @@ class _TapHint extends StatelessWidget {
         children: [
           Flexible(
             child: Text(
-              context.l10n.rankCardTapHint,
+              context.l10n.rankCardTapHint.toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppTheme.spark,
+              style: AppTypography.eyebrow(
                 fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.8,
-              ),
+              ).copyWith(color: AppTheme.spark),
             ),
           ),
           const Icon(
@@ -122,10 +119,11 @@ class _TapHint extends StatelessWidget {
 
 /// The rank name, shrunk to fit at most two lines of this half-width card.
 ///
-/// Names come from the `ranks` table and vary a lot in length — at a fixed 16px
-/// the longest ones ("AMATOR KONTROWERSJI") broke onto a third line with a
-/// dangling syllable. Rather than truncate a name the user just earned, step the
-/// type down until it fits.
+/// Names come from the `ranks` table and vary a lot in length — the longest
+/// ones ("AMATOR KONTROWERSJI") broke onto a third line with a dangling
+/// syllable at a fixed size. Rather than truncate a name the user just earned,
+/// step the type down until it fits — from the TITLE size (30) to Barlow's
+/// floor (20; below that the condensed caps stop reading as a headline).
 ///
 /// Implemented as a render object (not a [LayoutBuilder]) because the stats row
 /// sits inside an [IntrinsicHeight]: intrinsic sizing must be answerable, and a
@@ -161,8 +159,8 @@ class _RenderRankName extends RenderBox {
     this._textDirection,
   );
 
-  static const double _maxFontSize = 16;
-  static const double _minFontSize = 11;
+  static const double _maxFontSize = 30;
+  static const double _minFontSize = 20;
   static const double _step = 0.5;
   static const int _maxLines = 2;
 
@@ -197,13 +195,8 @@ class _RenderRankName extends RenderBox {
   /// Painter kept from [performLayout] so [paint] draws the exact laid-out text.
   TextPainter? _painter;
 
-  static TextStyle _styleFor(double fontSize) => TextStyle(
-    color: AppTheme.spark,
-    fontSize: fontSize,
-    fontWeight: FontWeight.w800,
-    letterSpacing: 0.4,
-    height: 1.15,
-  );
+  static TextStyle _styleFor(double fontSize) =>
+      AppTypography.title(fontSize: fontSize).copyWith(color: AppTheme.spark);
 
   TextPainter _layoutPainter(double fontSize, double maxWidth) => TextPainter(
     text: TextSpan(text: _name, style: _baseStyle.merge(_styleFor(fontSize))),

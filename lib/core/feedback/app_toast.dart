@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/app_typography.dart';
 
 /// The visual flavour of a toast — drives its accent colour and default icon.
 enum ToastType { success, error, info }
@@ -395,12 +396,10 @@ class _ToastSurface extends StatelessWidget {
             Expanded(
               child: Text(
                 data.message,
-                style: TextStyle(
-                  color: colors.ink,
+                style: AppTypography.body(
                   fontSize: 14,
                   height: 1.3,
-                  fontWeight: FontWeight.w600,
-                ),
+                ).copyWith(color: colors.ink),
               ),
             ),
             if (data.action case final action?) ...[
@@ -414,11 +413,8 @@ class _ToastSurface extends StatelessWidget {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Text(
-                  action.label,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  action.label.toUpperCase(),
+                  style: AppTypography.action(fontSize: 12.5),
                 ),
               ),
             ],

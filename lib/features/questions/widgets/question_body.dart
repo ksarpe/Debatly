@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/fit_or_scroll.dart';
 import '../../account/providers/session_providers.dart';
 import '../../monetization/widgets/day_wall_view.dart';
@@ -318,7 +319,9 @@ class _BottomOverlay extends StatelessWidget {
               Text(
                 context.l10n.swipeHint,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: context.colors.subtle, fontSize: 13),
+                style: AppTypography.support(
+                  fontSize: 13,
+                ).copyWith(color: context.colors.subtle),
               ),
               const SizedBox(height: 14),
               // The action bar: "go deeper" carries the middle of the row
@@ -395,13 +398,11 @@ class _FeedLinkButton extends StatelessWidget {
       icon: Icon(icon, size: 18, color: context.colors.subtle),
       iconAlignment: iconAfterLabel ? IconAlignment.end : IconAlignment.start,
       label: Text(
-        label,
+        label.toUpperCase(),
         textAlign: TextAlign.center,
-        style: TextStyle(
-          color: context.colors.subtle,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
+        style: AppTypography.action(
+          fontSize: 13,
+        ).copyWith(color: context.colors.subtle),
       ),
       style: TextButton.styleFrom(
         foregroundColor: context.colors.subtle,

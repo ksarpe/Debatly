@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// The app's logo, shown on the launch splash and the onboarding welcome. It
 /// plays a soft fade + scale entrance on mount.
@@ -113,12 +114,9 @@ class _SparkLogoState extends State<SparkLogo> with TickerProviderStateMixin {
         ),
         SizedBox(width: widget.size * 0.06),
         Text(
-          'Debatly',
-          style: TextStyle(
-            fontFamily: 'Anton',
-            fontSize: widget.size,
+          'DEBATLY',
+          style: AppTypography.display(widget.size).copyWith(
             color: context.colors.ink,
-            letterSpacing: 1,
             height: 1,
             shadows: [
               Shadow(

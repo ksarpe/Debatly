@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// The glowing "wejdz glebiej" pill. Tapping it opens the "Smaczki" panel from
 /// the bottom. Every few seconds it plays a short nudge — alternating between
@@ -113,14 +114,11 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      context.l10n.goDeeper,
+      context.l10n.goDeeper.toUpperCase(),
       textAlign: TextAlign.center,
-      style: const TextStyle(
-        color: AppTheme.ctaForeground,
+      style: AppTypography.action(
         fontSize: 13,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.1,
-      ),
+      ).copyWith(color: AppTheme.ctaForeground),
     );
   }
 }

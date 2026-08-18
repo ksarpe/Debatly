@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import 'styled_question_text.dart';
 
 /// A self-contained, share-ready poster of a single question: the Debatly
@@ -175,14 +176,10 @@ class _Wordmark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      'Debatly',
-      style: TextStyle(
-        fontFamily: 'Anton',
-        fontSize: fontSize,
-        height: 1,
-        letterSpacing: 1,
-        color: Colors.white,
-      ),
+      'DEBATLY',
+      style: AppTypography.display(
+        fontSize,
+      ).copyWith(height: 1, color: Colors.white),
     );
   }
 }
@@ -213,26 +210,19 @@ class _BrandFooter extends StatelessWidget {
         Text(
           hook.toUpperCase(),
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'Roboto',
-            color: QuestionShareCard._taglineInk,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
-            height: 1.3,
-          ),
+          style: AppTypography.eyebrow(
+            fontSize: 11,
+          ).copyWith(color: QuestionShareCard._taglineInk, height: 1.3),
         ),
         const SizedBox(height: 8),
-        const Text(
-          'debatly.app',
+        // The URL rides in the condensed display face, so it goes uppercase —
+        // Barlow is never set in lowercase.
+        Text(
+          'DEBATLY.APP',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Anton',
-            color: AppTheme.spark,
+          style: AppTypography.title(
             fontSize: 22,
-            letterSpacing: 0.5,
-            height: 1,
-          ),
+          ).copyWith(color: AppTheme.spark, height: 1),
         ),
       ],
     );

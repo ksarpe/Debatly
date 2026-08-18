@@ -4,6 +4,7 @@ import 'package:purchases_flutter/purchases_flutter.dart'
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// A selectable plan card in the stacked plan list. Every plan gets the same
 /// tall treatment — uppercase label, big price, plus an optional quiet
@@ -70,33 +71,24 @@ class PaywallPlanCard extends StatelessWidget {
             children: [
               Text(
                 _label(context).toUpperCase(),
-                style: const TextStyle(
-                  color: AppTheme.spark,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.4,
-                ),
+                style: AppTypography.eyebrow(
+                  fontSize: 11,
+                ).copyWith(color: AppTheme.spark),
               ),
               const SizedBox(height: 6),
               Text(
-                price,
-                style: TextStyle(
-                  color: colors.ink,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  height: 1.1,
-                ),
+                // NUMERIC is Barlow, so the unit rides along uppercase
+                // ("19,99 ZŁ", "/MIES.").
+                price.toUpperCase(),
+                style: AppTypography.numeric(28).copyWith(color: colors.ink),
               ),
               if (subline != null) ...[
                 const SizedBox(height: 4),
                 Text(
                   subline!,
-                  style: TextStyle(
-                    color: colors.subtle,
+                  style: AppTypography.support(
                     fontSize: 12.5,
-                    height: 1.3,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  ).copyWith(color: colors.subtle),
                 ),
               ],
             ],

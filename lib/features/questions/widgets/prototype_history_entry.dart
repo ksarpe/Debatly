@@ -25,6 +25,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/sub_screen_chrome.dart';
 import '../../../data/models/vote_history_entry.dart';
 import '../../../data/models/vote_result.dart';
@@ -79,14 +80,16 @@ class PrototypeHistoryEntry extends ConsumerWidget {
             children: [
               Flexible(
                 child: Text(
-                  _t(context, 'Zobacz swoją historię', 'See your history'),
+                  _t(
+                    context,
+                    'Zobacz swoją historię',
+                    'See your history',
+                  ).toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: context.colors.ink,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppTypography.action(
+                    fontSize: 13,
+                  ).copyWith(color: context.colors.ink),
                 ),
               ),
               if (!isPremium) ...[
@@ -166,7 +169,9 @@ class _PrototypeGatedHistory extends ConsumerWidget {
                           child: Center(
                             child: Text(
                               context.l10n.historyLoadError,
-                              style: TextStyle(color: context.colors.subtle),
+                              style: AppTypography.body(
+                                fontSize: 14,
+                              ).copyWith(color: context.colors.subtle),
                             ),
                           ),
                         ),
@@ -206,12 +211,9 @@ class _GatedBody extends StatelessWidget {
       children: [
         Text(
           _t(context, 'TWÓJ OSTATNI GŁOS', 'YOUR LATEST VOTE'),
-          style: TextStyle(
-            color: context.colors.subtle,
+          style: AppTypography.eyebrow(
             fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.2,
-          ),
+          ).copyWith(color: context.colors.subtle),
         ),
         const SizedBox(height: 10),
         _ProtoRow(entry: newest, lang: lang),
@@ -270,13 +272,15 @@ class _LockedStack extends ConsumerWidget {
               Icon(Icons.lock_rounded, size: 56, color: context.colors.ink),
               const SizedBox(height: 14),
               Text(
-                _t(context, 'Zobacz pełną historię', 'See your full history'),
+                _t(
+                  context,
+                  'Zobacz pełną historię',
+                  'See your full history',
+                ).toUpperCase(),
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: context.colors.ink,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: AppTypography.title(
+                  fontSize: 30,
+                ).copyWith(color: context.colors.ink),
               ),
               const SizedBox(height: 6),
               Text(
@@ -286,11 +290,10 @@ class _LockedStack extends ConsumerWidget {
                   'Every question you vote on\nstays here forever — with PRO.',
                 ),
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: context.colors.subtle,
+                style: AppTypography.support(
                   fontSize: 13,
                   height: 1.4,
-                ),
+                ).copyWith(color: context.colors.subtle),
               ),
               const SizedBox(height: 18),
               DecoratedBox(
@@ -305,12 +308,10 @@ class _LockedStack extends ConsumerWidget {
                     vertical: 12,
                   ),
                   child: Text(
-                    context.l10n.goPro,
-                    style: const TextStyle(
-                      color: AppTheme.ctaForeground,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    context.l10n.goPro.toUpperCase(),
+                    style: AppTypography.action(
+                      fontSize: 14,
+                    ).copyWith(color: AppTheme.ctaForeground),
                   ),
                 ),
               ),
@@ -346,10 +347,8 @@ class _ProtoRow extends StatelessWidget {
         children: [
           Text(
             '${d.day}.${d.month.toString().padLeft(2, '0')}.${d.year}',
-            style: TextStyle(
+            style: AppTypography.support().copyWith(
               color: context.colors.subtle,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 8),
@@ -357,23 +356,20 @@ class _ProtoRow extends StatelessWidget {
             entry.questionText,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: context.colors.ink,
+            style: AppTypography.body(
               fontSize: 14.5,
-              height: 1.3,
-              fontWeight: FontWeight.w600,
-            ),
+              height: 1.32,
+            ).copyWith(color: context.colors.ink),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
               Text(
-                '${context.l10n.voteYes} ${entry.votes.yesPct}%',
-                style: TextStyle(
-                  color: AppTheme.yes,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
+                '${context.l10n.voteYes.toUpperCase()} ${entry.votes.yesPct}%',
+                style: AppTypography.eyebrow(
+                  fontSize: 11,
+                  tracking: 0.12,
+                ).copyWith(color: AppTheme.yes),
               ),
               if (mineYes)
                 const Padding(
@@ -395,12 +391,11 @@ class _ProtoRow extends StatelessWidget {
                   ),
                 ),
               Text(
-                '${entry.votes.noPct}% ${context.l10n.voteNo}',
-                style: TextStyle(
-                  color: AppTheme.no,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
+                '${entry.votes.noPct}% ${context.l10n.voteNo.toUpperCase()}',
+                style: AppTypography.eyebrow(
+                  fontSize: 11,
+                  tracking: 0.12,
+                ).copyWith(color: AppTheme.no),
               ),
             ],
           ),

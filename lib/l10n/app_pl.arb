@@ -46,6 +46,17 @@
   "authPasswordResetSent": "Jeśli istnieje konto dla tego adresu, wysłaliśmy link do resetu hasła.",
   "authMissingSupabaseConfig": "Brakuje konfiguracji Supabase. Uruchom aplikację z SUPABASE_URL i SUPABASE_ANON_KEY.",
   "authMissingGoogleConfig": "Brakuje GOOGLE_SERVER_CLIENT_ID, więc Google jest chwilowo wyłączone.",
+  "authAlreadySignedIn": "Twoje konto jest już założone i zalogowane — nie musisz rejestrować się ponownie.",
+  "authRegisteredPendingConfirm": "Konto jest już zarejestrowane na adres {email}. Kliknij link z maila, aby je potwierdzić.",
+  "@authRegisteredPendingConfirm": {
+    "placeholders": { "email": { "type": "String" } }
+  },
+  "authErrorInvalidCredentials": "Nieprawidłowy email lub hasło.",
+  "authErrorEmailNotConfirmed": "Najpierw potwierdź email — sprawdź skrzynkę.",
+  "authErrorEmailExists": "Konto z tym adresem już istnieje. Zaloguj się.",
+  "authErrorSamePassword": "To hasło jest już ustawione na Twoim koncie.",
+  "authErrorWeakPassword": "Hasło jest zbyt słabe. Użyj dłuższego.",
+  "authErrorTooManyRequests": "Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.",
 
   "settingsSectionApp": "USTAWIENIA APLIKACJI",
   "settingsSectionAccount": "KONTO",
@@ -312,7 +323,6 @@
     }
   },
 
-  "onboardingSkip": "Pomiń",
   "onboardingBegin": "Zaczynajmy",
   "onboardingWelcomeTitle": "Myślisz, że znasz się na ludziach?",
   "onboardingWelcomeTitlePunch": "A siebie jak dobrze znasz?",

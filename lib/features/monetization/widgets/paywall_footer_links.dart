@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// Sign-in + restore + legal links, one quiet row under the CTA in the sticky
 /// bar. Restore lives ON the paywall because it's the only restore path a
@@ -31,7 +32,7 @@ class PaywallFooterLinks extends StatelessWidget {
     final l10n = context.l10n;
     final style = TextButton.styleFrom(
       foregroundColor: context.colors.subtle,
-      textStyle: const TextStyle(fontSize: 12.5),
+      textStyle: AppTypography.support(fontSize: 12.5),
       minimumSize: const Size(0, 36),
       padding: const EdgeInsets.symmetric(horizontal: 10),
     );

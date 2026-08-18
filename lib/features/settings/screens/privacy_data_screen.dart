@@ -5,6 +5,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/sub_screen_chrome.dart';
 import '../widgets/settings_nav_row.dart';
 import '../widgets/settings_primitives.dart';
@@ -108,11 +109,10 @@ class PrivacyDataScreen extends StatelessWidget {
                         padding: const EdgeInsets.fromLTRB(4, 0, 4, 14),
                         child: Text(
                           l10n.privacyDataIntro,
-                          style: TextStyle(
-                            color: context.colors.subtle,
-                            fontSize: 13.5,
+                          style: AppTypography.support(
+                            fontSize: 13,
                             height: 1.4,
-                          ),
+                          ).copyWith(color: context.colors.subtle),
                         ),
                       ),
                       SettingsCard(
@@ -197,20 +197,17 @@ class _PrivacyDataRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    color: context.colors.ink,
+                  style: AppTypography.body(
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  ).copyWith(color: context.colors.ink),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   body,
-                  style: TextStyle(
-                    color: context.colors.subtle,
+                  style: AppTypography.support(
                     fontSize: 13,
                     height: 1.4,
-                  ),
+                  ).copyWith(color: context.colors.subtle),
                 ),
               ],
             ),

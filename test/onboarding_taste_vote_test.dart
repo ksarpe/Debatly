@@ -71,7 +71,9 @@ void main() {
     for (var i = 0; i < 4; i++) {
       await tester.pump(const Duration(milliseconds: 1000));
     }
-    await tester.tap(find.text('Zaczynajmy')); // welcome → taste vote
+    // The ACTION buttons render uppercased in the widgets, so every button
+    // finder below matches the on-screen casing.
+    await tester.tap(find.text('ZACZYNAJMY')); // welcome → taste vote
     await settlePage(tester);
   }
 
@@ -87,7 +89,7 @@ void main() {
     await settleArguments(tester);
     await tapText(
       tester,
-      changeMind ? 'Zmieniam zdanie' : 'Zostaję przy swoim',
+      changeMind ? 'ZMIENIAM ZDANIE' : 'ZOSTAJĘ PRZY SWOIM',
     );
     await settlePage(tester);
   }
@@ -96,15 +98,15 @@ void main() {
   // interlude, which auto-advances into round two's question after two
   // seconds.
   Future<void> passInterlude(WidgetTester tester) async {
-    await tapText(tester, 'Zobaczmy kolejne');
+    await tapText(tester, 'ZOBACZMY KOLEJNE');
     await settlePage(tester);
-    expect(find.text('Spróbujmy z kolejnym…'), findsOneWidget);
+    expect(find.text('SPRÓBUJMY Z KOLEJNYM…'), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
     await settlePage(tester);
   }
 
   testWidgets('the taste-vote page cannot be swiped away — the deck only '
-      'moves via the vote loop (or "Skip")', (tester) async {
+      'moves via the vote loop', (tester) async {
     await pumpOnboarding(tester);
     await reachVotePage(tester);
     expect(find.text('TWÓJ RUCH'), findsOneWidget);
@@ -136,18 +138,39 @@ void main() {
     await settleArguments(tester);
 
     // No reveal yet — the takeover replaces the question entirely: just "Ale
-    // chwila…" and four arguments AGAINST the TAK just cast, closed by the
-    // stance pair instead of a re-vote button.
+    // chwila…" (a TITLE, rendered uppercase) and four arguments AGAINST the
+    // TAK just cast, closed by the stance pair instead of a re-vote button.
     expect(find.textContaining('%'), findsNothing);
     expect(find.text('TWÓJ RUCH'), findsNothing);
-    expect(find.text('Ale chwila…'), findsOneWidget);
+    expect(find.text('ALE CHWILA…'), findsOneWidget);
     expect(find.textContaining('centymetry'), findsOneWidget);
     expect(find.textContaining('Wysoki'), findsOneWidget);
     expect(find.textContaining('Bramka'), findsOneWidget);
     expect(find.textContaining('chorobę'), findsOneWidget);
-    expect(find.text('Zmieniam zdanie'), findsOneWidget);
-    expect(find.text('Zostaję przy swoim'), findsOneWidget);
-    expect(find.text('Głosuję jeszcze raz!'), findsNothing);
+    expect(find.text('ZMIENIAM ZDANIE'), findsOneWidget);
+    expect(find.text('ZOSTAJĘ PRZY SWOIM'), findsOneWidget);
+    expect(find.text('GŁOSUJĘ JESZCZE RAZ!'), findsNothing);
+  });
+
+  testWidgets('a tap during the arguments takeover fast-forwards the 5.6s '
+      'stagger — the stance pair is tappable right away', (tester) async {
+    await pumpOnboarding(tester);
+    await reachVotePage(tester);
+
+    await tester.tap(find.text('TAK'));
+    await settlePage(tester); // the 280ms stage cross-fade, ~800ms into 5.6s
+
+    // Mid-stagger the stance pair is still ignoring taps (its interval starts
+    // at 5.3s). A tap anywhere on the takeover — no control claims it — makes
+    // the card sprint the run to its resting frame in ~300ms.
+    await tester.tapAt(tester.getCenter(find.byType(OnboardingScreen)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // Well before the 5.6s timeline the stance choice already works.
+    await tapText(tester, 'ZMIENIAM ZDANIE');
+    await settlePage(tester);
+    expect(find.textContaining('MAMY'), findsWidgets);
   });
 
   testWidgets('a NIE vote serves the counter-TAK argument pool', (
@@ -159,7 +182,7 @@ void main() {
     await tester.tap(find.text('NIE'));
     await settleArguments(tester);
 
-    expect(find.text('Ale chwila…'), findsOneWidget);
+    expect(find.text('ALE CHWILA…'), findsOneWidget);
     expect(find.textContaining('walizki'), findsOneWidget);
     expect(find.textContaining('komfortem'), findsOneWidget);
     expect(find.textContaining('pali więcej'), findsOneWidget);
@@ -175,7 +198,7 @@ void main() {
 
     await tester.tap(find.text('TAK'));
     await settleArguments(tester);
-    await tapText(tester, 'Zmieniam zdanie');
+    await tapText(tester, 'ZMIENIAM ZDANIE');
     await settlePage(tester);
 
     // Straight to the reveal — no "ZAGŁOSUJ PONOWNIE" ask. The headline
@@ -188,7 +211,7 @@ void main() {
     expect(find.text('50%'), findsNWidgets(2));
     expect(find.text('VS'), findsOneWidget);
     expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-    expect(find.text('Zobaczmy kolejne'), findsOneWidget);
+    expect(find.text('ZOBACZMY KOLEJNE'), findsOneWidget);
   });
 
   testWidgets('"Zostaję przy swoim" reveals the split under the respectful '
@@ -198,22 +221,22 @@ void main() {
 
     await tester.tap(find.text('TAK'));
     await settleArguments(tester);
-    await tapText(tester, 'Zostaję przy swoim');
+    await tapText(tester, 'ZOSTAJĘ PRZY SWOIM');
     await settlePage(tester);
 
     expect(find.textContaining('STANOWISKO'), findsWidgets);
     expect(find.text('Ale zobacz, jak głosowali inni.'), findsOneWidget);
     expect(find.text('50%'), findsNWidgets(2));
-    expect(find.text('Zobaczmy kolejne'), findsOneWidget);
+    expect(find.text('ZOBACZMY KOLEJNE'), findsOneWidget);
   });
 
   // The bridge between the taste card and the reminder ask: it explains the
   // freemium model and carries its own CTAs (the deck's bottom "Dalej" is
   // suppressed there) — the dominant one continues for free.
   Future<void> passBridge(WidgetTester tester) async {
-    expect(find.text('To były dwa — a zostały jeszcze setki'), findsOneWidget);
-    expect(find.text('Odblokuj wszystkie 500'), findsOneWidget);
-    await tapText(tester, 'Odbierz dzisiejsze pytanie');
+    expect(find.text('TO BYŁY DWA — A ZOSTAŁY JESZCZE SETKI'), findsOneWidget);
+    expect(find.text('ODBLOKUJ WSZYSTKIE 500'), findsOneWidget);
+    await tapText(tester, 'ODBIERZ DZISIEJSZE PYTANIE');
     await settlePage(tester);
   }
 
@@ -239,10 +262,10 @@ void main() {
     expect(find.textContaining('ILOMA'), findsWidgets);
     await tapText(tester, 'TAK');
     await settleArguments(tester);
-    expect(find.text('Czy aby na pewno?'), findsOneWidget);
+    expect(find.text('CZY ABY NA PEWNO?'), findsOneWidget);
     // The counter-TAK pool for question two (arguing against telling).
     expect(find.textContaining('setka'), findsOneWidget);
-    await tapText(tester, 'Zmieniam zdanie');
+    await tapText(tester, 'ZMIENIAM ZDANIE');
     await settlePage(tester);
 
     // Round two's reveal sells the catalog: the "nothing is obvious" headline
@@ -252,17 +275,17 @@ void main() {
     // bridge's primary CTA on the reminder opt-in, the final card.
     expect(find.textContaining('OCZYWISTE'), findsWidgets);
     expect(find.text('A to było dopiero drugie pytanie…'), findsOneWidget);
-    await tapText(tester, 'Co jeszcze macie?');
+    await tapText(tester, 'CO JESZCZE MACIE?');
     await settlePage(tester);
     await passBridge(tester);
 
-    expect(find.text('Hej, jeszcze jedno'), findsOneWidget);
-    expect(find.text('Włącz przypomnienia'), findsOneWidget);
+    expect(find.text('HEJ, JESZCZE JEDNO'), findsOneWidget);
+    expect(find.text('WŁĄCZ PRZYPOMNIENIA'), findsOneWidget);
     expect(finished, 0);
 
     // "Maybe later" ends the tutorial without enabling — the home gate (the
     // feed with today's daily) is next.
-    await tapText(tester, 'Może później');
+    await tapText(tester, 'MOŻE PÓŹNIEJ');
     await settlePage(tester);
 
     expect(finished, 1);
@@ -284,11 +307,11 @@ void main() {
     // Round two, holding the line this time — the respectful teaser reveal.
     await completeStanceRound(tester, changeMind: false);
     expect(find.text('Sprawdzimy. Pytań nam nie zabraknie…'), findsOneWidget);
-    await tapText(tester, 'Co jeszcze macie?'); // taste result → the bridge
+    await tapText(tester, 'CO JESZCZE MACIE?'); // taste result → the bridge
     await settlePage(tester);
     await passBridge(tester); // → reminder ask
 
-    await tapText(tester, 'Włącz przypomnienia');
+    await tapText(tester, 'WŁĄCZ PRZYPOMNIENIA');
     await settlePage(tester);
 
     expect(finished, 1);

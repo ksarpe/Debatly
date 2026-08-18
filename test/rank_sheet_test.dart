@@ -77,8 +77,10 @@ void main() {
 
       expect(find.text('TWOJA RANGA'), findsOneWidget);
       // Weteran (minStreak 4) is the highest tier a 5-day streak reaches:
-      // once in the header, once as its ladder row.
-      expect(find.text('Weteran'), findsNWidgets(2));
+      // once in the header (a TITLE, rendered uppercase), once as its ladder
+      // row (BODY, original casing).
+      expect(find.text('WETERAN'), findsOneWidget);
+      expect(find.text('Weteran'), findsOneWidget);
       // The streak itself, and the longest-streak secondary stat.
       expect(find.text('Seria: 5 dni'), findsOneWidget);
       expect(find.textContaining('Najdłuższa seria: 9 dni'), findsOneWidget);
@@ -128,7 +130,9 @@ void main() {
   ) async {
     await pumpSheet(tester, stats: stats(streak: 10));
 
-    expect(find.text('Legenda'), findsNWidgets(2));
+    // Uppercase in the header, original casing in its ladder row.
+    expect(find.text('LEGENDA'), findsOneWidget);
+    expect(find.text('Legenda'), findsOneWidget);
     expect(find.textContaining('szacun'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNothing);
     expect(find.byIcon(Icons.lock_outline_rounded), findsNothing);

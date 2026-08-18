@@ -27,7 +27,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Debatly'), findsOneWidget);
+    // The fallback wordmark is set uppercase in the display font.
+    expect(find.text('DEBATLY'), findsOneWidget);
     // The question is rendered uppercased, in two stacked Text layers
     // (stroke + fill), so it appears twice.
     expect(find.text('CZY ZDRADA MYŚLAMI JEST ZDRADĄ?'), findsNWidgets(2));

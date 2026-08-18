@@ -75,8 +75,8 @@ void main() {
 
     expect(find.byType(QuestionScreen), findsOneWidget);
     // The guest save-your-PRO dialog fires from the gate.
-    expect(find.text('PRO aktywne 🎉'), findsOneWidget);
-    await tester.tap(find.text('Później'));
+    expect(find.text('PRO AKTYWNE 🎉'), findsOneWidget);
+    await tester.tap(find.text('PÓŹNIEJ'));
     await tester.pumpAndSettle();
   });
 
@@ -87,7 +87,7 @@ void main() {
     // read as a fresh purchase (it used to re-prompt on every launch).
     await pumpGate(tester, session: guestSession(isPremium: true));
 
-    expect(find.text('PRO aktywne 🎉'), findsNothing);
+    expect(find.text('PRO AKTYWNE 🎉'), findsNothing);
   });
 
   testWidgets('a session that failed to load offers a retry, not the feed', (
@@ -115,7 +115,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(QuestionScreen), findsNothing);
-    expect(find.text('Spróbuj ponownie'), findsOneWidget);
+    expect(find.text('SPRÓBUJ PONOWNIE'), findsOneWidget);
   });
 
   testWidgets('an entitlement lapse keeps the user on the feed '

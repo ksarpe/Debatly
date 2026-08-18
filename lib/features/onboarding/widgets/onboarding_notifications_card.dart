@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/fit_or_scroll.dart';
 import '../../../services/analytics.dart';
 import '../../../services/notification_service.dart';
@@ -101,24 +102,20 @@ class _OnboardingNotificationsCardState
             ),
             const SizedBox(height: 36),
             Text(
-              l10n.onboardingNotifyTitle,
+              l10n.onboardingNotifyTitle.toUpperCase(),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: context.colors.ink,
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                height: 1.15,
-              ),
+              style: AppTypography.display(
+                40,
+              ).copyWith(color: context.colors.ink),
             ),
             const SizedBox(height: 16),
             Text(
               l10n.onboardingNotifyBody,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: context.colors.subtle,
-                fontSize: 16,
-                height: 1.45,
-              ),
+              style: AppTypography.body(
+                fontSize: 15,
+                height: 1.4,
+              ).copyWith(color: context.colors.subtle),
             ),
             const SizedBox(height: 36),
             _busy
@@ -142,7 +139,10 @@ class _OnboardingNotificationsCardState
               style: TextButton.styleFrom(
                 foregroundColor: context.colors.subtle,
               ),
-              child: Text(l10n.onboardingNotifySkip),
+              child: Text(
+                l10n.onboardingNotifySkip.toUpperCase(),
+                style: AppTypography.action(),
+              ),
             ),
           ],
         ),

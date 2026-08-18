@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 class SettingsNavRow extends StatelessWidget {
   const SettingsNavRow({
@@ -38,20 +39,17 @@ class SettingsNavRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      color: titleColor ?? context.colors.ink,
+                    style: AppTypography.body(
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    ).copyWith(color: titleColor ?? context.colors.ink),
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
                     Text(
                       subtitle!,
-                      style: TextStyle(
-                        color: context.colors.subtle,
+                      style: AppTypography.support(
                         fontSize: 13,
-                      ),
+                      ).copyWith(color: context.colors.subtle),
                     ),
                   ],
                 ],
@@ -62,7 +60,9 @@ class SettingsNavRow extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 6),
                 child: Text(
                   trailingText!,
-                  style: TextStyle(color: context.colors.subtle, fontSize: 14),
+                  style: AppTypography.support(
+                    fontSize: 13,
+                  ).copyWith(color: context.colors.subtle),
                 ),
               ),
             Icon(Icons.chevron_right, color: context.colors.subtle, size: 22),

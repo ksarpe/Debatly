@@ -10,6 +10,7 @@ import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/app_locale.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../services/purchases_service.dart';
 import '../../../services/supabase_service.dart';
 import '../providers/session_providers.dart';
@@ -172,7 +173,9 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
                         autofillHints: const [AutofillHints.email],
-                        style: TextStyle(color: context.colors.ink),
+                        style: AppTypography.body(
+                          fontSize: 15,
+                        ).copyWith(color: context.colors.ink),
                         decoration: _fieldDecoration(hint: 'you@example.com'),
                         validator: _validateEmail,
                       ),
@@ -188,7 +191,9 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                         autofillHints: _isLogin
                             ? const [AutofillHints.password]
                             : const [AutofillHints.newPassword],
-                        style: TextStyle(color: context.colors.ink),
+                        style: AppTypography.body(
+                          fontSize: 15,
+                        ).copyWith(color: context.colors.ink),
                         decoration: _fieldDecoration(
                           hint: '••••••••',
                           suffixIcon: IconButton(
@@ -221,7 +226,9 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                           obscureText: _obscurePassword,
                           textInputAction: TextInputAction.done,
                           autofillHints: const [AutofillHints.newPassword],
-                          style: TextStyle(color: context.colors.ink),
+                          style: AppTypography.body(
+                            fontSize: 15,
+                          ).copyWith(color: context.colors.ink),
                           decoration: _fieldDecoration(hint: '••••••••'),
                           validator: _validateConfirmPassword,
                           onFieldSubmitted: (_) => _submit(),
@@ -252,12 +259,11 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                                 kMinTouchTarget,
                                 kMinTouchTarget,
                               ),
-                              textStyle: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
+                              textStyle: AppTypography.action(fontSize: 12.5),
                             ),
-                            child: Text(context.l10n.authForgotPassword),
+                            child: Text(
+                              context.l10n.authForgotPassword.toUpperCase(),
+                            ),
                           ),
                         ),
                       ],
@@ -397,24 +403,19 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
         ),
         const SizedBox(height: 18),
         Text(
-          title,
+          title.toUpperCase(),
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: context.colors.ink,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.3,
-          ),
+          style: AppTypography.title(
+            fontSize: 30,
+          ).copyWith(color: context.colors.ink),
         ),
         const SizedBox(height: 6),
         Text(
           subtitle,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: context.colors.subtle,
-            fontSize: 13.5,
-            height: 1.35,
-          ),
+          style: AppTypography.support(
+            fontSize: 13,
+          ).copyWith(color: context.colors.subtle),
         ),
       ],
     );
@@ -432,12 +433,7 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     padding: const EdgeInsets.only(bottom: 8, left: 2),
     child: Text(
       text,
-      style: TextStyle(
-        color: context.colors.subtle,
-        fontSize: 11.5,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1,
-      ),
+      style: AppTypography.support().copyWith(color: context.colors.subtle),
     ),
   );
 
@@ -449,7 +445,9 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
         );
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: context.colors.subtle),
+      hintStyle: AppTypography.support(
+        fontSize: 13,
+      ).copyWith(color: context.colors.subtle),
       filled: true,
       fillColor: context.colors.accent,
       suffixIcon: suffixIcon,
@@ -511,6 +509,24 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
           if (!mounted) return;
           Navigator.of(context).maybePop();
         case AuthMode.register:
+          // Registration upgrades the CURRENT user in place, so for anyone who
+          // isn't a fresh guest the form wouldn't create an account — it would
+          // rewrite the one they already have (at worst silently re-pointing
+          // it at a different email). Refuse those cases with a plain answer.
+          switch (SupabaseService.registerPrecheck(email)) {
+            case RegisterPrecheck.alreadySignedIn:
+              _showMessage(context.l10n.authAlreadySignedIn);
+              return;
+            case RegisterPrecheck.pendingOtherEmail:
+              _showMessage(
+                context.l10n.authRegisteredPendingConfirm(
+                  SupabaseService.currentUser?.email ?? '',
+                ),
+              );
+              return;
+            case RegisterPrecheck.ok:
+              break;
+          }
           // The session reload is owned by [runAuthFlowAndReload], which also
           // suppresses the auth listener's duplicate — one registration costs
           // ONE entitlement reconcile, not two concurrent ones.
@@ -540,12 +556,30 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
           });
       }
     } on AuthException catch (error) {
-      if (mounted) _showMessage(error.message, type: ToastType.error);
+      if (mounted) _showMessage(_authErrorText(error), type: ToastType.error);
     } catch (error) {
       if (mounted) _showMessage(error.toString(), type: ToastType.error);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  /// Localises the GoTrue error codes this sheet can realistically hit.
+  /// An unrecognised code falls back to the server's English message — still
+  /// more actionable than a mute generic failure.
+  String _authErrorText(AuthException error) {
+    final l10n = context.l10n;
+    return switch (error.code) {
+      'invalid_credentials' => l10n.authErrorInvalidCredentials,
+      'email_not_confirmed' => l10n.authErrorEmailNotConfirmed,
+      'email_exists' || 'user_already_exists' => l10n.authErrorEmailExists,
+      'same_password' => l10n.authErrorSamePassword,
+      'weak_password' => l10n.authErrorWeakPassword,
+      'validation_failed' => l10n.authEnterValidEmail,
+      'over_request_rate_limit' ||
+      'over_email_send_rate_limit' => l10n.authErrorTooManyRequests,
+      _ => error.message,
+    };
   }
 
   Future<void> _signInWithGoogle() =>
@@ -581,7 +615,7 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
       if (!signedIn || !mounted) return;
       Navigator.of(context).maybePop();
     } on AuthException catch (error) {
-      if (mounted) _showMessage(error.message, type: ToastType.error);
+      if (mounted) _showMessage(_authErrorText(error), type: ToastType.error);
     } catch (error) {
       if (mounted) _showMessage(error.toString(), type: ToastType.error);
     } finally {
@@ -642,7 +676,7 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
       if (!mounted) return;
       _showMessage(context.l10n.authPasswordResetSent, type: ToastType.success);
     } on AuthException catch (error) {
-      if (mounted) _showMessage(error.message, type: ToastType.error);
+      if (mounted) _showMessage(_authErrorText(error), type: ToastType.error);
     } catch (error) {
       if (mounted) _showMessage(error.toString(), type: ToastType.error);
     } finally {

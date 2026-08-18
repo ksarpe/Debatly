@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// The "Suggest a question" entry on the Settings hub — deliberately its own
 /// spark-bordered card rather than a row inside Preferences, so the one action
@@ -51,16 +52,16 @@ class SuggestQuestionCard extends StatelessWidget {
                     children: [
                       Text(
                         context.l10n.suggestQuestionTitle,
-                        style: TextStyle(
-                          color: colors.ink,
+                        style: AppTypography.body(
                           fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        ).copyWith(color: colors.ink),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         context.l10n.suggestQuestionSettingsSubtitle,
-                        style: TextStyle(color: colors.subtle, fontSize: 13),
+                        style: AppTypography.support(
+                          fontSize: 13,
+                        ).copyWith(color: colors.subtle),
                       ),
                     ],
                   ),

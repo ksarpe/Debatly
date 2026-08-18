@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/sub_screen_chrome.dart';
 import '../../account/providers/session_providers.dart';
 
@@ -46,25 +47,38 @@ class ProfileHeader extends StatelessWidget {
   }
 
   /// E-mail as the orange title.
+  ///
+  /// An e-mail address cannot be uppercased (it would misrepresent the address
+  /// and shout), so it is NOT a Barlow role — it stays in Manrope [BODY]. The
+  /// spark colour and its position keep it reading as the identity line. The
+  /// "Your account" fallback (no e-mail on file) CAN be uppercased, so it gets
+  /// the screen-title treatment like the guest header.
   Widget _accountBlock(BuildContext context) {
     final email = account?.email ?? '';
-    final title = email.isNotEmpty ? email : context.l10n.yourAccount;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 4),
-        Text(
-          title,
-          textAlign: TextAlign.left,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: AppTheme.spark,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.2,
+        if (email.isNotEmpty)
+          Text(
+            email,
+            textAlign: TextAlign.left,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.body(
+              fontSize: 15,
+            ).copyWith(color: AppTheme.spark),
+          )
+        else
+          Text(
+            context.l10n.yourAccount.toUpperCase(),
+            textAlign: TextAlign.left,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.title(
+              fontSize: 34,
+            ).copyWith(color: AppTheme.spark),
           ),
-        ),
       ],
     );
   }
@@ -75,16 +89,13 @@ class ProfileHeader extends StatelessWidget {
       children: [
         const SizedBox(height: 4),
         Text(
-          context.l10n.guestSession,
+          context.l10n.guestSession.toUpperCase(),
           textAlign: TextAlign.left,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: AppTheme.spark,
-            fontSize: 23,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.2,
-          ),
+          style: AppTypography.title(
+            fontSize: 34,
+          ).copyWith(color: AppTheme.spark),
         ),
         const SizedBox(height: 6),
         Text(
@@ -92,7 +103,9 @@ class ProfileHeader extends StatelessWidget {
           textAlign: TextAlign.left,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: context.colors.subtle, fontSize: 14),
+          style: AppTypography.support(
+            fontSize: 13,
+          ).copyWith(color: context.colors.subtle),
         ),
       ],
     );

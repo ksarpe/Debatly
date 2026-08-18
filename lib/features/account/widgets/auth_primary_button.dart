@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// The big gradient call-to-action.
 class AuthPrimaryButton extends StatelessWidget {
@@ -46,12 +47,10 @@ class AuthPrimaryButton extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            label,
-                            style: const TextStyle(
-                              color: AppTheme.ctaForeground,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                            ),
+                            label.toUpperCase(),
+                            style: AppTypography.action(
+                              fontSize: 14,
+                            ).copyWith(color: AppTheme.ctaForeground),
                           ),
                           const SizedBox(width: 8),
                           const Icon(

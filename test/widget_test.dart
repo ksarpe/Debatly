@@ -76,11 +76,12 @@ void main() {
     // guest-session header — signing in is a labelled fix, not a gate.
     await tester.tap(find.byIcon(Icons.person_outline));
     await tester.pumpAndSettle();
-    expect(find.text('Sesja gościa'), findsOneWidget);
-    expect(find.text('Zabezpiecz konto'), findsOneWidget);
+    expect(find.text('SESJA GOŚCIA'), findsOneWidget);
+    expect(find.text('ZABEZPIECZ KONTO'), findsOneWidget);
   });
 
-  testWidgets('First launch shows onboarding; skip finishes it directly', (
+  testWidgets('First launch shows onboarding; there is no "Skip" — taps '
+      'fast-forward the beats and the deck runs through to the feed', (
     WidgetTester tester,
   ) async {
     // A brand-new install: no onboarding flag, so AppEntry runs the tutorial.
@@ -96,16 +97,80 @@ void main() {
 
     await _passSplash(tester);
 
-    // The welcome card opens the deck, with a "Skip" affordance. The title is
-    // two staggered lines (hook + punchline) — both are in the tree from the
-    // first frame, only their entrance animates.
-    expect(find.text('Myślisz, że znasz się na ludziach?'), findsOneWidget);
-    expect(find.text('A siebie jak dobrze znasz?'), findsOneWidget);
-    expect(find.text('Pomiń'), findsOneWidget);
+    // Pumps past a page/stage transition (320ms page slide or the 280ms stage
+    // cross-fade, plus the PageView's ballistic settle).
+    Future<void> settle() async {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 400));
+    }
 
-    // Skip ends the tutorial immediately — there is no account step anymore
-    // (the session is anonymous by default; sign-in lives on the paywall).
-    await tester.tap(find.text('Pomiń'));
+    // A tap on no control is the "hurry up" signal: whatever staggered
+    // entrance is mid-run sprints to its resting frame (a ≤300ms dash — the
+    // follow-up pump covers it).
+    Future<void> fastForwardTap() async {
+      await tester.tapAt(tester.getCenter(find.byType(OnboardingScreen)));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
+    // The taller stages overflow the 600px test viewport — scroll the target
+    // in first or the tap lands off-screen and silently misses.
+    Future<void> tapLabel(String label) async {
+      final finder = find.text(label);
+      await tester.ensureVisible(finder);
+      await tester.pump();
+      await tester.tap(finder);
+    }
+
+    // The welcome card opens the deck. The title is two staggered lines
+    // (hook + punchline) — both in the tree from the first frame, only their
+    // entrance animates. The old "Skip" escape hatch is gone: the deck ends
+    // in the bridge (the conversion moment), so nobody is thrown past it —
+    // impatience is served by tap-to-fast-forward instead.
+    expect(find.text('MYŚLISZ, ŻE ZNASZ SIĘ NA LUDZIACH?'), findsOneWidget);
+    expect(find.text('A SIEBIE JAK DOBRZE ZNASZ?'), findsOneWidget);
+    expect(find.text('POMIŃ'), findsNothing);
+
+    // The 4s welcome entrance normally keeps the CTA inert until its 3.5s
+    // fade; one tap makes "Zaczynajmy" tappable right away.
+    await fastForwardTap();
+    await tapLabel('ZACZYNAJMY');
+    await settle();
+
+    // Round one: vote, sprint the 5.6s arguments stagger with a tap, take the
+    // stance, and roll through the reveal into the interlude.
+    expect(find.text('TWÓJ RUCH'), findsOneWidget);
+    await tapLabel('TAK');
+    await settle();
+    await fastForwardTap();
+    await tapLabel('ZMIENIAM ZDANIE');
+    await settle();
+    await tapLabel('ZOBACZMY KOLEJNE');
+    await settle();
+
+    // The interlude normally sits for two seconds — a tap cuts it short.
+    expect(find.text('SPRÓBUJMY Z KOLEJNYM…'), findsOneWidget);
+    await fastForwardTap();
+    await settle();
+
+    // Round two, same fast path, out through the catalog tease.
+    expect(find.text('TWÓJ RUCH'), findsOneWidget);
+    await tapLabel('TAK');
+    await settle();
+    await fastForwardTap();
+    await tapLabel('ZMIENIAM ZDANIE');
+    await settle();
+    await tapLabel('CO JESZCZE MACIE?');
+    await settle();
+
+    // The bridge (the conversion moment every user now reaches) → free path.
+    expect(find.text('TO BYŁY DWA — A ZOSTAŁY JESZCZE SETKI'), findsOneWidget);
+    await tapLabel('ODBIERZ DZISIEJSZE PYTANIE');
+    await settle();
+
+    // The reminder ask closes the deck; declining still finishes onboarding.
+    await tapLabel('MOŻE PÓŹNIEJ');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
@@ -131,9 +196,10 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Zaloguj się'), findsOneWidget);
+    // The segmented tab and the sign-in CTA both render "ZALOGUJ SIĘ".
+    expect(find.text('ZALOGUJ SIĘ'), findsNWidgets(2));
     // Tests report as Android, so the sheet offers Google (Apple is iOS-only).
-    expect(find.text('Kontynuuj z Google'), findsOneWidget);
+    expect(find.text('KONTYNUUJ Z GOOGLE'), findsOneWidget);
   });
 
   testWidgets('Auth sheet offers Apple (not Google) on iOS', (
@@ -146,8 +212,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Kontynuuj z Apple'), findsOneWidget);
-      expect(find.text('Kontynuuj z Google'), findsNothing);
+      expect(find.text('KONTYNUUJ Z APPLE'), findsOneWidget);
+      expect(find.text('KONTYNUUJ Z GOOGLE'), findsNothing);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
@@ -198,10 +264,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('ZAŁÓŻ KONTO'), findsOneWidget);
-    expect(find.text('ZALOGUJ SIĘ'), findsOneWidget);
-    expect(find.text('Zaloguj się'), findsOneWidget); // the sign-in CTA stays
+    // The segmented tab AND the sign-in CTA (which stays) both read the same
+    // uppercase label now.
+    expect(find.text('ZALOGUJ SIĘ'), findsNWidgets(2));
     // Social sign-in stays available — existing Google users have no password.
-    expect(find.text('Kontynuuj z Google'), findsOneWidget);
+    expect(find.text('KONTYNUUJ Z GOOGLE'), findsOneWidget);
   });
 
   testWidgets('Settings screen renders the profile hub', (
@@ -222,9 +289,9 @@ void main() {
     // Mock mode resolves to a PREMIUM guest (the hard paywall would otherwise
     // wall off keyless development), so the account card shows the premium row
     // and the secure-account action leads the page.
-    expect(find.text('Sesja gościa'), findsOneWidget);
+    expect(find.text('SESJA GOŚCIA'), findsOneWidget);
     expect(find.text('Premium aktywne'), findsOneWidget);
-    expect(find.text('Zabezpiecz konto'), findsOneWidget);
+    expect(find.text('ZABEZPIECZ KONTO'), findsOneWidget);
   });
 
   testWidgets('Premium user can open the Manage subscription sheet', (
@@ -258,8 +325,8 @@ void main() {
 
     // Sheet title + (RevenueCat unconfigured in tests, so the generic) manage
     // button both read "Zarządzaj subskrypcją".
-    expect(find.text('Zarządzaj subskrypcją'), findsNWidgets(2));
-    expect(find.text('Później'), findsOneWidget);
+    expect(find.text('ZARZĄDZAJ SUBSKRYPCJĄ'), findsNWidgets(2));
+    expect(find.text('PÓŹNIEJ'), findsOneWidget);
   });
 
   testWidgets('GoDeeperButton uses the requested label and tappable glow', (

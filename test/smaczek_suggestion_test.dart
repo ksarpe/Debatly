@@ -52,15 +52,17 @@ void main() {
     ) async {
       final repo = await pumpSheet(tester);
 
-      // Header: headline + the differently-cut aside, corner CTA, no field yet.
+      // Header: headline (a TITLE, rendered uppercase — the "(smaczki)" aside
+      // deliberately stays lowercase) + corner CTA (ACTION, uppercase too),
+      // no field yet.
       expect(
-        find.text('Argumenty (smaczki)', findRichText: true),
+        find.text('ARGUMENTY (smaczki)', findRichText: true),
         findsOneWidget,
       );
-      expect(find.text('Zaproponuj własny'), findsOneWidget);
+      expect(find.text('ZAPROPONUJ WŁASNY'), findsOneWidget);
       expect(find.byType(TextField), findsNothing);
 
-      await tester.tap(find.text('Zaproponuj własny'));
+      await tester.tap(find.text('ZAPROPONUJ WŁASNY'));
       await tester.pumpAndSettle();
       expect(find.byType(TextField), findsOneWidget);
 
@@ -86,7 +88,7 @@ void main() {
       // Composer folded, sheet still open, thanks toast on the root overlay.
       expect(find.byType(TextField), findsNothing);
       expect(
-        find.text('Argumenty (smaczki)', findRichText: true),
+        find.text('ARGUMENTY (smaczki)', findRichText: true),
         findsOneWidget,
       );
       expect(
@@ -99,7 +101,7 @@ void main() {
       final repo = await pumpSheet(tester);
       repo.throwOnSubmit = Exception('RATE_LIMITED');
 
-      await tester.tap(find.text('Zaproponuj własny'));
+      await tester.tap(find.text('ZAPROPONUJ WŁASNY'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byType(TextField),

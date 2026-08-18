@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import 'settings_primitives.dart';
 
 /// "Sign out" row for the bottom of the "Account" card: red label, no chevron
@@ -39,12 +40,10 @@ class SignOutRow extends StatelessWidget {
               const Icon(Icons.logout_rounded, color: kDanger, size: 22),
             const SizedBox(width: 16),
             Text(
-              context.l10n.signOut,
-              style: const TextStyle(
-                color: kDanger,
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
+              context.l10n.signOut.toUpperCase(),
+              style: AppTypography.action(
+                fontSize: 14,
+              ).copyWith(color: kDanger),
             ),
           ],
         ),
@@ -87,12 +86,10 @@ class SecureAccountButton extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  context.l10n.secureAccount,
-                  style: const TextStyle(
-                    color: AppTheme.ctaForeground,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  context.l10n.secureAccount.toUpperCase(),
+                  style: AppTypography.action(
+                    fontSize: 14,
+                  ).copyWith(color: AppTheme.ctaForeground),
                 ),
               ],
             ),
@@ -116,9 +113,11 @@ class DeleteAccountButton extends StatelessWidget {
         onPressed: onTap,
         style: TextButton.styleFrom(foregroundColor: kDanger),
         icon: const Icon(Icons.delete_outline_rounded, size: 18),
+        // Colour comes from the button's kDanger foreground, so the style
+        // deliberately carries no colour of its own.
         label: Text(
-          context.l10n.deleteAccount,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          context.l10n.deleteAccount.toUpperCase(),
+          style: AppTypography.action(fontSize: 13),
         ),
       ),
     );

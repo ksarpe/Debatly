@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../providers/app_info_provider.dart';
 import 'account_action_buttons.dart';
 
@@ -43,7 +44,9 @@ class SettingsSessionActions extends StatelessWidget {
           Center(
             child: Text(
               'Debatly · v${appInfo.version} (${appInfo.build}) · © 2026',
-              style: TextStyle(color: context.colors.subtle, fontSize: 12),
+              style: AppTypography.support().copyWith(
+                color: context.colors.subtle,
+              ),
             ),
           ),
         ],

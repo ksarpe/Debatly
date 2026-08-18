@@ -9,6 +9,7 @@ import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/monitoring/monitoring.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../services/analytics.dart';
 import '../../../services/purchases_service.dart';
 import '../../account/providers/session_providers.dart';
@@ -458,28 +459,19 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
         const SizedBox(height: 6),
         Text(
           context.l10n.paywallBrand,
-          style: const TextStyle(
-            color: AppTheme.spark,
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.6,
-          ),
+          style: AppTypography.eyebrow(
+            fontSize: 11,
+          ).copyWith(color: AppTheme.spark),
         ),
         const SizedBox(height: 18),
         Text(
-          context.l10n.paywallTitleDefault,
-          style: TextStyle(
-            color: colors.ink,
-            fontSize: 34,
-            fontWeight: FontWeight.w800,
-            height: 1.12,
-            letterSpacing: -1,
-          ),
+          context.l10n.paywallTitleDefault.toUpperCase(),
+          style: AppTypography.display(40).copyWith(color: colors.ink),
         ),
         const SizedBox(height: 12),
         Text(
           context.l10n.paywallSubtitle,
-          style: TextStyle(color: colors.subtle, fontSize: 14.5, height: 1.45),
+          style: AppTypography.body().copyWith(color: colors.subtle),
         ),
         const SizedBox(height: 24),
         _buildOffer(context),
@@ -617,7 +609,9 @@ class _StickyCtaBar extends StatelessWidget {
                 Flexible(
                   child: Text(
                     note,
-                    style: TextStyle(color: colors.subtle, fontSize: 12.5),
+                    style: AppTypography.support(
+                      fontSize: 12.5,
+                    ).copyWith(color: colors.subtle),
                   ),
                 ),
               ],
@@ -631,10 +625,9 @@ class _StickyCtaBar extends StatelessWidget {
               child: Text(
                 stamp!,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: colors.subtle.withValues(alpha: 0.65),
+                style: AppTypography.support(
                   fontSize: 11,
-                ),
+                ).copyWith(color: colors.subtle.withValues(alpha: 0.65)),
               ),
             ),
         ],

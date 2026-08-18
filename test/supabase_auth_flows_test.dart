@@ -156,6 +156,80 @@ void main() {
     );
 
     test(
+      'a same_password retry redoes just the email half instead of failing',
+      () async {
+        final anon = userJson(
+          id: 'anon-1',
+          email: 'user@example.com',
+          anonymous: true,
+        );
+        final upgraded = userJson(
+          id: 'anon-1',
+          email: 'user@example.com',
+          anonymous: true,
+        );
+        final log = <http.Request>[];
+        final client = buildClient(log, (request) {
+          if (request.url.path.endsWith('/auth/v1/signup')) {
+            return http.Response(
+              sessionJson(anon),
+              200,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          if (request.url.path.endsWith('/auth/v1/user')) {
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            // The registration already succeeded once this session, so GoTrue
+            // refuses to "change" the password to its current value.
+            if (body.containsKey('password')) {
+              return http.Response(
+                jsonEncode({
+                  'error_code': 'same_password',
+                  'msg':
+                      'New password should be different from '
+                      'the old password.',
+                }),
+                422,
+                request: request,
+                headers: jsonHeaders,
+              );
+            }
+            return http.Response(
+              jsonEncode(upgraded),
+              200,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          return null;
+        });
+
+        await client.auth.signInAnonymously();
+
+        final user = await SupabaseService.registerWithPasswordOn(
+          client.auth,
+          email: 'user@example.com',
+          password: 'secret123',
+          locale: 'pl',
+        );
+
+        expect(user?.id, 'anon-1');
+        final updates = log
+            .where((r) => r.url.path.endsWith('/auth/v1/user'))
+            .toList();
+        expect(updates, hasLength(2), reason: 'full attempt, then email-only');
+        final retryBody = jsonDecode(updates.last.body) as Map<String, dynamic>;
+        expect(
+          retryBody.containsKey('password'),
+          isFalse,
+          reason: 'the password is already set — the retry must not resend it',
+        );
+        expect(retryBody['email'], 'user@example.com');
+      },
+    );
+
+    test(
       'with no anonymous session a fresh signUp creates the account',
       () async {
         final fresh = userJson(
@@ -196,6 +270,63 @@ void main() {
         expect(user?.id, 'new-1');
       },
     );
+  });
+
+  group('registerPrecheck', () {
+    User user({String? email, required bool anonymous}) =>
+        User.fromJson(userJson(id: 'u-1', email: email, anonymous: anonymous))!;
+
+    test('a fresh guest may register', () {
+      expect(
+        SupabaseService.registerPrecheckFor(null, 'user@example.com'),
+        RegisterPrecheck.ok,
+      );
+      expect(
+        SupabaseService.registerPrecheckFor(
+          user(anonymous: true),
+          'user@example.com',
+        ),
+        RegisterPrecheck.ok,
+      );
+    });
+
+    test('retrying the same address is allowed (case/space-insensitive)', () {
+      expect(
+        SupabaseService.registerPrecheckFor(
+          user(email: 'user@example.com', anonymous: true),
+          '  User@Example.COM ',
+        ),
+        RegisterPrecheck.ok,
+      );
+    });
+
+    test('a guest who already registered may not re-point the account at '
+        'a different address', () {
+      expect(
+        SupabaseService.registerPrecheckFor(
+          user(email: 'first@example.com', anonymous: true),
+          'other@example.com',
+        ),
+        RegisterPrecheck.pendingOtherEmail,
+      );
+    });
+
+    test('a signed-in account holder may not register at all', () {
+      expect(
+        SupabaseService.registerPrecheckFor(
+          user(email: 'user@example.com', anonymous: false),
+          'user@example.com',
+        ),
+        RegisterPrecheck.alreadySignedIn,
+      );
+      expect(
+        SupabaseService.registerPrecheckFor(
+          user(email: 'user@example.com', anonymous: false),
+          'other@example.com',
+        ),
+        RegisterPrecheck.alreadySignedIn,
+      );
+    });
   });
 
   group('signInWithIdToken (social)', () {

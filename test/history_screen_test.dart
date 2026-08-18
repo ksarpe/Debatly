@@ -85,11 +85,11 @@ void main() {
     // Today's vote renders as a card; the older one hides behind the lock.
     expect(find.text('Czy pytanie dnia jest darmowe?'), findsOneWidget);
     expect(find.text('Czy kara śmierci powinna istnieć?'), findsNothing);
-    expect(find.text('Odblokuj pełną historię'), findsOneWidget);
+    expect(find.text('ODBLOKUJ PEŁNĄ HISTORIĘ'), findsOneWidget);
     expect(find.byIcon(Icons.lock_rounded), findsOneWidget);
 
     // Tapping the locked panel opens the paywall…
-    await tester.tap(find.text('Odblokuj pełną historię'));
+    await tester.tap(find.text('ODBLOKUJ PEŁNĄ HISTORIĘ'));
     await tester.pumpAndSettle();
     expect(find.byType(ProPaywallScreen), findsOneWidget);
 
@@ -108,16 +108,17 @@ void main() {
       expect(find.text('Czy kara śmierci powinna istnieć?'), findsOneWidget);
       // Voted yes → "TY: TAK" chip in the card.
       expect(find.text('TY: TAK'), findsOneWidget);
-      // 7 yes / 3 no → corner split "70 vs 30", the user's side first.
+      // 7 yes / 3 no → corner split "70 VS 30", the user's side first.
       expect(find.text('70'), findsOneWidget);
-      expect(find.text('vs'), findsOneWidget);
+      expect(find.text('VS'), findsOneWidget);
       expect(find.text('30'), findsOneWidget);
       // Grouped under its local-day header.
       expect(find.textContaining('10 LIP'), findsOneWidget);
-      // The lifetime answered count (from the conformity stats mock).
-      expect(find.text('Odpowiedziano na 47 pytań'), findsOneWidget);
+      // The lifetime answered count (from the conformity stats mock),
+      // rendered uppercase like every stat line.
+      expect(find.text('ODPOWIEDZIANO NA 47 PYTAŃ'), findsOneWidget);
       // No lock and no paywall for premium.
-      expect(find.text('Odblokuj pełną historię'), findsNothing);
+      expect(find.text('ODBLOKUJ PEŁNĄ HISTORIĘ'), findsNothing);
       expect(find.byIcon(Icons.lock_rounded), findsNothing);
     },
   );
@@ -147,13 +148,13 @@ void main() {
     );
 
     expect(find.text('Brak głosów'), findsOneWidget);
-    expect(find.text('vs'), findsNothing);
+    expect(find.text('VS'), findsNothing);
   });
 
   testWidgets('premium with no votes yet gets the empty state', (tester) async {
     await pumpHistory(tester, premium: true);
 
-    expect(find.text('Brak historii'), findsOneWidget);
+    expect(find.text('BRAK HISTORII'), findsOneWidget);
   });
 
   testWidgets(
@@ -187,7 +188,7 @@ void main() {
       // A query nothing matches lands on the no-results state.
       await tester.enterText(find.byType(TextField), 'xyz nie ma');
       await tester.pumpAndSettle();
-      expect(find.text('Brak wyników'), findsOneWidget);
+      expect(find.text('BRAK WYNIKÓW'), findsOneWidget);
 
       // First X tap clears the text and restores the full list…
       await tester.tap(find.byIcon(Icons.close_rounded));
@@ -221,14 +222,15 @@ void main() {
     expect(find.text('Czy pytanie numer 31 jest ciekawe?'), findsNothing);
 
     // The pill names the exact hidden count; tapping reveals the rest.
-    final loadMore = find.text('Załaduj jeszcze 4');
+    // (The pill renders its label uppercase, like every action.)
+    final loadMore = find.text('ZAŁADUJ JESZCZE 4');
     expect(loadMore, findsOneWidget);
     await tester.ensureVisible(loadMore);
     await tester.tap(loadMore);
     await tester.pumpAndSettle();
 
     expect(find.text('Czy pytanie numer 34 jest ciekawe?'), findsOneWidget);
-    expect(find.textContaining('Załaduj jeszcze'), findsNothing);
+    expect(find.textContaining('ZAŁADUJ JESZCZE'), findsNothing);
   });
 
   testWidgets('a new search query restarts paging from the first page', (
@@ -244,11 +246,11 @@ void main() {
     );
 
     // Reveal everything…
-    final loadMore = find.text('Załaduj jeszcze 10');
+    final loadMore = find.text('ZAŁADUJ JESZCZE 10');
     await tester.ensureVisible(loadMore);
     await tester.tap(loadMore);
     await tester.pumpAndSettle();
-    expect(find.textContaining('Załaduj jeszcze'), findsNothing);
+    expect(find.textContaining('ZAŁADUJ JESZCZE'), findsNothing);
 
     // …then type a query. Scroll all the way back first — near-but-not-at the
     // top the floating close button still hovers over the magnifier's corner.
@@ -264,7 +266,7 @@ void main() {
 
     // All 40 match the query, so paging is back at page one: 30 cards + pill.
     expect(find.text('Czy pytanie numer 31 jest ciekawe?'), findsNothing);
-    expect(find.text('Załaduj jeszcze 10'), findsOneWidget);
+    expect(find.text('ZAŁADUJ JESZCZE 10'), findsOneWidget);
   });
 
   testWidgets('a short history stays search-free', (tester) async {
@@ -284,9 +286,9 @@ void main() {
       failFirst: 1,
     );
 
-    expect(find.text('Nie udało się wczytać historii.'), findsOneWidget);
+    expect(find.text('NIE UDAŁO SIĘ WCZYTAĆ HISTORII.'), findsOneWidget);
 
-    await tester.tap(find.text('Spróbuj ponownie'));
+    await tester.tap(find.text('SPRÓBUJ PONOWNIE'));
     await tester.pumpAndSettle();
 
     expect(repo.fetchCalls, 2);

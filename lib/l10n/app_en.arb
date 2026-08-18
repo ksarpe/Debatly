@@ -50,6 +50,17 @@
   "authPasswordResetSent": "If an account exists for that email, we've sent a reset link.",
   "authMissingSupabaseConfig": "Supabase configuration is missing. Run the app with SUPABASE_URL and SUPABASE_ANON_KEY.",
   "authMissingGoogleConfig": "GOOGLE_SERVER_CLIENT_ID is missing, so Google is temporarily disabled.",
+  "authAlreadySignedIn": "You're already signed in to your account — no need to register again.",
+  "authRegisteredPendingConfirm": "Your account is already registered to {email}. Tap the link in that email to confirm it.",
+  "@authRegisteredPendingConfirm": {
+    "placeholders": { "email": { "type": "String" } }
+  },
+  "authErrorInvalidCredentials": "Incorrect email or password.",
+  "authErrorEmailNotConfirmed": "Confirm your email first — check your inbox.",
+  "authErrorEmailExists": "An account with this email already exists. Sign in instead.",
+  "authErrorSamePassword": "That's already your current password.",
+  "authErrorWeakPassword": "That password is too weak. Try a longer one.",
+  "authErrorTooManyRequests": "Too many attempts. Wait a moment and try again.",
   "settingsSectionApp": "APP SETTINGS",
   "settingsSectionAccount": "ACCOUNT",
   "settingsReminders": "Reminders",
@@ -449,7 +460,6 @@
       }
     }
   },
-  "onboardingSkip": "Skip",
   "onboardingBegin": "Let's begin",
   "onboardingWelcomeTitle": "Think you can read people?",
   "onboardingWelcomeTitlePunch": "How well do you know yourself?",

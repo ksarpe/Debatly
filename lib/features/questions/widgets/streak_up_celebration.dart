@@ -3,6 +3,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_typography.dart';
 import '../../../data/models/rank.dart';
 import '../../../data/models/user_stats.dart';
 import '../../account/providers/stats_providers.dart';
@@ -291,10 +292,8 @@ class _StreakBurstState extends State<_StreakBurst>
               opacity: ((1 - landRaw) * 1.0).clamp(0.0, 1.0),
               child: Text(
                 '+1',
-                style: TextStyle(
+                style: AppTypography.numeric(16).copyWith(
                   color: flame,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
                   shadows: [
                     Shadow(color: flame.withValues(alpha: 0.6), blurRadius: 10),
                   ],

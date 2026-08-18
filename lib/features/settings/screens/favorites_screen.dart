@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/question_search_field.dart';
 import '../../../core/widgets/sub_screen_chrome.dart';
 import '../../../data/models/question.dart';
@@ -178,12 +179,9 @@ class _FavoriteCard extends ConsumerWidget {
         children: [
           Text(
             question.questionText,
-            style: TextStyle(
-              color: context.colors.ink,
-              fontSize: 16,
-              height: 1.35,
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTypography.body(
+              fontSize: 15,
+            ).copyWith(color: context.colors.ink),
           ),
           const SizedBox(height: 14),
           Row(
@@ -226,23 +224,20 @@ class _FavoritesEmpty extends StatelessWidget {
           Icon(icon, size: 48, color: context.colors.subtle),
           const SizedBox(height: 16),
           Text(
-            title,
+            title.toUpperCase(),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.colors.ink,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
+            style: AppTypography.title(
+              fontSize: 30,
+            ).copyWith(color: context.colors.ink),
           ),
           const SizedBox(height: 8),
           Text(
             body,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.colors.subtle,
+            style: AppTypography.body(
               fontSize: 14,
               height: 1.4,
-            ),
+            ).copyWith(color: context.colors.subtle),
           ),
         ],
       ),

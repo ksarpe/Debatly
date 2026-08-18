@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// The single primary CTA — a glowing spark-gradient pill.
 ///
@@ -58,24 +59,18 @@ class PaywallCtaButton extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            label,
-                            style: const TextStyle(
-                              color: AppTheme.ctaForeground,
-                              fontSize: 16.5,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.3,
-                            ),
+                            label.toUpperCase(),
+                            style: AppTypography.action(
+                              fontSize: 14,
+                            ).copyWith(color: AppTheme.ctaForeground),
                           ),
                           if (caption != null)
                             Text(
                               caption!,
-                              style: TextStyle(
+                              style: AppTypography.support().copyWith(
                                 color: AppTheme.ctaForeground.withValues(
                                   alpha: 0.85,
                                 ),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.2,
                               ),
                             ),
                         ],

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../../services/purchases_service.dart';
 import '../../account/providers/session_providers.dart';
@@ -76,12 +77,15 @@ class _ManageSubscriptionSheetState
                     size: 24,
                   ),
                   const SizedBox(width: 10),
-                  Text(
-                    l10n.manageSubSheetTitle,
-                    style: TextStyle(
-                      color: context.colors.ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
+                  // The Row clips nothing itself, but keep the title flexible
+                  // so the sheet headline wraps under large system fonts
+                  // instead of overflowing past the icon.
+                  Flexible(
+                    child: Text(
+                      l10n.manageSubSheetTitle.toUpperCase(),
+                      style: AppTypography.title(
+                        fontSize: 30,
+                      ).copyWith(color: context.colors.ink),
                     ),
                   ),
                 ],
@@ -109,21 +113,19 @@ class _ManageSubscriptionSheetState
               const SizedBox(height: 14),
               Text(
                 lifetime ? l10n.manageSubNoteLifetime : _storeNote(l10n, store),
-                style: TextStyle(
-                  color: context.colors.subtle,
-                  fontSize: 13.5,
+                style: AppTypography.support(
+                  fontSize: 13,
                   height: 1.4,
-                ),
+                ).copyWith(color: context.colors.subtle),
               ),
               if (_openFailed) ...[
                 const SizedBox(height: 12),
                 Text(
                   _storeOpenFailed(l10n, store),
-                  style: const TextStyle(
-                    color: kDanger,
+                  style: AppTypography.support(
                     fontSize: 13,
                     height: 1.4,
-                  ),
+                  ).copyWith(color: kDanger),
                 ),
               ],
               const SizedBox(height: 20),
@@ -145,7 +147,10 @@ class _ManageSubscriptionSheetState
                   // With no manage button above it this is the sheet's only
                   // action, so "Later" (which implies unfinished business)
                   // gives way to a plain close.
-                  child: Text(lifetime ? l10n.manageSubClose : l10n.later),
+                  child: Text(
+                    (lifetime ? l10n.manageSubClose : l10n.later).toUpperCase(),
+                    style: AppTypography.action(),
+                  ),
                 ),
               ),
             ],
@@ -224,11 +229,9 @@ class _StatusCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 headline,
-                style: TextStyle(
-                  color: headlineColor,
+                style: AppTypography.body(
                   fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
+                ).copyWith(color: headlineColor),
               ),
             ],
           ),
@@ -236,14 +239,18 @@ class _StatusCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               dateLine,
-              style: TextStyle(color: context.colors.ink, fontSize: 14),
+              style: AppTypography.body(
+                fontSize: 14,
+              ).copyWith(color: context.colors.ink),
             ),
           ],
           if (status != null) ...[
             const SizedBox(height: 4),
             Text(
               _storeBilledLabel(l10n, status!.store),
-              style: TextStyle(color: context.colors.subtle, fontSize: 13),
+              style: AppTypography.support(
+                fontSize: 13,
+              ).copyWith(color: context.colors.subtle),
             ),
           ],
         ],
@@ -294,12 +301,10 @@ class _ManageButton extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        label,
-                        style: const TextStyle(
-                          color: AppTheme.ctaForeground,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        label.toUpperCase(),
+                        style: AppTypography.action(
+                          fontSize: 14,
+                        ).copyWith(color: AppTheme.ctaForeground),
                       ),
                     ],
                   ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../data/models/vote_result.dart';
 import '../../../services/analytics.dart';
 import '../../../services/supabase_service.dart';
@@ -34,10 +35,17 @@ import 'onboarding_primary_button.dart';
 /// [VoteButtonsRow] / [VoteResultsRow] visuals — and the same word-by-word
 /// [FallingWordsText] entrance — so it looks like the real thing.
 class TasteVoteCard extends StatefulWidget {
-  const TasteVoteCard({super.key, required this.onContinue});
+  const TasteVoteCard({super.key, required this.onContinue, this.fastForward});
 
   /// Advances to the next onboarding page once the user has had their moment.
   final VoidCallback onContinue;
+
+  /// The screen's "hurry up" signal — fired when a tap lands on no control.
+  /// During the arguments takeover it sprints the 5.6s stagger to the end
+  /// (all four counter-arguments + the stance pair at once); during the
+  /// interlude it jumps straight into round two. The beats themselves are
+  /// never skipped — only their waiting.
+  final Listenable? fastForward;
 
   @override
   State<TasteVoteCard> createState() => _TasteVoteCardState();
@@ -104,6 +112,33 @@ class _TasteVoteCardState extends State<TasteVoteCard>
     for (var round = 0; round < _kQuestionIds.length; round++) {
       unawaited(_loadLiveSplit(round));
     }
+    widget.fastForward?.addListener(_onFastForward);
+  }
+
+  @override
+  void didUpdateWidget(TasteVoteCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.fastForward != widget.fastForward) {
+      oldWidget.fastForward?.removeListener(_onFastForward);
+      widget.fastForward?.addListener(_onFastForward);
+    }
+  }
+
+  /// A tap outside any control while a timed beat is playing: finish the beat
+  /// now. The arguments run dashes to its end (a 300ms sprint, not a hard
+  /// jump, so the remaining lines fade in rather than pop), the interlude's
+  /// two-second pause is cut short into round two's question.
+  void _onFastForward() {
+    if (_stage == _Stage.arguments && !_argsIn.isCompleted) {
+      _argsIn.animateTo(
+        1,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    } else if (_stage == _Stage.interlude) {
+      _interludeTimer?.cancel();
+      _enterNextRound();
+    }
   }
 
   /// Fetches one taste question's real community tally while the user is busy
@@ -125,6 +160,7 @@ class _TasteVoteCardState extends State<TasteVoteCard>
 
   @override
   void dispose() {
+    widget.fastForward?.removeListener(_onFastForward);
     _interludeTimer?.cancel();
     _argsIn.dispose();
     super.dispose();
@@ -181,11 +217,17 @@ class _TasteVoteCardState extends State<TasteVoteCard>
     });
     _interludeTimer = Timer(const Duration(seconds: 2), () {
       if (!mounted) return;
-      setState(() => _stage = _Stage.vote);
-      // Round two's question is on stage (round one's `onboarding_q_shown`
-      // fires from the screen when the taste page is reached).
-      Analytics.log('onboarding_q_shown', {'index': _round});
+      _enterNextRound();
     });
+  }
+
+  /// Puts round two's question on stage — off the interlude timer, or early
+  /// via [_onFastForward].
+  void _enterNextRound() {
+    setState(() => _stage = _Stage.vote);
+    // Round two's question is on stage (round one's `onboarding_q_shown`
+    // fires from the screen when the taste page is reached).
+    Analytics.log('onboarding_q_shown', {'index': _round});
   }
 
   @override
@@ -231,13 +273,10 @@ class _TasteVoteCardState extends State<TasteVoteCard>
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          l10n.onboardingTasteKicker,
-          style: const TextStyle(
-            color: AppTheme.spark,
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 1.5,
-          ),
+          l10n.onboardingTasteKicker.toUpperCase(),
+          style: AppTypography.eyebrow(
+            fontSize: 11,
+          ).copyWith(color: AppTheme.spark),
         ),
         const SizedBox(height: 22),
         // The same word-by-word entrance as the real feed; keyed per round
@@ -284,11 +323,10 @@ class _TasteVoteCardState extends State<TasteVoteCard>
         Text(
           sub,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: context.colors.subtle,
+          style: AppTypography.body(
             fontSize: 15,
             height: 1.4,
-          ),
+          ).copyWith(color: context.colors.subtle),
         ),
         const SizedBox(height: 30),
         VoteResultsRow(
@@ -353,13 +391,9 @@ class _TasteVoteCardState extends State<TasteVoteCard>
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          title,
+          title.toUpperCase(),
           textAlign: TextAlign.center,
-          style: TextStyle(
-            color: context.colors.ink,
-            fontSize: 32,
-            fontWeight: FontWeight.w800,
-          ),
+          style: AppTypography.title().copyWith(color: context.colors.ink),
         ),
         const SizedBox(height: 34),
         for (var i = 0; i < smaczki.length; i++) ...[
@@ -404,11 +438,8 @@ class _TasteVoteCardState extends State<TasteVoteCard>
                   ),
                 ),
                 child: Text(
-                  l10n.onboardingTasteStandFirm,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  l10n.onboardingTasteStandFirm.toUpperCase(),
+                  style: AppTypography.action(fontSize: 14),
                 ),
               ),
             ],
@@ -434,13 +465,9 @@ class _TasteVoteCardState extends State<TasteVoteCard>
         child: Transform.scale(scale: 0.85 + 0.15 * t, child: child),
       ),
       child: Text(
-        context.l10n.onboardingTasteNextTitle,
+        context.l10n.onboardingTasteNextTitle.toUpperCase(),
         textAlign: TextAlign.center,
-        style: TextStyle(
-          color: context.colors.ink,
-          fontSize: 32,
-          fontWeight: FontWeight.w800,
-        ),
+        style: AppTypography.title().copyWith(color: context.colors.ink),
       ),
     );
   }
@@ -499,23 +526,21 @@ class _ArgumentLine extends StatelessWidget {
       children: [
         Text(
           '$number',
-          style: const TextStyle(
-            color: AppTheme.spark,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            height: 1.15,
-          ),
+          // Height matched to the first line of the 15px/1.35 body text so the
+          // bare number keeps hanging off the statement's opening line.
+          style: AppTypography.numeric(
+            20,
+            height: 1.0,
+          ).copyWith(color: AppTheme.spark),
         ),
         const SizedBox(width: 12),
         Flexible(
           child: Text(
             text,
-            style: TextStyle(
-              color: context.colors.ink,
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
+            style: AppTypography.body(
+              fontSize: 15,
               height: 1.35,
-            ),
+            ).copyWith(color: context.colors.ink),
           ),
         ),
       ],

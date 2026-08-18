@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// A slim "you're offline" strip, designed to ride in an [AppBar]'s `bottom`
 /// slot (it's a [PreferredSizeWidget]) so it grows the bar instead of overlaying
@@ -31,11 +32,9 @@ class OfflineBanner extends StatelessWidget implements PreferredSizeWidget {
           const SizedBox(width: 8),
           Text(
             context.l10n.offlineBannerLabel,
-            style: const TextStyle(
-              color: Colors.white,
+            style: AppTypography.support(
               fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-            ),
+            ).copyWith(color: Colors.white),
           ),
         ],
       ),

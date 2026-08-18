@@ -315,6 +315,32 @@ class SupabaseService {
     await client.auth.resetPasswordForEmail(email.trim());
   }
 
+  /// Decides what submitting the register form would actually DO to the
+  /// current session, so the UI can refuse the surprising cases up front.
+  ///
+  /// Because registration upgrades the current user in place, the form is only
+  /// a "create account" for a fresh guest. For anyone else `updateUser` would
+  /// quietly rewrite the account they already have: a signed-in user
+  /// "registering" again gets `same_password` errors, and typing a different
+  /// email would silently re-point their existing account at it (a pending
+  /// email change) instead of creating anything.
+  static RegisterPrecheck registerPrecheck(String email) =>
+      registerPrecheckFor(currentUser, email);
+
+  /// The decision itself, on injectable state so a unit test can pin it.
+  @visibleForTesting
+  static RegisterPrecheck registerPrecheckFor(User? current, String email) {
+    if (current != null && !current.isAnonymous) {
+      return RegisterPrecheck.alreadySignedIn;
+    }
+    final attached = current?.email?.trim() ?? '';
+    if (attached.isEmpty) return RegisterPrecheck.ok;
+    final sameEmail = attached.toLowerCase() == email.trim().toLowerCase();
+    // Same address = a retry of the registration that already happened
+    // (resend the mail, or set the password they meant) — allowed.
+    return sameEmail ? RegisterPrecheck.ok : RegisterPrecheck.pendingOtherEmail;
+  }
+
   /// Creates a permanent email/password account.
   ///
   /// When the current user is anonymous we update that same Supabase user
@@ -360,11 +386,26 @@ class SupabaseService {
       // `emailRedirectTo` is a method argument here, not a `UserAttributes`
       // field — it steers the confirmation link to the "email confirmed" page
       // instead of the project's bare Site URL.
-      final response = await auth.updateUser(
-        UserAttributes(email: email.trim(), password: password, data: data),
-        emailRedirectTo: AppConfig.emailConfirmedUrl,
-      );
-      return response.user;
+      try {
+        final response = await auth.updateUser(
+          UserAttributes(email: email.trim(), password: password, data: data),
+          emailRedirectTo: AppConfig.emailConfirmedUrl,
+        );
+        return response.user;
+      } on AuthException catch (error) {
+        // A registration retry: the upgrade already succeeded earlier in this
+        // session, and GoTrue refuses to "change" a password to the value it
+        // already has. The password half is therefore already done — redo just
+        // the email half so the retry still lands (and resends the
+        // confirmation) instead of dying on an error about a password the
+        // user never asked to change.
+        if (error.code != 'same_password') rethrow;
+        final response = await auth.updateUser(
+          UserAttributes(email: email.trim(), data: data),
+          emailRedirectTo: AppConfig.emailConfirmedUrl,
+        );
+        return response.user;
+      }
     }
 
     final response = await auth.signUp(
@@ -558,4 +599,18 @@ class SupabaseService {
     final user = currentUser;
     return user != null && !user.isAnonymous;
   }
+}
+
+/// Outcome of [SupabaseService.registerPrecheck]: whether submitting the
+/// register form would create/retry a registration ([ok]) or quietly rewrite
+/// an account that already exists (the other two — the UI refuses those).
+enum RegisterPrecheck {
+  ok,
+
+  /// The current user already has a full (non-anonymous) account.
+  alreadySignedIn,
+
+  /// The current guest already registered with a DIFFERENT address (still
+  /// awaiting confirmation); proceeding would re-point that registration.
+  pendingOtherEmail,
 }

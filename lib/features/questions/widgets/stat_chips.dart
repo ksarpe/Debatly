@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../account/providers/stats_providers.dart';
 import 'animated_flame_icon.dart';
 import 'rank_sheet.dart';
@@ -78,11 +79,9 @@ class _StatChip extends StatelessWidget {
               const SizedBox(width: 4),
               Text(
                 label,
-                style: TextStyle(
-                  color: labelColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
+                // The header-chip exception: Barlow 800 / 15 (see
+                // AppTypography.action docs) — a numeral, so NUMERIC it is.
+                style: AppTypography.numeric(15).copyWith(color: labelColor),
               ),
             ],
           ),

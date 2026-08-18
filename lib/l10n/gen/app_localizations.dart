@@ -362,6 +362,54 @@ abstract class AppLocalizations {
   /// **'GOOGLE_SERVER_CLIENT_ID is missing, so Google is temporarily disabled.'**
   String get authMissingGoogleConfig;
 
+  /// No description provided for @authAlreadySignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re already signed in to your account — no need to register again.'**
+  String get authAlreadySignedIn;
+
+  /// No description provided for @authRegisteredPendingConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is already registered to {email}. Tap the link in that email to confirm it.'**
+  String authRegisteredPendingConfirm(String email);
+
+  /// No description provided for @authErrorInvalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect email or password.'**
+  String get authErrorInvalidCredentials;
+
+  /// No description provided for @authErrorEmailNotConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your email first — check your inbox.'**
+  String get authErrorEmailNotConfirmed;
+
+  /// No description provided for @authErrorEmailExists.
+  ///
+  /// In en, this message translates to:
+  /// **'An account with this email already exists. Sign in instead.'**
+  String get authErrorEmailExists;
+
+  /// No description provided for @authErrorSamePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s already your current password.'**
+  String get authErrorSamePassword;
+
+  /// No description provided for @authErrorWeakPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'That password is too weak. Try a longer one.'**
+  String get authErrorWeakPassword;
+
+  /// No description provided for @authErrorTooManyRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Wait a moment and try again.'**
+  String get authErrorTooManyRequests;
+
   /// No description provided for @settingsSectionApp.
   ///
   /// In en, this message translates to:
@@ -1573,12 +1621,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'My new rank in Debatly: {rank} 🔥\n\nDebatly — thought-provoking questions.'**
   String rankShareMessage(String rank);
-
-  /// No description provided for @onboardingSkip.
-  ///
-  /// In en, this message translates to:
-  /// **'Skip'**
-  String get onboardingSkip;
 
   /// No description provided for @onboardingBegin.
   ///

@@ -53,7 +53,8 @@ void main() {
       ],
     );
 
-    expect(find.text('Ulubione'), findsOneWidget);
+    // The sub-screen header renders its title uppercase.
+    expect(find.text('ULUBIONE'), findsOneWidget);
     expect(find.text('Czy pieniądze dają szczęście?'), findsOneWidget);
     expect(find.text('Czy sztuka musi być piękna?'), findsOneWidget);
     // One removal star per card.
@@ -96,7 +97,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.star_rounded));
     await tester.pumpAndSettle();
 
-    expect(find.text('Brak ulubionych'), findsOneWidget);
+    expect(find.text('BRAK ULUBIONYCH'), findsOneWidget);
   });
 
   testWidgets('a long favorites list grows a search field that filters cards', (
@@ -125,7 +126,7 @@ void main() {
     // No match → the no-results state, not an empty hole.
     await tester.enterText(find.byType(TextField), 'xyz nie ma');
     await tester.pumpAndSettle();
-    expect(find.text('Brak wyników'), findsOneWidget);
+    expect(find.text('BRAK WYNIKÓW'), findsOneWidget);
   });
 
   testWidgets('a short favorites list stays search-free', (tester) async {
@@ -162,7 +163,7 @@ void main() {
     // The card is gone, but the field (with its query) survives the removal.
     expect(find.text('Czy sztuka musi być piękna?'), findsNothing);
     expect(find.byType(TextField), findsOneWidget);
-    expect(find.text('Brak wyników'), findsOneWidget);
+    expect(find.text('BRAK WYNIKÓW'), findsOneWidget);
   });
 
   testWidgets('no favorites yet shows the nudge toward the home star', (
@@ -170,7 +171,7 @@ void main() {
   ) async {
     await pumpFavorites(tester, favorites: const []);
 
-    expect(find.text('Brak ulubionych'), findsOneWidget);
+    expect(find.text('BRAK ULUBIONYCH'), findsOneWidget);
   });
 
   testWidgets('a failed fetch degrades to the empty state, not a crash', (
@@ -178,7 +179,7 @@ void main() {
   ) async {
     await pumpFavorites(tester, favorites: const [], failFetch: true);
 
-    expect(find.text('Brak ulubionych'), findsOneWidget);
+    expect(find.text('BRAK ULUBIONYCH'), findsOneWidget);
   });
 }
 

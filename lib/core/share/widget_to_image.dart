@@ -9,8 +9,9 @@ import 'package:flutter/rendering.dart';
 /// The widget is laid out and painted in a throwaway render tree that is never
 /// attached to the live [WidgetsBinding] — so nothing flashes on screen and the
 /// capture doesn't depend on the widget being mounted/visible. Fonts already
-/// loaded by the running app (the bundled `Anton` family, the Material icon
-/// font) are available to the render, so the result looks identical to what the
+/// loaded by the running app (the bundled `BarlowCondensed` / `Manrope`
+/// families, the Material icon font) are available to the render, so the
+/// result looks identical to what the
 /// same widget would draw on screen.
 ///
 /// [logicalSize] is the child's size in logical pixels; the PNG is

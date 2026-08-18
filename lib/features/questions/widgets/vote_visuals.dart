@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../data/models/vote_result.dart';
 
 /// The shared visual language of the binary TAK/NIE vote: the two slanted
@@ -191,11 +192,9 @@ class VoteResultsRow extends StatelessWidget {
             Text(
               context.l10n.offlineResultsHidden,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: context.colors.subtle,
+              style: AppTypography.support(
                 fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-              ),
+              ).copyWith(color: context.colors.subtle),
             ),
           ],
         ],
@@ -216,13 +215,8 @@ class _MyVoteCaption extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = Center(
       child: Text(
-        context.l10n.yourVote,
-        style: TextStyle(
-          color: context.colors.subtle,
-          fontSize: 11.5,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.3,
-        ),
+        context.l10n.yourVote.toUpperCase(),
+        style: AppTypography.eyebrow().copyWith(color: context.colors.subtle),
       ),
     );
     return Row(
@@ -265,14 +259,11 @@ class _VoteButton extends StatelessWidget {
                 Center(
                   child: _scaledTile(
                     child: Text(
-                      label,
+                      label.toUpperCase(),
                       maxLines: 1,
-                      style: TextStyle(
-                        color: context.colors.ink,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5,
-                      ),
+                      style: AppTypography.action(
+                        fontSize: 14,
+                      ).copyWith(color: context.colors.ink),
                     ),
                   ),
                 ),
@@ -335,13 +326,10 @@ class _ResultPanel extends StatelessWidget {
                     children: [
                       Flexible(
                         child: Text(
-                          label,
+                          label.toUpperCase(),
                           maxLines: 1,
-                          style: TextStyle(
+                          style: AppTypography.eyebrow(fontSize: 11).copyWith(
                             color: color.withValues(alpha: mine ? 1 : 0.6),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.5,
                           ),
                         ),
                       ),
@@ -355,12 +343,9 @@ class _ResultPanel extends StatelessWidget {
                     child: Text(
                       showPct ? '$pct%' : '–',
                       maxLines: 1,
-                      style: TextStyle(
-                        color: pctColor,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        height: 1.1,
-                      ),
+                      style: AppTypography.numeric(
+                        26,
+                      ).copyWith(color: pctColor),
                     ),
                   ),
                 ],
@@ -379,15 +364,12 @@ class _VsBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Set in the condensed numeral face — "VS" is a graphic mark riding the
+    // seam, same register as the percentages beside it. (No italic: the
+    // bundled families carry no italic cut and Flutter won't fake one.)
     return Text(
       'VS',
-      style: TextStyle(
-        color: context.colors.ink,
-        fontSize: 15,
-        fontWeight: FontWeight.w900,
-        fontStyle: FontStyle.italic,
-        letterSpacing: 0.5,
-      ),
+      style: AppTypography.numeric(16).copyWith(color: context.colors.ink),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 class AuthSocialButton extends StatelessWidget {
   const AuthSocialButton({
@@ -41,14 +42,12 @@ class AuthSocialButton extends StatelessWidget {
                 // must wrap inside the pill rather than spill out of it.
                 Flexible(
                   child: Text(
-                    label,
+                    label.toUpperCase(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: context.colors.ink,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
+                    style: AppTypography.action(
+                      fontSize: 13,
+                    ).copyWith(color: context.colors.ink),
                   ),
                 ),
               ],

@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'app_typography.dart';
+
 /// The semantic, brightness-dependent colours — everything that must flip
 /// between the light and dark themes lives here as a [ThemeExtension], so a
 /// widget reads the *current* value via `context.colors.x` instead of a fixed
@@ -47,7 +49,8 @@ class AppColors extends ThemeExtension<AppColors> {
   static const AppColors dark = AppColors(
     background: Color(0xFF000000),
     ink: Color(0xFFFFE9DC),
-    subtle: Color(0xFF8A8A8A),
+    // Warm grey from the type spec's SUPPORT role — pairs with the cream ink.
+    subtle: Color(0xFF9B938A),
     accent: Color(0xFF2A2A2A),
     cardSurface: Color(0xFF131318),
     hairline: Color(0xFF26262E),
@@ -59,7 +62,8 @@ class AppColors extends ThemeExtension<AppColors> {
   static const AppColors light = AppColors(
     background: Color(0xFFF6F6F9),
     ink: Color(0xFF15161A),
-    subtle: Color(0xFF5E5E66),
+    // Warm grey from the type spec's SUPPORT role (light-canvas variant).
+    subtle: Color(0xFF6F6760),
     accent: Color(0xFFE7E7EE),
     cardSurface: Color(0xFFFFFFFF),
     hairline: Color(0xFFE2E2EA),
@@ -158,6 +162,9 @@ class AppTheme {
       colorSchemeSeed: spark,
       scaffoldBackgroundColor: colors.background,
       brightness: brightness,
+      // Manrope is the app-wide text face; Barlow Condensed is reserved for
+      // UPPERCASE headlines and numerals via AppTypography.
+      fontFamily: AppTypography.sans,
     );
 
     return base.copyWith(
@@ -240,17 +247,12 @@ class AppTheme {
   /// palette where pure black looked stamped-on.
   static const Color ctaForeground = Color(0xFF170A02);
 
-  /// Base geometry for the question text. Colour/stroke are applied per-layer
-  /// in [QuestionTextStyles], so this only carries size, weight and spacing.
-  /// The size is the *largest* used; long questions shrink it via
+  /// Base geometry for the question text — the DISPLAY role (Barlow Condensed
+  /// 800, UPPERCASE). Colour/stroke are applied per-layer in
+  /// [QuestionTextStyles], so this only carries family, size, weight and
+  /// spacing. The size is the *largest* used; long questions shrink it via
   /// [QuestionTextStyles.fontSizeFor] so they don't become a wall of text.
-  static const TextStyle questionBase = TextStyle(
-    fontFamily: 'Anton',
-    fontSize: 42,
-    fontWeight: FontWeight.w400,
-    height: 1.15,
-    letterSpacing: 0.5,
-  );
+  static final TextStyle questionBase = AppTypography.display(42);
 }
 
 /// The two paint layers that produce the white-fill / black-stroke look.
@@ -402,19 +404,21 @@ class QuestionTextStyles {
   }
 
   /// Bottom layer: the black outline, drawn slightly wider, with a drop shadow.
-  static TextStyle strokeFor(double fontSize) => AppTheme.questionBase.copyWith(
-    fontSize: fontSize,
-    foreground: Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = fontSize * _strokeRatio
-      ..strokeJoin = StrokeJoin.round
-      ..color = Colors.black,
-    shadows: const [
-      Shadow(color: Color(0x55000000), offset: Offset(0, 4), blurRadius: 6),
-    ],
-  );
+  /// Based on the DISPLAY role directly (not `questionBase.copyWith`) so the
+  /// em-relative tracking rescales with the fitted size.
+  static TextStyle strokeFor(double fontSize) =>
+      AppTypography.display(fontSize).copyWith(
+        foreground: Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = fontSize * _strokeRatio
+          ..strokeJoin = StrokeJoin.round
+          ..color = Colors.black,
+        shadows: const [
+          Shadow(color: Color(0x55000000), offset: Offset(0, 4), blurRadius: 6),
+        ],
+      );
 
   /// Top layer: the white fill sitting inside the outline.
   static TextStyle fillFor(double fontSize) =>
-      AppTheme.questionBase.copyWith(fontSize: fontSize, color: Colors.white);
+      AppTypography.display(fontSize).copyWith(color: Colors.white);
 }

@@ -145,11 +145,11 @@ void main() {
       await tester.tap(find.text('trigger'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Zabezpiecz swoją passę 🔥'), findsOneWidget);
+      expect(find.text('ZABEZPIECZ SWOJĄ PASSĘ 🔥'), findsOneWidget);
       // The body argues with the CONCRETE streak on the line.
       expect(find.textContaining('4-dniową'), findsOneWidget);
 
-      await tester.tap(find.text('Załóż konto'));
+      await tester.tap(find.text('ZAŁÓŻ KONTO'));
       await tester.pumpAndSettle();
 
       // The sign-in sheet opened (its email/password fields are on screen).
@@ -177,7 +177,7 @@ void main() {
 
       await tester.tap(find.text('trigger'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Później'));
+      await tester.tap(find.text('PÓŹNIEJ'));
       await tester.pumpAndSettle();
       expect(shown, isTrue);
 
@@ -185,7 +185,7 @@ void main() {
       await tester.tap(find.text('trigger'));
       await tester.pumpAndSettle();
       expect(shown, isFalse);
-      expect(find.text('Zabezpiecz swoją passę 🔥'), findsNothing);
+      expect(find.text('ZABEZPIECZ SWOJĄ PASSĘ 🔥'), findsNothing);
     });
 
     testWidgets('an account holder is never interrupted', (tester) async {
@@ -200,7 +200,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(shown, isFalse);
-      expect(find.text('Zabezpiecz swoją passę 🔥'), findsNothing);
+      expect(find.text('ZABEZPIECZ SWOJĄ PASSĘ 🔥'), findsNothing);
     });
   });
 }

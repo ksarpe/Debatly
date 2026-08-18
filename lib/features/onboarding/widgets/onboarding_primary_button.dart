@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// The orange gradient "Next" call-to-action, matching the auth sheet's primary
 /// button so onboarding and sign-in feel like one family.
@@ -32,12 +33,10 @@ class OnboardingPrimaryButton extends StatelessWidget {
             width: double.infinity,
             child: Center(
               child: Text(
-                label,
-                style: const TextStyle(
-                  color: AppTheme.ctaForeground,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                ),
+                label.toUpperCase(),
+                style: AppTypography.action(
+                  fontSize: 14,
+                ).copyWith(color: AppTheme.ctaForeground),
               ),
             ),
           ),

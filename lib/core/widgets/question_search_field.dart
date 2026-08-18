@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../locale/l10n_extension.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_typography.dart';
 
 /// Lists shorter than this don't render a search field — scanning a handful of
 /// cards by eye is faster than typing, and the field would just push content
@@ -97,10 +98,12 @@ class _QuestionSearchFieldState extends State<QuestionSearchField> {
         setState(() {});
       },
       textInputAction: TextInputAction.search,
-      style: TextStyle(color: context.colors.ink, fontSize: 14.5),
+      style: AppTypography.body().copyWith(color: context.colors.ink),
       decoration: InputDecoration(
         hintText: context.l10n.searchQuestionsHint,
-        hintStyle: TextStyle(color: context.colors.subtle),
+        hintStyle: AppTypography.support(
+          fontSize: 13,
+        ).copyWith(color: context.colors.subtle),
         filled: true,
         fillColor: context.colors.accent,
         isDense: true,

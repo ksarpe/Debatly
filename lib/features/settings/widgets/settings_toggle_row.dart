@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 class SettingsToggleRow extends StatelessWidget {
   const SettingsToggleRow({
@@ -32,16 +33,16 @@ class SettingsToggleRow extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    color: context.colors.ink,
+                  style: AppTypography.body(
                     fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  ).copyWith(color: context.colors.ink),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: TextStyle(color: context.colors.subtle, fontSize: 13),
+                  style: AppTypography.support(
+                    fontSize: 13,
+                  ).copyWith(color: context.colors.subtle),
                 ),
               ],
             ),

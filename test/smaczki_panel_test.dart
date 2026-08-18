@@ -65,8 +65,9 @@ void main() {
       // the server sent text=null, so nothing real can leak.
       expect(find.byIcon(Icons.lock_rounded), findsNWidgets(2));
       expect(find.textContaining('aaabbbb'), findsNWidgets(2));
-      // Each locked row carries its own bare "unlock" label next to the lock.
-      expect(find.text('Odblokuj'), findsNWidgets(2));
+      // Each locked row carries its own bare "unlock" label next to the lock
+      // (an ACTION label, rendered uppercase).
+      expect(find.text('ODBLOKUJ'), findsNWidgets(2));
     },
   );
 
@@ -86,7 +87,7 @@ void main() {
     expect(find.text('Drugi argument.'), findsOneWidget);
     expect(find.text('Trzeci pod włos.'), findsOneWidget);
     expect(find.byIcon(Icons.lock_rounded), findsNothing);
-    expect(find.text('Odblokuj'), findsNothing);
+    expect(find.text('ODBLOKUJ'), findsNothing);
   });
 
   testWidgets('a question without smaczki shows the quiet empty note', (
@@ -98,7 +99,7 @@ void main() {
       find.text('Do tego pytania nie ma jeszcze smaczków.'),
       findsOneWidget,
     );
-    expect(find.text('Odblokuj'), findsNothing);
+    expect(find.text('ODBLOKUJ'), findsNothing);
   });
 
   testWidgets('a failed fetch renders the error line, not a crash', (

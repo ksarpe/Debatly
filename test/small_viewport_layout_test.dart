@@ -327,7 +327,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final link = find.ancestor(
-        of: find.text('Nie pamiętasz hasła?'),
+        of: find.text('NIE PAMIĘTASZ HASŁA?'),
         matching: find.byType(TextButton),
       );
       expect(link, findsOneWidget);

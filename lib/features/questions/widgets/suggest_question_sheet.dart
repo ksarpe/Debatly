@@ -5,6 +5,7 @@ import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/network_error.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/spark_cta_button.dart';
 import '../providers/question_providers.dart';
 
@@ -125,12 +126,10 @@ class _SuggestQuestionSheetState extends ConsumerState<SuggestQuestionSheet> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      context.l10n.suggestQuestionTitle,
-                      style: TextStyle(
-                        color: colors.ink,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      context.l10n.suggestQuestionTitle.toUpperCase(),
+                      style: AppTypography.title(
+                        fontSize: 30,
+                      ).copyWith(color: colors.ink),
                     ),
                   ),
                 ],
@@ -138,11 +137,10 @@ class _SuggestQuestionSheetState extends ConsumerState<SuggestQuestionSheet> {
               const SizedBox(height: 12),
               Text(
                 context.l10n.suggestQuestionIntro,
-                style: TextStyle(
-                  color: colors.subtle,
+                style: AppTypography.body(
                   fontSize: 14,
                   height: 1.4,
-                ),
+                ).copyWith(color: colors.subtle),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -153,19 +151,28 @@ class _SuggestQuestionSheetState extends ConsumerState<SuggestQuestionSheet> {
                 maxLines: 5,
                 maxLength: kSuggestionMaxChars,
                 textCapitalization: TextCapitalization.sentences,
-                style: TextStyle(color: colors.ink, fontSize: 15, height: 1.35),
+                style: AppTypography.body(
+                  fontSize: 15,
+                  height: 1.35,
+                ).copyWith(color: colors.ink),
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
                   hintText: context.l10n.suggestQuestionHint,
-                  hintStyle: TextStyle(color: colors.subtle),
+                  hintStyle: AppTypography.support(
+                    fontSize: 13,
+                  ).copyWith(color: colors.subtle),
                   // Nudges toward the minimum while typing the first few words,
                   // then gets out of the way.
                   helperText:
                       _trimmedLength > 0 && _trimmedLength < kSuggestionMinChars
                       ? context.l10n.suggestQuestionMinChars
                       : null,
-                  helperStyle: TextStyle(color: colors.subtle, fontSize: 12),
-                  counterStyle: TextStyle(color: colors.subtle, fontSize: 12),
+                  helperStyle: AppTypography.support().copyWith(
+                    color: colors.subtle,
+                  ),
+                  counterStyle: AppTypography.support().copyWith(
+                    color: colors.subtle,
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(color: colors.hairline),
@@ -185,7 +192,6 @@ class _SuggestQuestionSheetState extends ConsumerState<SuggestQuestionSheet> {
                 label: context.l10n.suggestQuestionSend,
                 busy: _busy,
                 expand: true,
-                fontSize: 16,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 28,
                   vertical: 15,

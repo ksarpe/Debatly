@@ -2,18 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/fit_or_scroll.dart';
 import '../../../services/analytics.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
-import 'onboarding_glyph_bubble.dart';
-import 'onboarding_primary_button.dart';
 
 /// The bridge card right after the taste votes — the screen that replaced the
 /// hard paywall. It explains the freemium model ("one free question a day,
-/// forever") and hands the user FORWARD: the dominant CTA continues for free
-/// to today's question, the quiet one opens the paywall sheet. We want the
-/// user to walk in and get hooked, not bounce off a wall — so the free path
-/// is deliberately the louder button.
+/// forever") and hands the user FORWARD: the loud orange CTA opens the paywall
+/// sheet, the quiet outline continues for free to today's question — and the
+/// sheet is always dismissible back here, so the free path stays one tap away.
 class OnboardingBridgeCard extends StatelessWidget {
   const OnboardingBridgeCard({super.key, required this.onContinue});
 
@@ -45,41 +43,74 @@ class OnboardingBridgeCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const OnboardingGlyphBubble(
-              color: AppTheme.spark,
-              child: _CatalogFanGlyph(),
-            ),
+            const _CatalogFanGlyph(),
             const SizedBox(height: 36),
             Text(
-              l10n.bridgeTitle,
+              l10n.bridgeTitle.toUpperCase(),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: context.colors.ink,
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                height: 1.15,
-              ),
+              style: AppTypography.display(
+                40,
+              ).copyWith(color: context.colors.ink),
             ),
             const SizedBox(height: 16),
             Text(
               l10n.bridgeBody,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: context.colors.subtle,
-                fontSize: 16,
-                height: 1.45,
-              ),
+              style: AppTypography.body(
+                fontSize: 15,
+                height: 1.4,
+              ).copyWith(color: context.colors.subtle),
             ),
             const SizedBox(height: 36),
-            OnboardingPrimaryButton(
-              label: l10n.bridgeCtaPrimary,
-              onPressed: _getToday,
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: AppTheme.ctaGradient,
+                borderRadius: AppTheme.ctaRadius,
+                boxShadow: AppTheme.ctaGlow,
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _unlockAll(context),
+                  borderRadius: AppTheme.ctaRadius,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            l10n.bridgeCtaSecondary.toUpperCase(),
+                            style: AppTypography.action(
+                              fontSize: 14,
+                            ).copyWith(color: AppTheme.ctaForeground),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            l10n.bridgeCtaSecondaryHint,
+                            style: AppTypography.support(fontSize: 12.5)
+                                .copyWith(
+                                  color: AppTheme.ctaForeground.withValues(
+                                    alpha: 0.75,
+                                  ),
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () => _unlockAll(context),
+                onPressed: _getToday,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: context.colors.ink,
                   side: BorderSide(
@@ -90,29 +121,12 @@ class OnboardingBridgeCard extends StatelessWidget {
                   ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 12,
+                    vertical: 16,
                   ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.bridgeCtaSecondary,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.bridgeCtaSecondaryHint,
-                      style: TextStyle(
-                        color: context.colors.subtle,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  l10n.bridgeCtaPrimary.toUpperCase(),
+                  style: AppTypography.action(fontSize: 14),
                 ),
               ),
             ),
@@ -176,14 +190,13 @@ class _CatalogFanGlyph extends StatelessWidget {
             borderAlpha: 0.9,
             width: 38,
             height: 52,
-            child: const Text(
+            child: Text(
               '?',
-              style: TextStyle(
-                color: AppTheme.spark,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                height: 1,
-              ),
+              // The mini-card is a miniature question card, so its glyph is set
+              // in the question's own DISPLAY face.
+              style: AppTypography.display(
+                24,
+              ).copyWith(color: AppTheme.spark, height: 1),
             ),
           ),
           Positioned(

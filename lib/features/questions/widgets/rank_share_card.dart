@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import 'rank_sheet.dart' show rankIcon;
 
 /// A self-contained, share-ready poster announcing a rank promotion: the Debatly
@@ -103,12 +104,10 @@ class RankShareCard extends StatelessWidget {
                           Text(
                             headline.toUpperCase(),
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppTheme.spark,
-                              fontSize: size.width * 0.045,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 2.4,
-                            ),
+                            style: AppTypography.eyebrow(
+                              fontSize: size.width * 0.042,
+                              tracking: 0.18,
+                            ).copyWith(color: AppTheme.spark),
                           ),
                           SizedBox(height: size.height * 0.018),
                           // The hero: the rank name in the display font, scaled
@@ -119,15 +118,11 @@ class RankShareCard extends StatelessWidget {
                             child: SizedBox(
                               width: size.width * 0.82,
                               child: Text(
-                                rankName,
+                                rankName.toUpperCase(),
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontFamily: 'Anton',
-                                  fontSize: size.width * 0.13,
-                                  height: 1.05,
-                                  letterSpacing: 0.5,
-                                  color: Colors.white,
-                                ),
+                                style: AppTypography.display(
+                                  size.width * 0.13,
+                                ).copyWith(color: Colors.white),
                               ),
                             ),
                           ),
@@ -204,12 +199,9 @@ class _StreakLine extends StatelessWidget {
         SizedBox(width: fontSize * 0.3),
         Text(
           text,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.92),
+          style: AppTypography.body(
             fontSize: fontSize,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-          ),
+          ).copyWith(color: Colors.white.withValues(alpha: 0.92)),
         ),
       ],
     );
@@ -226,14 +218,10 @@ class _Wordmark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      'Debatly',
-      style: TextStyle(
-        fontFamily: 'Anton',
-        fontSize: fontSize,
-        height: 1,
-        letterSpacing: 1,
-        color: Colors.white,
-      ),
+      'DEBATLY',
+      style: AppTypography.display(
+        fontSize,
+      ).copyWith(height: 1, color: Colors.white),
     );
   }
 }
@@ -263,13 +251,9 @@ class _TaglineFooter extends StatelessWidget {
         Text(
           text.toUpperCase(),
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: RankShareCard._taglineInk,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.2,
-            height: 1.3,
-          ),
+          style: AppTypography.eyebrow(
+            fontSize: 11,
+          ).copyWith(color: RankShareCard._taglineInk, height: 1.3),
         ),
       ],
     );

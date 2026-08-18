@@ -36,14 +36,16 @@ void main() {
       'dominant CTA', (tester) async {
     await pumpBridge(tester, onContinue: () {});
 
-    expect(find.text('To były dwa — a zostały jeszcze setki'), findsOneWidget);
+    // The DISPLAY headline and the ACTION buttons render uppercased in the
+    // widgets, so the finders match the on-screen casing.
+    expect(find.text('TO BYŁY DWA — A ZOSTAŁY JESZCZE SETKI'), findsOneWidget);
     expect(find.text('(i wiele innych korzyści)'), findsOneWidget);
     expect(
       find.textContaining('Codziennie dostajesz jedno nowe pytanie'),
       findsOneWidget,
     );
-    expect(find.text('Odbierz dzisiejsze pytanie'), findsOneWidget);
-    expect(find.text('Odblokuj wszystkie 500'), findsOneWidget);
+    expect(find.text('ODBIERZ DZISIEJSZE PYTANIE'), findsOneWidget);
+    expect(find.text('ODBLOKUJ WSZYSTKIE 500'), findsOneWidget);
   });
 
   testWidgets('the primary CTA continues for free — no paywall anywhere', (
@@ -52,7 +54,7 @@ void main() {
     var continued = false;
     await pumpBridge(tester, onContinue: () => continued = true);
 
-    await tester.tap(find.text('Odbierz dzisiejsze pytanie'));
+    await tester.tap(find.text('ODBIERZ DZISIEJSZE PYTANIE'));
     await tester.pumpAndSettle();
 
     expect(continued, isTrue);
@@ -64,7 +66,7 @@ void main() {
     var continued = false;
     await pumpBridge(tester, onContinue: () => continued = true);
 
-    await tester.tap(find.text('Odblokuj wszystkie 500'));
+    await tester.tap(find.text('ODBLOKUJ WSZYSTKIE 500'));
     await tester.pumpAndSettle();
     expect(find.byType(ProPaywallScreen), findsOneWidget);
 
@@ -74,7 +76,7 @@ void main() {
     expect(find.byType(ProPaywallScreen), findsNothing);
     expect(continued, isFalse);
     // Both paths are still on offer.
-    expect(find.text('Odbierz dzisiejsze pytanie'), findsOneWidget);
-    expect(find.text('Odblokuj wszystkie 500'), findsOneWidget);
+    expect(find.text('ODBIERZ DZISIEJSZE PYTANIE'), findsOneWidget);
+    expect(find.text('ODBLOKUJ WSZYSTKIE 500'), findsOneWidget);
   });
 }

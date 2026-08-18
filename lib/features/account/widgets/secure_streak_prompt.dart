@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/time/epoch_day.dart';
 import '../../questions/widgets/animated_flame_icon.dart' show flameColor;
 import '../providers/session_providers.dart';
@@ -113,38 +114,37 @@ Future<bool> maybePromptSecureStreak(
           const SizedBox(width: 14),
           Expanded(
             child: Text(
-              context.l10n.secureStreakTitle,
-              style: TextStyle(
-                color: context.colors.ink,
-                fontSize: 19,
-                fontWeight: FontWeight.w700,
-              ),
+              context.l10n.secureStreakTitle.toUpperCase(),
+              style: AppTypography.title(
+                fontSize: 30,
+              ).copyWith(color: context.colors.ink),
             ),
           ),
         ],
       ),
       content: Text(
         context.l10n.secureStreakBody(streak),
-        style: TextStyle(
-          color: context.colors.subtle,
+        style: AppTypography.body(
           height: 1.4,
-          fontSize: 14.5,
-        ),
+        ).copyWith(color: context.colors.subtle),
       ),
       actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          style: TextButton.styleFrom(foregroundColor: context.colors.subtle),
-          child: Text(context.l10n.later),
+          style: TextButton.styleFrom(
+            foregroundColor: context.colors.subtle,
+            textStyle: AppTypography.action(),
+          ),
+          child: Text(context.l10n.later.toUpperCase()),
         ),
         TextButton(
           onPressed: () => Navigator.of(dialogContext).pop(true),
-          style: TextButton.styleFrom(foregroundColor: AppTheme.spark),
-          child: Text(
-            context.l10n.createAccount,
-            style: const TextStyle(fontWeight: FontWeight.w700),
+          style: TextButton.styleFrom(
+            foregroundColor: AppTheme.spark,
+            textStyle: AppTypography.action(),
           ),
+          child: Text(context.l10n.createAccount.toUpperCase()),
         ),
       ],
     ),

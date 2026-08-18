@@ -85,7 +85,7 @@ void main() {
     expect(find.text('DEBATLY PRO'), findsOneWidget);
 
     // Streak 0 → the default slogan headline, with the catalog pitch under it.
-    expect(find.text('Bez limitu.\nBez końca.\nGlobalnie.'), findsOneWidget);
+    expect(find.text('BEZ LIMITU.\nBEZ KOŃCA.\nGLOBALNIE.'), findsOneWidget);
     expect(
       find.text(
         '500+ pytań, wszystkie argumenty ZA i PRZECIW, cała Twoja '
@@ -107,14 +107,14 @@ void main() {
     expect(find.text('DOŻYWOTNI'), findsOneWidget);
     expect(find.text(r'$22.99'), findsOneWidget);
     expect(find.text('MIESIĘCZNIE'), findsOneWidget);
-    expect(find.text(r'$5.49/mies.'), findsOneWidget);
+    expect(find.text(r'$5.49/MIES.'), findsOneWidget);
     expect(find.textContaining('tygodniowo'), findsOneWidget);
 
     // The monthly plan is preselected (exactly one filled radio) so the CTA
     // is armed on open; still no "best value" badge steering the pick.
     expect(find.text('NAJLEPSZA OFERTA'), findsNothing);
     expect(find.byIcon(Icons.radio_button_checked), findsOneWidget);
-    expect(find.text('Odblokuj pełny dostęp'), findsOneWidget);
+    expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
   });
 
   testWidgets('every entry point and streak shows the same slogan copy', (
@@ -129,7 +129,7 @@ void main() {
       streak: 8,
     );
 
-    expect(find.text('Bez limitu.\nBez końca.\nGlobalnie.'), findsOneWidget);
+    expect(find.text('BEZ LIMITU.\nBEZ KOŃCA.\nGLOBALNIE.'), findsOneWidget);
     expect(
       find.text(
         '500+ pytań, wszystkie argumenty ZA i PRZECIW, cała Twoja '
@@ -309,13 +309,13 @@ void main() {
     await tester.ensureVisible(find.text('MIESIĘCZNIE'));
     await tester.tap(find.text('MIESIĘCZNIE'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Odblokuj pełny dostęp'));
-    await tester.tap(find.text('Odblokuj pełny dostęp'));
+    await tester.ensureVisible(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
+    await tester.tap(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
     await tester.pumpAndSettle();
 
     expect(bought, monthly);
     expect(results, [true]);
-    expect(find.text('Odblokuj pełny dostęp'), findsNothing); // sheet closed
+    expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsNothing); // sheet closed
   });
 
   testWidgets(
@@ -333,8 +333,8 @@ void main() {
         },
       );
 
-      await tester.ensureVisible(find.text('Odblokuj pełny dostęp'));
-      await tester.tap(find.text('Odblokuj pełny dostęp'));
+      await tester.ensureVisible(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
+      await tester.tap(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
       await tester.pumpAndSettle();
       expect(bought, monthly);
     },
@@ -347,12 +347,12 @@ void main() {
       buy: (_) async => PurchaseOutcome.cancelled,
     );
 
-    await tester.ensureVisible(find.text('Odblokuj pełny dostęp'));
-    await tester.tap(find.text('Odblokuj pełny dostęp'));
+    await tester.ensureVisible(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
+    await tester.tap(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
     await tester.pumpAndSettle();
 
     // Still on the paywall, CTA usable again.
-    expect(find.text('Odblokuj pełny dostęp'), findsOneWidget);
+    expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
   });
 
   testWidgets(
@@ -367,7 +367,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Odblokuj pełny dostęp'), findsNothing);
+      expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsNothing);
     },
   );
 
@@ -427,8 +427,8 @@ void main() {
     await tester.tap(find.text('DOŻYWOTNI'));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Odblokuj pełny dostęp'));
-    await tester.tap(find.text('Odblokuj pełny dostęp'));
+    await tester.ensureVisible(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
+    await tester.tap(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
     await tester.pump(); // resolve buy()
     await tester.pump(); // let the toast mount
 
@@ -439,7 +439,7 @@ void main() {
       findsOneWidget,
     );
     // And the paywall is usable again — the CTA renders its label, not a spinner.
-    expect(find.text('Odblokuj pełny dostęp'), findsOneWidget);
+    expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
@@ -483,9 +483,9 @@ void main() {
 
     expect(calls, 3);
     expect(find.text(r'$22.99'), findsOneWidget);
-    expect(find.text('Odblokuj pełny dostęp'), findsOneWidget);
+    expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
     // The user was never shown the failure at all.
-    expect(find.text('Spróbuj ponownie'), findsNothing);
+    expect(find.text('SPRÓBUJ PONOWNIE'), findsNothing);
   });
 
   testWidgets('a store failure that keeps failing lands on the retry state', (
@@ -525,7 +525,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Spróbuj ponownie'), findsOneWidget);
+    expect(find.text('SPRÓBUJ PONOWNIE'), findsOneWidget);
   });
 
   testWidgets('coming back to the app re-fetches a failed offer', (
@@ -560,14 +560,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Spróbuj ponownie'), findsOneWidget);
+    expect(find.text('SPRÓBUJ PONOWNIE'), findsOneWidget);
 
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpAndSettle();
 
     expect(calls, 2);
     expect(find.text(r'$22.99'), findsOneWidget);
-    expect(find.text('Odblokuj pełny dostęp'), findsOneWidget);
+    expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
   });
 
   testWidgets('a configuration failure is not retried at all', (tester) async {
@@ -597,7 +597,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(calls, 1);
-    expect(find.text('Spróbuj ponownie'), findsOneWidget);
+    expect(find.text('SPRÓBUJ PONOWNIE'), findsOneWidget);
   });
 
   testWidgets('offering failure shows a retryable error state', (tester) async {
@@ -618,11 +618,11 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.ensureVisible(find.text('Spróbuj ponownie'));
-    await tester.tap(find.text('Spróbuj ponownie'));
+    await tester.ensureVisible(find.text('SPRÓBUJ PONOWNIE'));
+    await tester.tap(find.text('SPRÓBUJ PONOWNIE'));
     await tester.pumpAndSettle();
 
     expect(find.text(r'$22.99'), findsOneWidget);
-    expect(find.text('Odblokuj pełny dostęp'), findsOneWidget);
+    expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
   });
 }

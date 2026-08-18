@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../data/repositories/question_repository.dart' show dateOnlyKey;
 import '../../../services/analytics.dart';
 import '../../account/providers/stats_providers.dart';
@@ -199,10 +200,8 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
                       Text(
                         _formatLeft(_left),
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: AppTypography.numeric(56).copyWith(
                           color: colors.ink,
-                          fontSize: 44,
-                          fontWeight: FontWeight.w800,
                           // Fixed-width digits so the ticking clock doesn't
                           // wobble the line.
                           fontFeatures: const [FontFeature.tabularFigures()],
@@ -212,11 +211,9 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
                       Text(
                         l10n.wallCountdownCaption,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: colors.subtle,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: AppTypography.support(
+                          fontSize: 13,
+                        ).copyWith(color: colors.subtle),
                       ),
                       const SizedBox(height: 28),
                       PaywallCtaButton(
@@ -253,9 +250,10 @@ class _TeaserPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Same signature look as the real question (uppercase Anton, white fill
-    // over a black stroke), sized as if teaser + hidden continuation were the
-    // whole question so it lands where a mid-length question would.
+    // Same signature look as the real question (uppercase Barlow Condensed,
+    // white fill over a black stroke), sized as if teaser + hidden
+    // continuation were the whole question so it lands where a mid-length
+    // question would.
     final fontSize = QuestionTextStyles.fontSizeFor('$teaser… $_dummy');
 
     Widget styled(String text, {int? maxLines}) {

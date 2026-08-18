@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/question_search_field.dart';
 import '../../../core/widgets/sub_screen_chrome.dart';
 import '../../../data/models/vote_history_entry.dart';
@@ -184,7 +185,10 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
         title: context.l10n.historyLoadError,
         action: TextButton(
           onPressed: () => ref.invalidate(voteHistoryProvider),
-          child: Text(context.l10n.tryAgain),
+          child: Text(
+            context.l10n.tryAgain.toUpperCase(),
+            style: AppTypography.action(fontSize: 13),
+          ),
         ),
       ),
       data: (entries) {
@@ -303,13 +307,13 @@ class _CountSearchHeader extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
+                  // A number-led stat line — set in the condensed numeral face,
+                  // uppercase, like every other count in the app.
                   child: Text(
-                    context.l10n.historyAnsweredCount(answered),
-                    style: TextStyle(
-                      color: context.colors.ink,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    context.l10n.historyAnsweredCount(answered).toUpperCase(),
+                    style: AppTypography.numeric(
+                      20,
+                    ).copyWith(color: context.colors.ink),
                   ),
                 ),
                 if (searchable)
@@ -349,12 +353,9 @@ class _DayHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: TextStyle(
-        color: context.colors.subtle,
-        fontSize: 12,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 1.2,
-      ),
+      style: AppTypography.eyebrow(
+        fontSize: 11,
+      ).copyWith(color: context.colors.subtle),
     );
   }
 }
@@ -414,12 +415,10 @@ class _LoadMoreButton extends StatelessWidget {
           height: 52,
           child: Center(
             child: Text(
-              context.l10n.historyLoadMore(hidden),
-              style: TextStyle(
-                color: context.colors.ink,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
+              context.l10n.historyLoadMore(hidden).toUpperCase(),
+              style: AppTypography.action(
+                fontSize: 13,
+              ).copyWith(color: context.colors.ink),
             ),
           ),
         ),
@@ -472,13 +471,11 @@ class _HistoryCard extends StatelessWidget {
                     : Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
-                          context.l10n.historyYourVote(voteLabel),
-                          style: TextStyle(
-                            color: side,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.6,
-                          ),
+                          context.l10n.historyYourVote(voteLabel).toUpperCase(),
+                          style: AppTypography.eyebrow(
+                            fontSize: 10.5,
+                            tracking: 0.14,
+                          ).copyWith(color: side),
                         ),
                       ),
               ),
@@ -491,12 +488,10 @@ class _HistoryCard extends StatelessWidget {
             entry.questionText,
             maxLines: 5,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: context.colors.ink,
+            style: AppTypography.body(
               fontSize: 14,
-              height: 1.3,
-              fontWeight: FontWeight.w600,
-            ),
+              height: 1.32,
+            ).copyWith(color: context.colors.ink),
           ),
         ],
       ),
@@ -517,11 +512,9 @@ class _CornerSplit extends StatelessWidget {
     if (votes.total == 0) {
       return Text(
         context.l10n.historyNoVotes,
-        style: TextStyle(
-          color: context.colors.subtle,
-          fontSize: 10,
-          fontStyle: FontStyle.italic,
-        ),
+        style: AppTypography.support(
+          fontSize: 11,
+        ).copyWith(color: context.colors.subtle),
       );
     }
 
@@ -532,7 +525,7 @@ class _CornerSplit extends StatelessWidget {
     final secondColor = mineNo ? AppTheme.yes : AppTheme.no;
 
     TextStyle pct(Color color) =>
-        TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800);
+        AppTypography.numeric(16).copyWith(color: color);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -543,12 +536,11 @@ class _CornerSplit extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 3),
           child: Text(
-            context.l10n.historyVersus,
-            style: TextStyle(
-              color: context.colors.subtle,
+            context.l10n.historyVersus.toUpperCase(),
+            style: AppTypography.eyebrow(
               fontSize: 10,
-              fontWeight: FontWeight.w700,
-            ),
+              tracking: 0.12,
+            ).copyWith(color: context.colors.subtle),
           ),
         ),
         Text('$secondPct', style: pct(secondColor)),
@@ -581,20 +573,20 @@ class _HistoryMessage extends StatelessWidget {
           Icon(icon, color: context.colors.subtle, size: 40),
           const SizedBox(height: 14),
           Text(
-            title,
+            title.toUpperCase(),
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.colors.ink,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+            style: AppTypography.title(
+              fontSize: 30,
+            ).copyWith(color: context.colors.ink),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 6),
             Text(
               subtitle!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: context.colors.subtle, fontSize: 13),
+              style: AppTypography.support(
+                fontSize: 13,
+              ).copyWith(color: context.colors.subtle),
             ),
           ],
           if (action != null) ...[const SizedBox(height: 10), action!],
@@ -710,23 +702,20 @@ class _LockedHistoryPanelState extends ConsumerState<_LockedHistoryPanel> {
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      context.l10n.historyLockedTitle,
+                      context.l10n.historyLockedTitle.toUpperCase(),
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: context.colors.ink,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: AppTypography.title(
+                        fontSize: 30,
+                      ).copyWith(color: context.colors.ink),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       context.l10n.historyLockedBody,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: context.colors.subtle,
+                      style: AppTypography.support(
                         fontSize: 13,
                         height: 1.45,
-                      ),
+                      ).copyWith(color: context.colors.subtle),
                     ),
                   ],
                 ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../account/providers/stats_providers.dart';
 import 'stat_card_shell.dart';
 
@@ -26,33 +27,27 @@ class StreakCard extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             '$streak',
-            style: TextStyle(
-              color: context.colors.ink,
-              fontSize: 32,
-              fontWeight: FontWeight.w800,
-              height: 1,
-            ),
+            // 32 → 36: Barlow Condensed is narrower than the old Manrope 800,
+            // so the numeral needs a touch more size to keep its presence.
+            style: AppTypography.numeric(
+              36,
+            ).copyWith(color: context.colors.ink),
           ),
           const SizedBox(height: 6),
           Text(
-            context.l10n.daysInARow,
-            style: TextStyle(
-              color: context.colors.subtle,
+            context.l10n.daysInARow.toUpperCase(),
+            style: AppTypography.eyebrow(
               fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1,
-            ),
+            ).copyWith(color: context.colors.subtle),
           ),
           // Personal best, kept deliberately quiet beneath the headline streak.
           if (record > 0) ...[
             const SizedBox(height: 4),
             Text(
               context.l10n.streakRecord(record),
-              style: TextStyle(
-                color: context.colors.subtle.withValues(alpha: 0.7),
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppTypography.support(
+                fontSize: 11,
+              ).copyWith(color: context.colors.subtle.withValues(alpha: 0.7)),
             ),
           ],
         ],

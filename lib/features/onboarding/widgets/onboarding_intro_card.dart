@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/fit_or_scroll.dart';
 
 /// One intro slide: a glyph up top, a bold title, and a paragraph of copy —
@@ -19,6 +20,7 @@ class OnboardingIntroCard extends StatefulWidget {
     required this.title,
     this.titlePunch,
     required this.body,
+    this.fastForward,
   });
 
   /// The full entrance timeline: 0.8s of just the glyph, the hook at 0.8s,
@@ -42,6 +44,12 @@ class OnboardingIntroCard extends StatefulWidget {
   final String? titlePunch;
 
   final String body;
+
+  /// The screen's "hurry up" signal — fired when a tap lands on no control.
+  /// While the entrance is still playing, a notification sprints it to the
+  /// resting frame so all the copy (and the screen's CTA, on its twin
+  /// controller) is there at once.
+  final Listenable? fastForward;
 
   @override
   State<OnboardingIntroCard> createState() => _OnboardingIntroCardState();
@@ -75,6 +83,27 @@ class _OnboardingIntroCardState extends State<OnboardingIntroCard>
       vsync: this,
       duration: OnboardingIntroCard.entranceDuration,
     );
+    widget.fastForward?.addListener(_onFastForward);
+  }
+
+  @override
+  void didUpdateWidget(OnboardingIntroCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.fastForward != widget.fastForward) {
+      oldWidget.fastForward?.removeListener(_onFastForward);
+      widget.fastForward?.addListener(_onFastForward);
+    }
+  }
+
+  /// Sprints the stagger to its resting frame — a short dash rather than a
+  /// hard jump, so the still-invisible lines fade in instead of popping.
+  void _onFastForward() {
+    if (_entrance.isCompleted) return;
+    _entrance.animateTo(
+      1,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -90,6 +119,7 @@ class _OnboardingIntroCardState extends State<OnboardingIntroCard>
 
   @override
   void dispose() {
+    widget.fastForward?.removeListener(_onFastForward);
     _entrance.dispose();
     super.dispose();
   }
@@ -112,12 +142,9 @@ class _OnboardingIntroCardState extends State<OnboardingIntroCard>
   @override
   Widget build(BuildContext context) {
     final punch = widget.titlePunch;
-    final titleStyle = TextStyle(
-      color: context.colors.ink,
-      fontSize: 26,
-      fontWeight: FontWeight.w800,
-      height: 1.15,
-    );
+    final titleStyle = AppTypography.display(
+      40,
+    ).copyWith(color: context.colors.ink);
 
     // The very first screen of the app, so it has to survive a large system
     // font and a short window (an iPad Slide Over column) rather than clipping
@@ -133,7 +160,7 @@ class _OnboardingIntroCardState extends State<OnboardingIntroCard>
             _rise(
               _hookIn,
               Text(
-                widget.title,
+                widget.title.toUpperCase(),
                 textAlign: TextAlign.center,
                 style: titleStyle,
               ),
@@ -142,7 +169,11 @@ class _OnboardingIntroCardState extends State<OnboardingIntroCard>
               const SizedBox(height: 4),
               _rise(
                 _punchIn,
-                Text(punch, textAlign: TextAlign.center, style: titleStyle),
+                Text(
+                  punch.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: titleStyle,
+                ),
               ),
             ],
             const SizedBox(height: 16),
@@ -151,11 +182,10 @@ class _OnboardingIntroCardState extends State<OnboardingIntroCard>
               child: Text(
                 widget.body,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: context.colors.subtle,
-                  fontSize: 16,
-                  height: 1.45,
-                ),
+                style: AppTypography.body(
+                  fontSize: 15,
+                  height: 1.4,
+                ).copyWith(color: context.colors.subtle),
               ),
             ),
           ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 /// Fine-print "by continuing you agree to … Terms … Privacy" line with two
 /// tappable links. A `StatefulWidget` because the [TapGestureRecognizer]s it
@@ -80,7 +81,9 @@ class _AuthLegalConsentTextState extends State<AuthLegalConsentText> {
     return Text.rich(
       TextSpan(children: spans),
       textAlign: TextAlign.center,
-      style: TextStyle(color: context.colors.subtle, fontSize: 12, height: 1.4),
+      style: AppTypography.support(
+        height: 1.4,
+      ).copyWith(color: context.colors.subtle),
     );
   }
 }

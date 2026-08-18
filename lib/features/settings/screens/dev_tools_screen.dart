@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/feedback/app_toast.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/sub_screen_chrome.dart';
 import '../../../data/models/question.dart';
 import '../../../services/review_service.dart';
@@ -170,11 +171,9 @@ class DevToolsScreen extends ConsumerWidget {
                         'Sekcja widoczna tylko w buildach debug / DEV_TOOLS '
                         'oraz na kontach testerów. Przypięte pytanie żyje do '
                         'zamknięcia aplikacji.',
-                        style: TextStyle(
-                          color: context.colors.subtle,
-                          fontSize: 12,
+                        style: AppTypography.support(
                           height: 1.4,
-                        ),
+                        ).copyWith(color: context.colors.subtle),
                       ),
                     ],
                   ),
@@ -274,7 +273,12 @@ class _CustomQuestionDialogState extends State<_CustomQuestionDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Własne pytanie'),
+      title: Text(
+        'WŁASNE PYTANIE',
+        style: AppTypography.title(
+          fontSize: 30,
+        ).copyWith(color: context.colors.ink),
+      ),
       content: TextField(
         controller: _controller,
         autofocus: true,
@@ -287,11 +291,11 @@ class _CustomQuestionDialogState extends State<_CustomQuestionDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Anuluj'),
+          child: Text('ANULUJ', style: AppTypography.action()),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-          child: const Text('Pokaż'),
+          child: Text('POKAŻ', style: AppTypography.action()),
         ),
       ],
     );
@@ -398,9 +402,9 @@ class _DevQuestionPickerScreenState
                                   'Nie udało się pobrać katalogu:\n'
                                   '${snapshot.error}',
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: context.colors.subtle,
-                                  ),
+                                  style: AppTypography.body(
+                                    fontSize: 14,
+                                  ).copyWith(color: context.colors.subtle),
                                 ),
                               );
                             }
@@ -411,9 +415,9 @@ class _DevQuestionPickerScreenState
                               return Center(
                                 child: Text(
                                   'Brak pytań pasujących do wyszukiwania',
-                                  style: TextStyle(
-                                    color: context.colors.subtle,
-                                  ),
+                                  style: AppTypography.body(
+                                    fontSize: 14,
+                                  ).copyWith(color: context.colors.subtle),
                                 ),
                               );
                             }
@@ -453,12 +457,13 @@ class _DevQuestionPickerScreenState
                                             title,
                                             maxLines: 3,
                                             overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: context.colors.ink,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                              height: 1.3,
-                                            ),
+                                            style:
+                                                AppTypography.body(
+                                                  fontSize: 14,
+                                                  height: 1.32,
+                                                ).copyWith(
+                                                  color: context.colors.ink,
+                                                ),
                                           ),
                                           const SizedBox(height: 6),
                                           Text(
@@ -467,10 +472,10 @@ class _DevQuestionPickerScreenState
                                               if (q.isPremium) 'premium',
                                               if (locked) 'zablokowane',
                                             ].join(' · '),
-                                            style: TextStyle(
-                                              color: context.colors.subtle,
-                                              fontSize: 12,
-                                            ),
+                                            style: AppTypography.support()
+                                                .copyWith(
+                                                  color: context.colors.subtle,
+                                                ),
                                           ),
                                         ],
                                       ),

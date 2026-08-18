@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../providers/offline_download_providers.dart';
 import 'settings_primitives.dart';
 
@@ -53,19 +54,16 @@ class OfflineDownloadRow extends ConsumerWidget {
                 children: [
                   Text(
                     l10n.settingsOfflineQuestions,
-                    style: TextStyle(
-                      color: context.colors.ink,
+                    style: AppTypography.body(
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    ).copyWith(color: context.colors.ink),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      color: context.colors.subtle,
+                    style: AppTypography.support(
                       fontSize: 13,
-                    ),
+                    ).copyWith(color: context.colors.subtle),
                   ),
                 ],
               ),

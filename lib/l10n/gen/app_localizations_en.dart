@@ -150,6 +150,37 @@ class AppLocalizationsEn extends AppLocalizations {
       'GOOGLE_SERVER_CLIENT_ID is missing, so Google is temporarily disabled.';
 
   @override
+  String get authAlreadySignedIn =>
+      'You\'re already signed in to your account — no need to register again.';
+
+  @override
+  String authRegisteredPendingConfirm(String email) {
+    return 'Your account is already registered to $email. Tap the link in that email to confirm it.';
+  }
+
+  @override
+  String get authErrorInvalidCredentials => 'Incorrect email or password.';
+
+  @override
+  String get authErrorEmailNotConfirmed =>
+      'Confirm your email first — check your inbox.';
+
+  @override
+  String get authErrorEmailExists =>
+      'An account with this email already exists. Sign in instead.';
+
+  @override
+  String get authErrorSamePassword => 'That\'s already your current password.';
+
+  @override
+  String get authErrorWeakPassword =>
+      'That password is too weak. Try a longer one.';
+
+  @override
+  String get authErrorTooManyRequests =>
+      'Too many attempts. Wait a moment and try again.';
+
+  @override
   String get settingsSectionApp => 'APP SETTINGS';
 
   @override
@@ -901,9 +932,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String rankShareMessage(String rank) {
     return 'My new rank in Debatly: $rank 🔥\n\nDebatly — thought-provoking questions.';
   }
-
-  @override
-  String get onboardingSkip => 'Skip';
 
   @override
   String get onboardingBegin => 'Let\'s begin';

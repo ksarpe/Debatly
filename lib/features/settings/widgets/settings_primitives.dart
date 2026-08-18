@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 
 // Shared building blocks for the settings hub and its sub-screens: the small
 // layout primitives (section label, card, row divider), the accent colours that
@@ -26,13 +27,12 @@ class SettingsSectionLabel extends StatelessWidget {
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
-          text,
-          style: const TextStyle(
-            color: AppTheme.spark,
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
-          ),
+          // EYEBROW demands uppercase; every current caller already passes
+          // caps, so this is a belt-and-braces no-op that keeps it true.
+          text.toUpperCase(),
+          style: AppTypography.eyebrow(
+            fontSize: 11,
+          ).copyWith(color: AppTheme.spark),
         ),
       ),
     );

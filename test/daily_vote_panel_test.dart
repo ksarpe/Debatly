@@ -125,8 +125,9 @@ void main() {
     expect(find.text('VS'), findsOneWidget);
     // The user's own side carries the check mark.
     expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-    // ...and a muted "Twój głos" caption sits under the picked tile.
-    expect(find.text('Twój głos'), findsOneWidget);
+    // ...and a muted "Twój głos" caption sits under the picked tile
+    // (rendered uppercase, like every eyebrow).
+    expect(find.text('TWÓJ GŁOS'), findsOneWidget);
   });
 
   testWidgets(
@@ -155,7 +156,7 @@ void main() {
       expect(find.text('–'), findsNWidgets(2));
       expect(find.text('Wyniki wrócą po połączeniu'), findsOneWidget);
       // The "your vote" caption still shows offline (it's my own data).
-      expect(find.text('Twój głos'), findsOneWidget);
+      expect(find.text('TWÓJ GŁOS'), findsOneWidget);
     },
   );
 

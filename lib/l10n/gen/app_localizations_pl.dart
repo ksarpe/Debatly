@@ -150,6 +150,37 @@ class AppLocalizationsPl extends AppLocalizations {
       'Brakuje GOOGLE_SERVER_CLIENT_ID, więc Google jest chwilowo wyłączone.';
 
   @override
+  String get authAlreadySignedIn =>
+      'Twoje konto jest już założone i zalogowane — nie musisz rejestrować się ponownie.';
+
+  @override
+  String authRegisteredPendingConfirm(String email) {
+    return 'Konto jest już zarejestrowane na adres $email. Kliknij link z maila, aby je potwierdzić.';
+  }
+
+  @override
+  String get authErrorInvalidCredentials => 'Nieprawidłowy email lub hasło.';
+
+  @override
+  String get authErrorEmailNotConfirmed =>
+      'Najpierw potwierdź email — sprawdź skrzynkę.';
+
+  @override
+  String get authErrorEmailExists =>
+      'Konto z tym adresem już istnieje. Zaloguj się.';
+
+  @override
+  String get authErrorSamePassword =>
+      'To hasło jest już ustawione na Twoim koncie.';
+
+  @override
+  String get authErrorWeakPassword => 'Hasło jest zbyt słabe. Użyj dłuższego.';
+
+  @override
+  String get authErrorTooManyRequests =>
+      'Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.';
+
+  @override
   String get settingsSectionApp => 'USTAWIENIA APLIKACJI';
 
   @override
@@ -921,9 +952,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String rankShareMessage(String rank) {
     return 'Moja nowa ranga w Debatly: $rank 🔥\n\nDebatly — przewrotne pytania, które rozpalają rozmowę.';
   }
-
-  @override
-  String get onboardingSkip => 'Pomiń';
 
   @override
   String get onboardingBegin => 'Zaczynajmy';
