@@ -138,9 +138,9 @@ lib/
 supabase/
   schema.sql             Bootstrap only — the ORIGINAL base tables, not today's
                          shape (see the hard rule above)
-  migrations/schema/     58 files: tables, RPCs, views, RLS, grants (has DDL).
+  migrations/schema/     61 files: tables, RPCs, views, RLS, grants (has DDL).
                          The real schema; newest file wins per object
-  migrations/data/       32 files: question seeds + catalog edits (no DDL, 3× bigger)
+  migrations/data/       33 files: question seeds + catalog edits (no DDL, 3× bigger)
   functions/             Edge functions (Deno/TS): revenuecat-webhook,
                          sync-entitlement, admob-ssv, send-auth-email,
                          delete-account

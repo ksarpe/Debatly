@@ -38,6 +38,11 @@ const REVEAL_SOURCES = {
 const nf = new Intl.NumberFormat('pl-PL');
 const pct = (num, den) => (den > 0 ? `${Math.round((100 * num) / den)}%` : '—');
 
+// Konwersja instalacja → zakup siedzi w okolicach 1–5%, gdzie zaokrąglenie do
+// pełnych procent zlepia 1,4% z 2,4% — czyli dwie zupełnie różne kampanie.
+const pct1 = (num, den) =>
+  den > 0 ? `${(Math.round((1000 * num) / den) / 10).toLocaleString('pl-PL')}%` : '—';
+
 export default function StatsPage() {
   const [days, setDays] = useState(30);
   const [includeInternal, setIncludeInternal] = useState(false);
@@ -101,6 +106,8 @@ export default function StatsPage() {
             <Tile label="Głosy" value={nf.format(t.votes)} note={`${nf.format(t.voters)} głosujących`} />
             <Tile label="Zakupy PRO" value={nf.format(t.purchases)}
                   note={`${nf.format(t.active_subs)} aktywnych subskrypcji`} />
+            <Tile label="Konwersja PRO" value={pct1(t.purchases, t.installs)}
+                  note={`${nf.format(t.purchases)} z ${nf.format(t.installs)} instalacji kupiło`} />
             <Tile label="Podejrzane konta" value={nf.format(t.suspects)} warn={t.suspects > 0}
                   note={`${nf.format(t.suspect_votes)} ich głosów (heurystyki, all-time)`} />
           </div>
@@ -180,7 +187,7 @@ export default function StatsPage() {
 
           <div className="two-col">
             <div className="card">
-              <h3>Akwizycja (Install Referrer, od 29.07)</h3>
+              <h3>Akwizycja (Install Referrer, dane od 13.08)</h3>
               <div className="tbl-scroll">
                 <table className="stats-table">
                   <thead>
@@ -188,6 +195,7 @@ export default function StatsPage() {
                       <th>Źródło</th><th>Kampania</th>
                       <th className="num">Instalacje</th><th className="num">Onboarding</th>
                       <th className="num">Głos</th><th className="num">Paywall</th><th className="num">Zakup</th>
+                      <th className="num">Konwersja</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -200,6 +208,7 @@ export default function StatsPage() {
                         <td className="num">{nf.format(a.voted)}</td>
                         <td className="num">{nf.format(a.saw_paywall)}</td>
                         <td className={`num ${a.purchased > 0 ? 'ok-cell' : ''}`}>{nf.format(a.purchased)}</td>
+                        <td className="num">{pct1(a.purchased, a.installs)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -207,7 +216,10 @@ export default function StatsPage() {
               </div>
               <p className="faint" style={{ marginBottom: 0 }}>
                 Zawsze all-time (zdarzenie atrybucji jest jednorazowe). Kampanie z UTM
-                pojawią się tu jako osobne wiersze.
+                pojawią się tu jako osobne wiersze. <b>Tylko Android</b> — Install
+                Referrer to mechanizm Google Play, więc instalacje z App Store nie
+                trafiają do tej tabeli i suma „Instalacje” jest tu niższa niż w kafelku
+                u góry.
               </p>
             </div>
 

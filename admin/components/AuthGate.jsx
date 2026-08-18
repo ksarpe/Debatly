@@ -19,7 +19,18 @@ export default function AuthGate({ children }) {
 
   useEffect(() => {
     let done = false;
-    const settle = (s) => { done = true; setSession(s ?? null); };
+    // Supabase re-emits SIGNED_IN / TOKEN_REFRESHED every time the browser tab
+    // regains focus. Keep the previous session object when the user hasn't
+    // actually changed, otherwise every tab switch remounts the whole app.
+    const settle = (s) => {
+      done = true;
+      setSession((prev) => {
+        if (prev === undefined) return s ?? null;
+        const prevId = prev?.user?.id ?? null;
+        const nextId = s?.user?.id ?? null;
+        return prevId === nextId ? prev : (s ?? null);
+      });
+    };
 
     // Without the catch a rejected getSession() would leave the UI stuck on
     // "Ładowanie…" forever, with no clue why.
@@ -44,8 +55,11 @@ export default function AuthGate({ children }) {
     return () => { clearTimeout(t); sub.subscription.unsubscribe(); };
   }, []);
 
+  // Keyed on the user id, not the session object: token refreshes must not
+  // re-run the admin check (it hides the whole app behind a spinner).
+  const userId = session?.user?.id ?? null;
   useEffect(() => {
-    if (!session) { setMe(null); return; }
+    if (!userId) { setMe(null); return; }
     let cancelled = false;
     (async () => {
       setChecking(true);
@@ -61,7 +75,7 @@ export default function AuthGate({ children }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [session]);
+  }, [userId]);
 
   if (session === undefined) return <div className="spin">Ładowanie…</div>;
   if (!session) return <Login fatal={fatal} />;
@@ -71,9 +85,18 @@ export default function AuthGate({ children }) {
   return (
     <>
       <Nav email={session.user.email} role={me.role} />
-      <div className="wrap">{children}</div>
+      <Wrap>{children}</Wrap>
     </>
   );
+}
+
+// Strony z szeroką tabelą (dziennik marketingowy ma 14 kolumn) dostają całą
+// szerokość okna — inaczej nie da się ich obejrzeć bez poziomego scrolla.
+const WIDE_ROUTES = new Set(['/marketing']);
+
+function Wrap({ children }) {
+  const path = usePathname();
+  return <div className={WIDE_ROUTES.has(path) ? 'wrap wide' : 'wrap'}>{children}</div>;
 }
 
 function Nav({ email, role }) {
@@ -83,8 +106,8 @@ function Nav({ email, role }) {
     <nav className="nav">
       <div className="brand">Debatly<span>.</span>admin</div>
       <Link href="/" className={is('/')}>Pytania</Link>
-      <Link href="/drafts" className={is('/drafts')}>Do zatwierdzenia</Link>
       <Link href="/stats" className={is('/stats')}>Statystyki</Link>
+      <Link href="/live" className={is('/live')}>Live 💰</Link>
       <Link href="/marketing" className={is('/marketing')}>Marketing</Link>
       <Link href="/suggestions" className={is('/suggestions')}>Propozycje</Link>
       <Link href="/q/new" className={is('/q/new')}>+ Nowe pytanie</Link>

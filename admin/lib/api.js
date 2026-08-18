@@ -33,18 +33,23 @@ export const api = {
   me: () => rpc('admin_me'),
   claimInvite: () => rpc('admin_claim_invite'),
 
+  // Licznik sprzedaży /live: liczniki + przychód + ostatnie eventy RevenueCat
+  // (billing_events). Strona odpytuje to cyklicznie i gra dźwięk przy nowym zakupie.
+  liveSales: () => rpc('admin_live_sales'),
+
   // Cały dashboard /stats jednym strzałem; p_days = null → od początku.
   // Konta wewnętrzne (nasze maile) są domyślnie wycięte z każdej liczby.
   dashboardStats: (days = null, includeInternal = false) =>
     rpc('admin_dashboard_stats', { p_days: days, p_include_internal: includeInternal }),
 
-  listQuestions: ({ search = null, onlyActive = true, onlyEnReview = false, onlyFavorites = false, onlyUnverified = false, limit = 50, offset = 0 } = {}) =>
+  listQuestions: ({ search = null, onlyActive = true, onlyEnReview = false, onlyFavorites = false, onlyUnverified = false, onlyNeedsReview = false, limit = 50, offset = 0 } = {}) =>
     rpc('admin_list_questions', {
       p_search: search,
       p_only_active: onlyActive,
       p_only_en_review: onlyEnReview,
       p_only_favorites: onlyFavorites,
       p_only_unverified: onlyUnverified,
+      p_only_needs_review: onlyNeedsReview,
       p_limit: limit,
       p_offset: offset,
     }),
@@ -58,13 +63,15 @@ export const api = {
   toggleVerified: (questionId) =>
     rpc('admin_toggle_verified', { p_question_id: questionId }),
 
+  // Chorągiewka "do weryfikacji" — globalna, bez draftu. Zwraca nowy stan (true = oflagowane).
+  toggleNeedsReview: (questionId) =>
+    rpc('admin_toggle_needs_review', { p_question_id: questionId }),
+
   getQuestion: (id) => rpc('admin_get_question', { p_id: id }),
 
   // true = "EN do weryfikacji" (każdy admin); false = zweryfikowane (tylko approver)
   setEnReview: (questionId, flag) =>
     rpc('admin_set_en_review', { p_question_id: questionId, p_flag: flag }),
-
-  listDrafts: (status = null) => rpc('admin_list_drafts', { p_status: status }),
 
   history: (questionId) => rpc('admin_question_history', { p_question_id: questionId }),
 
@@ -94,18 +101,18 @@ export const api = {
     }
     return res;
   },
-  rejectDraft: (draftId, note = null) =>
-    rpc('admin_reject_draft', { p_draft_id: draftId, p_note: note }),
-
-  // Dziennik marketingowy: ręcznie wpisywane statystyki promocji, wiersz = dzień.
+  // Dziennik marketingowy: wiersz = dzień. Zwraca { tracking_since, rows } —
+  // pola ręczne (filmik, wejścia, pobrania) + policzone przez bazę
+  // installs_tracked / purchases / revenue_pln, także dla dni bez wpisu.
   // Upsert nadpisuje cały wiersz (NULL = pole wyczyszczone), ostatni zapis wygrywa.
   listMarketing: () => rpc('admin_list_marketing_stats'),
-  upsertMarketingDay: ({ day, video, videoViews, storeVisits, downloadsGoogle, downloadsAppstore, notes }) =>
+  upsertMarketingDay: ({ day, video, videoViews, storeVisitsGoogle, storeVisitsAppstore, downloadsGoogle, downloadsAppstore, notes }) =>
     rpc('admin_upsert_marketing_day', {
       p_day: day,
       p_video: video,
       p_video_views: videoViews,
-      p_store_visits: storeVisits,
+      p_store_visits_google: storeVisitsGoogle,
+      p_store_visits_appstore: storeVisitsAppstore,
       p_downloads_google: downloadsGoogle,
       p_downloads_appstore: downloadsAppstore,
       p_notes: notes,

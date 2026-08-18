@@ -30,6 +30,7 @@ export default function QuestionList() {
   const [onlyEnReview, setOnlyEnReview] = useState(false);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [onlyUnverified, setOnlyUnverified] = useState(false);
+  const [onlyNeedsReview, setOnlyNeedsReview] = useState(false);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -37,7 +38,7 @@ export default function QuestionList() {
   const [expandedId, setExpandedId] = useState(null);
   const [editorDirty, setEditorDirty] = useState(false);
 
-  const load = useCallback(async (q, active, enReview, favs, unverified, p, silent = false) => {
+  const load = useCallback(async (q, active, enReview, favs, unverified, needsReview, p, silent = false) => {
     if (!silent) setLoading(true);
     setErr(null);
     try {
@@ -47,6 +48,7 @@ export default function QuestionList() {
         onlyEnReview: enReview,
         onlyFavorites: favs,
         onlyUnverified: unverified,
+        onlyNeedsReview: needsReview,
         limit: PAGE,
         offset: p * PAGE,
       });
@@ -61,16 +63,16 @@ export default function QuestionList() {
 
   // debounce search
   useEffect(() => {
-    const t = setTimeout(() => { setPage(0); load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, 0); }, 250);
+    const t = setTimeout(() => { setPage(0); load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, 0); }, 250);
     return () => clearTimeout(t);
-  }, [search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, load]);
+  }, [search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, load]);
 
-  useEffect(() => { load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, page); /* eslint-disable-next-line */ }, [page]);
+  useEffect(() => { load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, page); /* eslint-disable-next-line */ }, [page]);
 
   // Silent refresh after an inline save/publish — keeps the open editor mounted.
   const reload = useCallback(() => {
-    load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, page, true);
-  }, [load, search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, page]);
+    load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, page, true);
+  }, [load, search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, page]);
 
   const pages = Math.ceil(total / PAGE) || 1;
 
@@ -108,6 +110,17 @@ export default function QuestionList() {
       if (onlyUnverified) reload();
     } catch (e) {
       setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, is_verified: r.is_verified } : x)));
+      setErr(e.friendly || e.message);
+    }
+  }
+
+  async function toggleNeedsReview(r) {
+    setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, needs_review: !x.needs_review } : x)));
+    try {
+      await api.toggleNeedsReview(r.id);
+      if (onlyNeedsReview) reload();
+    } catch (e) {
+      setRows((rs) => rs.map((x) => (x.id === r.id ? { ...x, needs_review: r.needs_review } : x)));
       setErr(e.friendly || e.message);
     }
   }
@@ -153,6 +166,11 @@ export default function QuestionList() {
                  onChange={(e) => setOnlyUnverified(e.target.checked)} style={{ width: 'auto' }} />
           ✓ ukryj zweryfikowane
         </label>
+        <label className="faint" style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
+          <input type="checkbox" checked={onlyNeedsReview}
+                 onChange={(e) => setOnlyNeedsReview(e.target.checked)} style={{ width: 'auto' }} />
+          ⚑ tylko do weryfikacji
+        </label>
       </div>
 
       {err && <div className="alert err">{err}</div>}
@@ -168,6 +186,7 @@ export default function QuestionList() {
               <tr>
                 <th style={{ width: 36 }} title="Ulubione">★</th>
                 <th style={{ width: 36 }} title="Zweryfikowane">✓</th>
+                <th style={{ width: 36 }} title="Do weryfikacji">⚑</th>
                 <th style={{ width: '46%' }}>Pytanie (PL)</th>
                 <th>Kategoria</th>
                 <th style={{ width: 70 }}>Smaczki</th>
@@ -196,6 +215,15 @@ export default function QuestionList() {
                         {r.is_verified ? '✔' : '○'}
                       </button>
                     </td>
+                    <td className="check-cell" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className={`flag-btn ${r.needs_review ? 'on' : ''}`}
+                        title={r.needs_review ? 'Do weryfikacji — kliknij, aby zdjąć znacznik' : 'Oznacz jako do weryfikacji'}
+                        onClick={() => toggleNeedsReview(r)}
+                      >
+                        {r.needs_review ? '⚑' : '⚐'}
+                      </button>
+                    </td>
                     <td className="q">
                       {r.pl}
                       <div className="en">{r.en}</div>
@@ -211,7 +239,7 @@ export default function QuestionList() {
                   </tr>
                   {expandedId === r.id && (
                     <tr className="editor-row">
-                      <td colSpan={6}>
+                      <td colSpan={7}>
                         <QuestionEditor
                           inline
                           questionId={r.id}
