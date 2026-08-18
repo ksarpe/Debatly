@@ -138,10 +138,21 @@ class SupabaseService {
       );
     }
 
+    // Same nonce dance as Apple: Google gets the SHA-256 hash (echoed
+    // verbatim into the ID token's `nonce` claim), Supabase gets the raw
+    // value and re-hashes it to compare. Without this, a token that arrives
+    // with a nonce claim (newer Google SDKs add one on their own) is
+    // rejected by GoTrue with "Passed nonce and nonce in id_token should
+    // either both exist or not".
+    final rawNonce = _generateNonce();
+    final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
+
     final googleSignIn = GoogleSignIn.instance;
-    // initialize() is idempotent — safe to call on every sign-in attempt.
+    // initialize() is idempotent — safe to call on every sign-in attempt,
+    // which also swaps in this attempt's fresh nonce.
     await googleSignIn.initialize(
       serverClientId: AppConfig.googleServerClientId,
+      nonce: hashedNonce,
     );
 
     final GoogleSignInAccount account;
@@ -169,6 +180,7 @@ class SupabaseService {
       provider: OAuthProvider.google,
       idToken: idToken,
       accessToken: authorization?.accessToken,
+      nonce: rawNonce,
     );
   }
 
