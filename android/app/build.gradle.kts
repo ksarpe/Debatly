@@ -35,9 +35,9 @@ android {
         applicationId = "com.aknsoftware.debatly"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        // RevenueCat's paywall UI (purchases_ui_flutter) requires minSdk 24;
-        // this also covers google_mobile_ads' minSdk 23. Raise the Flutter
-        // default if it is lower.
+        // minSdk 24 was raised for RevenueCat's paywall UI and stays put:
+        // lowering it now would re-offer the app to devices we already
+        // dropped. Raise the Flutter default if it is lower.
         minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         // Google Play requires a strictly-increasing integer versionCode on
@@ -81,9 +81,12 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
-            // Flutter enables R8 shrinking/obfuscation for release; supply our
-            // own keep rules (see proguard-rules.pro) so reflectively-loaded
-            // classes — Room's generated WorkManager DB impl — survive.
+            // R8 shrinking/obfuscation/optimisation, explicit so Play Console's
+            // R8 health checks are satisfied deliberately rather than by the
+            // Flutter default. Keep rules (proguard-rules.pro) are minimal on
+            // purpose — every wholesale keep lowers the optimisation rate.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

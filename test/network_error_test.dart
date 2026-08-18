@@ -60,6 +60,18 @@ void main() {
         ),
         isFalse,
       );
+      // functions_client wraps a transport failure (no response at all) in a
+      // FunctionException SUBCLASS — that one IS offline. Seen in prod as
+      // status 0 + "Software caused connection abort" when Android drops the
+      // socket on backgrounding.
+      expect(
+        isOfflineError(
+          const FunctionsFetchException(
+            details: 'ClientException: Software caused connection abort',
+          ),
+        ),
+        isTrue,
+      );
       // gotrue's typed RETRYABLE fetch failure is a genuine transport error
       // and must stay offline (its name carries the 'retryable' keyword).
       expect(isOfflineError(AuthRetryableFetchException()), isTrue);

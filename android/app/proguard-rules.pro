@@ -3,64 +3,47 @@
 # Flutter enables R8 code shrinking + obfuscation for release builds. Some
 # libraries instantiate generated classes reflectively, so R8 must be told not
 # to strip the members it can't see being called.
+#
+# KEEP THIS FILE MINIMAL. Every SDK we ship (Sentry, RevenueCat, Gson,
+# androidx.work/room, install referrer) bundles its own consumer ProGuard
+# rules inside its AAR — R8 merges those automatically. Wholesale
+# `-keep class x.** { *; }` rules on top of them disable shrinking,
+# obfuscation and optimisation for entire libraries; Play Console flagged
+# exactly that (optimisation/obfuscation/shrinking rates below 30%). Only
+# rules covering a failure the consumer rules demonstrably did NOT cover
+# belong here.
 
 # --- WorkManager + Room --------------------------------------------------
-# androidx.work:work-runtime (pulled in transitively — play-services-ads →
-# androidx.work) auto-initialises WorkManager through androidx.startup at
-# PROCESS START, before any Dart code runs. WorkManager builds its Room
-# database by reflectively loading the Room-generated `WorkDatabase_Impl`
-# (Room computes the impl name from the DB class's own name + "_Impl", so BOTH
-# the abstract DB and its generated impl must keep their original names). R8
-# was renaming/stripping those, so Room threw
+# androidx.work (pulled in transitively) auto-initialises WorkManager through
+# androidx.startup at PROCESS START, before any Dart code runs. WorkManager
+# builds its Room database by reflectively loading the Room-generated
+# `WorkDatabase_Impl` (Room derives the impl name from the DB class's own name
+# + "_Impl", so both the abstract DB and its generated impl must keep their
+# original names and no-arg constructors). R8 full mode was renaming/stripping
+# those, so Room threw
 #   "Failed to create an instance of androidx.work.impl.WorkDatabase"
-# and the app crashed on launch — a NATIVE crash no Dart try/catch can catch,
-# which is why release/Play-Store builds "open then immediately close".
-#
-# These keeps previously lived here for the now-removed home_widget plugin and
-# were deleted with it; WorkManager is still present transitively, so they are
-# required. See android/app/build.gradle.kts (R8 is on for release).
--keep class androidx.work.** { *; }
--keep class androidx.room.** { *; }
--keep class androidx.sqlite.** { *; }
+# and the app crashed on launch — a NATIVE crash no Dart try/catch can catch.
+# This single rule matches transitive subclasses, so it covers both
+# WorkDatabase and WorkDatabase_Impl without keeping the rest of
+# androidx.work/room/sqlite (their own consumer rules handle the rest).
 -keep class * extends androidx.room.RoomDatabase { <init>(); }
 -dontwarn androidx.work.**
 
-# --- Startup SDKs (native platform-channel plugins) ----------------------
-# Insurance against the same failure mode as above. Every SDK in main()'s boot
-# sequence talks to native code over a Flutter method channel. If R8 strips or
-# renames a plugin's native handler, the Dart-side `await` on that channel never
-# gets its reply and the app hangs on the splash forever — a release-only stall
-# no Dart try/catch can see. `_startApp` now bounds each init with a timeout so
-# a break degrades gracefully, but keeping these classes means the feature keeps
-# WORKING rather than merely failing quietly. Most ship consumer rules already;
-# these are explicit belt-and-braces for the ones that boot before any UI.
-
-# Sentry (installed first — wraps the whole app, incl. the native crash handler)
--keep class io.sentry.** { *; }
--dontwarn io.sentry.**
-
-# Google Mobile Ads + UMP consent — the heaviest native stack (pulls
-# play-services, and WorkManager transitively; see the Room keeps above).
--keep class com.google.android.gms.ads.** { *; }
--keep class com.google.android.ump.** { *; }
--dontwarn com.google.android.gms.**
-
-# RevenueCat (purchases_flutter / purchases_ui_flutter). The native SDK aborts
-# the process on bad state, so a mangled class is especially unforgiving.
--keep class com.revenuecat.** { *; }
--dontwarn com.revenuecat.**
-
-# flutter_local_notifications (de)serialises its notification models with Gson
-# via reflection — it needs both its own classes and Gson's generic machinery.
+# --- flutter_local_notifications -----------------------------------------
+# (De)serialises its notification models with Gson via reflection: it needs
+# its own model classes, Gson's TypeToken subclasses and the generic-signature
+# metadata Gson reads at runtime. These are the rules the plugin documents;
+# gson-core itself ships consumer rules, so no wholesale Gson keep.
 -keep class com.dexterous.** { *; }
--keep class com.google.gson.** { *; }
 -keep class * extends com.google.gson.reflect.TypeToken
+-keepattributes Signature
 -dontwarn com.dexterous.**
 
-# Play Install Referrer (play_install_referrer → com.android.installreferrer).
-# Backs the one-shot install attribution (InstallReferrerService): the referrer
-# is only readable for 90 days per install, so if R8 breaks this channel the
-# attribution burns its retry budget and is lost for good. The library is tiny —
-# keep it wholesale.
+# --- Play Install Referrer -----------------------------------------------
+# (play_install_referrer → com.android.installreferrer.) Backs the one-shot
+# install attribution (InstallReferrerService): the referrer is only readable
+# for 90 days per install, so if R8 breaks this channel the attribution burns
+# its retry budget and is lost for good. The library is tiny — keep it
+# wholesale; the cost is negligible.
 -keep class com.android.installreferrer.** { *; }
 -dontwarn com.android.installreferrer.**

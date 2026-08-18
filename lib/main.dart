@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,6 +36,12 @@ Future<void> main() async {
 /// needed for the first frame is kicked off in the background after `runApp`.
 Future<void> _startApp() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Android 15+ (target SDK 35) draws the app edge-to-edge whether we like it
+  // or not; opting in explicitly makes Android <15 behave the same way, so the
+  // layout (SafeArea everywhere, transparent bars from the AppBar theme) only
+  // has one mode to be correct in. No-op on iOS.
+  unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
 
   // Resolve persisted preferences before the first frame so the chosen language
   // (or the device-detected one) is available synchronously to MaterialApp and

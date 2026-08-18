@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -50,6 +51,16 @@ class DebatlyApp extends ConsumerWidget {
         // an error fired) and per-route performance transactions. Harmless when
         // Sentry is disabled — the observer just produces no-op events.
         navigatorObservers: [SentryNavigatorObserver()],
+        // Baseline system-bar style for screens WITHOUT an AppBar (splash,
+        // onboarding, the paywall dialog): the app draws edge-to-edge, so the
+        // bars must be transparent with theme-matched icon brightness
+        // everywhere, not only where an AppBar happens to annotate them. The
+        // style lives on the AppBar theme (app_theme.dart) so both paths stay
+        // identical; screens with an AppBar re-annotate with the same value.
+        builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+          value: Theme.of(context).appBarTheme.systemOverlayStyle!,
+          child: child!,
+        ),
         // The launch flow: brand splash → first-run tutorial → the live daily.
         // After onboarding has run once, this drops straight through to the
         // question screen (see AppEntry).

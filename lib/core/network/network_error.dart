@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:supabase_flutter/supabase_flutter.dart'
-    show FunctionException, PostgrestException;
+    show FunctionException, FunctionsFetchException, PostgrestException;
 
 /// Whether [error] looks like a loss of connectivity rather than a genuine
 /// server-side rejection.
@@ -22,11 +22,17 @@ bool isOfflineError(Object error) {
   if (error is TimeoutException) return true;
   if (error is HttpException) return true;
 
+  // functions_client wraps a transport failure — the request never got a
+  // response, status is always 0 — in this FunctionException SUBCLASS, so it
+  // must be decided before the blanket FunctionException rule below.
+  if (error is FunctionsFetchException) return true;
+
   // A typed PostgREST / edge-function error means the server actually
-  // responded — the supabase clients rethrow transport failures raw and only
-  // construct these from an HTTP response. Decide BEFORE the keyword scan: a
-  // server-side "canceling statement due to statement timeout" (or a message
-  // containing "retryable") would otherwise match below and be masked by cache.
+  // responded — the supabase clients rethrow transport failures raw (or as the
+  // fetch subclass above) and only construct these from an HTTP response.
+  // Decide BEFORE the keyword scan: a server-side "canceling statement due to
+  // statement timeout" (or a message containing "retryable") would otherwise
+  // match below and be masked by cache.
   if (error is PostgrestException) return false;
   if (error is FunctionException) return false;
 

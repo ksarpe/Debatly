@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// The semantic, brightness-dependent colours — everything that must flip
 /// between the light and dark themes lives here as a [ThemeExtension], so a
@@ -171,6 +172,24 @@ class AppTheme {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         foregroundColor: colors.ink,
+        // The app runs edge-to-edge (enforced on Android 15+, opted into on
+        // older versions in main.dart), so both system bars must stay fully
+        // transparent. Without this the AppBar falls back to Flutter's
+        // brightness presets, whose nav-bar colour is an opaque black/white
+        // slab on Android <15. Icon brightness is the inverse of the canvas.
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: brightness == Brightness.dark
+              ? Brightness.light
+              : Brightness.dark,
+          // iOS reads the bar style from the *background* brightness instead.
+          statusBarBrightness: brightness,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: brightness == Brightness.dark
+              ? Brightness.light
+              : Brightness.dark,
+          systemNavigationBarContrastEnforced: false,
+        ),
       ),
       iconTheme: IconThemeData(color: colors.ink),
       dividerColor: colors.accent,

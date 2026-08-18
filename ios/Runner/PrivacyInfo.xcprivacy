@@ -3,14 +3,15 @@
 <!--
   App-level privacy manifest for the Runner target.
 
-  Third-party SDKs (Google Mobile Ads, RevenueCat, Sentry, Supabase, path_provider,
+  Third-party SDKs (RevenueCat, Sentry, Supabase, path_provider,
   shared_preferences, …) each ship their OWN PrivacyInfo.xcprivacy inside their pods;
   Apple aggregates all of them into the App Privacy Report. This file covers the
   APP's own first-party posture so the binary is never flagged with ITMS-91053
   ("missing privacy manifest") for statically-linked required-reason API symbols.
 
   Keep this consistent with the App Store Connect "App Privacy" nutrition labels:
-  Tracking = Yes (AdMob/IDFA), plus email, purchase history and crash data.
+  Tracking = No (AdMob/IDFA removed with the 2026-08 freemium rework), plus email,
+  purchase history and crash data.
 -->
 <plist version="1.0">
 <dict>
@@ -18,13 +19,9 @@
 	     App Store validation treats them as a pair: NSPrivacyTracking=true REQUIRES a
 	     non-empty domains list. Proven empirically on this app: true + empty array was
 	     rejected (ITMS-91064, v1.0.7 builds 7-10) and true + absent domains was rejected
-	     too (build 11, root manifest verified inside the IPA). We cannot list domains:
-	     first-party code contacts no tracking domains, and declaring Google's ad domains
-	     would make iOS hard-block them when ATT consent is denied, breaking ads.
-	     Omitting both keys is exactly what GoogleMobileAds' own manifest does while
-	     still marking DeviceID below as collected-for-tracking. The tracking disclosure
-	     lives in the ASC "App Privacy: Tracking = Yes" label + the runtime ATT prompt
-	     (NSUserTrackingUsageDescription in Info.plist). -->
+	     too (build 11, root manifest verified inside the IPA). Since the AdMob removal
+	     nothing tracks at all, so omitting both keys is simply accurate. -->
+
 
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
@@ -40,20 +37,6 @@
 			<key>NSPrivacyCollectedDataTypePurposes</key>
 			<array>
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-			</array>
-		</dict>
-		<!-- Device identifier (IDFA) used by AdMob for third-party advertising; this
-		     is the tracking data type. -->
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypeDeviceID</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<true/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<true/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
 			</array>
 		</dict>
 		<!-- Purchase / subscription status (RevenueCat + StoreKit). Linked, not
