@@ -13,7 +13,9 @@ import '../../../services/reminder_scheduler.dart';
 import '../../account/providers/stats_providers.dart';
 import '../../account/widgets/secure_streak_prompt.dart';
 import '../../settings/providers/reminder_providers.dart';
+import '../../settings/providers/review_providers.dart';
 import '../providers/question_providers.dart';
+import 'prototype_history_entry.dart';
 import 'suggest_question_nudge.dart';
 import 'vote_visuals.dart';
 
@@ -151,24 +153,25 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
   }
 
   /// After a successful vote — a natural high point, especially when it just
-  /// extended a streak — run at most ONE follow-up prompt: first offer a guest
-  /// the "secure your streak" account nudge, then the one-time "suggest a
-  /// question" toast. One dialog per vote, so the moment never turns into a
-  /// gauntlet. (The store-review ask does NOT live here anymore: it fires
-  /// exclusively after the rank-up celebration on the 3-day-streak day — see
-  /// RankCelebrationListener.)
+  /// extended a streak — run at most ONE follow-up prompt: first the
+  /// store-review ask when a vote milestone is due (3rd and 7th vote — see
+  /// reviewPromptControllerProvider), then a guest's "secure your streak"
+  /// account nudge, then the one-time "suggest a question" toast. One dialog
+  /// per vote, so the moment never turns into a gauntlet.
   ///
   /// Best-effort and fired last: a prompt must never interfere with the vote
   /// that already counted, so any failure (offline stats refetch, missing prefs
   /// in tests) is swallowed.
   Future<void> _maybeNudgeAfterVote() async {
     try {
-      // Count this vote toward the one-time "suggest a question" nudge before
-      // any prompt below claims the moment — whichever one shows, the counter
-      // must reflect the vote (the nudge then fires on the next one).
+      // Count this vote toward the one-time "suggest a question" nudge and the
+      // review milestones before any prompt below claims the moment —
+      // whichever one shows, both counters must reflect the vote.
       await recordVoteForSuggestQuestionNudge(
         ref.read(sharedPreferencesProvider),
       );
+      final review = ref.read(reviewPromptControllerProvider.notifier);
+      await review.recordVote();
 
       final stats = await ref.read(userStatsProvider.future);
       // Swiping away unmounts this panel; skipping the ask is always acceptable,
@@ -189,6 +192,12 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       final isPromotionDay = ladder.any(
         (r) => r.tier > 0 && r.minStreak == streak,
       );
+
+      // On a promotion day the celebration owns the moment and the review ask
+      // rides right behind it instead (RankCelebrationListener); otherwise a
+      // due milestone claims this vote's single prompt slot here.
+      if (!isPromotionDay && await review.maybePromptForReview()) return;
+      if (!mounted) return;
 
       final nudged = await maybePromptSecureStreak(
         context,
@@ -221,14 +230,24 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 250),
       child: result.hasVoted
-          ? VoteResultsRow(
+          ? Column(
               key: const ValueKey('results'),
-              result: result,
-              // Always spell out which side was mine under the bars...
-              confirmMyVote: true,
-              // ...and offline, withhold the (possibly stale) community split
-              // until we're back online.
-              communityHidden: result.fromCache,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                VoteResultsRow(
+                  result: result,
+                  // Always spell out which side was mine under the bars...
+                  confirmMyVote: true,
+                  // ...and offline, withhold the (possibly stale) community
+                  // split until we're back online.
+                  communityHidden: result.fromCache,
+                ),
+                // PROTOTYPE (debug-only, renders nothing in release): the
+                // post-vote "see your history" entry — see
+                // prototype_history_entry.dart. Remove with it.
+                const SizedBox(height: 14),
+                const PrototypeHistoryEntry(),
+              ],
             )
           : VoteButtonsRow(
               key: const ValueKey('buttons'),

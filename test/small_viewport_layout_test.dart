@@ -10,6 +10,7 @@ import 'package:debatly/features/onboarding/screens/onboarding_screen.dart';
 import 'package:debatly/features/onboarding/widgets/onboarding_bridge_card.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/widgets/favorite_star_button.dart';
+import 'package:debatly/features/questions/widgets/go_deeper_button.dart';
 import 'package:debatly/features/questions/widgets/question_body.dart';
 import 'package:debatly/features/questions/widgets/share_question_button.dart';
 import 'package:flutter/gestures.dart';
@@ -127,18 +128,23 @@ void main() {
         final share = find.byType(ShareQuestionButton);
         final star = find.byType(FavoriteStarButton);
         final hint = find.text(swipeHint);
+        final goDeeper = tester.getRect(find.byType(GoDeeperButton));
 
-        // On a viewport too short for the whole group the feed scrolls, so
-        // bringing the pills into view is allowed. What is NOT allowed is for
-        // them to end up painted under the overlay, where the hint used to
-        // swallow their taps.
+        // The pills live in the bottom action bar now — one row with the
+        // "go deeper" CTA, below the swipe hint. On every viewport they must
+        // hold that row and stay reachable by a real pointer (nothing painted
+        // over them, nothing stranded outside a parent's box).
         for (final pill in [share, star]) {
-          await tester.ensureVisible(pill);
-          await tester.pumpAndSettle();
+          final rect = tester.getRect(pill);
           expect(
-            tester.getRect(pill).bottom,
-            lessThanOrEqualTo(tester.getRect(hint).top),
-            reason: 'a visible pill must sit above the overlay, never under it',
+            rect.top,
+            greaterThanOrEqualTo(tester.getRect(hint).bottom),
+            reason: 'the action bar sits under the swipe hint, never over it',
+          );
+          expect(
+            rect.center.dy,
+            closeTo(goDeeper.center.dy, 1),
+            reason: 'the pills share the action bar row with the CTA',
           );
           expect(isTappable(tester, pill), isTrue);
         }

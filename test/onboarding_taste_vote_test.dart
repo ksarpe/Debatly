@@ -4,14 +4,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/localized_test_app.dart';
 
-/// The onboarding "aha" is a mind-change loop run twice: the user votes on a
-/// real question, is stopped with "Ale chwila…" and four arguments, votes
-/// again, and only then sees the community split. "Dalej" then rolls through
-/// the "Spróbujmy z kolejnym…" interlude into a second question with the same
-/// loop (its takeover titled "Czy aby na pewno?"), and only after that second
-/// reveal does "Dalej" carry them onwards — first to the catalog pitch ("A
-/// takich pytań mamy ponad 500"), then to the reminder ask, the last card
-/// before the home gate (the hard paywall).
+/// The onboarding "aha" is a mind-change loop run twice: the user votes, is
+/// stopped by the takeover ("Ale chwila…" in round one, "Czy aby na pewno?"
+/// in round two) with four COUNTER-arguments (the pool depends on the side
+/// they picked), then declares a stance — "Zmieniam zdanie" or "Zostaję przy
+/// swoim" — and lands straight on the split under a stance-aware headline.
+/// Round one's "Zobaczmy kolejne" rolls through the "Spróbujmy z kolejnym…"
+/// interlude into round two; round two's reveal teases the catalog and its
+/// "Co jeszcze macie?" carries them onwards — to the bridge that answers it
+/// ("To były dwa. Zostało 500."), then the reminder ask, the last card before
+/// the home gate.
 ///
 /// The split is live in production (fetched off the question's all-time tally);
 /// in the test host Supabase is uninitialised, so the card renders its curated
@@ -60,35 +62,41 @@ void main() {
     await tester.tap(finder);
   }
 
-  // Walks welcome → the taste-vote page via the bottom "Next" CTA. The vote is
-  // deliberately one swipe from the welcome card — nothing stands before the aha.
+  // Walks welcome → the taste-vote page via the bottom "Zaczynajmy" CTA. The
+  // vote is deliberately one swipe from the welcome card — nothing stands
+  // before the aha. The welcome entrance staggers the copy over 4s and the
+  // CTA ignores taps until its fade begins at 3.5s, so pump past the whole
+  // timeline first.
   Future<void> reachVotePage(WidgetTester tester) async {
-    await tester.tap(find.text('Dalej')); // welcome → taste vote
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 1000));
+    }
+    await tester.tap(find.text('Zaczynajmy')); // welcome → taste vote
     await settlePage(tester);
   }
 
-  // Walks one round of the taste loop: first vote → arguments →
-  // "Głosuję jeszcze raz!" → second vote. Lands on the split reveal (50/50 in the
-  // test host).
-  Future<void> completeTasteLoop(
+  // Walks one round: first vote → counter-arguments → the stance choice
+  // ("Zmieniam zdanie" / "Zostaję przy swoim"), which lands straight on the
+  // split reveal (50/50 in the test host) — there is no re-vote.
+  Future<void> completeStanceRound(
     WidgetTester tester, {
-    String first = 'TAK',
-    String second = 'TAK',
+    String vote = 'TAK',
+    bool changeMind = true,
   }) async {
-    await tapText(tester, first);
+    await tapText(tester, vote);
     await settleArguments(tester);
-    await tapText(tester, 'Głosuję jeszcze raz!');
-    await settlePage(tester);
-    // The revote stage (question + prompt + buttons) is taller than the test
-    // viewport, so the buttons sit below the fold — scroll them in first.
-    await tapText(tester, second);
+    await tapText(
+      tester,
+      changeMind ? 'Zmieniam zdanie' : 'Zostaję przy swoim',
+    );
     await settlePage(tester);
   }
 
-  // Round one's "Dalej" rolls into the "Spróbujmy z kolejnym…" interlude,
-  // which auto-advances into round two's question after two seconds.
+  // Round one's "Zobaczmy kolejne" rolls into the "Spróbujmy z kolejnym…"
+  // interlude, which auto-advances into round two's question after two
+  // seconds.
   Future<void> passInterlude(WidgetTester tester) async {
-    await tapText(tester, 'Dalej');
+    await tapText(tester, 'Zobaczmy kolejne');
     await settlePage(tester);
     expect(find.text('Spróbujmy z kolejnym…'), findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
@@ -113,9 +121,8 @@ void main() {
     expect(find.text('TWÓJ RUCH'), findsOneWidget);
   });
 
-  testWidgets('the first vote hides the split and shows the four arguments', (
-    tester,
-  ) async {
+  testWidgets('a TAK vote hides the split and serves the counter-NIE '
+      'argument pool with the stance pair', (tester) async {
     await pumpOnboarding(tester);
     await reachVotePage(tester);
 
@@ -129,55 +136,89 @@ void main() {
     await settleArguments(tester);
 
     // No reveal yet — the takeover replaces the question entirely: just "Ale
-    // chwila…" and the four arguments, with the question and kicker gone.
+    // chwila…" and four arguments AGAINST the TAK just cast, closed by the
+    // stance pair instead of a re-vote button.
     expect(find.textContaining('%'), findsNothing);
     expect(find.text('TWÓJ RUCH'), findsNothing);
     expect(find.text('Ale chwila…'), findsOneWidget);
-    expect(find.textContaining('walizki'), findsOneWidget);
-    expect(find.textContaining('komfortem'), findsOneWidget);
+    expect(find.textContaining('centymetry'), findsOneWidget);
+    expect(find.textContaining('Wysoki'), findsOneWidget);
     expect(find.textContaining('Bramka'), findsOneWidget);
     expect(find.textContaining('chorobę'), findsOneWidget);
-    expect(find.text('Głosuję jeszcze raz!'), findsOneWidget);
+    expect(find.text('Zmieniam zdanie'), findsOneWidget);
+    expect(find.text('Zostaję przy swoim'), findsOneWidget);
+    expect(find.text('Głosuję jeszcze raz!'), findsNothing);
   });
 
-  testWidgets('after reading, the user votes again and the split is '
-      'revealed', (tester) async {
+  testWidgets('a NIE vote serves the counter-TAK argument pool', (
+    tester,
+  ) async {
+    await pumpOnboarding(tester);
+    await reachVotePage(tester);
+
+    await tester.tap(find.text('NIE'));
+    await settleArguments(tester);
+
+    expect(find.text('Ale chwila…'), findsOneWidget);
+    expect(find.textContaining('walizki'), findsOneWidget);
+    expect(find.textContaining('komfortem'), findsOneWidget);
+    expect(find.textContaining('pali więcej'), findsOneWidget);
+    expect(find.textContaining('wciśnięty'), findsOneWidget);
+    // None of the counter-NIE pool leaks in.
+    expect(find.textContaining('centymetry'), findsNothing);
+  });
+
+  testWidgets('"Zmieniam zdanie" skips the re-vote and reveals the split '
+      'under the gotcha headline', (tester) async {
     await pumpOnboarding(tester);
     await reachVotePage(tester);
 
     await tester.tap(find.text('TAK'));
     await settleArguments(tester);
-    await tapText(tester, 'Głosuję jeszcze raz!');
+    await tapText(tester, 'Zmieniam zdanie');
     await settlePage(tester);
 
-    // The question returns for the second ask: the kicker flips to "ZAGŁOSUJ
-    // PONOWNIE" over fresh TAK/NIE buttons, still no split.
-    expect(find.text('ZAGŁOSUJ PONOWNIE'), findsOneWidget);
-    expect(find.text('TWÓJ RUCH'), findsNothing);
-    expect(find.textContaining('%'), findsNothing);
-
-    await tapText(tester, 'NIE'); // changing sides is allowed
-    await settlePage(tester);
-
-    // The reveal: the split (the fallback 50/50 here) with the "VS" seam and
-    // the check on the chosen side — and nothing else under the bars.
+    // Straight to the reveal — no "ZAGŁOSUJ PONOWNIE" ask. The headline
+    // renders in the question font (uppercased, stroke + fill Text pairs —
+    // hence textContaining and findsWidgets), with the small nudge line under
+    // it, the 50/50 fallback split, and "Zobaczmy kolejne".
+    expect(find.text('ZAGŁOSUJ PONOWNIE'), findsNothing);
+    expect(find.textContaining('MAMY'), findsWidgets);
+    expect(find.text('Zobacz, jak głosowali inni.'), findsOneWidget);
     expect(find.text('50%'), findsNWidgets(2));
     expect(find.text('VS'), findsOneWidget);
     expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    expect(find.text('Zobaczmy kolejne'), findsOneWidget);
+  });
+
+  testWidgets('"Zostaję przy swoim" reveals the split under the respectful '
+      'headline', (tester) async {
+    await pumpOnboarding(tester);
+    await reachVotePage(tester);
+
+    await tester.tap(find.text('TAK'));
+    await settleArguments(tester);
+    await tapText(tester, 'Zostaję przy swoim');
+    await settlePage(tester);
+
+    expect(find.textContaining('STANOWISKO'), findsWidgets);
+    expect(find.text('Ale zobacz, jak głosowali inni.'), findsOneWidget);
+    expect(find.text('50%'), findsNWidgets(2));
+    expect(find.text('Zobaczmy kolejne'), findsOneWidget);
   });
 
   // The bridge between the taste card and the reminder ask: it explains the
   // freemium model and carries its own CTAs (the deck's bottom "Dalej" is
   // suppressed there) — the dominant one continues for free.
   Future<void> passBridge(WidgetTester tester) async {
-    expect(find.text('To były dwa. Zostało 500.'), findsOneWidget);
+    expect(find.text('To były dwa — a zostały jeszcze setki'), findsOneWidget);
     expect(find.text('Odblokuj wszystkie 500'), findsOneWidget);
     await tapText(tester, 'Odbierz dzisiejsze pytanie');
     await settlePage(tester);
   }
 
   testWidgets('Continue after the reveal advances to the bridge and '
-      'then the notifications ask, and "Not now" finishes onboarding', (
+      'then the notifications ask, and "Maybe later" finishes onboarding', (
     tester,
   ) async {
     var finished = 0;
@@ -186,11 +227,11 @@ void main() {
     );
     await settlePage(tester);
     await reachVotePage(tester);
-    await completeTasteLoop(tester);
+    await completeStanceRound(tester);
 
-    // Round one's "Dalej" leads not out of the card but into round two: the
-    // interlude, then the second question under the "Czy aby na pewno?"
-    // takeover, walked with the same loop.
+    // Round one's "Zobaczmy kolejne" leads not out of the card but into round
+    // two: the interlude, then the second question under the "Czy aby na
+    // pewno?" takeover — same stance mechanic, its own counter-pool.
     await passInterlude(tester);
     expect(find.text('TWÓJ RUCH'), findsOneWidget);
     // The question renders uppercased, word by word, each word as a stacked
@@ -199,25 +240,29 @@ void main() {
     await tapText(tester, 'TAK');
     await settleArguments(tester);
     expect(find.text('Czy aby na pewno?'), findsOneWidget);
-    await tapText(tester, 'Głosuję jeszcze raz!');
-    await settlePage(tester);
-    await tapText(tester, 'NIE');
+    // The counter-TAK pool for question two (arguing against telling).
+    expect(find.textContaining('setka'), findsOneWidget);
+    await tapText(tester, 'Zmieniam zdanie');
     await settlePage(tester);
 
-    // The card's own "Dalej" (the bottom Next is suppressed on this page)
-    // lands on the bridge, and its primary CTA on the reminder opt-in —
-    // the final card, no account step follows.
-    await tapText(tester, 'Dalej');
+    // Round two's reveal sells the catalog: the "nothing is obvious" headline
+    // (question font — uppercased word pairs) with the "only question two"
+    // teaser, and its "Co jeszcze macie?" (the bottom Next is suppressed on
+    // this page) lands on the bridge — whose title answers it — and the
+    // bridge's primary CTA on the reminder opt-in, the final card.
+    expect(find.textContaining('OCZYWISTE'), findsWidgets);
+    expect(find.text('A to było dopiero drugie pytanie…'), findsOneWidget);
+    await tapText(tester, 'Co jeszcze macie?');
     await settlePage(tester);
     await passBridge(tester);
 
-    expect(find.text('Jutro czeka nowe pytanie'), findsOneWidget);
+    expect(find.text('Hej, jeszcze jedno'), findsOneWidget);
     expect(find.text('Włącz przypomnienia'), findsOneWidget);
     expect(finished, 0);
 
-    // "Not now" ends the tutorial without enabling — the home gate (the feed
-    // with today's daily) is next.
-    await tapText(tester, 'Nie teraz');
+    // "Maybe later" ends the tutorial without enabling — the home gate (the
+    // feed with today's daily) is next.
+    await tapText(tester, 'Może później');
     await settlePage(tester);
 
     expect(finished, 1);
@@ -234,10 +279,12 @@ void main() {
     );
     await settlePage(tester);
     await reachVotePage(tester);
-    await completeTasteLoop(tester); // round one
+    await completeStanceRound(tester); // round one
     await passInterlude(tester);
-    await completeTasteLoop(tester); // round two
-    await tapText(tester, 'Dalej'); // taste result → the bridge
+    // Round two, holding the line this time — the respectful teaser reveal.
+    await completeStanceRound(tester, changeMind: false);
+    expect(find.text('Sprawdzimy. Pytań nam nie zabraknie…'), findsOneWidget);
+    await tapText(tester, 'Co jeszcze macie?'); // taste result → the bridge
     await settlePage(tester);
     await passBridge(tester); // → reminder ask
 

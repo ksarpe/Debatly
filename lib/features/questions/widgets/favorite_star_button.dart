@@ -35,15 +35,22 @@ class FavoriteStarButton extends ConsumerStatefulWidget {
     super.key,
     required this.questionId,
     this.outlined = false,
+    this.barStyle = false,
   });
 
   /// The question currently on screen — the one the star saves/removes.
   final String questionId;
 
-  /// When true, wears the same outlined-pill chrome as the share pill beside
-  /// it (hairline border, pill radius); false keeps the bare icon-button look
+  /// When true, wears the same borderless pill chrome as the share pill beside
+  /// it (pill radius, ink splash); false keeps the bare icon-button look
   /// for bar-style placements.
   final bool outlined;
+
+  /// When true, wears the bottom action bar's rounded-rectangle chrome
+  /// ([AppTheme.ctaRadius], matching the "go deeper" CTA beside it) instead
+  /// of the stadium pill, and stretches to fill the width it is given.
+  /// Implies the outlined chrome.
+  final bool barStyle;
 
   @override
   ConsumerState<FavoriteStarButton> createState() => _FavoriteStarButtonState();
@@ -191,7 +198,7 @@ class _FavoriteStarButtonState extends ConsumerState<FavoriteStarButton>
                 scale: pop,
                 child: Icon(
                   filled ? Icons.star_rounded : Icons.star_border_rounded,
-                  size: widget.outlined ? 22 : 26,
+                  size: (widget.outlined || widget.barStyle) ? 22 : 26,
                   color: color,
                   shadows: filled
                       ? [
@@ -209,23 +216,24 @@ class _FavoriteStarButtonState extends ConsumerState<FavoriteStarButton>
       ),
     );
 
+    // The bar variant swaps the stadium corners for the shared CTA radius so
+    // the star matches the "go deeper" CTA and share pill in the same row.
+    final radius = widget.barStyle ? AppTheme.ctaRadius : _kPillRadius;
+
     return Semantics(
       button: true,
       toggled: filled,
       label: tooltip,
       child: Tooltip(
         message: tooltip,
-        child: widget.outlined
+        child: (widget.outlined || widget.barStyle)
             // The pill chrome mirrors ShareQuestionButton so the row under the
             // question reads as one family of controls.
             ? Material(
                 color: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: _kPillRadius,
-                  side: BorderSide(color: context.colors.hairline),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: radius),
                 child: InkWell(
-                  borderRadius: _kPillRadius,
+                  borderRadius: radius,
                   onTap: _opening ? null : _onTap,
                   child: star,
                 ),

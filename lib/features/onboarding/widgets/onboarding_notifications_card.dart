@@ -9,7 +9,6 @@ import '../../../services/analytics.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/reminder_scheduler.dart';
 import '../../settings/providers/reminder_providers.dart';
-import 'onboarding_glyph_bubble.dart';
 import 'onboarding_primary_button.dart';
 
 /// A reminder opt-in slide placed right after the taste vote — the moment the
@@ -87,11 +86,20 @@ class _OnboardingNotificationsCardState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const OnboardingGlyphBubble(
-              icon: Icons.notifications_active_rounded,
+            // A bare glowing bell — no bubble behind it; this slide is a
+            // personal aside, not another feature card.
+            Icon(
+              Icons.notifications_active_rounded,
+              size: 84,
               color: AppTheme.spark,
+              shadows: [
+                Shadow(
+                  color: AppTheme.sparkGlow.withValues(alpha: 0.6),
+                  blurRadius: 24,
+                ),
+              ],
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 36),
             Text(
               l10n.onboardingNotifyTitle,
               textAlign: TextAlign.center,
@@ -135,18 +143,6 @@ class _OnboardingNotificationsCardState
                 foregroundColor: context.colors.subtle,
               ),
               child: Text(l10n.onboardingNotifySkip),
-            ),
-            const SizedBox(height: 12),
-            // Defuses the "am I signing up for spam forever?" hesitation right at
-            // the ask — the escape hatch is what makes the yes cheap.
-            Text(
-              l10n.onboardingNotifyFootnote,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: context.colors.subtle.withValues(alpha: 0.7),
-                fontSize: 12,
-                height: 1.35,
-              ),
             ),
           ],
         ),

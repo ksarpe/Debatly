@@ -101,12 +101,12 @@ void main() {
     expect(find.text('Historia i ulubione na zawsze'), findsOneWidget);
     expect(find.text('Zero reklam, tryb offline'), findsOneWidget);
 
-    // Both plans with their store-formatted prices; the lifetime hero card
-    // renders its label uppercase, monthly gets the price suffix plus the
-    // weekly-equivalent subline.
+    // Both plans with their store-formatted prices; every card renders its
+    // label uppercase over the same big price, monthly gets the price suffix
+    // plus the weekly-equivalent subline.
     expect(find.text('DOŻYWOTNI'), findsOneWidget);
     expect(find.text(r'$22.99'), findsOneWidget);
-    expect(find.text('Miesięcznie'), findsOneWidget);
+    expect(find.text('MIESIĘCZNIE'), findsOneWidget);
     expect(find.text(r'$5.49/mies.'), findsOneWidget);
     expect(find.textContaining('tygodniowo'), findsOneWidget);
 
@@ -224,7 +224,7 @@ void main() {
   ) async {
     // The offering's shape is set in the RevenueCat dashboard, so adding a
     // package there reshapes this screen with no code change at all. The
-    // lifetime hero card leads regardless of the offering's own order.
+    // lifetime card leads regardless of the offering's own order.
     final annual = fakePackage(PackageType.annual, r'$39.99', price: 39.99);
     await pumpSheet(
       tester,
@@ -232,15 +232,15 @@ void main() {
     );
 
     expect(find.text('DOŻYWOTNI'), findsOneWidget);
-    expect(find.text('Roczny'), findsOneWidget);
-    expect(find.text('Miesięcznie'), findsOneWidget);
+    expect(find.text('ROCZNY'), findsOneWidget);
+    expect(find.text('MIESIĘCZNIE'), findsOneWidget);
 
     // Stacked full-width: one column, increasing tops. (The left edges differ
     // by a fraction of a pixel — a SELECTED card draws a 2px border where
     // the others draw 1.4 — so match the column, not the exact offset.)
     final first = tester.getRect(find.text('DOŻYWOTNI'));
-    final second = tester.getRect(find.text('Roczny'));
-    final third = tester.getRect(find.text('Miesięcznie'));
+    final second = tester.getRect(find.text('ROCZNY'));
+    final third = tester.getRect(find.text('MIESIĘCZNIE'));
     expect(second.left, closeTo(first.left, 1));
     expect(third.left, closeTo(first.left, 1));
     expect(second.top, greaterThan(first.bottom));
@@ -306,8 +306,8 @@ void main() {
 
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Miesięcznie'));
-    await tester.tap(find.text('Miesięcznie'));
+    await tester.ensureVisible(find.text('MIESIĘCZNIE'));
+    await tester.tap(find.text('MIESIĘCZNIE'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Odblokuj pełny dostęp'));
     await tester.tap(find.text('Odblokuj pełny dostęp'));

@@ -44,7 +44,7 @@ the day wall's blurred teaser.)
 | First smaczek (argument #1) | ✅ | ✅ |
 | Rest of the catalog (500+, unlimited) | ❌ | ✅ |
 | All smaczki | ❌ | ✅ |
-| Vote history | ❌ | ✅ |
+| Vote history | today only | ✅ |
 | Favorites | ❌ | ✅ |
 | Offline download | ❌ | ✅ |
 
@@ -74,8 +74,9 @@ The wall is a fork, never a trap.
 
 The **paywall** (a fullscreen dialog) opens: automatically at most once per
 local day on the first wall hit *after* the daily vote; always on the
-wall/bridge unlock CTAs and on tapping a locked feature (favorites star,
-history, locked smaczki); never at app start, in onboarding, or before the
+wall/bridge unlock CTAs and on tapping a locked feature (favorites star, the
+locked older-history panel, locked smaczki); never at app start, in
+onboarding, or before the
 first vote. It is always dismissible (the floating X or system back) and
 lands the user back where they were. The pitch is identical for every entry
 point: the fixed slogan headline ("Bez limitu. / Bez końca. / Globalnie.")
@@ -86,9 +87,13 @@ tygodniowo") so the CTA is armed on open; there is no "best value" badge.
 The offering is live from RevenueCat: monthly 19,99 zł / lifetime 69,99 zł
 (PL) — no weekly plan, no trial.
 
-The in-app review ask (`in_app_review`) fires exactly once per milestone: the
-day the streak completes 3, right after the rank-up animation closes — and
-nowhere else.
+The in-app review ask (`in_app_review`) rides the vote milestones: once after
+the 3rd vote ever cast, and one reminder after the 7th (the OS gives no "did
+they review?" signal, so the second ask is unconditional — the native sheet's
+own quota suppresses it for users who already rated). At most one ask per
+local day; on a rank-promotion day it fires right after the rank-up animation
+closes instead of on top of it; past the 7th-vote milestone it never asks
+again.
 
 ### The account model: buy to play, sign in to secure
 

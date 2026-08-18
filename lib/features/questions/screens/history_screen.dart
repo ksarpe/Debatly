@@ -12,13 +12,15 @@ import '../../account/providers/session_providers.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
 import '../providers/question_providers.dart';
 
-/// Opens the PRO "question history": a full-screen table of every question the
-/// user voted on and how the community voted, so a past vote's split is never
-/// lost once the feed moves on. Pushed as a sub-screen (title + X to close) so
-/// it matches the Favorites screen rather than sliding up as a drag sheet.
+/// Opens the "question history": every question the user voted on, laid out as
+/// date-grouped result cards, so a past vote's split is never lost once the
+/// feed moves on. Pushed as a sub-screen (title + X to close) so it matches the
+/// Favorites screen rather than sliding up as a drag sheet.
 ///
-/// The screen gates itself: premium sees the history, everyone else sees a PRO
-/// upsell — so it's safe to open from anywhere without a premium check up front.
+/// The screen gates itself: premium sees the full record, a free account sees
+/// only today's card(s) — the daily question is always free — with the older
+/// history behind a locked panel that opens the paywall. Safe to open from
+/// anywhere without a premium check up front.
 Future<void> openHistory(BuildContext context) {
   return Navigator.of(
     context,
@@ -31,9 +33,10 @@ Future<void> openHistory(BuildContext context) {
 /// instead of leaving a moment with no close button on screen.
 const double _kFloatingCloseFrom = 42;
 
-/// Full-screen PRO history of the user's votes. Mirrors the Favorites screen: a
-/// [TopGlow], a [SubScreenHeader] (title + close), then the body — the premium
-/// list of voted questions, or the PRO upsell for everyone else.
+/// Full-screen history of the user's votes. Mirrors the Favorites screen: a
+/// [TopGlow], a [SubScreenHeader] (title + close), then the body — the answered
+/// count with an expandable search, and the date-grouped grid of vote cards
+/// (free accounts: today only, older history locked behind the paywall).
 ///
 /// A long history can be scrolled far past the header, so a second, *pinned* X
 /// fades in at the same spot once the header's own has scrolled away — closing
@@ -53,14 +56,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    // Tapping a locked feature opens the paywall sheet, always: a free user
-    // who opened History gets the sheet right over the upsell body. Dismissing
-    // it lands them back on the upsell (with its own "go PRO" button), never
-    // out of the screen.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || ref.read(isPremiumProvider)) return;
-      showProPaywall(context, source: PaywallSource.history);
-    });
   }
 
   @override
@@ -80,8 +75,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isPremium = ref.watch(isPremiumProvider);
-
     return Scaffold(
       backgroundColor: context.colors.background,
       body: Stack(
@@ -107,7 +100,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         onClose: _close,
                       ),
                       const SizedBox(height: 16),
-                      isPremium ? const _HistoryBody() : const _HistoryUpsell(),
+                      const _HistoryBody(),
                     ],
                   ),
                 ),
@@ -144,12 +137,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 }
 
-/// The premium view: a short subtitle, then the list of voted questions (or a
-/// loading / error / empty state). The list itself doesn't scroll — the screen's
-/// outer [SingleChildScrollView] does — so rows are laid out as a plain Column.
+/// The history body: the answered count with an expandable search on one row,
+/// then the vote cards grouped under day headers, two to a row (or a loading /
+/// error / empty state). The list itself doesn't scroll — the screen's outer
+/// [SingleChildScrollView] does.
 ///
-/// Long histories (≥ [kQuestionSearchMinItems] rows) grow a search field that
-/// filters rows by question text, accent-insensitively.
+/// Free accounts see only entries from the local today (the always-free daily);
+/// everything older sits behind [_LockedHistoryPanel]. The answered count still
+/// shows the lifetime total (via the non-gated conformity stats), so a locked
+/// history reads as "148 answered — and they're in there".
+///
+/// Long histories (≥ [kQuestionSearchMinItems] visible cards) grow a search
+/// icon that expands into a text filter, accent-insensitive.
 class _HistoryBody extends ConsumerStatefulWidget {
   const _HistoryBody();
 
@@ -157,253 +156,403 @@ class _HistoryBody extends ConsumerStatefulWidget {
   ConsumerState<_HistoryBody> createState() => _HistoryBodyState();
 }
 
+/// How many cards render before the rest hides behind "load more". All rows
+/// are already fetched (the RPC returns the record in one shot); the cap only
+/// bounds how many card widgets build at once, so a 500-vote history doesn't
+/// jank the screen open. Revealing more is instant — no request behind it.
+const int _kHistoryPageSize = 30;
+
 class _HistoryBodyState extends ConsumerState<_HistoryBody> {
   String _query = '';
+  bool _searchOpen = false;
+  int _shown = _kHistoryPageSize;
 
   @override
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(voteHistoryProvider);
+    final isPremium = ref.watch(isPremiumProvider);
+    final statsAsync = ref.watch(conformityStatsProvider);
     final lang = Localizations.localeOf(context).languageCode;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          context.l10n.historySubtitle,
-          style: TextStyle(
-            color: context.colors.subtle,
-            fontSize: 13,
-            height: 1.35,
-          ),
+    return historyAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.only(top: 48),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, _) => _HistoryMessage(
+        icon: Icons.cloud_off_rounded,
+        title: context.l10n.historyLoadError,
+        action: TextButton(
+          onPressed: () => ref.invalidate(voteHistoryProvider),
+          child: Text(context.l10n.tryAgain),
         ),
-        const SizedBox(height: 16),
-        historyAsync.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.only(top: 48),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          error: (_, _) => _HistoryMessage(
-            icon: Icons.cloud_off_rounded,
-            title: context.l10n.historyLoadError,
-            action: TextButton(
-              onPressed: () => ref.invalidate(voteHistoryProvider),
-              child: Text(context.l10n.tryAgain),
-            ),
-          ),
-          data: (entries) {
-            if (entries.isEmpty) {
-              return _HistoryMessage(
+      ),
+      data: (entries) {
+        // Free tier: the daily is always free, so today's votes are too — the
+        // server already trims to the last 48h, the client trims to the local
+        // calendar day the user actually means by "today".
+        final visible = isPremium
+            ? entries
+            : entries.where((e) => _isLocalToday(e.votedAt)).toList();
+        // Lifetime total from the non-gated conformity stats, so free accounts
+        // see their real record size, not just today's slice.
+        final answered = statsAsync.asData?.value.totalVotes ?? visible.length;
+        final searchable = visible.length >= kQuestionSearchMinItems;
+        final matching = visible
+            .where((e) => matchesQuestionQuery(e.questionText, _query))
+            .toList();
+        // The page cap cuts at an exact card count (mid-day if needed) — a
+        // reveal regroups, so a split day just grows more cards under the same
+        // header. Whole-group rounding would defeat the cap on a heavy voting
+        // day (a PRO user can clear 50 questions in an evening).
+        final shown = matching.take(_shown).toList();
+        final hidden = matching.length - shown.length;
+        final groups = _groupByLocalDay(shown);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (answered > 0 || visible.isNotEmpty) ...[
+              _CountSearchHeader(
+                answered: answered,
+                searchable: searchable,
+                searchOpen: _searchOpen,
+                onOpenSearch: () => setState(() => _searchOpen = true),
+                onCloseSearch: () => setState(() {
+                  _searchOpen = false;
+                  _query = '';
+                  _shown = _kHistoryPageSize;
+                }),
+                // A new query is a new view — start it from the first page.
+                onQuery: (value) => setState(() {
+                  _query = value;
+                  _shown = _kHistoryPageSize;
+                }),
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (visible.isEmpty)
+              _HistoryMessage(
                 icon: Icons.history_toggle_off_rounded,
                 title: context.l10n.historyEmptyTitle,
                 subtitle: context.l10n.historyEmptyBody,
-              );
-            }
-            final matching = entries
-                .where((e) => matchesQuestionQuery(e.questionText, _query))
-                .toList();
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (entries.length >= kQuestionSearchMinItems) ...[
-                  QuestionSearchField(
-                    onChanged: (value) => setState(() => _query = value),
-                  ),
-                  const SizedBox(height: 14),
-                ],
-                if (matching.isEmpty)
-                  _HistoryMessage(
-                    icon: Icons.search_off_rounded,
-                    title: context.l10n.searchNoResultsTitle,
-                    subtitle: context.l10n.searchNoResultsBody,
-                  )
-                else
-                  for (final entry in matching) ...[
-                    _HistoryRow(entry: entry, lang: lang),
-                    const SizedBox(height: 10),
-                  ],
+              )
+            else if (matching.isEmpty)
+              _HistoryMessage(
+                icon: Icons.search_off_rounded,
+                title: context.l10n.searchNoResultsTitle,
+                subtitle: context.l10n.searchNoResultsBody,
+              )
+            else ...[
+              for (final group in groups) ...[
+                _DayHeader(label: _formatDayHeader(group.day, lang)),
+                const SizedBox(height: 8),
+                _DayGrid(entries: group.entries),
+                const SizedBox(height: 16),
               ],
-            );
-          },
-        ),
-      ],
+              if (hidden > 0)
+                _LoadMoreButton(
+                  hidden: hidden,
+                  onTap: () => setState(() => _shown += _kHistoryPageSize),
+                ),
+            ],
+            if (!isPremium) ...[
+              const SizedBox(height: 4),
+              const _LockedHistoryPanel(),
+            ],
+          ],
+        );
+      },
     );
   }
 }
 
-/// One history row: when the user voted, the question text, and the community
-/// split.
-class _HistoryRow extends StatelessWidget {
-  const _HistoryRow({required this.entry, required this.lang});
+/// The row under the title: "N answered" on the left, a bare magnifier on the
+/// right. Tapping the magnifier swaps the whole row for the search field
+/// (autofocused); its X clears the text, then collapses back to this row.
+class _CountSearchHeader extends StatelessWidget {
+  const _CountSearchHeader({
+    required this.answered,
+    required this.searchable,
+    required this.searchOpen,
+    required this.onOpenSearch,
+    required this.onCloseSearch,
+    required this.onQuery,
+  });
 
-  final VoteHistoryEntry entry;
-  final String lang;
+  final int answered;
+  final bool searchable;
+  final bool searchOpen;
+  final VoidCallback onOpenSearch;
+  final VoidCallback onCloseSearch;
+  final ValueChanged<String> onQuery;
 
   @override
   Widget build(BuildContext context) {
+    final child = searchOpen
+        ? KeyedSubtree(
+            key: const ValueKey('history-search'),
+            child: QuestionSearchField(
+              autofocus: true,
+              onChanged: onQuery,
+              onClose: onCloseSearch,
+            ),
+          )
+        : KeyedSubtree(
+            key: const ValueKey('history-count'),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    context.l10n.historyAnsweredCount(answered),
+                    style: TextStyle(
+                      color: context.colors.ink,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (searchable)
+                  IconButton(
+                    tooltip: context.l10n.historySearchTooltip,
+                    onPressed: onOpenSearch,
+                    icon: const Icon(
+                      Icons.search_rounded,
+                      size: 24,
+                      color: AppTheme.spark,
+                    ),
+                  ),
+              ],
+            ),
+          );
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      alignment: Alignment.topCenter,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 140),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// A quiet day header over each group of cards, e.g. PL "18 SIE", EN "AUG 18"
+/// (with the year appended once the group leaves the current year).
+class _DayHeader extends StatelessWidget {
+  const _DayHeader({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: TextStyle(
+        color: context.colors.subtle,
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.2,
+      ),
+    );
+  }
+}
+
+/// One day's cards, two to a row. [IntrinsicHeight] keeps each pair the same
+/// height, so a short question stretches to match its longer neighbour instead
+/// of leaving a ragged grid.
+class _DayGrid extends StatelessWidget {
+  const _DayGrid({required this.entries});
+
+  final List<VoteHistoryEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <Widget>[];
+    for (var i = 0; i < entries.length; i += 2) {
+      rows.add(
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _HistoryCard(entry: entries[i])),
+              const SizedBox(width: 10),
+              Expanded(
+                child: i + 1 < entries.length
+                    ? _HistoryCard(entry: entries[i + 1])
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (i + 2 < entries.length) rows.add(const SizedBox(height: 10));
+    }
+    return Column(children: rows);
+  }
+}
+
+/// The full-width "Load N more" pill under the visible cards — the rest of the
+/// (already fetched) history reveals a page at a time, so a long record doesn't
+/// build hundreds of cards on open.
+class _LoadMoreButton extends StatelessWidget {
+  const _LoadMoreButton({required this.hidden, required this.onTap});
+
+  final int hidden;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: context.colors.accent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox(
+          height: 52,
+          child: Center(
+            child: Text(
+              context.l10n.historyLoadMore(hidden),
+              style: TextStyle(
+                color: context.colors.ink,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One vote card: "YOU: YES/NO" in the vote's colour, the community split in
+/// the corner ("64 vs 36", the user's side first), and the question text. The
+/// whole card is tinted by the user's side — green for TAK, red for NIE — so a
+/// page of history reads as the user's voting record at a glance.
+class _HistoryCard extends StatelessWidget {
+  const _HistoryCard({required this.entry});
+
+  final VoteHistoryEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final votes = entry.votes;
+    final mineYes = votes.myChoice == VoteResult.yes;
+    final mineNo = votes.myChoice == VoteResult.no;
+    final side = mineYes
+        ? AppTheme.yes
+        : mineNo
+        ? AppTheme.no
+        : context.colors.subtle;
+    final voteLabel = mineYes
+        ? context.l10n.voteYes
+        : mineNo
+        ? context.l10n.voteNo
+        : null;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: context.colors.accent,
+        color: side.withValues(alpha: 0.10),
+        border: Border.all(color: side.withValues(alpha: 0.40)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.calendar_today_rounded,
-                size: 13,
-                color: context.colors.subtle,
+              Expanded(
+                child: voteLabel == null
+                    ? const SizedBox.shrink()
+                    : Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          context.l10n.historyYourVote(voteLabel),
+                          style: TextStyle(
+                            color: side,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                _formatDate(entry.votedAt, lang),
-                style: TextStyle(
-                  color: context.colors.subtle,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
-                ),
-              ),
+              const SizedBox(width: 8),
+              _CornerSplit(votes: votes),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             entry.questionText,
-            maxLines: 2,
+            maxLines: 5,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: context.colors.ink,
-              fontSize: 14.5,
+              fontSize: 14,
               height: 1.3,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 12),
-          _MiniVoteBar(result: entry.votes),
         ],
       ),
     );
   }
 }
 
-/// The compact community split for one past question: a TAK%/NIE% label line
-/// over a single split bar, with a check on the side the caller voted. Collapses
-/// to a quiet "no votes" line when nobody voted.
-class _MiniVoteBar extends StatelessWidget {
-  const _MiniVoteBar({required this.result});
+/// The corner split, user's side leading: "64 vs 36" with each number in its
+/// side's colour, so the pair reads green-vs-red at a glance. Collapses to a
+/// quiet "no votes" note when nobody voted.
+class _CornerSplit extends StatelessWidget {
+  const _CornerSplit({required this.votes});
 
-  final VoteResult result;
+  final VoteResult votes;
 
   @override
   Widget build(BuildContext context) {
-    if (result.total == 0) {
+    if (votes.total == 0) {
       return Text(
         context.l10n.historyNoVotes,
         style: TextStyle(
           color: context.colors.subtle,
-          fontSize: 12,
+          fontSize: 10,
           fontStyle: FontStyle.italic,
         ),
       );
     }
 
-    final mineYes = result.myChoice == VoteResult.yes;
-    final mineNo = result.myChoice == VoteResult.no;
+    final mineNo = votes.myChoice == VoteResult.no;
+    final firstPct = mineNo ? votes.noPct : votes.yesPct;
+    final secondPct = mineNo ? votes.yesPct : votes.noPct;
+    final firstColor = mineNo ? AppTheme.no : AppTheme.yes;
+    final secondColor = mineNo ? AppTheme.yes : AppTheme.no;
 
-    return Column(
+    TextStyle pct(Color color) =>
+        TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w800);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
       children: [
-        Row(
-          children: [
-            _SideLabel(
-              label: context.l10n.voteYes,
-              pct: result.yesPct,
-              color: AppTheme.yes,
-              mine: mineYes,
-            ),
-            const Spacer(),
-            _SideLabel(
-              label: context.l10n.voteNo,
-              pct: result.noPct,
-              color: AppTheme.no,
-              mine: mineNo,
-              trailing: true,
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: SizedBox(
-            height: 8,
-            child: Stack(
-              children: [
-                // Full-width NIE (red) track …
-                Positioned.fill(
-                  child: ColoredBox(color: AppTheme.no.withValues(alpha: 0.85)),
-                ),
-                // … overlaid by the TAK (green) portion from the left.
-                FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: result.yesFraction.clamp(0.0, 1.0),
-                  child: ColoredBox(
-                    color: AppTheme.yes.withValues(alpha: 0.95),
-                  ),
-                ),
-              ],
+        Text('$firstPct', style: pct(firstColor)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 3),
+          child: Text(
+            context.l10n.historyVersus,
+            style: TextStyle(
+              color: context.colors.subtle,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
+        Text('$secondPct', style: pct(secondColor)),
       ],
-    );
-  }
-}
-
-class _SideLabel extends StatelessWidget {
-  const _SideLabel({
-    required this.label,
-    required this.pct,
-    required this.color,
-    required this.mine,
-    this.trailing = false,
-  });
-
-  final String label;
-  final int pct;
-  final Color color;
-  final bool mine;
-
-  /// When true the percentage leads and the label follows (the NIE side), so the
-  /// two sides read symmetrically from the centre out.
-  final bool trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final name = Text(
-      label,
-      style: TextStyle(
-        color: color,
-        fontSize: 12,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 1,
-      ),
-    );
-    final percent = Text(
-      '$pct%',
-      style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800),
-    );
-    final check = mine
-        ? Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Icon(Icons.check_circle_rounded, color: color, size: 13),
-          )
-        : const SizedBox.shrink();
-
-    return Row(
-      children: trailing
-          ? [percent, const SizedBox(width: 6), name, check]
-          : [name, const SizedBox(width: 6), percent, check],
     );
   }
 }
@@ -455,20 +604,21 @@ class _HistoryMessage extends StatelessWidget {
   }
 }
 
-/// The non-premium view: explains the history is a PRO feature and offers the
-/// paywall. On purchase the session refreshes and the parent screen rebuilds into
-/// the real history (it watches [isPremiumProvider]).
-class _HistoryUpsell extends ConsumerStatefulWidget {
-  const _HistoryUpsell();
+/// The free tier's locked older history: ghost tiles under a big padlock.
+/// Tapping anywhere opens the paywall ([PaywallSource.history]); on purchase
+/// the session refreshes and the history refetches into the full record.
+class _LockedHistoryPanel extends ConsumerStatefulWidget {
+  const _LockedHistoryPanel();
 
   @override
-  ConsumerState<_HistoryUpsell> createState() => _HistoryUpsellState();
+  ConsumerState<_LockedHistoryPanel> createState() =>
+      _LockedHistoryPanelState();
 }
 
-class _HistoryUpsellState extends ConsumerState<_HistoryUpsell> {
+class _LockedHistoryPanelState extends ConsumerState<_LockedHistoryPanel> {
   bool _opening = false;
 
-  Future<void> _goPro() async {
+  Future<void> _unlock() async {
     if (_opening) return;
     setState(() => _opening = true);
     try {
@@ -480,6 +630,8 @@ class _HistoryUpsellState extends ConsumerState<_HistoryUpsell> {
       if (purchased) {
         await ref.read(sessionProvider.notifier).refresh();
         if (!mounted) return;
+        // The RPC returns more rows for premium — refetch, don't just rebuild.
+        ref.invalidate(voteHistoryProvider);
         AppToast.success(context, context.l10n.settingsPremiumActiveToast);
       }
     } finally {
@@ -489,106 +641,97 @@ class _HistoryUpsellState extends ConsumerState<_HistoryUpsell> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 32, 8, 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppTheme.spark.withValues(alpha: 0.14),
-              border: Border.all(color: AppTheme.spark.withValues(alpha: 0.45)),
-            ),
-            child: const Icon(
-              Icons.history_rounded,
-              color: AppTheme.spark,
-              size: 30,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            context.l10n.historyPremiumTitle,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.colors.ink,
-              fontSize: 19,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            context.l10n.historyPremiumBody,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.colors.subtle,
-              fontSize: 14,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 24),
-          _GoProButton(busy: _opening, onTap: _goPro),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-}
-
-class _GoProButton extends StatelessWidget {
-  const _GoProButton({required this.busy, required this.onTap});
-
-  final bool busy;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: AppTheme.ctaGradient,
-        borderRadius: AppTheme.ctaRadius,
-        boxShadow: busy ? null : AppTheme.ctaGlow,
+        borderRadius: BorderRadius.circular(18),
+        color: context.colors.cardSurface,
+        border: Border.all(color: context.colors.hairline),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: busy ? null : onTap,
-          borderRadius: AppTheme.ctaRadius,
-          child: SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: Center(
-              child: busy
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.4,
-                        color: AppTheme.ctaForeground,
-                      ),
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.workspace_premium_rounded,
-                          color: AppTheme.ctaForeground,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          context.l10n.goPro,
-                          style: const TextStyle(
-                            color: AppTheme.ctaForeground,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
+          onTap: _opening ? null : _unlock,
+          child: Stack(
+            children: [
+              // Ghost tiles behind the lock — the shape of the hidden cards.
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Opacity(
+                    opacity: 0.30,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: _GhostRow(color: context.colors.accent),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 10),
+                          Expanded(
+                            child: _GhostRow(color: context.colors.accent),
+                          ),
+                        ],
+                      ),
                     ),
-            ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 30,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppTheme.spark.withValues(alpha: 0.14),
+                        border: Border.all(
+                          color: AppTheme.spark.withValues(alpha: 0.45),
+                        ),
+                      ),
+                      child: _opening
+                          ? const Padding(
+                              padding: EdgeInsets.all(18),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.4,
+                                color: AppTheme.spark,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.lock_rounded,
+                              color: AppTheme.spark,
+                              size: 30,
+                            ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      context.l10n.historyLockedTitle,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: context.colors.ink,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      context.l10n.historyLockedBody,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: context.colors.subtle,
+                        fontSize: 13,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -596,41 +739,97 @@ class _GoProButton extends StatelessWidget {
   }
 }
 
-/// Short, locale-aware date for a history row, e.g. PL "22 cze 2026", EN
-/// "Jun 22, 2026". Hand-rolled to avoid pulling in `intl`'s date initialisation
-/// (the rest of the app formats dates the same way — see settings_screen).
-String _formatDate(DateTime date, String lang) {
+/// A pair of blank card-shaped tiles for the locked panel's background.
+class _GhostRow extends StatelessWidget {
+  const _GhostRow({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget tile() => Expanded(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+    );
+    return Row(children: [tile(), const SizedBox(width: 10), tile()]);
+  }
+}
+
+/// One day's worth of history, in feed order (newest vote first).
+class _DayGroup {
+  _DayGroup(this.day) : entries = [];
+
+  /// Midnight (local) of the group's calendar day.
+  final DateTime day;
+  final List<VoteHistoryEntry> entries;
+}
+
+/// Splits [entries] (already newest-first) into consecutive local-day groups.
+List<_DayGroup> _groupByLocalDay(List<VoteHistoryEntry> entries) {
+  final groups = <_DayGroup>[];
+  for (final entry in entries) {
+    final local = entry.votedAt.toLocal();
+    final day = DateTime(local.year, local.month, local.day);
+    if (groups.isEmpty || groups.last.day != day) {
+      groups.add(_DayGroup(day));
+    }
+    groups.last.entries.add(entry);
+  }
+  return groups;
+}
+
+/// True when the (UTC) vote timestamp falls on the user's local today — the
+/// free tier's window into the history.
+bool _isLocalToday(DateTime votedAt) {
+  final local = votedAt.toLocal();
+  final now = DateTime.now();
+  return local.year == now.year &&
+      local.month == now.month &&
+      local.day == now.day;
+}
+
+/// Locale-aware day header, e.g. PL "18 SIE", EN "AUG 18"; the year is appended
+/// once the group leaves the current year ("18 SIE 2025"). Hand-rolled to avoid
+/// pulling in `intl`'s date initialisation (the rest of the app formats dates
+/// the same way — see settings_screen).
+String _formatDayHeader(DateTime day, String lang) {
   const monthsPl = [
-    'sty',
-    'lut',
-    'mar',
-    'kwi',
-    'maj',
-    'cze',
-    'lip',
-    'sie',
-    'wrz',
-    'paź',
-    'lis',
-    'gru',
+    'STY',
+    'LUT',
+    'MAR',
+    'KWI',
+    'MAJ',
+    'CZE',
+    'LIP',
+    'SIE',
+    'WRZ',
+    'PAŹ',
+    'LIS',
+    'GRU',
   ];
   const monthsEn = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
+    'JAN',
+    'FEB',
+    'MAR',
+    'APR',
+    'MAY',
+    'JUN',
+    'JUL',
+    'AUG',
+    'SEP',
+    'OCT',
+    'NOV',
+    'DEC',
   ];
-  final d = date.toLocal();
+  final sameYear = day.year == DateTime.now().year;
   if (lang == 'pl') {
-    return '${d.day} ${monthsPl[d.month - 1]} ${d.year}';
+    final base = '${day.day} ${monthsPl[day.month - 1]}';
+    return sameYear ? base : '$base ${day.year}';
   }
-  return '${monthsEn[d.month - 1]} ${d.day}, ${d.year}';
+  final base = '${monthsEn[day.month - 1]} ${day.day}';
+  return sameYear ? base : '$base, ${day.year}';
 }

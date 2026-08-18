@@ -92,12 +92,13 @@ abstract class QuestionRepository {
   Future<List<Question>> fetchFavoriteQuestions();
 
   /// Every question the caller VOTED on with its community TAK/NIE split,
-  /// newest vote first — the PRO "question history" (the user's voting record).
+  /// newest vote first — the "question history" (the user's voting record).
   ///
-  /// Premium-only: a free user / guest gets an EMPTY list (the server returns no
-  /// rows; the client shows a PRO upsell instead of an error). Votes are the
-  /// gate — a question the user merely saw but never voted on has no row. See
-  /// the `get_vote_history` RPC.
+  /// Premium gets the full record; a free user / guest gets only their newest
+  /// votes (server-side: the last 48 hours — enough to cover the local "today"
+  /// the history screen renders, with everything older shown as a locked PRO
+  /// panel). Votes are the gate — a question the user merely saw but never
+  /// voted on has no row. See the `get_vote_history` RPC.
   Future<List<VoteHistoryEntry>> fetchVoteHistory();
 
   /// How often the caller votes with the community majority — one aggregate
@@ -126,6 +127,19 @@ abstract class QuestionRepository {
   /// per day; violations and offline both throw, and the suggestion sheet turns
   /// the failure into the right toast.
   Future<void> submitQuestionSuggestion(String text);
+
+  /// Sends the user's own smaczek idea for [questionId] ("Zaproponuj własny"
+  /// in the Arguments panel) to the same review inbox as question suggestions
+  /// (`question_suggestions`, kind = 'smaczek').
+  ///
+  /// Server-side the RPC normalises whitespace, validates length (5–80 chars),
+  /// rejects control characters and unknown question ids, and shares the
+  /// question-suggestion daily cap; violations and offline both throw, and the
+  /// composer turns the failure into the right toast.
+  Future<void> submitSmaczekSuggestion({
+    required String questionId,
+    required String text,
+  });
 }
 
 /// Default implementation backed by the in-memory mock list.
@@ -323,6 +337,15 @@ class MockQuestionRepository implements QuestionRepository {
   Future<void> submitQuestionSuggestion(String text) async {
     // Offline preview: accept and drop — there is no backend inbox to keep, and
     // the sheet only needs the success path to be exercisable in dev/tests.
+    await Future.delayed(const Duration(milliseconds: 250));
+  }
+
+  @override
+  Future<void> submitSmaczekSuggestion({
+    required String questionId,
+    required String text,
+  }) async {
+    // Offline preview: accept and drop, same as question suggestions above.
     await Future.delayed(const Duration(milliseconds: 250));
   }
 }
@@ -542,8 +565,9 @@ class SupabaseQuestionRepository implements QuestionRepository {
   Future<List<VoteHistoryEntry>> fetchVoteHistory() async {
     // SECURITY DEFINER RPC: returns every question the caller voted on (newest
     // vote first) with the live community split, gating on premium server-side
-    // — a non-premium caller simply gets zero rows. No date param: the row's
-    // date is the vote's own timestamp, rendered locally by the client.
+    // — a non-premium caller gets only their last 48 hours of votes (the
+    // always-free daily), which the screen trims to the local today. No date
+    // param: the row's date is the vote's own timestamp, rendered locally.
     final data = await _db.rpc(
       'get_vote_history',
       params: {'p_locale': locale},
@@ -590,6 +614,21 @@ class SupabaseQuestionRepository implements QuestionRepository {
     await _db.rpc(
       'submit_question_suggestion',
       params: {'p_text': text, 'p_locale': locale},
+    );
+  }
+
+  @override
+  Future<void> submitSmaczekSuggestion({
+    required String questionId,
+    required String text,
+  }) async {
+    // SECURITY DEFINER RPC into the same admin inbox as question suggestions
+    // (kind = 'smaczek'). The server normalises whitespace and enforces length
+    // (5–80), control-character and question-id checks plus the shared per-day
+    // cap (BAD_TEXT / TOO_SHORT / TOO_LONG / BAD_QUESTION / RATE_LIMITED).
+    await _db.rpc(
+      'submit_smaczek_suggestion',
+      params: {'p_question_id': questionId, 'p_text': text, 'p_locale': locale},
     );
   }
 }

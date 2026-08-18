@@ -37,9 +37,24 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with SingleTickerProviderStateMixin {
   final _controller = PageController();
   int _index = 0;
+
+  /// Mirrors the welcome card's entrance clock so the bottom CTA lands
+  /// together with the card's body copy (3.5s in). Until its fade starts the
+  /// button also ignores taps — an invisible "Zaczynajmy" shouldn't advance
+  /// the deck. Runs once per mount; after it completes the button behaves
+  /// like a plain widget for the rest of the flow.
+  late final AnimationController _ctaEntrance = AnimationController(
+    vsync: this,
+    duration: OnboardingIntroCard.entranceDuration,
+  );
+  late final CurvedAnimation _ctaIn = CurvedAnimation(
+    parent: _ctaEntrance,
+    curve: OnboardingIntroCard.ctaRevealInterval,
+  );
 
   /// Index of the taste-vote page / the bridge / the notifications page in
   /// the deck. Set from the page list each build (constant in practice).
@@ -58,8 +73,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reduced motion: the CTA is simply there, same as the card's copy.
+    if (MediaQuery.of(context).disableAnimations) {
+      _ctaEntrance.value = 1;
+    } else if (!_ctaEntrance.isCompleted) {
+      _ctaEntrance.forward();
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
+    _ctaEntrance.dispose();
     super.dispose();
   }
 
@@ -117,6 +144,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       OnboardingIntroCard(
         glyph: const SparkLogo(size: 52),
         title: l10n.onboardingWelcomeTitle,
+        titlePunch: l10n.onboardingWelcomeTitlePunch,
         body: l10n.onboardingWelcomeBody,
       ),
     ];
@@ -174,17 +202,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: PageView(
                     controller: _controller,
                     onPageChanged: _onPageChanged,
-                    // The taste-vote page is a gate, not a slide: swiping is
-                    // disabled there, so the only ways off it are living the
-                    // vote loop (its own "Continue") or the "Skip" up top.
-                    // Everywhere else the deck swipes normally.
-                    physics: _index == _votePageIndex
+                    // From the taste-vote page onward the deck is one-way and
+                    // button-driven: swiping is disabled on the vote page (a
+                    // gate, not a slide) AND on the bridge/notifications pages
+                    // — swiping back from there would rebuild the taste card
+                    // and restart the whole two-question loop. Each of those
+                    // pages carries its own "Continue", so swipe is only ever
+                    // needed on the intro card(s) before the vote.
+                    physics: _index >= _votePageIndex
                         ? const NeverScrollableScrollPhysics()
                         : null,
                     children: [...introCards, votePage, bridgePage, notifyPage],
                   ),
                 ),
-                // Progress dots + the "Next" CTA on the pages that are pure
+                // Progress dots + the "Let's begin" CTA on the pages that are pure
                 // copy (the welcome card); the taste-vote page (its
                 // "Continue" revealed after voting), the bridge (its own two
                 // CTAs) and the notifications page carry their own buttons.
@@ -202,9 +233,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 _index == _bridgePageIndex ||
                                 _index == _notifyPageIndex)
                             ? const SizedBox(width: double.infinity)
-                            : OnboardingPrimaryButton(
-                                label: l10n.onboardingNext,
-                                onPressed: _next,
+                            : AnimatedBuilder(
+                                animation: _ctaIn,
+                                builder: (context, child) => IgnorePointer(
+                                  ignoring: _ctaIn.value == 0,
+                                  child: Opacity(
+                                    opacity: _ctaIn.value,
+                                    child: child,
+                                  ),
+                                ),
+                                child: OnboardingPrimaryButton(
+                                  label: l10n.onboardingBegin,
+                                  onPressed: _next,
+                                ),
                               ),
                       ),
                     ],

@@ -5,10 +5,12 @@ import '../../../core/feedback/app_toast.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/sub_screen_chrome.dart';
 import '../../../data/models/question.dart';
+import '../../../services/review_service.dart';
 import '../../onboarding/providers/onboarding_providers.dart';
 import '../../onboarding/screens/onboarding_screen.dart';
 import '../../questions/providers/question_providers.dart';
 import '../../questions/providers/swipe_hint_providers.dart';
+import '../providers/review_providers.dart';
 import '../widgets/settings_nav_row.dart';
 import '../widgets/settings_primitives.dart';
 
@@ -158,6 +160,11 @@ class DevToolsScreen extends ConsumerWidget {
                           ],
                         ],
                       ),
+                      const SizedBox(height: 28),
+
+                      const SettingsSectionLabel('PROŚBA O OCENĘ'),
+                      const SizedBox(height: 12),
+                      const _ReviewDevSection(),
                       const SizedBox(height: 16),
                       Text(
                         'Sekcja widoczna tylko w buildach debug / DEV_TOOLS '
@@ -177,6 +184,67 @@ class DevToolsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Tester tools for the store-review flow: fire the native sheet on demand and
+/// reset the vote-milestone odometer so the 3rd/7th-vote asks can be replayed.
+/// Stateful so the odometer subtitle refreshes right after a reset.
+class _ReviewDevSection extends ConsumerStatefulWidget {
+  const _ReviewDevSection();
+
+  @override
+  ConsumerState<_ReviewDevSection> createState() => _ReviewDevSectionState();
+}
+
+class _ReviewDevSectionState extends ConsumerState<_ReviewDevSection> {
+  Future<void> _requestNow() async {
+    final overlay = AppToast.capture(context);
+    await ReviewService.requestReview();
+    AppToast.showOn(
+      overlay,
+      'Poproszono system o arkusz oceny. W buildzie debug zwykle się nie '
+      'pokaże — Android wymaga instalacji z Play, iOS produkcji.',
+      type: ToastType.info,
+    );
+  }
+
+  Future<void> _reset() async {
+    final overlay = AppToast.capture(context);
+    await ref.read(reviewPromptControllerProvider.notifier).debugReset();
+    if (mounted) setState(() {});
+    AppToast.showOn(
+      overlay,
+      'Zresetowano — prośba wróci po 3. i 7. głosie',
+      type: ToastType.success,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref
+        .read(reviewPromptControllerProvider.notifier)
+        .debugState();
+    return SettingsCard(
+      children: [
+        SettingsNavRow(
+          icon: Icons.star_rate_rounded,
+          title: 'Pokaż arkusz oceny teraz',
+          subtitle: 'Natywna prośba systemu, bez zmiany liczników',
+          onTap: _requestNow,
+        ),
+        const SettingsRowDivider(),
+        SettingsNavRow(
+          icon: Icons.restart_alt_rounded,
+          title: 'Zresetuj liczniki prośby o ocenę',
+          subtitle:
+              'Głosy: ${state.votes} · zużyty próg: '
+              '${state.lastMilestone == 0 ? 'brak' : state.lastMilestone} '
+              '(progi: ${kReviewVoteMilestones.join(', ')})',
+          onTap: _reset,
+        ),
+      ],
     );
   }
 }

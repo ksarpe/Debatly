@@ -7,12 +7,20 @@ import '../../../core/theme/app_theme.dart';
 class OnboardingGlyphBubble extends StatelessWidget {
   const OnboardingGlyphBubble({
     super.key,
-    required this.icon,
+    this.icon,
     required this.color,
-  });
+    this.child,
+  }) : assert(
+         icon != null || child != null,
+         'Provide an icon or a custom child',
+       );
 
-  final IconData icon;
+  final IconData? icon;
   final Color color;
+
+  /// Custom glyph content — takes the icon's place when a single [IconData]
+  /// can't carry the message (e.g. the bridge card's fanned question cards).
+  final Widget? child;
 
   @override
   Widget build(BuildContext context) {
@@ -34,17 +42,19 @@ class OnboardingGlyphBubble extends StatelessWidget {
         ],
       ),
       child: Center(
-        child: Icon(
-          icon,
-          size: 52,
-          color: color,
-          shadows: [
-            Shadow(
-              color: AppTheme.sparkGlow.withValues(alpha: 0.6),
-              blurRadius: 16,
+        child:
+            child ??
+            Icon(
+              icon,
+              size: 52,
+              color: color,
+              shadows: [
+                Shadow(
+                  color: AppTheme.sparkGlow.withValues(alpha: 0.6),
+                  blurRadius: 16,
+                ),
+              ],
             ),
-          ],
-        ),
       ),
     );
   }

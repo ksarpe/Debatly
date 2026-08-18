@@ -246,6 +246,13 @@ class CachingQuestionRepository implements QuestionRepository {
   Future<void> submitQuestionSuggestion(String text) =>
       inner.submitQuestionSuggestion(text);
 
+  /// Same story for smaczek suggestions — a pure write into the server inbox.
+  @override
+  Future<void> submitSmaczekSuggestion({
+    required String questionId,
+    required String text,
+  }) => inner.submitSmaczekSuggestion(questionId: questionId, text: text);
+
   // ---- Helpers ---------------------------------------------------------------
 
   /// Reads from [read], but treats a premium-tagged cache as empty when the

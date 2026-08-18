@@ -21,16 +21,25 @@ import 'share_question_card.dart';
 /// art. If rendering the card fails for any reason we fall back to sharing the
 /// question as plain text, so the button never dead-ends.
 ///
-/// Styled as a quiet, outlined hairline pill so it reads as an intentional
+/// Styled as a quiet, borderless pill so it reads as an intentional
 /// secondary action without competing with the glowing "go deeper" CTA below.
 ///
 /// Only the question's own text is shared — never a locked teaser — so the
 /// caller renders this strictly for readable questions.
 class ShareQuestionButton extends StatefulWidget {
-  const ShareQuestionButton({super.key, required this.questionText});
+  const ShareQuestionButton({
+    super.key,
+    required this.questionText,
+    this.barStyle = false,
+  });
 
   /// The full text of the question currently on screen.
   final String questionText;
+
+  /// When true, wears the bottom action bar's rounded-rectangle chrome
+  /// ([AppTheme.ctaRadius], matching the "go deeper" CTA beside it) instead of
+  /// the standalone stadium pill, and stretches to fill the width it is given.
+  final bool barStyle;
 
   @override
   State<ShareQuestionButton> createState() => _ShareQuestionButtonState();
@@ -125,6 +134,9 @@ class _ShareQuestionButtonState extends State<ShareQuestionButton> {
 
   @override
   Widget build(BuildContext context) {
+    // In the bottom action bar the pill drops the stadium corners for the
+    // shared CTA radius so all three controls in the row read as one family.
+    final radius = widget.barStyle ? AppTheme.ctaRadius : _radius;
     return Semantics(
       button: true,
       label: context.l10n.shareTooltip,
@@ -132,12 +144,9 @@ class _ShareQuestionButtonState extends State<ShareQuestionButton> {
         message: context.l10n.shareTooltip,
         child: Material(
           color: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: _radius,
-            side: BorderSide(color: context.colors.hairline),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: radius),
           child: InkWell(
-            borderRadius: _radius,
+            borderRadius: radius,
             onTap: _busy ? null : _share,
             // The pill is sized to the touch target, not to its icon: at 42 it
             // was under both platforms' minimum and a thumb regularly missed it.

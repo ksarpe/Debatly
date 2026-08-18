@@ -6,9 +6,9 @@ import 'package:purchases_flutter/purchases_flutter.dart'
 import '../../../core/locale/l10n_extension.dart';
 import 'paywall_plan_card.dart';
 
-/// The loaded offer: the plan cards stacked full-width, the lifetime plan on
-/// top as the tall hero card with its one-payment anchor line, the monthly
-/// card with its weekly-equivalent price subline. Pure presentation —
+/// The loaded offer: the plan cards stacked full-width and identically
+/// styled, the lifetime plan on top with its one-payment anchor line, the
+/// monthly card with its weekly-equivalent price subline. Pure presentation —
 /// selection state, analytics and the purchase flow stay with the owner (the
 /// CTA itself lives in the paywall's sticky bottom bar; the owner preselects
 /// the monthly plan).

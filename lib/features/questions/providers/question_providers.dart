@@ -244,9 +244,10 @@ final dailyVoteStateProvider = FutureProvider.family<VoteResult, String>((
   return repo.getDailyVoteState(questionId);
 });
 
-/// The PRO "question history": every question the user voted on with its
-/// community vote split, newest vote first. Empty for non-premium (the RPC
-/// returns no rows; the screen shows a PRO upsell).
+/// The "question history": every question the user voted on with its
+/// community vote split, newest vote first. Non-premium gets only the last 48
+/// hours from the RPC (the always-free daily); the screen trims that to the
+/// local today and shows the older record as a locked PRO panel.
 ///
 /// autoDispose so each open of the history screen pulls a fresh snapshot — the
 /// tallies keep moving — and nothing lingers in memory after it closes. The repo

@@ -42,9 +42,24 @@ String _fold(String s) {
 /// has typed something. Owns its [TextEditingController]; parents only receive
 /// [onChanged] with the raw text.
 class QuestionSearchField extends StatefulWidget {
-  const QuestionSearchField({super.key, required this.onChanged});
+  const QuestionSearchField({
+    super.key,
+    required this.onChanged,
+    this.autofocus = false,
+    this.onClose,
+  });
 
   final ValueChanged<String> onChanged;
+
+  /// Focus the field the moment it appears — for fields revealed by tapping a
+  /// search icon (History), so the keyboard opens without a second tap.
+  final bool autofocus;
+
+  /// When set, the field is collapsible: the suffix X is always present and
+  /// clears typed text first, then closes the field (via this callback) once
+  /// the text is empty. When null (Favorites), the X only appears with text
+  /// and only clears.
+  final VoidCallback? onClose;
 
   @override
   State<QuestionSearchField> createState() => _QuestionSearchFieldState();
@@ -75,6 +90,7 @@ class _QuestionSearchFieldState extends State<QuestionSearchField> {
 
     return TextField(
       controller: _controller,
+      autofocus: widget.autofocus,
       onChanged: (value) {
         widget.onChanged(value);
         // The clear button appears/disappears with the text.
@@ -98,7 +114,17 @@ class _QuestionSearchFieldState extends State<QuestionSearchField> {
           color: context.colors.subtle,
         ),
         suffixIcon: _controller.text.isEmpty
-            ? null
+            ? (widget.onClose == null
+                  ? null
+                  : IconButton(
+                      tooltip: context.l10n.searchCloseTooltip,
+                      onPressed: widget.onClose,
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: context.colors.subtle,
+                      ),
+                    ))
             : IconButton(
                 tooltip: context.l10n.searchClearTooltip,
                 onPressed: _clear,

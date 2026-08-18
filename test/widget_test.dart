@@ -96,8 +96,11 @@ void main() {
 
     await _passSplash(tester);
 
-    // The welcome card opens the deck, with a "Skip" affordance.
-    expect(find.text('Myślisz, że znasz odpowiedź?'), findsOneWidget);
+    // The welcome card opens the deck, with a "Skip" affordance. The title is
+    // two staggered lines (hook + punchline) — both are in the tree from the
+    // first frame, only their entrance animates.
+    expect(find.text('Myślisz, że znasz się na ludziach?'), findsOneWidget);
+    expect(find.text('A siebie jak dobrze znasz?'), findsOneWidget);
     expect(find.text('Pomiń'), findsOneWidget);
 
     // Skip ends the tutorial immediately — there is no account step anymore

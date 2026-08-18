@@ -692,11 +692,11 @@ abstract class AppLocalizations {
   /// **'Question history'**
   String get historyTitle;
 
-  /// No description provided for @historySubtitle.
+  /// No description provided for @historyAnsweredCount.
   ///
   /// In en, this message translates to:
-  /// **'Every question you voted on, with how people voted.'**
-  String get historySubtitle;
+  /// **'{count, plural, one{{count} answered} other{{count} answered}}'**
+  String historyAnsweredCount(int count);
 
   /// No description provided for @historyTooltip.
   ///
@@ -722,17 +722,41 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the history.'**
   String get historyLoadError;
 
-  /// No description provided for @historyPremiumTitle.
+  /// No description provided for @historyYourVote.
   ///
   /// In en, this message translates to:
-  /// **'History is a PRO feature'**
-  String get historyPremiumTitle;
+  /// **'YOU: {vote}'**
+  String historyYourVote(String vote);
 
-  /// No description provided for @historyPremiumBody.
+  /// No description provided for @historyVersus.
   ///
   /// In en, this message translates to:
-  /// **'Go PRO to look back at every question you voted on and see how others voted.'**
-  String get historyPremiumBody;
+  /// **'vs'**
+  String get historyVersus;
+
+  /// No description provided for @historyLockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock your full history'**
+  String get historyLockedTitle;
+
+  /// No description provided for @historyLockedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Free accounts see only today here. Go PRO to browse every vote you\'ve ever cast.'**
+  String get historyLockedBody;
+
+  /// No description provided for @historySearchTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Search history'**
+  String get historySearchTooltip;
+
+  /// No description provided for @historyLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load {count} more'**
+  String historyLoadMore(int count);
 
   /// No description provided for @historyNoVotes.
   ///
@@ -751,6 +775,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear search'**
   String get searchClearTooltip;
+
+  /// No description provided for @searchCloseTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Close search'**
+  String get searchCloseTooltip;
 
   /// No description provided for @searchNoResultsTitle.
   ///
@@ -1394,11 +1424,41 @@ abstract class AppLocalizations {
   /// **'Arguments'**
   String get smaczkiTitle;
 
+  /// No description provided for @smaczkiTitleTag.
+  ///
+  /// In en, this message translates to:
+  /// **'(smaczki)'**
+  String get smaczkiTitleTag;
+
   /// No description provided for @smaczkiSubtitle.
   ///
   /// In en, this message translates to:
   /// **'Tips to deepen the conversation around this question.'**
   String get smaczkiSubtitle;
+
+  /// No description provided for @smaczekSuggestCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest your own'**
+  String get smaczekSuggestCta;
+
+  /// No description provided for @smaczekSuggestHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your argument…'**
+  String get smaczekSuggestHint;
+
+  /// No description provided for @smaczekSuggestMinChars.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 5 characters'**
+  String get smaczekSuggestMinChars;
+
+  /// No description provided for @smaczekSuggestSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get smaczekSuggestSend;
 
   /// No description provided for @smaczkiLoadError.
   ///
@@ -1520,22 +1580,28 @@ abstract class AppLocalizations {
   /// **'Skip'**
   String get onboardingSkip;
 
-  /// No description provided for @onboardingNext.
+  /// No description provided for @onboardingBegin.
   ///
   /// In en, this message translates to:
-  /// **'Next'**
-  String get onboardingNext;
+  /// **'Let\'s begin'**
+  String get onboardingBegin;
 
   /// No description provided for @onboardingWelcomeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Think you know the answer?'**
+  /// **'Think you can read people?'**
   String get onboardingWelcomeTitle;
+
+  /// No description provided for @onboardingWelcomeTitlePunch.
+  ///
+  /// In en, this message translates to:
+  /// **'How well do you know yourself?'**
+  String get onboardingWelcomeTitlePunch;
 
   /// No description provided for @onboardingWelcomeBody.
   ///
   /// In en, this message translates to:
-  /// **'In a moment you\'ll get a question with no good answer. Vote — and see how many people think differently than you.'**
+  /// **'Let\'s find out. You\'ll get a question with no good answer — vote and see how many people think differently than you.'**
   String get onboardingWelcomeBody;
 
   /// No description provided for @onboardingTasteKicker.
@@ -1556,47 +1622,95 @@ abstract class AppLocalizations {
   /// **'Hold on…'**
   String get onboardingTasteHoldOnTitle;
 
-  /// No description provided for @onboardingTasteSmaczek1.
+  /// No description provided for @onboardingTasteVotedTakSmaczek1.
   ///
   /// In en, this message translates to:
-  /// **'You already pay extra for a few kilos of luggage.'**
-  String get onboardingTasteSmaczek1;
+  /// **'You\'re buying a flight, not centimetres of seat.'**
+  String get onboardingTasteVotedTakSmaczek1;
 
-  /// No description provided for @onboardingTasteSmaczek2.
+  /// No description provided for @onboardingTasteVotedTakSmaczek2.
   ///
   /// In en, this message translates to:
-  /// **'What about the person squeezed next to you? Same fare, worse seat.'**
-  String get onboardingTasteSmaczek2;
+  /// **'A tall passenger takes up more room too. Charge them extra as well?'**
+  String get onboardingTasteVotedTakSmaczek2;
 
-  /// No description provided for @onboardingTasteSmaczek3.
+  /// No description provided for @onboardingTasteVotedTakSmaczek3.
   ///
   /// In en, this message translates to:
   /// **'And how would you check who pays? A gate scale before boarding?'**
-  String get onboardingTasteSmaczek3;
+  String get onboardingTasteVotedTakSmaczek3;
 
-  /// No description provided for @onboardingTasteSmaczek4.
+  /// No description provided for @onboardingTasteVotedTakSmaczek4.
   ///
   /// In en, this message translates to:
   /// **'What about people whose weight comes from illness? Punished for life?'**
-  String get onboardingTasteSmaczek4;
+  String get onboardingTasteVotedTakSmaczek4;
 
-  /// No description provided for @onboardingTasteRead.
+  /// No description provided for @onboardingTasteVotedNieSmaczek1.
   ///
   /// In en, this message translates to:
-  /// **'Let me vote again!'**
-  String get onboardingTasteRead;
+  /// **'You already pay extra for a few kilos of luggage.'**
+  String get onboardingTasteVotedNieSmaczek1;
 
-  /// No description provided for @onboardingTasteRevoteKicker.
+  /// No description provided for @onboardingTasteVotedNieSmaczek2.
   ///
   /// In en, this message translates to:
-  /// **'VOTE AGAIN'**
-  String get onboardingTasteRevoteKicker;
+  /// **'What about the person squeezed next to you? Same fare, worse seat.'**
+  String get onboardingTasteVotedNieSmaczek2;
 
-  /// No description provided for @onboardingTasteContinue.
+  /// No description provided for @onboardingTasteVotedNieSmaczek3.
   ///
   /// In en, this message translates to:
-  /// **'Continue'**
-  String get onboardingTasteContinue;
+  /// **'A heavier plane burns more fuel — you pay the difference in your fare.'**
+  String get onboardingTasteVotedNieSmaczek3;
+
+  /// No description provided for @onboardingTasteVotedNieSmaczek4.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you fly three hours squeezed into half your seat?'**
+  String get onboardingTasteVotedNieSmaczek4;
+
+  /// No description provided for @onboardingTasteChangeMind.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ve changed my mind'**
+  String get onboardingTasteChangeMind;
+
+  /// No description provided for @onboardingTasteStandFirm.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m sticking with it'**
+  String get onboardingTasteStandFirm;
+
+  /// No description provided for @onboardingTasteGotYouTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Got you after all!'**
+  String get onboardingTasteGotYouTitle;
+
+  /// No description provided for @onboardingTasteGotYouSub.
+  ///
+  /// In en, this message translates to:
+  /// **'See how the others voted.'**
+  String get onboardingTasteGotYouSub;
+
+  /// No description provided for @onboardingTasteStandFirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Good to stand your ground!'**
+  String get onboardingTasteStandFirmTitle;
+
+  /// No description provided for @onboardingTasteStandFirmSub.
+  ///
+  /// In en, this message translates to:
+  /// **'But see how the others voted.'**
+  String get onboardingTasteStandFirmSub;
+
+  /// No description provided for @onboardingTasteSeeNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s see the next one'**
+  String get onboardingTasteSeeNext;
 
   /// No description provided for @onboardingTasteNextTitle.
   ///
@@ -1616,34 +1730,88 @@ abstract class AppLocalizations {
   /// **'Are you sure though?'**
   String get onboardingTasteSureTitle;
 
-  /// No description provided for @onboardingTasteQ2Smaczek1.
+  /// No description provided for @onboardingTasteQ2VotedTakSmaczek1.
   ///
   /// In en, this message translates to:
   /// **'There\'s no argument only if your numbers happen to match.'**
-  String get onboardingTasteQ2Smaczek1;
+  String get onboardingTasteQ2VotedTakSmaczek1;
 
-  /// No description provided for @onboardingTasteQ2Smaczek2.
-  ///
-  /// In en, this message translates to:
-  /// **'Once you know, will it stop bugging you? Will it stop bugging them?'**
-  String get onboardingTasteQ2Smaczek2;
-
-  /// No description provided for @onboardingTasteQ2Smaczek3.
+  /// No description provided for @onboardingTasteQ2VotedTakSmaczek2.
   ///
   /// In en, this message translates to:
   /// **'If the number isn\'t 100, what does it actually change?'**
-  String get onboardingTasteQ2Smaczek3;
+  String get onboardingTasteQ2VotedTakSmaczek2;
 
-  /// No description provided for @onboardingTasteQ2Smaczek4.
+  /// No description provided for @onboardingTasteQ2VotedTakSmaczek3.
   ///
   /// In en, this message translates to:
-  /// **'And if it is 100 — would you rather know, or rather tell?'**
-  String get onboardingTasteQ2Smaczek4;
+  /// **'The honesty fades, the number stays — back at the very first fight.'**
+  String get onboardingTasteQ2VotedTakSmaczek3;
+
+  /// No description provided for @onboardingTasteQ2VotedTakSmaczek4.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you still tell if your number were embarrassingly big?'**
+  String get onboardingTasteQ2VotedTakSmaczek4;
+
+  /// No description provided for @onboardingTasteQ2VotedNieSmaczek1.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting a relationship on a secret — solid foundation?'**
+  String get onboardingTasteQ2VotedNieSmaczek1;
+
+  /// No description provided for @onboardingTasteQ2VotedNieSmaczek2.
+  ///
+  /// In en, this message translates to:
+  /// **'Hiding the number means you think something\'s wrong with it.'**
+  String get onboardingTasteQ2VotedNieSmaczek2;
+
+  /// No description provided for @onboardingTasteQ2VotedNieSmaczek3.
+  ///
+  /// In en, this message translates to:
+  /// **'The truth comes out anyway — years later, at the worst moment.'**
+  String get onboardingTasteQ2VotedNieSmaczek3;
+
+  /// No description provided for @onboardingTasteQ2VotedNieSmaczek4.
+  ///
+  /// In en, this message translates to:
+  /// **'And if they ask you straight out? Lie to their face?'**
+  String get onboardingTasteQ2VotedNieSmaczek4;
+
+  /// No description provided for @onboardingTasteQ2GotYouTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'See? Nothing is obvious.'**
+  String get onboardingTasteQ2GotYouTitle;
+
+  /// No description provided for @onboardingTasteQ2GotYouSub.
+  ///
+  /// In en, this message translates to:
+  /// **'And that was only question two…'**
+  String get onboardingTasteQ2GotYouSub;
+
+  /// No description provided for @onboardingTasteQ2StandFirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'So you can\'t be moved?'**
+  String get onboardingTasteQ2StandFirmTitle;
+
+  /// No description provided for @onboardingTasteQ2StandFirmSub.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll see. We have plenty of questions…'**
+  String get onboardingTasteQ2StandFirmSub;
+
+  /// No description provided for @onboardingTasteWhatElse.
+  ///
+  /// In en, this message translates to:
+  /// **'What else have you got?'**
+  String get onboardingTasteWhatElse;
 
   /// Headline of the bridge screen shown right after the onboarding taste votes — it explains the freemium model instead of walling the user.
   ///
   /// In en, this message translates to:
-  /// **'That was two. 500 to go.'**
+  /// **'That was two — hundreds more to go'**
   String get bridgeTitle;
 
   /// No description provided for @bridgeBody.
@@ -1664,16 +1832,22 @@ abstract class AppLocalizations {
   /// **'Unlock all 500'**
   String get bridgeCtaSecondary;
 
+  /// Small line under the secondary bridge CTA label — hints that PRO carries more than just the catalog.
+  ///
+  /// In en, this message translates to:
+  /// **'(and many more perks)'**
+  String get bridgeCtaSecondaryHint;
+
   /// No description provided for @onboardingNotifyTitle.
   ///
   /// In en, this message translates to:
-  /// **'Tomorrow\'s question is waiting'**
+  /// **'Hey, one more thing'**
   String get onboardingNotifyTitle;
 
   /// No description provided for @onboardingNotifyBody.
   ///
   /// In en, this message translates to:
-  /// **'One notification a day, at a time you pick. Voting takes 10 seconds — and your streak grows every day.'**
+  /// **'I can remind you to vote every day, at a time you pick. Voting takes 10 seconds — and your streak grows on its own. You can always switch it off in settings.'**
   String get onboardingNotifyBody;
 
   /// No description provided for @onboardingNotifyEnable.
@@ -1685,14 +1859,8 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingNotifySkip.
   ///
   /// In en, this message translates to:
-  /// **'Not now'**
+  /// **'Maybe later'**
   String get onboardingNotifySkip;
-
-  /// No description provided for @onboardingNotifyFootnote.
-  ///
-  /// In en, this message translates to:
-  /// **'You can turn reminders off or change the time in settings.'**
-  String get onboardingNotifyFootnote;
 
   /// Small caption under the day wall's big HH:MM:SS timer ticking down to the user's local midnight.
   ///

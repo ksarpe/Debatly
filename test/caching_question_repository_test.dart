@@ -273,4 +273,10 @@ class _FakeRepo implements QuestionRepository {
   @override
   Future<void> submitQuestionSuggestion(String text) =>
       throw UnimplementedError();
+
+  @override
+  Future<void> submitSmaczekSuggestion({
+    required String questionId,
+    required String text,
+  }) => throw UnimplementedError();
 }

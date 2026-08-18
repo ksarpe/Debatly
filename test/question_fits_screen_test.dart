@@ -10,6 +10,7 @@ import 'package:debatly/features/questions/widgets/favorite_star_button.dart';
 import 'package:debatly/features/questions/widgets/go_deeper_button.dart';
 import 'package:debatly/features/questions/widgets/question_body.dart';
 import 'package:debatly/features/questions/widgets/share_question_button.dart';
+import 'package:debatly/features/questions/widgets/wind_question_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -82,11 +83,21 @@ void main() {
 
     expect(
       vote.bottom,
-      lessThanOrEqualTo(share.top),
-      reason: 'the vote panel must sit above the share pill, never over it',
+      lessThanOrEqualTo(goDeeper.top),
+      reason: 'the vote panel must sit above the action bar, never over it',
     );
-    expect(share.bottom, lessThanOrEqualTo(goDeeper.top));
-    expect(star.bottom, lessThanOrEqualTo(goDeeper.top));
+    // The action bar is one row: "go deeper" (4/6) in the middle, the share
+    // pill to its left and the favorites star to its right (1/6 each), all
+    // vertically aligned.
+    expect(goDeeper.left, greaterThanOrEqualTo(share.right));
+    expect(star.left, greaterThanOrEqualTo(goDeeper.right));
+    expect(share.center.dy, closeTo(goDeeper.center.dy, 1));
+    expect(star.center.dy, closeTo(goDeeper.center.dy, 1));
+    expect(
+      goDeeper.width,
+      greaterThan(share.width * 3),
+      reason: 'the CTA carries the row — 4/6 against the pills\' 1/6 each',
+    );
     expect(
       tester.takeException(),
       isNull,
@@ -117,12 +128,14 @@ void main() {
     await pumpFeed(tester, text: 'Czy warto?', size: const Size(393, 851));
     expectFeedDoesNotCollide(tester);
 
-    // The question + vote + pills group is still centred against the whole
-    // screen — the cap only bites when the content is too tall for its space.
+    // The question + vote group is still centred against the whole screen —
+    // the cap only bites when the content is too tall for its space. (The
+    // share / favorites pills live in the bottom action bar now, so they no
+    // longer count towards the centred group.)
     final top = tester.getRect(find.byType(Scaffold)).top;
     final group = tester
         .getRect(find.byType(DailyVotePanel))
-        .expandToInclude(tester.getRect(find.byType(ShareQuestionButton)));
+        .expandToInclude(tester.getRect(find.byType(WindQuestionView)));
     expect(group.center.dy, greaterThan(top + 851 * 0.4));
     expect(group.center.dy, lessThan(top + 851 * 0.6));
   });

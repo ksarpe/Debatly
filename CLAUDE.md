@@ -19,7 +19,7 @@ surface.
 |---|---|---|
 | Daily question (1/day, local-midnight rollover) | ✅ | ✅ |
 | Community split, streak & ranks, share card, smaczek #1 | ✅ | ✅ |
-| Rest of the catalog (500+), all smaczki, history, favorites, offline | ❌ | ✅ |
+| Rest of the catalog (500+), all smaczki, full history (free: today only), favorites, offline | ❌ | ✅ |
 
 - **The free rows are the growth engine — don't paywall them.** Community
   split, streak and the share card must stay free; without them a free user
@@ -34,9 +34,11 @@ surface.
   back return to the daily — the wall intercepts back. Never a trap.
 - **Paywall-opening rules:** auto at most once per local day, on the first
   wall hit AFTER the daily vote; always on the wall/bridge unlock CTAs and on
-  tapping a locked feature (star / history / locked smaczki); never at app
-  start, in onboarding, or before the user's first vote. Always dismissible
-  (floating X / system back).
+  tapping a locked feature (star / the history screen's locked older-history
+  panel / locked smaczki); never at app start, in onboarding, or before the
+  user's first vote. Always dismissible (floating X / system back). The
+  history screen itself is open to everyone: free sees today's card(s) — the
+  daily is always free — plus the locked panel.
 - **Onboarding:** welcome → 2 taste questions (ARB text + hard-coded ids for
   the live split; votes are NOT cast) → the bridge (`OnboardingBridgeCard`,
   free path is the dominant CTA) → reminder opt-in → the feed. No wall.
@@ -47,9 +49,12 @@ surface.
   price subline ("To ok. X zł tygodniowo"); no "best value" badge. Offering
   live from RevenueCat: monthly 19,99 zł / lifetime 69,99 zł (PL) — no
   weekly, no annual, no trial.
-- **Review ask:** exactly once per milestone — the day the streak completes
-  3, right after the rank-up celebration (`RankCelebrationListener`), and
-  nowhere else.
+- **Review ask:** on the vote milestones — after the 3rd vote ever cast, and
+  once more after the 7th (no "did they review?" signal exists, so the second
+  ask is unconditional; the OS quota shields users who already rated). Max one
+  ask per local day; on a promotion day it rides right behind the rank-up
+  celebration (`RankCelebrationListener`) instead of on top of it; never
+  again past the last milestone.
 - **Buy to play; sign in to secure.** Every user gets an anonymous Supabase
   UUID at launch and the entitlement rides on THAT — a guest can hold PRO
   indefinitely. An account exists only to make progress survive a reinstall

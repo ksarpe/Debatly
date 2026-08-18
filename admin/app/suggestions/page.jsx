@@ -4,10 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../lib/api';
 
 /**
- * Propozycje pytań od użytkowników — skrzynka wejściowa z aplikacji
- * ("Zaproponuj pytanie" w ustawieniach + zaczepka po drugim głosie).
+ * Propozycje pytań i smaczków od użytkowników — skrzynka wejściowa z aplikacji
+ * ("Zaproponuj pytanie" w ustawieniach + zaczepka po drugim głosie; smaczki
+ * z „Zaproponuj własny" w panelu Argumentów, z podpiętym pytaniem).
  * Przyjęcie ("bierzemy") niczego nie publikuje: przyjęty pomysł przepisuje się
- * na porządne pytanie PL/EN + smaczki przez „+ Nowe pytanie".
+ * na porządne pytanie PL/EN + smaczki przez „+ Nowe pytanie" / edycję pytania.
  */
 
 const STATUS = {
@@ -68,7 +69,9 @@ export default function SuggestionsPage() {
     setBusyId(r.id); setErr(null);
     try {
       const updated = await api.setSuggestionStatus(r.id, status, note);
-      setRows((prev) => prev.map((x) => (x.id === r.id ? updated : x)));
+      // Merge zamiast podmiany: RPC statusu zwraca goły wiersz tabeli, bez
+      // doklejanego przez listę question_text — nadpisanie by go zgubiło.
+      setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, ...updated } : x)));
     } catch (e) {
       setErr(e.friendly || e.message);
     } finally {
@@ -135,6 +138,7 @@ export default function SuggestionsPage() {
               <thead>
                 <tr>
                   <th>Data</th>
+                  <th>Typ</th>
                   <th>Propozycja</th>
                   <th>Język</th>
                   <th>Status</th>
@@ -145,7 +149,7 @@ export default function SuggestionsPage() {
               <tbody>
                 {visible.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="muted">
+                    <td colSpan={7} className="muted">
                       {filter === 'new'
                         ? 'Brak nowych propozycji — skrzynka czysta.'
                         : 'Nic tu nie ma.'}
@@ -160,7 +164,19 @@ export default function SuggestionsPage() {
                       <td className="day-cell" title={r.user_id ? `user: ${r.user_id}` : 'konto usunięte'}>
                         {fmtDate(r.created_at)}
                       </td>
-                      <td className="q-cell" style={{ whiteSpace: 'pre-wrap' }}>{r.suggestion}</td>
+                      <td>
+                        <span className={`badge ${r.kind === 'smaczek' ? 'approved' : ''}`}>
+                          {r.kind === 'smaczek' ? 'Smaczek' : 'Pytanie'}
+                        </span>
+                      </td>
+                      <td className="q-cell" style={{ whiteSpace: 'pre-wrap' }}>
+                        {r.suggestion}
+                        {r.kind === 'smaczek' && (
+                          <div className="faint" style={{ marginTop: 4 }}>
+                            do pytania: {r.question_text ?? (r.question_id ?? '—')}
+                          </div>
+                        )}
+                      </td>
                       <td className="muted">{r.locale ?? '—'}</td>
                       <td><span className={`badge ${st.cls}`}>{st.label}</span></td>
                       <td className="muted" style={{ maxWidth: 220 }}>{r.admin_note ?? ''}</td>

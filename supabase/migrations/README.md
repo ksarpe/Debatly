@@ -175,6 +175,14 @@ catastrophe. Do not "fix" it by flattening the folders back.
   `public.is_premium(...)`, whose EXECUTE is postgres-only since the 2026-07-02
   least-privilege pass, so a direct PostgREST read of that table by
   `anon`/`authenticated` raised 42501 instead of returning zero rows.
+- `20260818120000_vote_history_free_today.sql` (free callers of
+  `get_vote_history` now get their last 48 hours of votes instead of zero rows
+  — the redesigned history screen shows a free user "today" with older history
+  behind the locked PRO panel; premium output unchanged) — **applied to prod
+  2026-08-18** via MCP as `vote_history_free_today`. Verified live by
+  impersonation: a free user with 2 votes (1 recent) got 1 row, a premium user
+  with 11 votes got their full record (10 rows — 1 vote sits on an inactive
+  question, same as before). Idempotent (`create or replace`).
 - `20260815150000_question_translations_policy_without_is_premium.sql` (inlines
   the premium check into the `read question text (gated)` policy and narrows it
   to `authenticated`) — **applied to prod 2026-08-15** via MCP as

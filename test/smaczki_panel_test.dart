@@ -10,8 +10,9 @@ import 'support/localized_test_app.dart';
 
 /// The smaczki sheet is a monetization gate: a free user must see exactly the
 /// first prompt readable, the locked rest as placeholders (never real text —
-/// the server sends null), and one "unlock" hook. Premium sees everything and
-/// no upsell. These are the release-blocking guarantees checked here.
+/// the server sends null), each with an inline "unlock" label. Premium sees
+/// everything and no upsell. These are the release-blocking guarantees
+/// checked here.
 void main() {
   Future<void> pumpSheet(
     WidgetTester tester, {
@@ -47,7 +48,7 @@ void main() {
 
   testWidgets(
     'free user: first smaczek readable, locked rest blurred with lock icons '
-    'and a single unlock button — no real locked text anywhere',
+    'and inline unlock labels — no real locked text anywhere',
     (tester) async {
       await pumpSheet(
         tester,
@@ -64,8 +65,8 @@ void main() {
       // the server sent text=null, so nothing real can leak.
       expect(find.byIcon(Icons.lock_rounded), findsNWidgets(2));
       expect(find.textContaining('aaabbbb'), findsNWidgets(2));
-      // Exactly one upsell hook.
-      expect(find.text('Odblokuj'), findsOneWidget);
+      // Each locked row carries its own bare "unlock" label next to the lock.
+      expect(find.text('Odblokuj'), findsNWidgets(2));
     },
   );
 

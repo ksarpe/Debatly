@@ -36,7 +36,8 @@ void main() {
       'dominant CTA', (tester) async {
     await pumpBridge(tester, onContinue: () {});
 
-    expect(find.text('To były dwa. Zostało 500.'), findsOneWidget);
+    expect(find.text('To były dwa — a zostały jeszcze setki'), findsOneWidget);
+    expect(find.text('(i wiele innych korzyści)'), findsOneWidget);
     expect(
       find.textContaining('Codziennie dostajesz jedno nowe pytanie'),
       findsOneWidget,

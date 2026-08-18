@@ -73,33 +73,32 @@ class _GoDeeperButtonState extends State<GoDeeperButton>
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: AnimatedBuilder(
-            animation: _nudge,
-            builder: (context, child) {
-              final t = _nudge.value;
-              return Transform.translate(
-                offset: Offset(_pulsing ? 0 : _shakeOffset(t), 0),
-                child: Transform.scale(
-                  scale: _pulsing ? _pulseScale(t) : _shakeScale(t),
-                  child: child,
-                ),
-              );
-            },
-            // The shared accent-CTA look (spark gradient pill + orange glow),
-            // so the lit "go deeper" affordance reads the same as every other
-            // premium button in BOTH themes.
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: AppTheme.ctaRadius,
-                gradient: AppTheme.ctaGradient,
-                boxShadow: AppTheme.ctaGlow,
+        child: AnimatedBuilder(
+          animation: _nudge,
+          builder: (context, child) {
+            final t = _nudge.value;
+            return Transform.translate(
+              offset: Offset(_pulsing ? 0 : _shakeOffset(t), 0),
+              child: Transform.scale(
+                scale: _pulsing ? _pulseScale(t) : _shakeScale(t),
+                child: child,
               ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 22, vertical: 13),
-                child: _Label(),
-              ),
+            );
+          },
+          // The shared accent-CTA look (spark gradient pill + orange glow),
+          // so the lit "go deeper" affordance reads the same as every other
+          // premium button in BOTH themes. Sized to the shared touch-target
+          // height and stretching to whatever width the action bar hands it,
+          // so it lines up flush with the share / favorite pills beside it.
+          child: const DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: AppTheme.ctaRadius,
+              gradient: AppTheme.ctaGradient,
+              boxShadow: AppTheme.ctaGlow,
+            ),
+            child: SizedBox(
+              height: kMinTouchTarget,
+              child: Center(child: _Label()),
             ),
           ),
         ),

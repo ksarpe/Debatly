@@ -135,7 +135,6 @@ class QuestionBody extends ConsumerWidget {
                           ? ValueKey('${userId ?? ''}:$questionId')
                           : null,
                       questionId: hasRows ? questionId : null,
-                      questionText: hasRows ? current.questionText : null,
                       isDaily: isDaily,
                       showNewBadge: showNewBadge,
                     ),
@@ -150,6 +149,8 @@ class QuestionBody extends ConsumerWidget {
                     _BottomOverlay(
                       showHintAndDeeper: showHintAndDeeper,
                       showJumpToLatest: showJumpToLatest,
+                      questionId: hasRows ? questionId : null,
+                      questionText: hasRows ? current.questionText : null,
                       onGoDeeper: questionId == null
                           ? null
                           : () => showSmaczkiSheet(context, questionId),
@@ -188,17 +189,15 @@ class _CentredGroup extends StatelessWidget {
   const _CentredGroup({
     required this.votePanelKey,
     required this.questionId,
-    required this.questionText,
     required this.isDaily,
     required this.showNewBadge,
   });
 
   /// Non-null exactly when the question is readable, i.e. when the vote panel
-  /// and the pill row are part of the group. Keyed by (user, question) so the
-  /// panel's local state resets both on a swipe and on an account change.
+  /// is part of the group. Keyed by (user, question) so the panel's local
+  /// state resets both on a swipe and on an account change.
   final Key? votePanelKey;
   final String? questionId;
-  final String? questionText;
 
   /// Only picks the analytics event inside the vote panel.
   final bool isDaily;
@@ -209,7 +208,7 @@ class _CentredGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasRows = questionId != null && questionText != null;
+    final hasRows = questionId != null;
 
     return Padding(
       // Narrow side margins: the question is the widest thing here, and every
@@ -252,23 +251,9 @@ class _CentredGroup extends StatelessWidget {
                     questionId: questionId!,
                     isDaily: isDaily,
                   ),
-                  // Share sits right under the question rather than as the
-                  // faint icon it used to be down in the bottom overlay,
-                  // paired with the favorites star — saving THIS question
-                  // is a per-question act, so it lives with the question
-                  // (the PRO history moved to Settings).
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ShareQuestionButton(questionText: questionText!),
-                      const SizedBox(width: 12),
-                      FavoriteStarButton(
-                        questionId: questionId!,
-                        outlined: true,
-                      ),
-                    ],
-                  ),
+                  // Share and the favorites star moved down into the bottom
+                  // action bar, flanking the "go deeper" CTA — see
+                  // [_BottomOverlay].
                 ],
               ],
             ),
@@ -280,35 +265,42 @@ class _CentredGroup extends StatelessWidget {
 }
 
 /// The height at which the centred group is known to fit: a readable question
-/// plus the two gaps, the vote row at its tallest, and the pill row. Once the
-/// band between the app bar and the bottom overlay drops below this, the feed
+/// plus the gap and the vote row at its tallest (the share / favorite pills
+/// live in the bottom action bar now, not in this group). Once the band
+/// between the app bar and the bottom overlay drops below this, the feed
 /// hands the group this much height anyway and scrolls (see [FitOrScroll]) —
 /// which is strictly better than letting the [Column] overflow, because
 /// overflowed children are painted where nothing hit-tests them.
 double _minGroupHeight(BuildContext context, {required bool withRows}) {
   if (!withRows) return _kMinQuestionHeight;
-  return _kMinQuestionHeight +
-      28 +
-      voteRowMaxHeight(context) +
-      24 +
-      kMinTouchTarget;
+  return _kMinQuestionHeight + 28 + voteRowMaxHeight(context);
 }
 
-/// The strip at the foot of the feed: the swipe hint and the "go deeper" pill on
-/// a readable question, plus the borderless "back to the latest →" link (BOTH
-/// tiers), whenever back swipes have left the user behind the furthest question
+/// The strip at the foot of the feed: on a readable question the swipe hint and
+/// the full-width action bar — the glowing "go deeper" CTA (4/6 of the row)
+/// flanked by the share pill on the left and the favorite star on the right
+/// (1/6 each, same corner radius) — plus the borderless "back to the latest →"
+/// link (BOTH tiers),
+/// whenever back swipes have left the user behind the furthest question
 /// reached this session — the one-tap undo for a run of back swipes. (The
 /// mirror direction needs no link: a back swipe already steps backwards.)
 class _BottomOverlay extends StatelessWidget {
   const _BottomOverlay({
     required this.showHintAndDeeper,
     required this.showJumpToLatest,
+    required this.questionId,
+    required this.questionText,
     required this.onGoDeeper,
     required this.onJumpToLatest,
   });
 
   final bool showHintAndDeeper;
   final bool showJumpToLatest;
+
+  /// Non-null exactly when the visible question is readable — the share pill
+  /// needs its text, the star its id.
+  final String? questionId;
+  final String? questionText;
   final VoidCallback? onGoDeeper;
   final VoidCallback onJumpToLatest;
 
@@ -329,9 +321,40 @@ class _BottomOverlay extends StatelessWidget {
                 style: TextStyle(color: context.colors.subtle, fontSize: 13),
               ),
               const SizedBox(height: 14),
-              // The glowing "go deeper" pill. (Share lives up by the question
-              // now, not down here.)
-              GoDeeperButton(onTap: onGoDeeper ?? () {}),
+              // The action bar: "go deeper" carries the middle of the row
+              // (4/6), flanked by the share pill on the left and the favorites
+              // star on the right (1/6 each) in the same rounded-rectangle
+              // chrome — one full-width family of controls. Capped at the
+              // feed's width so it tracks the question column on tablets.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _kFeedMaxWidth),
+                child: Row(
+                  children: [
+                    if (questionText != null) ...[
+                      Expanded(
+                        child: ShareQuestionButton(
+                          questionText: questionText!,
+                          barStyle: true,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                    ],
+                    Expanded(
+                      flex: 4,
+                      child: GoDeeperButton(onTap: onGoDeeper ?? () {}),
+                    ),
+                    if (questionId != null) ...[
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FavoriteStarButton(
+                          questionId: questionId!,
+                          barStyle: true,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ],
             if (showJumpToLatest) ...[
               if (showHintAndDeeper) const SizedBox(height: 12),

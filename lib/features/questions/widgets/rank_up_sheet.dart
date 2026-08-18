@@ -483,13 +483,13 @@ class _RankCelebrationListenerState
         streak: stats.currentStreak,
       );
       // The store-review ask rides right behind the closed celebration — the
-      // moment of satisfaction. Only the 3-day-streak completion qualifies
-      // (streak 3 IS a promotion day, so the celebration is guaranteed to
-      // have just played); every other rank-up is a no-op inside.
+      // moment of satisfaction. It only fires when a vote milestone (3rd/7th
+      // vote) is due — see reviewPromptControllerProvider; on every other
+      // rank-up it's a no-op inside.
       if (mounted) {
         await ref
             .read(reviewPromptControllerProvider.notifier)
-            .maybePromptForStreak(stats.currentStreak);
+            .maybePromptForReview();
       }
     } finally {
       _busy = false;

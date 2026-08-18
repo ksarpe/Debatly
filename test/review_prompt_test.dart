@@ -7,92 +7,123 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The in-app review ask is gated by a single pure decision so its timing is
-/// fully testable without the OS sheet: ask EXACTLY on the day the streak
-/// completes 3 (after the rank-up animation — the moment of satisfaction) and
-/// nowhere else; a decayed streak re-climbing through 3 may ask again only
-/// after the cooldown.
+/// fully testable without the OS sheet: ask on the vote milestones (3rd and
+/// 7th vote), each at most once, at most one ask per local day, and never
+/// again past the last milestone.
 ///
-/// The controller group then pins the SIDE EFFECT the pure function can't: a due
-/// ask arms the cooldown in SharedPreferences (so the OS dropping the
-/// sheet — which it usually does — can't make us re-fire on the next vote), a
-/// premature ask writes nothing, and a not-due ask never slides the window.
+/// The controller group then pins the SIDE EFFECTS the pure function can't:
+/// every vote ticks the odometer, a due ask retires its milestone and stamps
+/// the day in SharedPreferences (so the OS dropping the sheet — which it
+/// usually does — can't make us re-fire on the next vote), and a not-due ask
+/// writes nothing.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('shouldPromptForReview', () {
-    test('below the milestone never asks', () {
+  group('dueReviewMilestone', () {
+    test('below the first milestone never asks', () {
       expect(
-        shouldPromptForReview(streak: 2, lastPromptedDay: null, todayDay: 100),
-        isFalse,
-      );
-    });
-
-    test('completing the 3-day streak asks', () {
-      expect(
-        shouldPromptForReview(
-          streak: kReviewStreakMilestone,
+        dueReviewMilestone(
+          voteCount: 2,
+          lastMilestone: 0,
           lastPromptedDay: null,
           todayDay: 100,
         ),
-        isTrue,
+        isNull,
       );
     });
 
-    test('past the milestone never asks — the 3-day completion is the one '
-        'moment ("nigdzie indziej")', () {
+    test('the 3rd vote asks with milestone 3', () {
       expect(
-        shouldPromptForReview(streak: 4, lastPromptedDay: null, todayDay: 100),
-        isFalse,
-      );
-      expect(
-        shouldPromptForReview(streak: 30, lastPromptedDay: null, todayDay: 100),
-        isFalse,
-      );
-    });
-
-    test('re-hitting 3 within the cooldown does not re-ask', () {
-      // Decayed and re-climbed to 3 just 4 days after the last ask.
-      expect(
-        shouldPromptForReview(
-          streak: kReviewStreakMilestone,
-          lastPromptedDay: 96,
+        dueReviewMilestone(
+          voteCount: 3,
+          lastMilestone: 0,
+          lastPromptedDay: null,
           todayDay: 100,
         ),
-        isFalse,
+        3,
       );
     });
 
-    test('re-hitting 3 at the cooldown boundary asks again', () {
+    test('votes 4–6 stay quiet once milestone 3 is spent', () {
+      for (final votes in [4, 5, 6]) {
+        expect(
+          dueReviewMilestone(
+            voteCount: votes,
+            lastMilestone: 3,
+            lastPromptedDay: 90,
+            todayDay: 100,
+          ),
+          isNull,
+        );
+      }
+    });
+
+    test('the 7th vote asks again with milestone 7', () {
       expect(
-        shouldPromptForReview(
-          streak: kReviewStreakMilestone,
-          lastPromptedDay: 100 - kReviewCooldownDays,
+        dueReviewMilestone(
+          voteCount: 7,
+          lastMilestone: 3,
+          lastPromptedDay: 90,
           todayDay: 100,
         ),
-        isTrue,
-      );
-      // One day short of the boundary still holds.
-      expect(
-        shouldPromptForReview(
-          streak: kReviewStreakMilestone,
-          lastPromptedDay: 100 - kReviewCooldownDays + 1,
-          todayDay: 100,
-        ),
-        isFalse,
+        7,
       );
     });
 
-    test('a streak that decayed below the milestone stops asking', () {
-      // Plenty of time has passed, but the user has cooled off — don't ask.
+    test('past the last milestone it never asks again', () {
       expect(
-        shouldPromptForReview(streak: 1, lastPromptedDay: 80, todayDay: 100),
-        isFalse,
+        dueReviewMilestone(
+          voteCount: 250,
+          lastMilestone: 7,
+          lastPromptedDay: 10,
+          todayDay: 100,
+        ),
+        isNull,
+      );
+    });
+
+    test('a backlog crossing both milestones asks once, with the higher one '
+        '(consuming 7 retires 3 too)', () {
+      expect(
+        dueReviewMilestone(
+          voteCount: 9,
+          lastMilestone: 0,
+          lastPromptedDay: null,
+          todayDay: 100,
+        ),
+        7,
+      );
+    });
+
+    test('at most one ask per local day — a same-day milestone is deferred, '
+        'not consumed', () {
+      // Asked this morning (milestone 3); a PRO binge reaches 7 the same day.
+      expect(
+        dueReviewMilestone(
+          voteCount: 7,
+          lastMilestone: 3,
+          lastPromptedDay: 100,
+          todayDay: 100,
+        ),
+        isNull,
+      );
+      // The very next day the deferred milestone comes due on the next vote.
+      expect(
+        dueReviewMilestone(
+          voteCount: 8,
+          lastMilestone: 3,
+          lastPromptedDay: 100,
+          todayDay: 101,
+        ),
+        7,
       );
     });
   });
 
-  group('ReviewPromptController.maybePromptForStreak', () {
-    // The private SharedPreferences key the controller stamps the ask date into.
+  group('ReviewPromptController', () {
+    // The private SharedPreferences keys the controller writes.
+    const voteCountKey = 'review_vote_count';
+    const lastMilestoneKey = 'review_last_milestone';
     const lastPromptedKey = 'review_last_prompted_day';
 
     // Mirrors the controller's own local-date day index (the shared epochDay
@@ -110,57 +141,105 @@ void main() {
       return c;
     }
 
-    test('a due ask arms the weekly cooldown (stamps today)', () async {
+    test('recordVote ticks the odometer', () async {
       final c = await containerWith({});
-      await c
-          .read(reviewPromptControllerProvider.notifier)
-          .maybePromptForStreak(kReviewStreakMilestone);
+      final ctrl = c.read(reviewPromptControllerProvider.notifier);
+      expect(await ctrl.recordVote(), 1);
+      expect(await ctrl.recordVote(), 2);
 
       // Read through the SAME injected instance the controller wrote to — a
       // second getInstance() wouldn't reflect the write (shared_preferences
       // 2.5.5 quirk; see locale_controller_test).
       final sp = c.read(sharedPreferencesProvider);
+      expect(sp.getInt(voteCountKey), 2);
+    });
+
+    test('a due ask retires the milestone and stamps today', () async {
+      final c = await containerWith({voteCountKey: 3});
+      final asked = await c
+          .read(reviewPromptControllerProvider.notifier)
+          .maybePromptForReview();
+
+      expect(asked, isTrue);
+      final sp = c.read(sharedPreferencesProvider);
+      expect(
+        sp.getInt(lastMilestoneKey),
+        3,
+        reason: 'a due ask spends its milestone so it cannot re-fire',
+      );
       expect(
         sp.getInt(lastPromptedKey),
         todayEpochDay(),
-        reason: 'a due ask records today so the cooldown starts',
+        reason: 'a due ask records today so the daily cap starts',
       );
     });
 
     test(
       'below the milestone it asks for nothing and records nothing',
       () async {
-        final c = await containerWith({});
-        await c
+        final c = await containerWith({voteCountKey: 2});
+        final asked = await c
             .read(reviewPromptControllerProvider.notifier)
-            .maybePromptForStreak(kReviewStreakMilestone - 1);
+            .maybePromptForReview();
 
+        expect(asked, isFalse);
         final sp = c.read(sharedPreferencesProvider);
         expect(
-          sp.getInt(lastPromptedKey),
+          sp.getInt(lastMilestoneKey),
           isNull,
-          reason: 'no ask → no stamp, so it can still ask later when due',
+          reason: 'no ask → no spent milestone, so it can still ask when due',
         );
+        expect(sp.getInt(lastPromptedKey), isNull);
       },
     );
 
-    test(
-      'within the cooldown it leaves the existing stamp untouched',
-      () async {
-        final recent =
-            todayEpochDay() - 1; // asked "yesterday" — well inside 7d
-        final c = await containerWith({lastPromptedKey: recent});
-        await c
-            .read(reviewPromptControllerProvider.notifier)
-            .maybePromptForStreak(kReviewStreakMilestone);
+    test('a second milestone reached on the ask day is deferred, and the '
+        'existing stamps stay untouched', () async {
+      final c = await containerWith({
+        voteCountKey: 7,
+        lastMilestoneKey: 3,
+        lastPromptedKey: todayEpochDay(),
+      });
+      final asked = await c
+          .read(reviewPromptControllerProvider.notifier)
+          .maybePromptForReview();
 
-        final sp = c.read(sharedPreferencesProvider);
-        expect(
-          sp.getInt(lastPromptedKey),
-          recent,
-          reason: 'a not-due ask must not slide the cooldown window forward',
-        );
-      },
-    );
+      expect(asked, isFalse);
+      final sp = c.read(sharedPreferencesProvider);
+      expect(
+        sp.getInt(lastMilestoneKey),
+        3,
+        reason: 'a deferred milestone must not be consumed',
+      );
+    });
+
+    test('the deferred milestone fires on a later day', () async {
+      final c = await containerWith({
+        voteCountKey: 7,
+        lastMilestoneKey: 3,
+        lastPromptedKey: todayEpochDay() - 1,
+      });
+      final asked = await c
+          .read(reviewPromptControllerProvider.notifier)
+          .maybePromptForReview();
+
+      expect(asked, isTrue);
+      final sp = c.read(sharedPreferencesProvider);
+      expect(sp.getInt(lastMilestoneKey), 7);
+    });
+
+    test('debugReset wipes the odometer', () async {
+      final c = await containerWith({
+        voteCountKey: 9,
+        lastMilestoneKey: 7,
+        lastPromptedKey: 100,
+      });
+      await c.read(reviewPromptControllerProvider.notifier).debugReset();
+
+      final sp = c.read(sharedPreferencesProvider);
+      expect(sp.getInt(voteCountKey), isNull);
+      expect(sp.getInt(lastMilestoneKey), isNull);
+      expect(sp.getInt(lastPromptedKey), isNull);
+    });
   });
 }

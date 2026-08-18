@@ -333,8 +333,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyTitle => 'Question history';
 
   @override
-  String get historySubtitle =>
-      'Every question you voted on, with how people voted.';
+  String historyAnsweredCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count answered',
+      one: '$count answered',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get historyTooltip => 'Question history';
@@ -349,11 +356,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyLoadError => 'Couldn\'t load the history.';
 
   @override
-  String get historyPremiumTitle => 'History is a PRO feature';
+  String historyYourVote(String vote) {
+    return 'YOU: $vote';
+  }
 
   @override
-  String get historyPremiumBody =>
-      'Go PRO to look back at every question you voted on and see how others voted.';
+  String get historyVersus => 'vs';
+
+  @override
+  String get historyLockedTitle => 'Unlock your full history';
+
+  @override
+  String get historyLockedBody =>
+      'Free accounts see only today here. Go PRO to browse every vote you\'ve ever cast.';
+
+  @override
+  String get historySearchTooltip => 'Search history';
+
+  @override
+  String historyLoadMore(int count) {
+    return 'Load $count more';
+  }
 
   @override
   String get historyNoVotes => 'No votes';
@@ -363,6 +386,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchClearTooltip => 'Clear search';
+
+  @override
+  String get searchCloseTooltip => 'Close search';
 
   @override
   String get searchNoResultsTitle => 'No matches';
@@ -747,8 +773,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smaczkiTitle => 'Arguments';
 
   @override
+  String get smaczkiTitleTag => '(smaczki)';
+
+  @override
   String get smaczkiSubtitle =>
       'Tips to deepen the conversation around this question.';
+
+  @override
+  String get smaczekSuggestCta => 'Suggest your own';
+
+  @override
+  String get smaczekSuggestHint => 'Your argument…';
+
+  @override
+  String get smaczekSuggestMinChars => 'At least 5 characters';
+
+  @override
+  String get smaczekSuggestSend => 'Send';
 
   @override
   String smaczkiLoadError(String error) {
@@ -865,14 +906,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingSkip => 'Skip';
 
   @override
-  String get onboardingNext => 'Next';
+  String get onboardingBegin => 'Let\'s begin';
 
   @override
-  String get onboardingWelcomeTitle => 'Think you know the answer?';
+  String get onboardingWelcomeTitle => 'Think you can read people?';
+
+  @override
+  String get onboardingWelcomeTitlePunch => 'How well do you know yourself?';
 
   @override
   String get onboardingWelcomeBody =>
-      'In a moment you\'ll get a question with no good answer. Vote — and see how many people think differently than you.';
+      'Let\'s find out. You\'ll get a question with no good answer — vote and see how many people think differently than you.';
 
   @override
   String get onboardingTasteKicker => 'YOUR TURN';
@@ -885,29 +929,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingTasteHoldOnTitle => 'Hold on…';
 
   @override
-  String get onboardingTasteSmaczek1 =>
-      'You already pay extra for a few kilos of luggage.';
+  String get onboardingTasteVotedTakSmaczek1 =>
+      'You\'re buying a flight, not centimetres of seat.';
 
   @override
-  String get onboardingTasteSmaczek2 =>
-      'What about the person squeezed next to you? Same fare, worse seat.';
+  String get onboardingTasteVotedTakSmaczek2 =>
+      'A tall passenger takes up more room too. Charge them extra as well?';
 
   @override
-  String get onboardingTasteSmaczek3 =>
+  String get onboardingTasteVotedTakSmaczek3 =>
       'And how would you check who pays? A gate scale before boarding?';
 
   @override
-  String get onboardingTasteSmaczek4 =>
+  String get onboardingTasteVotedTakSmaczek4 =>
       'What about people whose weight comes from illness? Punished for life?';
 
   @override
-  String get onboardingTasteRead => 'Let me vote again!';
+  String get onboardingTasteVotedNieSmaczek1 =>
+      'You already pay extra for a few kilos of luggage.';
 
   @override
-  String get onboardingTasteRevoteKicker => 'VOTE AGAIN';
+  String get onboardingTasteVotedNieSmaczek2 =>
+      'What about the person squeezed next to you? Same fare, worse seat.';
 
   @override
-  String get onboardingTasteContinue => 'Continue';
+  String get onboardingTasteVotedNieSmaczek3 =>
+      'A heavier plane burns more fuel — you pay the difference in your fare.';
+
+  @override
+  String get onboardingTasteVotedNieSmaczek4 =>
+      'Would you fly three hours squeezed into half your seat?';
+
+  @override
+  String get onboardingTasteChangeMind => 'I\'ve changed my mind';
+
+  @override
+  String get onboardingTasteStandFirm => 'I\'m sticking with it';
+
+  @override
+  String get onboardingTasteGotYouTitle => 'Got you after all!';
+
+  @override
+  String get onboardingTasteGotYouSub => 'See how the others voted.';
+
+  @override
+  String get onboardingTasteStandFirmTitle => 'Good to stand your ground!';
+
+  @override
+  String get onboardingTasteStandFirmSub => 'But see how the others voted.';
+
+  @override
+  String get onboardingTasteSeeNext => 'Let\'s see the next one';
 
   @override
   String get onboardingTasteNextTitle => 'Let\'s try another one…';
@@ -920,23 +992,55 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingTasteSureTitle => 'Are you sure though?';
 
   @override
-  String get onboardingTasteQ2Smaczek1 =>
+  String get onboardingTasteQ2VotedTakSmaczek1 =>
       'There\'s no argument only if your numbers happen to match.';
 
   @override
-  String get onboardingTasteQ2Smaczek2 =>
-      'Once you know, will it stop bugging you? Will it stop bugging them?';
-
-  @override
-  String get onboardingTasteQ2Smaczek3 =>
+  String get onboardingTasteQ2VotedTakSmaczek2 =>
       'If the number isn\'t 100, what does it actually change?';
 
   @override
-  String get onboardingTasteQ2Smaczek4 =>
-      'And if it is 100 — would you rather know, or rather tell?';
+  String get onboardingTasteQ2VotedTakSmaczek3 =>
+      'The honesty fades, the number stays — back at the very first fight.';
 
   @override
-  String get bridgeTitle => 'That was two. 500 to go.';
+  String get onboardingTasteQ2VotedTakSmaczek4 =>
+      'Would you still tell if your number were embarrassingly big?';
+
+  @override
+  String get onboardingTasteQ2VotedNieSmaczek1 =>
+      'Starting a relationship on a secret — solid foundation?';
+
+  @override
+  String get onboardingTasteQ2VotedNieSmaczek2 =>
+      'Hiding the number means you think something\'s wrong with it.';
+
+  @override
+  String get onboardingTasteQ2VotedNieSmaczek3 =>
+      'The truth comes out anyway — years later, at the worst moment.';
+
+  @override
+  String get onboardingTasteQ2VotedNieSmaczek4 =>
+      'And if they ask you straight out? Lie to their face?';
+
+  @override
+  String get onboardingTasteQ2GotYouTitle => 'See? Nothing is obvious.';
+
+  @override
+  String get onboardingTasteQ2GotYouSub => 'And that was only question two…';
+
+  @override
+  String get onboardingTasteQ2StandFirmTitle => 'So you can\'t be moved?';
+
+  @override
+  String get onboardingTasteQ2StandFirmSub =>
+      'We\'ll see. We have plenty of questions…';
+
+  @override
+  String get onboardingTasteWhatElse => 'What else have you got?';
+
+  @override
+  String get bridgeTitle => 'That was two — hundreds more to go';
 
   @override
   String get bridgeBody =>
@@ -949,21 +1053,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bridgeCtaSecondary => 'Unlock all 500';
 
   @override
-  String get onboardingNotifyTitle => 'Tomorrow\'s question is waiting';
+  String get bridgeCtaSecondaryHint => '(and many more perks)';
+
+  @override
+  String get onboardingNotifyTitle => 'Hey, one more thing';
 
   @override
   String get onboardingNotifyBody =>
-      'One notification a day, at a time you pick. Voting takes 10 seconds — and your streak grows every day.';
+      'I can remind you to vote every day, at a time you pick. Voting takes 10 seconds — and your streak grows on its own. You can always switch it off in settings.';
 
   @override
   String get onboardingNotifyEnable => 'Turn on reminders';
 
   @override
-  String get onboardingNotifySkip => 'Not now';
-
-  @override
-  String get onboardingNotifyFootnote =>
-      'You can turn reminders off or change the time in settings.';
+  String get onboardingNotifySkip => 'Maybe later';
 
   @override
   String get wallCountdownCaption => 'Countdown to the next free question';

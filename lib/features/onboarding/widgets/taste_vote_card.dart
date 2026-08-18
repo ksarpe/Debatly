@@ -11,14 +11,19 @@ import '../../questions/widgets/falling_words_text.dart';
 import '../../questions/widgets/vote_visuals.dart';
 import 'onboarding_primary_button.dart';
 
-/// The onboarding "aha", staged as a mind-change loop run twice: the user votes
-/// on a real question, the card is taken over by a bare "hold on…" interlude in
-/// which the four arguments appear one by one, then the question returns for a
-/// second vote — and only then is the community split revealed. A short
-/// "let's try another…" beat then rolls straight into a second question with
-/// the same loop (its takeover titled "are you sure?"), so the very first
-/// minutes demonstrate both pillars — the vote AND the arguments that make you
-/// doubt it — twice over, instead of describing them.
+/// The onboarding "aha", staged as a mind-change loop run twice: the user
+/// votes, and the takeover serves four COUNTER-arguments — the pool depends
+/// on which side they picked, and every line argues against it. Then a stance
+/// choice instead of a re-vote: "Zmieniam zdanie" jumps straight to the
+/// reveal under a gotcha headline, "Zostaję przy swoim" under a respectful
+/// one — both in the question font, both over the live split.
+///
+/// The reactions escalate across the rounds: round one plays the moment
+/// itself ("A jednak, mamy Cię!" / "Warto trzymać swoje stanowisko!", closed
+/// by "Zobaczmy kolejne"), while round two sells the catalog — "Widzisz? Nic
+/// nie jest oczywiste." / "Ciebie nie da się ruszyć?" with a teaser subline,
+/// closed by "Co jeszcze macie?", the question the bridge card's "To były
+/// dwa. Zostało 500." then answers.
 ///
 /// This is a no-stakes TASTE: the votes are never cast, so it works instantly,
 /// offline and pre-login, and never touches the streak/credit logic. The real,
@@ -38,10 +43,11 @@ class TasteVoteCard extends StatefulWidget {
   State<TasteVoteCard> createState() => _TasteVoteCardState();
 }
 
-/// One round's beats, in order: first gut vote → the arguments takeover → the
-/// second, post-arguments vote → the community-split reveal. [interlude] is the
-/// "let's try another…" beat bridging round one's result into round two.
-enum _Stage { vote, arguments, revote, result, interlude }
+/// One round's beats, in order: first gut vote → the counter-arguments
+/// takeover (ending in the stance choice) → the community-split reveal.
+/// [interlude] is the "let's try another…" beat bridging round one's result
+/// into round two.
+enum _Stage { vote, arguments, result, interlude }
 
 class _TasteVoteCardState extends State<TasteVoteCard>
     with SingleTickerProviderStateMixin {
@@ -75,8 +81,8 @@ class _TasteVoteCardState extends State<TasteVoteCard>
 
   /// Times the takeover: the title stands alone for the first second, the
   /// arguments land at 1.0s / 2.0s / 3.0s / 4.0s, then a full beat of silence
-  /// before the "Głosuję jeszcze raz!" button closes the run at 5.3s. See the
-  /// [Interval]s in [_argumentsStage].
+  /// before the stance pair closes the run at 5.3s. See the [Interval]s in
+  /// [_argumentsStage].
   static const double _argsRunMs = 5600;
 
   // Created eagerly in [initState]: a lazy `late final` initializer would run
@@ -139,18 +145,23 @@ class _TasteVoteCardState extends State<TasteVoteCard>
     Analytics.log('onboarding_q_voted', {'index': _round});
   }
 
-  void _onArgumentsRead() {
-    setState(() => _stage = _Stage.revote);
-  }
-
-  void _onSecondVote(int choice) {
+  /// The takeover ends in a stance, not a re-vote: the user either concedes
+  /// to the counter-arguments or holds the line, and lands straight on the
+  /// reveal. Reported through the `onboarding_taste_revoted` event the old
+  /// re-vote used, so the changed-mind funnel stays comparable across
+  /// releases.
+  void _onStanceChosen({required bool changedMind}) {
+    final first = _firstChoice!;
+    final second = !changedMind
+        ? first
+        : (first == VoteResult.yes ? VoteResult.no : VoteResult.yes);
     setState(() {
-      _secondChoice = choice;
+      _secondChoice = second;
       _stage = _Stage.result;
     });
     Analytics.log('onboarding_taste_revoted', {
-      'choice': choice == VoteResult.yes ? 'tak' : 'nie',
-      'changed_mind': choice != _firstChoice,
+      'choice': second == VoteResult.yes ? 'tak' : 'nie',
+      'changed_mind': changedMind,
       'round': _round + 1,
     });
   }
@@ -179,12 +190,11 @@ class _TasteVoteCardState extends State<TasteVoteCard>
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
-
-    // Centred, but scrollable so the taller stages (three arguments, or the
-    // split + line + Continue) never overflow on short screens or large text.
-    // The whole card swaps per stage: the arguments takeover replaces the
-    // question entirely, then the question fades back in for the re-vote.
+    // Centred, but scrollable so the taller stages (the four arguments, or
+    // the headline + split + Continue) never overflow on short screens or
+    // large text. The whole card swaps per stage: the arguments takeover
+    // replaces the question entirely, then the stance reveal takes over from
+    // it.
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
@@ -197,36 +207,7 @@ class _TasteVoteCardState extends State<TasteVoteCard>
               children: [VoteButtonsRow(busy: false, onVote: _onFirstVote)],
             ),
             _Stage.arguments => _argumentsStage(context),
-            _Stage.revote => _questionStage(
-              context,
-              key: 'taste-revote-$_round',
-              // The changed kicker alone carries the second ask — no extra
-              // caption between the question and the buttons.
-              kicker: l10n.onboardingTasteRevoteKicker,
-              children: [VoteButtonsRow(busy: false, onVote: _onSecondVote)],
-            ),
-            _Stage.result => _questionStage(
-              context,
-              key: 'taste-result-$_round',
-              // The reveal is the payoff — the split has to be there the
-              // instant the stage lands. Re-assembling the (by now twice-read)
-              // question word by word would only make it wait.
-              animate: false,
-              children: [
-                VoteResultsRow(
-                  result: VoteResult(
-                    yesCount: _live[_round]?.yesCount ?? 1,
-                    noCount: _live[_round]?.noCount ?? 1,
-                    myChoice: _secondChoice,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                OnboardingPrimaryButton(
-                  label: l10n.onboardingTasteContinue,
-                  onPressed: _onResultContinue,
-                ),
-              ],
-            ),
+            _Stage.result => _stanceResultStage(context),
             _Stage.interlude => _interludeStage(context),
           },
         ),
@@ -234,17 +215,12 @@ class _TasteVoteCardState extends State<TasteVoteCard>
     );
   }
 
-  /// The stages that carry the question: kicker + question text on top,
-  /// [children] (buttons / results) underneath. [kicker] defaults to "TWÓJ
-  /// RUCH"; the re-vote stage swaps it for "ZAGŁOSUJ PONOWNIE". [animate]
-  /// controls the word-by-word entrance — off on the reveal, where the split
-  /// must not be kept waiting behind the question re-typing itself.
+  /// The vote stage: the "TWÓJ RUCH" kicker + question text on top,
+  /// [children] (the TAK/NIE buttons) underneath.
   Widget _questionStage(
     BuildContext context, {
     required String key,
     required List<Widget> children,
-    String? kicker,
-    bool animate = true,
   }) {
     final l10n = context.l10n;
     final question = _round == 0
@@ -255,7 +231,7 @@ class _TasteVoteCardState extends State<TasteVoteCard>
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          kicker ?? l10n.onboardingTasteKicker,
+          l10n.onboardingTasteKicker,
           style: const TextStyle(
             color: AppTheme.spark,
             fontSize: 13,
@@ -264,39 +240,114 @@ class _TasteVoteCardState extends State<TasteVoteCard>
           ),
         ),
         const SizedBox(height: 22),
-        // The same word-by-word entrance as the real feed; keyed per stage and
-        // round (see the callers' ValueKeys), so the question re-assembles for
-        // the re-vote and for round two — but not for the reveal.
-        FallingWordsText(question, animate: animate),
+        // The same word-by-word entrance as the real feed; keyed per round
+        // (see the caller's ValueKey), so the question re-assembles for
+        // round two.
+        FallingWordsText(question),
         const SizedBox(height: 34),
         ...children,
       ],
     );
   }
 
-  /// The takeover between the two votes: a bare title — "Ale chwila…" in round
+  /// The reveal: a stance-aware headline in the question font — the gotcha
+  /// for a changed mind, the respectful nod for a held one — a small subline,
+  /// the live split, and the continue CTA. Round one's copy plays the moment
+  /// ("A jednak, mamy Cię!" → "Zobaczmy kolejne"); round two's teases the
+  /// catalog ("A to było dopiero drugie pytanie…" → "Co jeszcze macie?"),
+  /// setting up the bridge card's "To były dwa. Zostało 500." as the answer.
+  Widget _stanceResultStage(BuildContext context) {
+    final l10n = context.l10n;
+    final changed = _secondChoice != _firstChoice;
+    final (title, sub) = _round == 0
+        ? (changed
+              ? (l10n.onboardingTasteGotYouTitle, l10n.onboardingTasteGotYouSub)
+              : (
+                  l10n.onboardingTasteStandFirmTitle,
+                  l10n.onboardingTasteStandFirmSub,
+                ))
+        : (changed
+              ? (
+                  l10n.onboardingTasteQ2GotYouTitle,
+                  l10n.onboardingTasteQ2GotYouSub,
+                )
+              : (
+                  l10n.onboardingTasteQ2StandFirmTitle,
+                  l10n.onboardingTasteQ2StandFirmSub,
+                ));
+    return Column(
+      key: ValueKey('taste-stance-result-$_round'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FallingWordsText(title),
+        const SizedBox(height: 14),
+        Text(
+          sub,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: context.colors.subtle,
+            fontSize: 15,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 30),
+        VoteResultsRow(
+          result: VoteResult(
+            yesCount: _live[_round]?.yesCount ?? 1,
+            noCount: _live[_round]?.noCount ?? 1,
+            myChoice: _secondChoice,
+          ),
+        ),
+        const SizedBox(height: 24),
+        OnboardingPrimaryButton(
+          label: _round == 0
+              ? l10n.onboardingTasteSeeNext
+              : l10n.onboardingTasteWhatElse,
+          onPressed: _onResultContinue,
+        ),
+      ],
+    );
+  }
+
+  /// The takeover after the gut vote: a bare title — "Ale chwila…" in round
   /// one, "Czy aby na pewno?" in round two — alone at centre stage, then the
-  /// four arguments landing one by one — no card chrome, just a bare orange
-  /// number and a larger line — and finally, after a beat of silence, the
-  /// "Głosuję jeszcze raz!" button.
+  /// four COUNTER-arguments landing one by one — no card chrome, just a bare
+  /// orange number and a larger line. The pool depends on the side just
+  /// picked, so every line argues against it; the closing beat is the stance
+  /// pair — "Zmieniam zdanie" over a quiet "Zostaję przy swoim".
   Widget _argumentsStage(BuildContext context) {
     final l10n = context.l10n;
     final title = _round == 0
         ? l10n.onboardingTasteHoldOnTitle
         : l10n.onboardingTasteSureTitle;
+    final votedYes = _firstChoice == VoteResult.yes;
     final smaczki = _round == 0
-        ? [
-            l10n.onboardingTasteSmaczek1,
-            l10n.onboardingTasteSmaczek2,
-            l10n.onboardingTasteSmaczek3,
-            l10n.onboardingTasteSmaczek4,
-          ]
-        : [
-            l10n.onboardingTasteQ2Smaczek1,
-            l10n.onboardingTasteQ2Smaczek2,
-            l10n.onboardingTasteQ2Smaczek3,
-            l10n.onboardingTasteQ2Smaczek4,
-          ];
+        ? (votedYes
+              ? [
+                  l10n.onboardingTasteVotedTakSmaczek1,
+                  l10n.onboardingTasteVotedTakSmaczek2,
+                  l10n.onboardingTasteVotedTakSmaczek3,
+                  l10n.onboardingTasteVotedTakSmaczek4,
+                ]
+              : [
+                  l10n.onboardingTasteVotedNieSmaczek1,
+                  l10n.onboardingTasteVotedNieSmaczek2,
+                  l10n.onboardingTasteVotedNieSmaczek3,
+                  l10n.onboardingTasteVotedNieSmaczek4,
+                ])
+        : (votedYes
+              ? [
+                  l10n.onboardingTasteQ2VotedTakSmaczek1,
+                  l10n.onboardingTasteQ2VotedTakSmaczek2,
+                  l10n.onboardingTasteQ2VotedTakSmaczek3,
+                  l10n.onboardingTasteQ2VotedTakSmaczek4,
+                ]
+              : [
+                  l10n.onboardingTasteQ2VotedNieSmaczek1,
+                  l10n.onboardingTasteQ2VotedNieSmaczek2,
+                  l10n.onboardingTasteQ2VotedNieSmaczek3,
+                  l10n.onboardingTasteQ2VotedNieSmaczek4,
+                ]);
     return Column(
       key: ValueKey('taste-args-$_round'),
       mainAxisSize: MainAxisSize.min,
@@ -332,9 +383,35 @@ class _TasteVoteCardState extends State<TasteVoteCard>
           // A full second after the last argument has settled, so it gets read
           // as an argument — not skipped past chasing the appearing button.
           interval: const Interval(5300 / _argsRunMs, 1, curve: Curves.easeOut),
-          child: OnboardingPrimaryButton(
-            label: l10n.onboardingTasteRead,
-            onPressed: _onArgumentsRead,
+          // The stance pair, in the bridge card's loud/quiet pairing —
+          // conceding to the arguments is the aha we're selling, so it gets
+          // the gradient.
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              OnboardingPrimaryButton(
+                label: l10n.onboardingTasteChangeMind,
+                onPressed: () => _onStanceChosen(changedMind: true),
+              ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () => _onStanceChosen(changedMind: false),
+                style: TextButton.styleFrom(
+                  foregroundColor: context.colors.subtle,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                child: Text(
+                  l10n.onboardingTasteStandFirm,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
