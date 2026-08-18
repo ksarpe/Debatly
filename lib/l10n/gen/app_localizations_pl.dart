@@ -619,6 +619,58 @@ class AppLocalizationsPl extends AppLocalizations {
   String get streakTooltip => 'Twoja seria';
 
   @override
+  String get conformityTooltip => 'Twoja oś zgodności';
+
+  @override
+  String get conformityTitle => 'OŚ ZGODNOŚCI';
+
+  @override
+  String conformityPctLine(int pct) {
+    return '$pct% z większością';
+  }
+
+  @override
+  String get conformityTierLoneWolf => 'Samotny wilk';
+
+  @override
+  String get conformityTierRebel => 'Buntownik';
+
+  @override
+  String get conformityTierIndependent => 'Niezależny';
+
+  @override
+  String get conformityTierInTheCurrent => 'W nurcie';
+
+  @override
+  String get conformityTierCrowdVoice => 'Głos tłumu';
+
+  @override
+  String conformityNextTierLabel(String tier) {
+    return 'Do stopnia «$tier»';
+  }
+
+  @override
+  String conformityVotesNeeded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count głosu z większością',
+      many: '$count głosów z większością',
+      few: '$count głosy z większością',
+      one: '$count głos z większością',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get conformityEmpty =>
+      'Zagłosuj na kilka pytań, a zobaczysz, po której stronie zwykle jesteś.';
+
+  @override
+  String get conformityLoadError =>
+      'Nie udało się załadować osi — spróbuj za chwilę.';
+
+  @override
   String get newQuestionBadge => 'Nowe';
 
   @override
@@ -936,7 +988,10 @@ class AppLocalizationsPl extends AppLocalizations {
       'Odliczanie do kolejnego darmowego pytania';
 
   @override
-  String get wallCtaUnlock => 'Nie czekaj — odblokuj wszystkie 500';
+  String get wallCtaUnlock => 'Odblokuj ponad 500 pytań';
+
+  @override
+  String get wallCtaCaption => '(co tydzień nowe zestawy!)';
 
   @override
   String get paywallBrand => 'DEBATLY PRO';

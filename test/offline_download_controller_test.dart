@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:debatly/core/locale/app_locale.dart';
+import 'package:debatly/data/models/conformity_stats.dart';
 import 'package:debatly/data/models/question.dart';
 import 'package:debatly/data/models/rank.dart';
 import 'package:debatly/data/models/smaczek.dart';
@@ -204,6 +205,9 @@ class _FakeRepo implements QuestionRepository {
 
   @override
   Future<List<VoteHistoryEntry>> fetchVoteHistory() async => const [];
+
+  @override
+  Future<ConformityStats> fetchConformityStats() async => ConformityStats.empty;
 
   @override
   Future<Set<String>> fetchRecentQuestionIds({required DateTime since}) async =>

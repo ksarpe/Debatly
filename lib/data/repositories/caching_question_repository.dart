@@ -1,5 +1,6 @@
 import '../../core/network/network_error.dart';
 import '../../services/question_cache.dart';
+import '../models/conformity_stats.dart';
 import '../models/question.dart';
 import '../models/rank.dart';
 import '../models/smaczek.dart';
@@ -173,6 +174,13 @@ class CachingQuestionRepository implements QuestionRepository {
   // cache; offline it throws and the sheet shows its retry state.
   @override
   Future<List<VoteHistoryEntry>> fetchVoteHistory() => inner.fetchVoteHistory();
+
+  // The conformity axis aggregates live tallies (the majority side of old
+  // votes keeps shifting), so every open reads fresh; offline it throws and
+  // the panel shows its load-error line instead of a stale marker.
+  @override
+  Future<ConformityStats> fetchConformityStats() =>
+      inner.fetchConformityStats();
 
   // The "Nowe" badge is decoration, never worth an offline error screen: with
   // no network the badge simply doesn't show, so a transport failure degrades

@@ -125,7 +125,8 @@ void main() {
     // The streak line was dropped from the wall — the caption must stay gone.
     expect(find.textContaining('Twoja seria'), findsNothing);
     // The single CTA: unlock. The way back is the back swipe.
-    expect(find.text('Nie czekaj — odblokuj wszystkie 500'), findsOneWidget);
+    expect(find.text('Odblokuj ponad 500 pytań'), findsOneWidget);
+    expect(find.text('(co tydzień nowe zestawy!)'), findsOneWidget);
     // The "come back tomorrow" button was dropped — it must stay gone.
     expect(find.text('albo wróć jutro'), findsNothing);
   });
@@ -202,7 +203,7 @@ void main() {
       reason: 'no paywall before the first vote of the day',
     );
     // The manual CTA still works, of course.
-    await tester.tap(find.text('Nie czekaj — odblokuj wszystkie 500'));
+    await tester.tap(find.text('Odblokuj ponad 500 pytań'));
     await pumpABit(tester);
     expect(find.byType(ProPaywallScreen), findsOneWidget);
   });

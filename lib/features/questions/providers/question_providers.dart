@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/app_locale.dart';
+import '../../../data/models/conformity_stats.dart';
 import '../../../data/models/question.dart';
 import '../../../data/models/smaczek.dart';
 import '../../../data/models/vote_history_entry.dart';
@@ -255,6 +256,23 @@ final voteHistoryProvider = FutureProvider.autoDispose<List<VoteHistoryEntry>>((
 ) async {
   final repo = ref.watch(questionRepositoryProvider);
   return repo.fetchVoteHistory();
+});
+
+/// The caller's conformity stats (votes with the majority vs the minority) —
+/// the data behind the top-bar axis panel.
+///
+/// PREFETCHED: the question screen watches this for its whole lifetime, so
+/// the value is already resolved when the panel opens — no spinner. Freshness
+/// is by invalidation, not refetch-per-open: after every cast vote, on an
+/// identity switch and on the offline→online edge (all in QuestionScreen /
+/// DailyVotePanel). Still autoDispose so nothing lingers once the screen
+/// itself is gone. Not premium-gated: the server counts only the caller's
+/// own votes.
+final conformityStatsProvider = FutureProvider.autoDispose<ConformityStats>((
+  ref,
+) async {
+  final repo = ref.watch(questionRepositoryProvider);
+  return repo.fetchConformityStats();
 });
 
 /// A shuffle seed fixed once per app launch.

@@ -252,6 +252,51 @@
     "description": "Punchy call-to-action on the shareable question image card, shown above the debatly.app URL. Mirrors the app's YES/NO vote buttons to nudge the recipient to answer."
   },
   "streakTooltip": "Your streak",
+  "conformityTooltip": "Your conformity axis",
+  "@conformityTooltip": {
+    "description": "Tooltip on the top-bar icon that opens the conformity-axis panel."
+  },
+  "conformityTitle": "CONFORMITY AXIS",
+  "@conformityTitle": {
+    "description": "Uppercase eyebrow title of the slide-down conformity panel."
+  },
+  "conformityPctLine": "{pct}% with the majority",
+  "@conformityPctLine": {
+    "description": "Header line of the conformity panel: share of the user's votes cast on the majority side.",
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "conformityTierLoneWolf": "Lone wolf",
+  "@conformityTierLoneWolf": {
+    "description": "Conformity tier for 0-19% votes with the majority. Rendered uppercase on the axis."
+  },
+  "conformityTierRebel": "Rebel",
+  "conformityTierIndependent": "Independent",
+  "conformityTierInTheCurrent": "With the flow",
+  "conformityTierCrowdVoice": "Voice of the crowd",
+  "conformityNextTierLabel": "To reach {tier}",
+  "@conformityNextTierLabel": {
+    "description": "Footer of the conformity panel: progress line toward the next tier up the axis.",
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "conformityVotesNeeded": "{count, plural, one{{count} vote with the majority} other{{count} votes with the majority}}",
+  "@conformityVotesNeeded": {
+    "description": "How many consecutive with-the-majority votes would reach the next tier.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "conformityEmpty": "Vote on a few questions and you'll see which side you usually take.",
+  "conformityLoadError": "Couldn't load your axis — try again in a moment.",
   "newQuestionBadge": "New",
   "@newQuestionBadge": {
     "description": "Small pill badge shown above a question added to the catalog within the last two weeks."
@@ -428,7 +473,11 @@
   "@wallCountdownCaption": {
     "description": "Small caption under the day wall's big HH:MM:SS timer ticking down to the user's local midnight."
   },
-  "wallCtaUnlock": "Don't wait — unlock all 500",
+  "wallCtaUnlock": "Unlock 500+ questions",
+  "wallCtaCaption": "(new sets every week!)",
+  "@wallCtaCaption": {
+    "description": "Small second line inside the day wall's unlock CTA pill, under the main label, teasing that the catalog keeps growing."
+  },
   "paywallBrand": "DEBATLY PRO",
   "@paywallBrand": {
     "description": "Small uppercase brand label at the top of the paywall sheet. A brand mark — identical in every locale."

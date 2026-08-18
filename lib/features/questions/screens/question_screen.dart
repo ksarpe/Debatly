@@ -8,8 +8,8 @@ import '../../account/providers/session_providers.dart';
 import '../../account/providers/stats_providers.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../providers/question_providers.dart';
+import '../widgets/conformity_panel.dart';
 import '../widgets/daily_rollover_watcher.dart';
-import '../widgets/favorite_star_button.dart';
 import '../widgets/load_error.dart';
 import '../widgets/offline_banner.dart';
 import '../widgets/question_body.dart';
@@ -28,6 +28,12 @@ class QuestionScreen extends ConsumerWidget {
     // user's engagement state — the streak chip and rank ride on it.
     ref.watch(sessionProvider);
     ref.watch(userStatsProvider);
+
+    // Prefetch the conformity axis and hold the subscription for the screen's
+    // lifetime, so opening the panel shows data instantly instead of a
+    // spinner. Freshness comes from invalidation (after a vote, on identity
+    // switch, on reconnect), not from autoDispose refetch-per-open.
+    ref.watch(conformityStatsProvider);
 
     // When the signed-in identity changes (log in / log out / account switch),
     // drop every per-user cache so the new user never inherits the previous
@@ -48,6 +54,7 @@ class QuestionScreen extends ConsumerWidget {
       ref.invalidate(todaysDailyQuestionProvider);
       ref.invalidate(dailyVoteStateProvider);
       ref.invalidate(smaczkiProvider);
+      ref.invalidate(conformityStatsProvider);
       // Snap back to the daily so a new user never inherits the previous
       // user's position in the deck.
       ref.read(questionIndexProvider.notifier).toDaily();
@@ -88,6 +95,9 @@ class QuestionScreen extends ConsumerWidget {
         // Swap the offline "you voted X" snapshot back for the live community
         // split now that we can reach the server.
         ref.invalidate(dailyVoteStateProvider);
+        // The prefetched conformity axis failed while offline — retry it now
+        // so the panel has data (not a stale error) by the time it's opened.
+        ref.invalidate(conformityStatsProvider);
       }
     });
 
@@ -123,10 +133,6 @@ class QuestionScreen extends ConsumerWidget {
         ref.watch(todaysDailyQuestionProvider).error;
     final deck = ref.watch(questionDeckProvider);
 
-    // The question currently on screen drives the top-left favorite star: it
-    // saves THIS question. Hidden while the deck is still loading.
-    final current = ref.watch(currentQuestionProvider);
-
     return Scaffold(
       // Let the body fill the whole screen so the question centres against the
       // true midpoint; the (transparent) app bar floats over the top.
@@ -136,20 +142,21 @@ class QuestionScreen extends ConsumerWidget {
         // streak on their anonymous identity too — the account nudge, not a
         // hidden chip, is what argues for signing in).
         automaticallyImplyLeading: false,
-        // The favorite star's save animation (pop + glow + sparkle burst)
-        // extends past the toolbar's bottom edge; the AppBar's default
-        // hard-edge ClipRect would slice it off mid-burst.
+        // The StreakChip's rank-up flame burst overflows the toolbar bounds —
+        // don't clip it mid-celebration.
         clipBehavior: Clip.none,
         // The offline strip rides in the app bar's `bottom` slot so it grows the
         // bar when offline and reserves no space when connected (rather than
         // overlaying the status chips).
         bottom: isOnline ? null : const OfflineBanner(),
-        leading: current != null
-            ? Padding(
-                padding: const EdgeInsets.only(left: 4),
-                child: FavoriteStarButton(questionId: current.id),
-              )
-            : null,
+        // Top-left: the conformity axis ("how often am I with the majority?").
+        // Not tied to the visible question — it's a whole-history stat, so it
+        // stays put while the deck swipes. (The favorites star moved down into
+        // the pill row under the question, next to share.)
+        leading: const Padding(
+          padding: EdgeInsets.only(left: 4),
+          child: ConformityAxisButton(),
+        ),
         centerTitle: true,
         title: const StreakChip(),
         // Top-right action: the person icon opens the profile hub for everyone.

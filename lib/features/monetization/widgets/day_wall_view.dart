@@ -221,6 +221,7 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
                       const SizedBox(height: 28),
                       PaywallCtaButton(
                         label: l10n.wallCtaUnlock,
+                        caption: l10n.wallCtaCaption,
                         busy: false,
                         onTap: () => _openPaywall(trigger: 'tap'),
                       ),

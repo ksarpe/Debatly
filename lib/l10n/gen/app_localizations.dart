@@ -1178,6 +1178,78 @@ abstract class AppLocalizations {
   /// **'Your streak'**
   String get streakTooltip;
 
+  /// Tooltip on the top-bar icon that opens the conformity-axis panel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your conformity axis'**
+  String get conformityTooltip;
+
+  /// Uppercase eyebrow title of the slide-down conformity panel.
+  ///
+  /// In en, this message translates to:
+  /// **'CONFORMITY AXIS'**
+  String get conformityTitle;
+
+  /// Header line of the conformity panel: share of the user's votes cast on the majority side.
+  ///
+  /// In en, this message translates to:
+  /// **'{pct}% with the majority'**
+  String conformityPctLine(int pct);
+
+  /// Conformity tier for 0-19% votes with the majority. Rendered uppercase on the axis.
+  ///
+  /// In en, this message translates to:
+  /// **'Lone wolf'**
+  String get conformityTierLoneWolf;
+
+  /// No description provided for @conformityTierRebel.
+  ///
+  /// In en, this message translates to:
+  /// **'Rebel'**
+  String get conformityTierRebel;
+
+  /// No description provided for @conformityTierIndependent.
+  ///
+  /// In en, this message translates to:
+  /// **'Independent'**
+  String get conformityTierIndependent;
+
+  /// No description provided for @conformityTierInTheCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'With the flow'**
+  String get conformityTierInTheCurrent;
+
+  /// No description provided for @conformityTierCrowdVoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice of the crowd'**
+  String get conformityTierCrowdVoice;
+
+  /// Footer of the conformity panel: progress line toward the next tier up the axis.
+  ///
+  /// In en, this message translates to:
+  /// **'To reach {tier}'**
+  String conformityNextTierLabel(String tier);
+
+  /// How many consecutive with-the-majority votes would reach the next tier.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} vote with the majority} other{{count} votes with the majority}}'**
+  String conformityVotesNeeded(int count);
+
+  /// No description provided for @conformityEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote on a few questions and you\'ll see which side you usually take.'**
+  String get conformityEmpty;
+
+  /// No description provided for @conformityLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your axis — try again in a moment.'**
+  String get conformityLoadError;
+
   /// Small pill badge shown above a question added to the catalog within the last two weeks.
   ///
   /// In en, this message translates to:
@@ -1631,8 +1703,14 @@ abstract class AppLocalizations {
   /// No description provided for @wallCtaUnlock.
   ///
   /// In en, this message translates to:
-  /// **'Don\'t wait — unlock all 500'**
+  /// **'Unlock 500+ questions'**
   String get wallCtaUnlock;
+
+  /// Small second line inside the day wall's unlock CTA pill, under the main label, teasing that the catalog keeps growing.
+  ///
+  /// In en, this message translates to:
+  /// **'(new sets every week!)'**
+  String get wallCtaCaption;
 
   /// Small uppercase brand label at the top of the paywall sheet. A brand mark — identical in every locale.
   ///

@@ -616,6 +616,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String get streakTooltip => 'Your streak';
 
   @override
+  String get conformityTooltip => 'Your conformity axis';
+
+  @override
+  String get conformityTitle => 'CONFORMITY AXIS';
+
+  @override
+  String conformityPctLine(int pct) {
+    return '$pct% with the majority';
+  }
+
+  @override
+  String get conformityTierLoneWolf => 'Lone wolf';
+
+  @override
+  String get conformityTierRebel => 'Rebel';
+
+  @override
+  String get conformityTierIndependent => 'Independent';
+
+  @override
+  String get conformityTierInTheCurrent => 'With the flow';
+
+  @override
+  String get conformityTierCrowdVoice => 'Voice of the crowd';
+
+  @override
+  String conformityNextTierLabel(String tier) {
+    return 'To reach $tier';
+  }
+
+  @override
+  String conformityVotesNeeded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count votes with the majority',
+      one: '$count vote with the majority',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get conformityEmpty =>
+      'Vote on a few questions and you\'ll see which side you usually take.';
+
+  @override
+  String get conformityLoadError =>
+      'Couldn\'t load your axis — try again in a moment.';
+
+  @override
   String get newQuestionBadge => 'New';
 
   @override
@@ -919,7 +969,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wallCountdownCaption => 'Countdown to the next free question';
 
   @override
-  String get wallCtaUnlock => 'Don\'t wait — unlock all 500';
+  String get wallCtaUnlock => 'Unlock 500+ questions';
+
+  @override
+  String get wallCtaCaption => '(new sets every week!)';
 
   @override
   String get paywallBrand => 'DEBATLY PRO';

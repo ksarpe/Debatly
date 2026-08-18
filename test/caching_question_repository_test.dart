@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:debatly/data/models/conformity_stats.dart';
 import 'package:debatly/data/models/question.dart';
 import 'package:debatly/data/models/rank.dart';
 import 'package:debatly/data/models/smaczek.dart';
@@ -261,6 +262,9 @@ class _FakeRepo implements QuestionRepository {
   @override
   Future<List<VoteHistoryEntry>> fetchVoteHistory() =>
       throw UnimplementedError();
+
+  @override
+  Future<ConformityStats> fetchConformityStats() => throw UnimplementedError();
 
   @override
   Future<Set<String>> fetchRecentQuestionIds({required DateTime since}) async =>

@@ -596,50 +596,6 @@ class _GoProButton extends StatelessWidget {
   }
 }
 
-/// A quiet outlined "Historia" pill, sized and styled to sit next to the share
-/// pill under every readable question. Opens [openHistory]; the screen itself
-/// gates premium, so this is shown to everyone (free users land on the PRO
-/// upsell).
-class HistoryButton extends StatelessWidget {
-  const HistoryButton({super.key});
-
-  static const _radius = BorderRadius.all(Radius.circular(30));
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: context.l10n.historyTooltip,
-      child: Tooltip(
-        message: context.l10n.historyTooltip,
-        child: Material(
-          color: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: _radius,
-            side: BorderSide(color: context.colors.hairline),
-          ),
-          child: InkWell(
-            borderRadius: _radius,
-            onTap: () => openHistory(context),
-            // Sized to the touch target, matching the share pill beside it.
-            child: SizedBox(
-              width: kMinTouchTarget,
-              height: kMinTouchTarget,
-              child: Center(
-                child: Icon(
-                  Icons.history_rounded,
-                  size: 20,
-                  color: context.colors.subtle,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Short, locale-aware date for a history row, e.g. PL "22 cze 2026", EN
 /// "Jun 22, 2026". Hand-rolled to avoid pulling in `intl`'s date initialisation
 /// (the rest of the app formats dates the same way — see settings_screen).

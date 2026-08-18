@@ -5,8 +5,8 @@ import 'package:debatly/data/models/vote_result.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
-import 'package:debatly/features/questions/screens/history_screen.dart';
 import 'package:debatly/features/questions/widgets/daily_vote_panel.dart';
+import 'package:debatly/features/questions/widgets/favorite_star_button.dart';
 import 'package:debatly/features/questions/widgets/go_deeper_button.dart';
 import 'package:debatly/features/questions/widgets/question_body.dart';
 import 'package:debatly/features/questions/widgets/share_question_button.dart';
@@ -19,7 +19,7 @@ import 'support/test_prefs.dart';
 
 /// A long question used to grow past its space: the size the length heuristic
 /// alone picks only knows the character count, so on a short screen (or at a
-/// large system font) the text pushed the vote panel and the share / history
+/// large system font) the text pushed the vote panel and the share / favorites
 /// pills below it down into — and past — the bottom overlay.
 ///
 /// The question must now shrink to the space it actually has, so the whole
@@ -77,7 +77,7 @@ void main() {
   void expectFeedDoesNotCollide(WidgetTester tester) {
     final vote = tester.getRect(find.byType(DailyVotePanel));
     final share = tester.getRect(find.byType(ShareQuestionButton));
-    final history = tester.getRect(find.byType(HistoryButton));
+    final star = tester.getRect(find.byType(FavoriteStarButton));
     final goDeeper = tester.getRect(find.byType(GoDeeperButton));
 
     expect(
@@ -86,7 +86,7 @@ void main() {
       reason: 'the vote panel must sit above the share pill, never over it',
     );
     expect(share.bottom, lessThanOrEqualTo(goDeeper.top));
-    expect(history.bottom, lessThanOrEqualTo(goDeeper.top));
+    expect(star.bottom, lessThanOrEqualTo(goDeeper.top));
     expect(
       tester.takeException(),
       isNull,

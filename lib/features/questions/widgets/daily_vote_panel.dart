@@ -102,6 +102,10 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       // engagement upkeep runs for all of them: refresh the streak chip, flip
       // today's reminder to a post-vote message, maybe ask for a review.
       ref.invalidate(userStatsProvider);
+      // The vote just moved the conformity axis too; refresh it in the
+      // background so the panel opens up-to-date without a spinner (the
+      // question screen keeps it subscribed — see conformityStatsProvider).
+      ref.invalidate(conformityStatsProvider);
       await _refreshReminderAfterVote(result, l10n);
       await _maybeNudgeAfterVote();
     } catch (e) {

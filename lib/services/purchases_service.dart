@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -151,6 +153,10 @@ class PurchasesService {
         PurchasesConfiguration(AppConfig.revenueCatApiKey),
       );
       _configured = true;
+      // Fire-and-forget: pull the offering into the SDK's cache now, so the
+      // first paywall open (onboarding bridge, day wall, a locked feature)
+      // renders its prices instantly instead of spending seconds on the fetch.
+      unawaited(warmUpOfferings());
     } catch (e, st) {
       debugPrint(
         'PurchasesService: RevenueCat configure failed — premium disabled. $e',
@@ -401,6 +407,57 @@ class PurchasesService {
     final packages = offerings.current?.availablePackages ?? const <Package>[];
     return [...packages]
       ..sort((a, b) => packageRank(a.packageType) - packageRank(b.packageType));
+  }
+
+  /// Whether [warmUpOfferings] has already run this session — it only needs to
+  /// succeed once (the SDK keeps the offering cached from then on).
+  static bool _offeringsWarmedUp = false;
+
+  /// Pre-fetches the offering into the RevenueCat SDK's in-memory cache, so the
+  /// first paywall open renders its prices instantly instead of paying the
+  /// store round-trip in front of the user. Fired (unawaited) right after
+  /// [initialise] configures the SDK.
+  ///
+  /// Quiet by design: Play's billing client routinely isn't ready in the first
+  /// seconds of a session, so transient failures get a couple of patient,
+  /// spaced retries and then a breadcrumb — never an error surface. The
+  /// paywall keeps its own retry loop; a failed warm-up only means the open
+  /// is as slow as it was before this existed.
+  static Future<void> warmUpOfferings() async {
+    if (!_configured || _offeringsWarmedUp) return;
+    _offeringsWarmedUp = true;
+
+    // More patient than the paywall's own backoff: nobody is looking at a
+    // spinner here, and the longer gaps ride out the billing client's slow
+    // cold start.
+    const backoff = [Duration(seconds: 2), Duration(seconds: 8)];
+    for (var attempt = 0; ; attempt++) {
+      try {
+        await Purchases.getOfferings().timeout(kOfferFetchTimeout);
+        return;
+      } catch (e) {
+        final code = errorCodeOf(e)?.name ?? e.runtimeType.toString();
+        if (attempt < backoff.length && isRetryableFailure(e)) {
+          await Future<void>.delayed(backoff[attempt]);
+          continue;
+        }
+        // Give up quietly — the paywall's own load (with its retries and
+        // manual retry state) remains the surface that deals with a store
+        // that is genuinely down.
+        Monitoring.addBreadcrumb(
+          'Offerings warm-up failed: $code',
+          category: 'purchases',
+          data: {'attempts': attempt + 1},
+        );
+        return;
+      }
+    }
+  }
+
+  /// Resets the warm-up latch so a test can exercise [warmUpOfferings] again.
+  @visibleForTesting
+  static void resetOfferingsWarmUpForTest() {
+    _offeringsWarmedUp = false;
   }
 
   @visibleForTesting

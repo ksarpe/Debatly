@@ -9,8 +9,8 @@ import '../../account/providers/session_providers.dart';
 import '../../monetization/widgets/day_wall_view.dart';
 import '../providers/question_providers.dart';
 import '../providers/swipe_hint_providers.dart';
-import '../screens/history_screen.dart';
 import 'daily_vote_panel.dart';
+import 'favorite_star_button.dart';
 import 'go_deeper_button.dart';
 import 'new_question_badge.dart';
 import 'share_question_button.dart';
@@ -254,16 +254,19 @@ class _CentredGroup extends StatelessWidget {
                   ),
                   // Share sits right under the question rather than as the
                   // faint icon it used to be down in the bottom overlay,
-                  // paired with "Historia" — every question is votable
-                  // now, so the PRO voting record is one tap away
-                  // anywhere.
+                  // paired with the favorites star — saving THIS question
+                  // is a per-question act, so it lives with the question
+                  // (the PRO history moved to Settings).
                   const SizedBox(height: 24),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ShareQuestionButton(questionText: questionText!),
                       const SizedBox(width: 12),
-                      const HistoryButton(),
+                      FavoriteStarButton(
+                        questionId: questionId!,
+                        outlined: true,
+                      ),
                     ],
                   ),
                 ],

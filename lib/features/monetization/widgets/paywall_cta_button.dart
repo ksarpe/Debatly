@@ -13,9 +13,15 @@ class PaywallCtaButton extends StatelessWidget {
     required this.label,
     required this.busy,
     required this.onTap,
+    this.caption,
   });
 
   final String label;
+
+  /// Optional second line rendered inside the pill, under [label], in a
+  /// smaller muted type — e.g. the day wall's "(new sets every week!)".
+  final String? caption;
+
   final bool busy;
   final VoidCallback? onTap;
 
@@ -37,7 +43,7 @@ class PaywallCtaButton extends StatelessWidget {
             borderRadius: AppTheme.ctaRadius,
             onTap: busy ? null : onTap,
             child: SizedBox(
-              height: 54,
+              height: caption == null ? 54 : 62,
               child: Center(
                 child: busy
                     ? const SizedBox(
@@ -48,14 +54,31 @@ class PaywallCtaButton extends StatelessWidget {
                           color: AppTheme.ctaForeground,
                         ),
                       )
-                    : Text(
-                        label,
-                        style: const TextStyle(
-                          color: AppTheme.ctaForeground,
-                          fontSize: 16.5,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.3,
-                        ),
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            label,
+                            style: const TextStyle(
+                              color: AppTheme.ctaForeground,
+                              fontSize: 16.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          if (caption != null)
+                            Text(
+                              caption!,
+                              style: TextStyle(
+                                color: AppTheme.ctaForeground.withValues(
+                                  alpha: 0.85,
+                                ),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                        ],
                       ),
               ),
             ),

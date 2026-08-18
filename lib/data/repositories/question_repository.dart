@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/monitoring/monitoring.dart';
 import '../../services/supabase_service.dart';
 import '../mock/mock_questions.dart';
+import '../models/conformity_stats.dart';
 import '../models/question.dart';
 import '../models/rank.dart';
 import '../models/smaczek.dart';
@@ -98,6 +99,17 @@ abstract class QuestionRepository {
   /// gate — a question the user merely saw but never voted on has no row. See
   /// the `get_vote_history` RPC.
   Future<List<VoteHistoryEntry>> fetchVoteHistory();
+
+  /// How often the caller votes with the community majority — one aggregate
+  /// row (total / with-majority / with-minority) behind the conformity-axis
+  /// panel.
+  ///
+  /// Available to every signed-in identity (guests included): unlike the
+  /// history it exposes only counts of the caller's own votes, so it is NOT
+  /// premium-gated. The majority is decided server-side on the same
+  /// seed-inclusive totals shown as the community split. See the
+  /// `get_conformity_stats` RPC.
+  Future<ConformityStats> fetchConformityStats();
 
   /// The ids of active questions added to the catalog at or after [since].
   ///
@@ -285,6 +297,18 @@ class MockQuestionRepository implements QuestionRepository {
           ),
         ),
     ];
+  }
+
+  @override
+  Future<ConformityStats> fetchConformityStats() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    // Offline preview: a rebel-ish split (15/44 decided ≈ 34% with the
+    // majority) so the axis, marker and next-tier progress all render in dev.
+    return const ConformityStats(
+      totalVotes: 47,
+      majorityVotes: 15,
+      minorityVotes: 29,
+    );
   }
 
   @override
@@ -528,6 +552,18 @@ class SupabaseQuestionRepository implements QuestionRepository {
         .cast<Map<String, dynamic>>()
         .map(VoteHistoryEntry.fromJson)
         .toList();
+  }
+
+  @override
+  Future<ConformityStats> fetchConformityStats() async {
+    // SECURITY DEFINER RPC: one aggregate row over the caller's own votes,
+    // majority decided on the seed-inclusive totals (so the axis matches the
+    // result bars the user saw). Always exactly one row; zeros for a fresh
+    // user, but guard the empty shape anyway.
+    final data = await _db.rpc('get_conformity_stats');
+    final rows = (data as List).cast<Map<String, dynamic>>();
+    if (rows.isEmpty) return ConformityStats.empty;
+    return ConformityStats.fromJson(rows.first);
   }
 
   @override

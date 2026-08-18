@@ -19,7 +19,8 @@ const Color _kGold = Color(0xFFFFC857);
 /// the star clearly visible while still reading as "gold".
 const Color _kGoldLight = Color(0xFFE0A100);
 
-/// The top-left "save to favorites" star on the question screen.
+/// The "save to favorites" star, shown in the pill row under every readable
+/// question (next to the share pill).
 ///
 /// Premium users get a gold outline star that fills — with a little pop + a
 /// radial sparkle burst — when they save the question, and empties when they
@@ -30,10 +31,19 @@ const Color _kGoldLight = Color(0xFFE0A100);
 /// State comes from [favoriteIdsProvider]; the toggle is optimistic there, so
 /// the fill flips instantly and the animation isn't waiting on the network.
 class FavoriteStarButton extends ConsumerStatefulWidget {
-  const FavoriteStarButton({super.key, required this.questionId});
+  const FavoriteStarButton({
+    super.key,
+    required this.questionId,
+    this.outlined = false,
+  });
 
   /// The question currently on screen — the one the star saves/removes.
   final String questionId;
+
+  /// When true, wears the same outlined-pill chrome as the share pill beside
+  /// it (hairline border, pill radius); false keeps the bare icon-button look
+  /// for bar-style placements.
+  final bool outlined;
 
   @override
   ConsumerState<FavoriteStarButton> createState() => _FavoriteStarButtonState();
@@ -159,58 +169,79 @@ class _FavoriteStarButtonState extends ConsumerState<FavoriteStarButton>
         ? context.l10n.favoriteRemoveTooltip
         : context.l10n.favoriteAddTooltip;
 
+    final star = SizedBox(
+      width: kMinTouchTarget,
+      height: kMinTouchTarget,
+      child: AnimatedBuilder(
+        animation: _pop,
+        builder: (context, _) {
+          final t = _pop.value; // 0..1, only runs on a fresh "add"
+          // A quick overshoot then settle — the satisfying "snap" of the
+          // star locking in. Stays at 1.0 when idle.
+          final pop = t == 0 ? 1.0 : 1.0 + math.sin(t * math.pi) * 0.35;
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              if (t > 0 && t < 1)
+                CustomPaint(
+                  size: const Size(48, 48),
+                  painter: _BurstPainter(progress: t, color: color),
+                ),
+              Transform.scale(
+                scale: pop,
+                child: Icon(
+                  filled ? Icons.star_rounded : Icons.star_border_rounded,
+                  size: widget.outlined ? 22 : 26,
+                  color: color,
+                  shadows: filled
+                      ? [
+                          Shadow(
+                            color: color.withValues(alpha: 0.55),
+                            blurRadius: 12,
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
     return Semantics(
       button: true,
       toggled: filled,
       label: tooltip,
       child: Tooltip(
         message: tooltip,
-        child: InkResponse(
-          onTap: _opening ? null : _onTap,
-          radius: 24,
-          child: SizedBox(
-            width: 48,
-            height: 48,
-            child: AnimatedBuilder(
-              animation: _pop,
-              builder: (context, _) {
-                final t = _pop.value; // 0..1, only runs on a fresh "add"
-                // A quick overshoot then settle — the satisfying "snap" of the
-                // star locking in. Stays at 1.0 when idle.
-                final pop = t == 0 ? 1.0 : 1.0 + math.sin(t * math.pi) * 0.35;
-                return Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    if (t > 0 && t < 1)
-                      CustomPaint(
-                        size: const Size(48, 48),
-                        painter: _BurstPainter(progress: t, color: color),
-                      ),
-                    Transform.scale(
-                      scale: pop,
-                      child: Icon(
-                        filled ? Icons.star_rounded : Icons.star_border_rounded,
-                        size: 26,
-                        color: color,
-                        shadows: filled
-                            ? [
-                                Shadow(
-                                  color: color.withValues(alpha: 0.55),
-                                  blurRadius: 12,
-                                ),
-                              ]
-                            : null,
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
+        child: widget.outlined
+            // The pill chrome mirrors ShareQuestionButton so the row under the
+            // question reads as one family of controls.
+            ? Material(
+                color: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: _kPillRadius,
+                  side: BorderSide(color: context.colors.hairline),
+                ),
+                child: InkWell(
+                  borderRadius: _kPillRadius,
+                  onTap: _opening ? null : _onTap,
+                  child: star,
+                ),
+              )
+            : InkResponse(
+                onTap: _opening ? null : _onTap,
+                radius: 24,
+                child: star,
+              ),
       ),
     );
   }
+
+  static const BorderRadius _kPillRadius = BorderRadius.all(
+    Radius.circular(30),
+  );
 }
 
 /// A one-shot sparkle that fires when a question is saved: an expanding,

@@ -373,30 +373,20 @@ class _ResultPanel extends StatelessWidget {
   }
 }
 
-/// The circular "VS" badge that sits over the diagonal seam between the panels.
+/// The bare "VS" text that sits over the diagonal seam between the panels.
 class _VsBadge extends StatelessWidget {
   const _VsBadge();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 38,
-      height: 38,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: context.colors.background,
-        shape: BoxShape.circle,
-        border: Border.all(color: context.colors.accent, width: 2),
-      ),
-      child: Text(
-        'VS',
-        style: TextStyle(
-          color: context.colors.ink,
-          fontSize: 13,
-          fontWeight: FontWeight.w900,
-          fontStyle: FontStyle.italic,
-          letterSpacing: 0.5,
-        ),
+    return Text(
+      'VS',
+      style: TextStyle(
+        color: context.colors.ink,
+        fontSize: 15,
+        fontWeight: FontWeight.w900,
+        fontStyle: FontStyle.italic,
+        letterSpacing: 0.5,
       ),
     );
   }

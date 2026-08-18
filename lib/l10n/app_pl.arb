@@ -213,6 +213,19 @@
 
   "streakTooltip": "Twoja seria",
 
+  "conformityTooltip": "Twoja oś zgodności",
+  "conformityTitle": "OŚ ZGODNOŚCI",
+  "conformityPctLine": "{pct}% z większością",
+  "conformityTierLoneWolf": "Samotny wilk",
+  "conformityTierRebel": "Buntownik",
+  "conformityTierIndependent": "Niezależny",
+  "conformityTierInTheCurrent": "W nurcie",
+  "conformityTierCrowdVoice": "Głos tłumu",
+  "conformityNextTierLabel": "Do stopnia «{tier}»",
+  "conformityVotesNeeded": "{count, plural, one{{count} głos z większością} few{{count} głosy z większością} many{{count} głosów z większością} other{{count} głosu z większością}}",
+  "conformityEmpty": "Zagłosuj na kilka pytań, a zobaczysz, po której stronie zwykle jesteś.",
+  "conformityLoadError": "Nie udało się załadować osi — spróbuj za chwilę.",
+
   "newQuestionBadge": "Nowe",
   "newQuestionTooltip": "Świeżo dodane pytanie — społeczność dopiero zaczyna głosować.",
 
@@ -320,7 +333,8 @@
   "onboardingNotifySkip": "Nie teraz",
   "onboardingNotifyFootnote": "Przypomnienia wyłączysz lub zmienisz ich godzinę w ustawieniach.",
   "wallCountdownCaption": "Odliczanie do kolejnego darmowego pytania",
-  "wallCtaUnlock": "Nie czekaj — odblokuj wszystkie 500",
+  "wallCtaUnlock": "Odblokuj ponad 500 pytań",
+  "wallCtaCaption": "(co tydzień nowe zestawy!)",
   "paywallBrand": "DEBATLY PRO",
   "paywallTitleDefault": "Bez limitu.\nBez końca.\nGlobalnie.",
   "paywallSubtitle": "500+ pytań, wszystkie argumenty ZA i PRZECIW, cała Twoja historia głosów.",

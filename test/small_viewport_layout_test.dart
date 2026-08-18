@@ -9,7 +9,7 @@ import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
 import 'package:debatly/features/onboarding/screens/onboarding_screen.dart';
 import 'package:debatly/features/onboarding/widgets/onboarding_bridge_card.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
-import 'package:debatly/features/questions/screens/history_screen.dart';
+import 'package:debatly/features/questions/widgets/favorite_star_button.dart';
 import 'package:debatly/features/questions/widgets/question_body.dart';
 import 'package:debatly/features/questions/widgets/share_question_button.dart';
 import 'package:flutter/gestures.dart';
@@ -120,19 +120,19 @@ void main() {
     };
 
     viewports.forEach((name, spec) {
-      testWidgets('share + history stay tappable — $name', (tester) async {
+      testWidgets('share + favorites stay tappable — $name', (tester) async {
         final (size, scale) = spec;
         await pumpFeed(tester, size: size, textScale: scale);
 
         final share = find.byType(ShareQuestionButton);
-        final history = find.byType(HistoryButton);
+        final star = find.byType(FavoriteStarButton);
         final hint = find.text(swipeHint);
 
         // On a viewport too short for the whole group the feed scrolls, so
         // bringing the pills into view is allowed. What is NOT allowed is for
         // them to end up painted under the overlay, where the hint used to
         // swallow their taps.
-        for (final pill in [share, history]) {
+        for (final pill in [share, star]) {
           await tester.ensureVisible(pill);
           await tester.pumpAndSettle();
           expect(
@@ -288,12 +288,12 @@ void main() {
   });
 
   group('touch targets clear the platform minimums', () {
-    testWidgets('the share and history pills are 48x48', (tester) async {
+    testWidgets('the share and favorites pills are 48x48', (tester) async {
       await pumpFeed(tester, size: const Size(393, 851));
 
       for (final finder in [
         find.byType(ShareQuestionButton),
-        find.byType(HistoryButton),
+        find.byType(FavoriteStarButton),
       ]) {
         final size = tester.getSize(finder);
         expect(size.width, greaterThanOrEqualTo(48));
