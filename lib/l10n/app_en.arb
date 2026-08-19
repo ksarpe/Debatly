@@ -265,7 +265,7 @@
   "yourVote": "Your vote",
   "goDeeper": "AGAINST YOU",
   "smaczkiBarPro": "THE CASE AGAINST",
-  "smaczkiBarFree": "TWO MORE LEFT",
+  "smaczkiBarFree": "THE CASE FOR YOU",
   "smaczkiBarUntagged": "TWO MORE ARGUMENTS",
   "shareLabel": "Share",
   "shareTooltip": "Share question",
@@ -304,14 +304,14 @@
       }
     }
   },
-  "conformityTierLoneWolf": "Lone wolf",
-  "@conformityTierLoneWolf": {
-    "description": "Conformity tier for 0-19% votes with the majority. Rendered uppercase on the axis."
+  "axisRungAgainst2": "Always against the grain",
+  "@axisRungAgainst2": {
+    "description": "Axis rungs are POSITIONAL PHRASES on purpose (the 2×2 grid keeps the nouns): a phrase describes a spot on a scale, a noun claims an identity, and the two can never collide again. This one covers 0-19% votes with the majority; rendered uppercase on the axis."
   },
-  "conformityTierRebel": "Rebel",
-  "conformityTierIndependent": "Independent",
-  "conformityTierInTheCurrent": "With the flow",
-  "conformityTierCrowdVoice": "Voice of the crowd",
+  "axisRungAgainst1": "Usually against the grain",
+  "axisRungMiddle": "Fifty-fifty",
+  "axisRungWith1": "Usually with the crowd",
+  "axisRungWith2": "Always with the crowd",
   "conformityNextTierLabel": "To reach {tier}",
   "@conformityNextTierLabel": {
     "description": "Footer of the conformity panel: progress line toward the next tier up the axis.",
@@ -332,6 +332,70 @@
   },
   "conformityEmpty": "Vote on a few questions and you'll see which side you usually take.",
   "conformityLoadError": "Couldn't load your axis — try again in a moment.",
+  "profileSectionTitle": "YOUR TYPE",
+  "profileTypePillar": "THE PILLAR",
+  "profileTypeFlow": "GOES WITH THE FLOW",
+  "profileTypeWolf": "THE LONE WOLF",
+  "profileTypeSeeker": "THE SEEKER",
+  "profileDescPillar": "You think like the majority and nothing moves you.",
+  "profileDescFlow": "You go with the crowd and with every good argument.",
+  "profileDescWolf": "Your own mind, end of discussion.",
+  "profileDescSeeker": "You don't buy others' opinions, but you look for better ones.",
+  "profileProvisional": "provisional",
+  "profileProgress": "{n, plural, =1{1 more answer and you'll know your type.} other{{n} more answers and you'll know your type.}}",
+  "@profileProgress": {
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
+  "profileStatCrowdLabel": "votes with the majority",
+  "profileStatMovedLabel": "counters moved you",
+  "profileLockedFlips": "The lines that turned you",
+  "profileLockedLoneliest": "Your loneliest vote",
+  "profileLockedRarity": "Only …% of users share your type",
+  "profileLockedTrend": "Your trend over time",
+  "profileRarityLine": "{pct}% of users share your type",
+  "@profileRarityLine": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "profileLoneliestLine": "Only {pct}% voted like you",
+  "@profileLoneliestLine": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "profileSliceLine": "{pct}% with the majority · minds changed: {moved}",
+  "@profileSliceLine": {
+    "placeholders": {
+      "pct": { "type": "int" },
+      "moved": { "type": "int" }
+    }
+  },
+  "profileNotEnoughData": "Not enough data yet.",
+  "profileShareHeadline": "MY DEBATER TYPE",
+  "profileShareCrowdWith": "with the crowd {pct}% of the time",
+  "@profileShareCrowdWith": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "profileShareCrowdAgainst": "against the crowd {pct}% of the time",
+  "@profileShareCrowdAgainst": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "profileShareQuestionsLine": "{count, plural, =1{1 question} other{{count} questions}} · {crowd}",
+  "@profileShareQuestionsLine": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "crowd": { "type": "String" }
+    }
+  },
+  "profileShareMovedLine": "{count, plural, =0{never changed my mind} =1{changed my mind once} other{changed my mind {count} times}}",
+  "@profileShareMovedLine": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "profileShareMessage": "I'm {type}. Find your type on Debatly.",
+  "@profileShareMessage": {
+    "placeholders": { "type": { "type": "String" } }
+  },
+  "profileShareSubject": "My Debatly type",
+  "profileShareFooter": "debatly.app",
   "newQuestionBadge": "New",
   "@newQuestionBadge": {
     "description": "Small pill badge shown above a question added to the catalog within the last two weeks."
@@ -367,7 +431,7 @@
   "smaczkiTitle": "Arguments",
   "smaczkiTitleTag": "(smaczki)",
   "smaczkiSubtitle": "You are not going to like this one.",
-  "smaczkiRemaining": "{count, plural, =1{One more left. Also against you.} =2{Two more left. Both against you.} other{{count} more left. All against you.}}",
+  "smaczkiRemaining": "{count, plural, =1{One more argument waits for you.} other{{count} more arguments wait for you.}}",
   "@smaczkiRemaining": {
     "description": "How many arguments are left besides the one served right after the vote.",
     "placeholders": {
@@ -392,7 +456,13 @@
   "smaczekChallengeEyebrow": "BEFORE I SHOW YOU THE RESULT",
   "challengeHoldCta": "I'M NOT BUDGING",
   "challengeMovedCta": "THAT GOT ME",
-  "smaczkiSheetFreeHeader": "You've read the first. Two left — both against you.",
+  "smaczkiSheetFreeHeader": "You got the argument against you. Two left: one that defends you, one that complicates it.",
+  "smaczkiSheetFreeHeaderPlain": "{count, plural, =0{That argument is behind you.} =1{The first one is behind you. One more waits.} other{The first one is behind you. {count} more wait.}}",
+  "@smaczkiSheetFreeHeaderPlain": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "resultFlipLine": "The counter-argument flipped {percent}% of voters.",
   "@resultFlipLine": {
     "placeholders": {
@@ -562,7 +632,13 @@
   },
   "paywallTitleDefault": "No limits.\nNo end.\nWorldwide.",
   "@paywallTitleDefault": {
-    "description": "The paywall headline — the same fixed slogan for every entry point. Three short lines separated by explicit newlines."
+    "description": "The paywall headline — the same fixed slogan for every entry point EXCEPT the debate-profile locked rows, which pass paywallProfileHeadline instead. Three short lines separated by explicit newlines."
+  },
+  "paywallProfileHeadline": "{n, plural, =1{1 vote.\nSee what it says about you.} other{{n} votes.\nSee what they say about you.}}",
+  "@paywallProfileHeadline": {
+    "placeholders": {
+      "n": { "type": "int" }
+    }
   },
   "paywallSubtitle": "500+ questions, every argument FOR and AGAINST, your entire voting history.",
   "paywallFeatureUnlimited": "Questions with no daily limit",

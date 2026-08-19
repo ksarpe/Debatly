@@ -219,9 +219,9 @@
   "@smaczkiBarPro": {
     "description": "Bottom-bar label after a PRO user passed the post-vote gate on a TAGGED smaczek. Six characters on purpose — it is set larger than the default label."
   },
-  "smaczkiBarFree": "ZOSTAŁY JESZCZE DWA",
+  "smaczkiBarFree": "ARGUMENT ZA TOBĄ",
   "@smaczkiBarFree": {
-    "description": "Bottom-bar label after a FREE user passed the post-vote gate on a tagged smaczek — two locked arguments remain in the sheet."
+    "description": "Bottom-bar label after a FREE user passed the post-vote gate on a tagged smaczek. The attack is behind them, so the pill sells what remains locked: the argument FOR their side — ammunition, not another hit."
   },
   "smaczkiBarUntagged": "JESZCZE DWA ARGUMENTY",
   "@smaczkiBarUntagged": {
@@ -251,15 +251,90 @@
   "conformityTooltip": "Twoja oś zgodności",
   "conformityTitle": "OŚ ZGODNOŚCI",
   "conformityPctLine": "{pct}% z większością",
-  "conformityTierLoneWolf": "Samotny wilk",
-  "conformityTierRebel": "Buntownik",
-  "conformityTierIndependent": "Niezależny",
-  "conformityTierInTheCurrent": "W nurcie",
-  "conformityTierCrowdVoice": "Głos tłumu",
+  "axisRungAgainst2": "Zawsze pod prąd",
+  "@axisRungAgainst2": {
+    "description": "Axis rungs are POSITIONAL PHRASES on purpose (the 2×2 grid keeps the nouns): a phrase describes a spot on a scale, a noun claims an identity, and the two can never collide again — SAMOTNY WILK used to live on both."
+  },
+  "axisRungAgainst1": "Częściej pod prąd",
+  "axisRungMiddle": "Pół na pół",
+  "axisRungWith1": "Częściej z tłumem",
+  "axisRungWith2": "Zawsze z tłumem",
   "conformityNextTierLabel": "Do stopnia «{tier}»",
   "conformityVotesNeeded": "{count, plural, one{{count} głos z większością} few{{count} głosy z większością} many{{count} głosów z większością} other{{count} głosu z większością}}",
   "conformityEmpty": "Zagłosuj na kilka pytań, a zobaczysz, po której stronie zwykle jesteś.",
   "conformityLoadError": "Nie udało się załadować osi — spróbuj za chwilę.",
+
+  "profileSectionTitle": "TWÓJ TYP",
+  "profileTypePillar": "FILAR",
+  "profileTypeFlow": "PŁYNIE Z PRĄDEM",
+  "profileTypeWolf": "SAMOTNY WILK",
+  "profileTypeSeeker": "POSZUKIWACZ",
+  "profileDescPillar": "Myślisz jak większość i nic Tobą nie ruszy.",
+  "profileDescFlow": "Idziesz z tłumem i z każdym dobrym argumentem.",
+  "profileDescWolf": "Swoje zdanie i koniec dyskusji.",
+  "profileDescSeeker": "Nie kupujesz cudzych opinii, ale szukasz lepszych.",
+  "profileProvisional": "profil wstępny",
+  "profileProgress": "{n, plural, =1{Jeszcze 1 odpowiedź i poznasz swój typ.} few{Jeszcze {n} odpowiedzi i poznasz swój typ.} many{Jeszcze {n} odpowiedzi i poznasz swój typ.} other{Jeszcze {n} odpowiedzi i poznasz swój typ.}}",
+  "@profileProgress": {
+    "description": "Pre-unlock retention line under the conformity axis. n = answers still missing on whichever unlock counter (votes / qualifying gate answers) is further behind.",
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
+  "profileStatCrowdLabel": "głosów z większością",
+  "profileStatMovedLabel": "kontr Cię ruszyło",
+  "profileLockedFlips": "Zdania, które Cię przewróciły",
+  "@profileLockedFlips": {
+    "description": "Doubles as the FREE locked-row label (with the user's real moved count beside the lock — hidden entirely at 0) and the PRO section title (uppercase)."
+  },
+  "profileLockedLoneliest": "Twój najbardziej samotny głos",
+  "profileLockedRarity": "Twój typ ma tylko …% użytkowników",
+  "@profileLockedRarity": {
+    "description": "FREE locked-row label. The ellipsis is deliberate — the real percentage is the PRO payoff (profileRarityLine)."
+  },
+  "profileLockedTrend": "Trend w czasie",
+  "profileRarityLine": "Twój typ ma {pct}% użytkowników",
+  "@profileRarityLine": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "profileLoneliestLine": "Tylko {pct}% głosowało jak Ty",
+  "@profileLoneliestLine": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "profileSliceLine": "{pct}% z większością · zmiany zdania: {moved}",
+  "@profileSliceLine": {
+    "placeholders": {
+      "pct": { "type": "int" },
+      "moved": { "type": "int" }
+    }
+  },
+  "profileNotEnoughData": "Jeszcze za mało danych.",
+  "profileShareHeadline": "MÓJ TYP DEBATANTA",
+  "profileShareCrowdWith": "z tłumem w {pct}%",
+  "@profileShareCrowdWith": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "profileShareCrowdAgainst": "przeciw tłumowi w {pct}%",
+  "@profileShareCrowdAgainst": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "profileShareQuestionsLine": "{count, plural, =1{1 pytanie} few{{count} pytania} many{{count} pytań} other{{count} pytania}} · {crowd}",
+  "@profileShareQuestionsLine": {
+    "placeholders": {
+      "count": { "type": "int" },
+      "crowd": { "type": "String" }
+    }
+  },
+  "profileShareMovedLine": "{count, plural, =0{ani razu nie zmieniłem zdania} =1{raz zmieniłem zdanie} few{{count} razy zmieniłem zdanie} many{{count} razy zmieniłem zdanie} other{{count} razy zmieniłem zdanie}}",
+  "@profileShareMovedLine": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "profileShareMessage": "Jestem {type}. Sprawdź swój typ w Debatly.",
+  "@profileShareMessage": {
+    "placeholders": { "type": { "type": "String" } }
+  },
+  "profileShareSubject": "Mój typ z Debatly",
+  "profileShareFooter": "debatly.app",
 
   "newQuestionBadge": "Nowe",
   "newQuestionTooltip": "Świeżo dodane pytanie — społeczność dopiero zaczyna głosować.",
@@ -295,9 +370,9 @@
   "smaczkiTitle": "Argumenty",
   "smaczkiTitleTag": "(smaczki)",
   "smaczkiSubtitle": "Nie spodoba Ci się to zdanie.",
-  "smaczkiRemaining": "{count, plural, =1{Został jeszcze jeden. Też przeciwko Tobie.} =2{Zostały jeszcze dwa. Oba przeciwko Tobie.} few{Zostały jeszcze {count}. Wszystkie przeciwko Tobie.} other{Zostało jeszcze {count}. Wszystkie przeciwko Tobie.}}",
+  "smaczkiRemaining": "{count, plural, =1{Jeszcze jeden argument na Ciebie czeka.} few{Jeszcze {count} argumenty na Ciebie czekają.} many{Jeszcze {count} argumentów na Ciebie czeka.} other{Jeszcze {count} argumentu na Ciebie czeka.}}",
   "@smaczkiRemaining": {
-    "description": "Ile argumentów zostało poza tym, który użytkownik dostał zaraz po głosie.",
+    "description": "Ile argumentów zostało poza tym, który użytkownik dostał zaraz po głosie. Celowo bez „przeciwko Tobie”: po bramce zostają obrona i neutral, więc tamta obietnica była nieprawdą — dla PRO i dla free bez bramki.",
     "placeholders": {
       "count": { "type": "int" }
     }
@@ -320,9 +395,16 @@
   "@challengeMovedCta": {
     "description": "The gate's second button. It admits the argument landed WITHOUT changing the vote — the vote is final, so it must not read as 'I changed my answer'."
   },
-  "smaczkiSheetFreeHeader": "Pierwszy masz za sobą. Zostały dwa — oba przeciwko Tobie.",
+  "smaczkiSheetFreeHeader": "Dostałeś argument przeciwko sobie. Zostały dwa: jeden, który Cię broni, i jeden, który komplikuje sprawę.",
   "@smaczkiSheetFreeHeader": {
-    "description": "Sheet subtitle for a FREE user who already read the gate's argument — the sheet then hides that argument and shows only the two locked ones."
+    "description": "Sheet subtitle for a FREE user who already read the gate's argument, when the two locked cards really are a defense of their answer plus a neutral complication (fully tagged question). Frames the trio as attack → defense → practice: after the hit, the paywall sells ammunition."
+  },
+  "smaczkiSheetFreeHeaderPlain": "{count, plural, =0{Ten argument masz już za sobą.} =1{Pierwszy masz za sobą. Został jeszcze jeden.} =2{Pierwszy masz za sobą. Zostały jeszcze dwa.} few{Pierwszy masz za sobą. Zostały jeszcze {count}.} other{Pierwszy masz za sobą. Zostało jeszcze {count}.}}",
+  "@smaczkiSheetFreeHeaderPlain": {
+    "description": "Post-gate free sheet subtitle when the attack→defense promise CANNOT be kept (untagged catalog, partial tagging, fewer than two locked cards) — an honest count instead of an oversell.",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
   },
   "resultFlipLine": "Kontra przewróciła {percent}% głosujących.",
   "@resultFlipLine": {
@@ -423,6 +505,13 @@
   "wallCtaCaption": "(co tydzień nowe zestawy!)",
   "paywallBrand": "DEBATLY PRO",
   "paywallTitleDefault": "Bez limitu.\nBez końca.\nGlobalnie.",
+  "paywallProfileHeadline": "{n, plural, =1{1 głos.\nZobacz, co mówi o Tobie.} few{{n} głosy.\nZobacz, co mówią o Tobie.} many{{n} głosów.\nZobacz, co mówią o Tobie.} other{{n} głosu.\nZobacz, co mówią o Tobie.}}",
+  "@paywallProfileHeadline": {
+    "description": "The ONE per-entry paywall headline exception (user-approved 2026-08-19): the paywall opened from the debate-profile locked rows talks about the PORTRAIT, not the catalog. n = the caller's total votes.",
+    "placeholders": {
+      "n": { "type": "int" }
+    }
+  },
   "paywallSubtitle": "500+ pytań, wszystkie argumenty ZA i PRZECIW, cała Twoja historia głosów.",
   "paywallFeatureUnlimited": "Pytania bez limitu dziennego",
   "paywallFeatureSmaczki": "Wszystkie argumenty, nie pierwszy",

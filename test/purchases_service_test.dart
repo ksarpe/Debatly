@@ -215,6 +215,15 @@ void main() {
       expect(PurchasesService.isRetryableFailure(blocked), isFalse);
     });
 
+    test('a device that cannot buy at all is not our bug either', () {
+      // BILLING_UNAVAILABLE (emulators, the Play pre-launch bots, de-Googled
+      // phones) and a barred account both arrive as this code, and both fail
+      // identically forever — so: never Sentry, never retried.
+      final notAllowed = rcError(PurchasesErrorCode.purchaseNotAllowedError);
+      expect(PurchasesService.isEnvironmentFailure(notAllowed), isTrue);
+      expect(PurchasesService.isRetryableFailure(notAllowed), isFalse);
+    });
+
     test('a broken configuration is reported and never retried', () {
       // These fail identically forever — retrying just delays the error state,
       // and they are exactly the ones that must reach Sentry.

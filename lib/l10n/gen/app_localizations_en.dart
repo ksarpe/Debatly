@@ -677,7 +677,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smaczkiBarPro => 'THE CASE AGAINST';
 
   @override
-  String get smaczkiBarFree => 'TWO MORE LEFT';
+  String get smaczkiBarFree => 'THE CASE FOR YOU';
 
   @override
   String get smaczkiBarUntagged => 'TWO MORE ARGUMENTS';
@@ -717,19 +717,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get conformityTierLoneWolf => 'Lone wolf';
+  String get axisRungAgainst2 => 'Always against the grain';
 
   @override
-  String get conformityTierRebel => 'Rebel';
+  String get axisRungAgainst1 => 'Usually against the grain';
 
   @override
-  String get conformityTierIndependent => 'Independent';
+  String get axisRungMiddle => 'Fifty-fifty';
 
   @override
-  String get conformityTierInTheCurrent => 'With the flow';
+  String get axisRungWith1 => 'Usually with the crowd';
 
   @override
-  String get conformityTierCrowdVoice => 'Voice of the crowd';
+  String get axisRungWith2 => 'Always with the crowd';
 
   @override
   String conformityNextTierLabel(String tier) {
@@ -754,6 +754,133 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get conformityLoadError =>
       'Couldn\'t load your axis — try again in a moment.';
+
+  @override
+  String get profileSectionTitle => 'YOUR TYPE';
+
+  @override
+  String get profileTypePillar => 'THE PILLAR';
+
+  @override
+  String get profileTypeFlow => 'GOES WITH THE FLOW';
+
+  @override
+  String get profileTypeWolf => 'THE LONE WOLF';
+
+  @override
+  String get profileTypeSeeker => 'THE SEEKER';
+
+  @override
+  String get profileDescPillar =>
+      'You think like the majority and nothing moves you.';
+
+  @override
+  String get profileDescFlow =>
+      'You go with the crowd and with every good argument.';
+
+  @override
+  String get profileDescWolf => 'Your own mind, end of discussion.';
+
+  @override
+  String get profileDescSeeker =>
+      'You don\'t buy others\' opinions, but you look for better ones.';
+
+  @override
+  String get profileProvisional => 'provisional';
+
+  @override
+  String profileProgress(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n more answers and you\'ll know your type.',
+      one: '1 more answer and you\'ll know your type.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get profileStatCrowdLabel => 'votes with the majority';
+
+  @override
+  String get profileStatMovedLabel => 'counters moved you';
+
+  @override
+  String get profileLockedFlips => 'The lines that turned you';
+
+  @override
+  String get profileLockedLoneliest => 'Your loneliest vote';
+
+  @override
+  String get profileLockedRarity => 'Only …% of users share your type';
+
+  @override
+  String get profileLockedTrend => 'Your trend over time';
+
+  @override
+  String profileRarityLine(int pct) {
+    return '$pct% of users share your type';
+  }
+
+  @override
+  String profileLoneliestLine(int pct) {
+    return 'Only $pct% voted like you';
+  }
+
+  @override
+  String profileSliceLine(int pct, int moved) {
+    return '$pct% with the majority · minds changed: $moved';
+  }
+
+  @override
+  String get profileNotEnoughData => 'Not enough data yet.';
+
+  @override
+  String get profileShareHeadline => 'MY DEBATER TYPE';
+
+  @override
+  String profileShareCrowdWith(int pct) {
+    return 'with the crowd $pct% of the time';
+  }
+
+  @override
+  String profileShareCrowdAgainst(int pct) {
+    return 'against the crowd $pct% of the time';
+  }
+
+  @override
+  String profileShareQuestionsLine(int count, String crowd) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count questions',
+      one: '1 question',
+    );
+    return '$_temp0 · $crowd';
+  }
+
+  @override
+  String profileShareMovedLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'changed my mind $count times',
+      one: 'changed my mind once',
+      zero: 'never changed my mind',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String profileShareMessage(String type) {
+    return 'I\'m $type. Find your type on Debatly.';
+  }
+
+  @override
+  String get profileShareSubject => 'My Debatly type';
+
+  @override
+  String get profileShareFooter => 'debatly.app';
 
   @override
   String get newQuestionBadge => 'New';
@@ -847,9 +974,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count more left. All against you.',
-      two: 'Two more left. Both against you.',
-      one: 'One more left. Also against you.',
+      other: '$count more arguments wait for you.',
+      one: 'One more argument waits for you.',
     );
     return '$_temp0';
   }
@@ -892,7 +1018,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get smaczkiSheetFreeHeader =>
-      'You\'ve read the first. Two left — both against you.';
+      'You got the argument against you. Two left: one that defends you, one that complicates it.';
+
+  @override
+  String smaczkiSheetFreeHeaderPlain(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'The first one is behind you. $count more wait.',
+      one: 'The first one is behind you. One more waits.',
+      zero: 'That argument is behind you.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String resultFlipLine(int percent) {
@@ -1176,6 +1314,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paywallTitleDefault => 'No limits.\nNo end.\nWorldwide.';
+
+  @override
+  String paywallProfileHeadline(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n votes.\nSee what they say about you.',
+      one: '1 vote.\nSee what it says about you.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get paywallSubtitle =>

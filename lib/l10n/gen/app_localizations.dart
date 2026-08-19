@@ -1265,7 +1265,7 @@ abstract class AppLocalizations {
   /// No description provided for @smaczkiBarFree.
   ///
   /// In en, this message translates to:
-  /// **'TWO MORE LEFT'**
+  /// **'THE CASE FOR YOU'**
   String get smaczkiBarFree;
 
   /// No description provided for @smaczkiBarUntagged.
@@ -1334,35 +1334,35 @@ abstract class AppLocalizations {
   /// **'{pct}% with the majority'**
   String conformityPctLine(int pct);
 
-  /// Conformity tier for 0-19% votes with the majority. Rendered uppercase on the axis.
+  /// Axis rungs are POSITIONAL PHRASES on purpose (the 2×2 grid keeps the nouns): a phrase describes a spot on a scale, a noun claims an identity, and the two can never collide again. This one covers 0-19% votes with the majority; rendered uppercase on the axis.
   ///
   /// In en, this message translates to:
-  /// **'Lone wolf'**
-  String get conformityTierLoneWolf;
+  /// **'Always against the grain'**
+  String get axisRungAgainst2;
 
-  /// No description provided for @conformityTierRebel.
+  /// No description provided for @axisRungAgainst1.
   ///
   /// In en, this message translates to:
-  /// **'Rebel'**
-  String get conformityTierRebel;
+  /// **'Usually against the grain'**
+  String get axisRungAgainst1;
 
-  /// No description provided for @conformityTierIndependent.
+  /// No description provided for @axisRungMiddle.
   ///
   /// In en, this message translates to:
-  /// **'Independent'**
-  String get conformityTierIndependent;
+  /// **'Fifty-fifty'**
+  String get axisRungMiddle;
 
-  /// No description provided for @conformityTierInTheCurrent.
+  /// No description provided for @axisRungWith1.
   ///
   /// In en, this message translates to:
-  /// **'With the flow'**
-  String get conformityTierInTheCurrent;
+  /// **'Usually with the crowd'**
+  String get axisRungWith1;
 
-  /// No description provided for @conformityTierCrowdVoice.
+  /// No description provided for @axisRungWith2.
   ///
   /// In en, this message translates to:
-  /// **'Voice of the crowd'**
-  String get conformityTierCrowdVoice;
+  /// **'Always with the crowd'**
+  String get axisRungWith2;
 
   /// Footer of the conformity panel: progress line toward the next tier up the axis.
   ///
@@ -1387,6 +1387,180 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load your axis — try again in a moment.'**
   String get conformityLoadError;
+
+  /// No description provided for @profileSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR TYPE'**
+  String get profileSectionTitle;
+
+  /// No description provided for @profileTypePillar.
+  ///
+  /// In en, this message translates to:
+  /// **'THE PILLAR'**
+  String get profileTypePillar;
+
+  /// No description provided for @profileTypeFlow.
+  ///
+  /// In en, this message translates to:
+  /// **'GOES WITH THE FLOW'**
+  String get profileTypeFlow;
+
+  /// No description provided for @profileTypeWolf.
+  ///
+  /// In en, this message translates to:
+  /// **'THE LONE WOLF'**
+  String get profileTypeWolf;
+
+  /// No description provided for @profileTypeSeeker.
+  ///
+  /// In en, this message translates to:
+  /// **'THE SEEKER'**
+  String get profileTypeSeeker;
+
+  /// No description provided for @profileDescPillar.
+  ///
+  /// In en, this message translates to:
+  /// **'You think like the majority and nothing moves you.'**
+  String get profileDescPillar;
+
+  /// No description provided for @profileDescFlow.
+  ///
+  /// In en, this message translates to:
+  /// **'You go with the crowd and with every good argument.'**
+  String get profileDescFlow;
+
+  /// No description provided for @profileDescWolf.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own mind, end of discussion.'**
+  String get profileDescWolf;
+
+  /// No description provided for @profileDescSeeker.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t buy others\' opinions, but you look for better ones.'**
+  String get profileDescSeeker;
+
+  /// No description provided for @profileProvisional.
+  ///
+  /// In en, this message translates to:
+  /// **'provisional'**
+  String get profileProvisional;
+
+  /// No description provided for @profileProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 more answer and you\'ll know your type.} other{{n} more answers and you\'ll know your type.}}'**
+  String profileProgress(int n);
+
+  /// No description provided for @profileStatCrowdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'votes with the majority'**
+  String get profileStatCrowdLabel;
+
+  /// No description provided for @profileStatMovedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'counters moved you'**
+  String get profileStatMovedLabel;
+
+  /// No description provided for @profileLockedFlips.
+  ///
+  /// In en, this message translates to:
+  /// **'The lines that turned you'**
+  String get profileLockedFlips;
+
+  /// No description provided for @profileLockedLoneliest.
+  ///
+  /// In en, this message translates to:
+  /// **'Your loneliest vote'**
+  String get profileLockedLoneliest;
+
+  /// No description provided for @profileLockedRarity.
+  ///
+  /// In en, this message translates to:
+  /// **'Only …% of users share your type'**
+  String get profileLockedRarity;
+
+  /// No description provided for @profileLockedTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'Your trend over time'**
+  String get profileLockedTrend;
+
+  /// No description provided for @profileRarityLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{pct}% of users share your type'**
+  String profileRarityLine(int pct);
+
+  /// No description provided for @profileLoneliestLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Only {pct}% voted like you'**
+  String profileLoneliestLine(int pct);
+
+  /// No description provided for @profileSliceLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{pct}% with the majority · minds changed: {moved}'**
+  String profileSliceLine(int pct, int moved);
+
+  /// No description provided for @profileNotEnoughData.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough data yet.'**
+  String get profileNotEnoughData;
+
+  /// No description provided for @profileShareHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'MY DEBATER TYPE'**
+  String get profileShareHeadline;
+
+  /// No description provided for @profileShareCrowdWith.
+  ///
+  /// In en, this message translates to:
+  /// **'with the crowd {pct}% of the time'**
+  String profileShareCrowdWith(int pct);
+
+  /// No description provided for @profileShareCrowdAgainst.
+  ///
+  /// In en, this message translates to:
+  /// **'against the crowd {pct}% of the time'**
+  String profileShareCrowdAgainst(int pct);
+
+  /// No description provided for @profileShareQuestionsLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 question} other{{count} questions}} · {crowd}'**
+  String profileShareQuestionsLine(int count, String crowd);
+
+  /// No description provided for @profileShareMovedLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{never changed my mind} =1{changed my mind once} other{changed my mind {count} times}}'**
+  String profileShareMovedLine(int count);
+
+  /// No description provided for @profileShareMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m {type}. Find your type on Debatly.'**
+  String profileShareMessage(String type);
+
+  /// No description provided for @profileShareSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'My Debatly type'**
+  String get profileShareSubject;
+
+  /// No description provided for @profileShareFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'debatly.app'**
+  String get profileShareFooter;
 
   /// Small pill badge shown above a question added to the catalog within the last two weeks.
   ///
@@ -1547,7 +1721,7 @@ abstract class AppLocalizations {
   /// How many arguments are left besides the one served right after the vote.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{One more left. Also against you.} =2{Two more left. Both against you.} other{{count} more left. All against you.}}'**
+  /// **'{count, plural, =1{One more argument waits for you.} other{{count} more arguments wait for you.}}'**
   String smaczkiRemaining(int count);
 
   /// No description provided for @smaczekSuggestCta.
@@ -1619,8 +1793,14 @@ abstract class AppLocalizations {
   /// No description provided for @smaczkiSheetFreeHeader.
   ///
   /// In en, this message translates to:
-  /// **'You\'ve read the first. Two left — both against you.'**
+  /// **'You got the argument against you. Two left: one that defends you, one that complicates it.'**
   String get smaczkiSheetFreeHeader;
+
+  /// No description provided for @smaczkiSheetFreeHeaderPlain.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{That argument is behind you.} =1{The first one is behind you. One more waits.} other{The first one is behind you. {count} more wait.}}'**
+  String smaczkiSheetFreeHeaderPlain(int count);
 
   /// No description provided for @resultFlipLine.
   ///
@@ -2030,11 +2210,17 @@ abstract class AppLocalizations {
   /// **'DEBATLY PRO'**
   String get paywallBrand;
 
-  /// The paywall headline — the same fixed slogan for every entry point. Three short lines separated by explicit newlines.
+  /// The paywall headline — the same fixed slogan for every entry point EXCEPT the debate-profile locked rows, which pass paywallProfileHeadline instead. Three short lines separated by explicit newlines.
   ///
   /// In en, this message translates to:
   /// **'No limits.\nNo end.\nWorldwide.'**
   String get paywallTitleDefault;
+
+  /// No description provided for @paywallProfileHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 vote.\nSee what it says about you.} other{{n} votes.\nSee what they say about you.}}'**
+  String paywallProfileHeadline(int n);
 
   /// No description provided for @paywallSubtitle.
   ///

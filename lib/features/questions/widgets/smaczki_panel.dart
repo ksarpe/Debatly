@@ -94,6 +94,41 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
     }
   }
 
+  /// The post-gate free header — the sheet's sales line, so it may only
+  /// promise what the locked cards actually hold. The strong "attack →
+  /// defense → complication" frame (one argument FOR you, one that muddies
+  /// it) needs exactly that set behind the paywall: two remaining cards, one
+  /// tagged as defending the user's answer, one deliberately neutral. On the
+  /// untagged catalog, partial tagging or odd mixes it degrades to the plain
+  /// count — a header that oversells at the exact moment of the paywall is
+  /// how trust dies.
+  String _freeHeaderAfterGate(
+    BuildContext context,
+    ChallengeRecord record,
+    List<Smaczek>? smaczki,
+  ) {
+    final l10n = context.l10n;
+    if (smaczki == null) return l10n.smaczkiSubtitle;
+    final remaining = [
+      for (final s in smaczki)
+        if (s.position != record.smaczekPosition) s,
+    ];
+    final hasDefense = remaining.any(
+      (s) =>
+          s.isTagged &&
+          s.side != SmaczekSide.neutral &&
+          !s.attacks(record.choice),
+    );
+    final hasComplication = remaining.any((s) => s.side == SmaczekSide.neutral);
+    if (record.smaczekTagged &&
+        remaining.length == 2 &&
+        hasDefense &&
+        hasComplication) {
+      return l10n.smaczkiSheetFreeHeader;
+    }
+    return l10n.smaczkiSheetFreeHeaderPlain(remaining.length);
+  }
+
   @override
   Widget build(BuildContext context) {
     final smaczkiAsync = ref.watch(smaczkiProvider(widget.questionId));
@@ -168,11 +203,15 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
                 // How many arguments are still ahead of the reader — everything
                 // past the one the post-vote challenge already threw at them.
                 // A free reader who passed the gate gets the honest header
-                // ("the first is behind you"); otherwise it falls back to the
+                // (see [_freeHeaderAfterGate]); otherwise it falls back to the
                 // flat line until the list has loaded.
                 Text(
                   gatePassed
-                      ? context.l10n.smaczkiSheetFreeHeader
+                      ? _freeHeaderAfterGate(
+                          context,
+                          record,
+                          smaczkiAsync.value,
+                        )
                       : switch ((smaczkiAsync.value?.length ?? 0) - 1) {
                           final int rest when rest > 0 =>
                             context.l10n.smaczkiRemaining(rest),

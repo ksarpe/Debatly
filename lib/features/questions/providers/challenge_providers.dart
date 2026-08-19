@@ -61,6 +61,7 @@ class ChallengeRecord {
     required this.outcome,
     required this.smaczekPosition,
     required this.smaczekTagged,
+    required this.choice,
   });
 
   final ChallengeOutcome outcome;
@@ -72,6 +73,12 @@ class ChallengeRecord {
   /// Whether that smaczek carried a `side` tag. Untagged means no "against
   /// you" promise can be kept, and the bar label follows.
   final bool smaczekTagged;
+
+  /// The side the user had voted ([VoteResult.yes] / [VoteResult.no]) when the
+  /// gate ran. The free sheet needs it to tell which locked cards DEFEND that
+  /// answer — its header sells "attack → defense", and may only do so when a
+  /// defense really waits behind the paywall.
+  final int choice;
 }
 
 /// The gates run this session, keyed by question id. In-memory on purpose:

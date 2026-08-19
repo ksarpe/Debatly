@@ -47,6 +47,7 @@ void main() {
     required Future<List<Package>> Function() loadPackages,
     Future<PurchaseOutcome> Function(Package)? buy,
     PaywallSource source = PaywallSource.general,
+    String? headline,
     int streak = 0,
   }) async {
     await tester.pumpWidget(
@@ -67,6 +68,7 @@ void main() {
           home: Scaffold(
             body: ProPaywallScreen(
               source: source,
+              headline: headline,
               loadPackages: loadPackages,
               buy: buy,
             ),
@@ -122,6 +124,31 @@ void main() {
     expect(find.byIcon(Icons.radio_button_checked), findsOneWidget);
     expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
   });
+
+  testWidgets(
+    'the profile entry may override the headline with its portrait line — '
+    'the rest of the pitch is untouched',
+    (tester) async {
+      // The ONE sanctioned per-entry headline (owner-approved 2026-08-19):
+      // opened from the debate-profile locked rows, the paywall talks about
+      // the portrait, not the catalog.
+      await pumpSheet(
+        tester,
+        loadPackages: () async => [lifetime, monthly],
+        source: PaywallSource.profile,
+        headline: '47 głosów.\nZobacz, co mówią o Tobie.',
+      );
+
+      expect(
+        find.text('47 GŁOSÓW.\nZOBACZ, CO MÓWIĄ O TOBIE.'),
+        findsOneWidget,
+      );
+      expect(find.text('BEZ LIMITU.\nBEZ KOŃCA.\nGLOBALNIE.'), findsNothing);
+      // Subline, plans and CTA stay the shared copy.
+      expect(find.textContaining('500+ pytań'), findsOneWidget);
+      expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
+    },
+  );
 
   testWidgets('every entry point and streak shows the same slogan copy', (
     tester,

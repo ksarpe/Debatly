@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/app_locale.dart';
 import '../../../data/models/conformity_stats.dart';
+import '../../../data/models/debate_profile.dart';
 import '../../../data/models/question.dart';
 import '../../../data/models/smaczek.dart';
 import '../../../data/models/vote_history_entry.dart';
@@ -82,10 +83,12 @@ final dailyQuestionProvider = FutureProvider.family<Question?, DateTime>((
 /// Loads the discussion prompts ("smaczki") for a given question id.
 ///
 /// The repository calls the `get_question_smaczki` RPC, which applies the
-/// premium gate server-side: a free user gets the first smaczek plus the others
-/// as locked placeholders, premium users get them all. Keyed by question id so
-/// each question caches its own set; invalidate it after a purchase to re-fetch
-/// the now-unlocked text.
+/// gates server-side: premium reads everything; a free user gets readable text
+/// only AFTER voting, and then exactly the argument aimed at them. Instantiate
+/// this family only post-vote (pre-vote, warm [smaczkiMetaProvider] instead) —
+/// that discipline is what keeps a free device at one readable argument.
+/// Keyed by question id so each question caches its own set; invalidate it
+/// after a purchase to re-fetch the now-unlocked text.
 final smaczkiProvider = FutureProvider.family<List<Smaczek>, String>((
   ref,
   questionId,
@@ -95,6 +98,18 @@ final smaczkiProvider = FutureProvider.family<List<Smaczek>, String>((
   if (questionId == kDevCustomQuestionId) return const <Smaczek>[];
   final repo = ref.watch(questionRepositoryProvider);
   return repo.fetchSmaczki(questionId);
+});
+
+/// The pre-vote smaczki prefetch: positions + rough lengths via
+/// `get_question_smaczki_meta` — no text column even exists in the response,
+/// so warming this while the user reads the question can't leak an argument.
+final smaczkiMetaProvider = FutureProvider.family<List<SmaczekMeta>, String>((
+  ref,
+  questionId,
+) async {
+  if (questionId == kDevCustomQuestionId) return const <SmaczekMeta>[];
+  final repo = ref.watch(questionRepositoryProvider);
+  return repo.fetchSmaczkiMeta(questionId);
 });
 
 /// The highest deck index reached this session — how far forward the user has
@@ -274,6 +289,44 @@ final conformityStatsProvider = FutureProvider.autoDispose<ConformityStats>((
 ) async {
   final repo = ref.watch(questionRepositoryProvider);
   return repo.fetchConformityStats();
+});
+
+/// The caller's debate profile (both axes + live boundaries) — the 2×2 grid
+/// rendered UNDER the conformity axis in the same panel.
+///
+/// Prefetched and refreshed exactly like [conformityStatsProvider] (the
+/// question screen holds the subscription; votes / identity switches /
+/// reconnects invalidate). Not premium-gated: the TYPE is free by design —
+/// only the depth behind it (trend, categories, moved list) is PRO.
+final debateProfileProvider = FutureProvider.autoDispose<DebateProfile>((
+  ref,
+) async {
+  final repo = ref.watch(questionRepositoryProvider);
+  return repo.fetchDebateProfile();
+});
+
+/// PRO: the profile's per-month trend. Fetched only when the panel's PRO
+/// section actually renders (premium caller) — the server throws
+/// 'premium required' otherwise.
+final profileTrendProvider =
+    FutureProvider.autoDispose<List<ProfileTrendPoint>>((ref) async {
+      final repo = ref.watch(questionRepositoryProvider);
+      return repo.fetchProfileTrend();
+    });
+
+/// PRO: what share of unlocked profiles lands in the caller's 2×2 cell.
+/// Null (block hidden) below the server's population floor.
+final typeRarityProvider = FutureProvider.autoDispose<int?>((ref) async {
+  final repo = ref.watch(questionRepositoryProvider);
+  return repo.fetchTypeRarity();
+});
+
+/// PRO: the arguments that flipped the caller, newest first.
+final movedSmaczkiProvider = FutureProvider.autoDispose<List<MovedSmaczek>>((
+  ref,
+) async {
+  final repo = ref.watch(questionRepositoryProvider);
+  return repo.fetchMovedSmaczki();
 });
 
 /// A shuffle seed fixed once per app launch.

@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,25 +11,32 @@ import '../../../data/models/conformity_stats.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../../services/analytics.dart';
 import '../providers/question_providers.dart';
+import 'debate_profile_section.dart';
 
 /// The "oś zgodności" (conformity axis): a slide-down panel showing how often
 /// the user votes with the community majority vs the minority, as a marker on
-/// a five-step horizontal axis (Samotny wilk → Głos tłumu).
+/// a five-step horizontal axis (Zawsze pod prąd → Zawsze z tłumem).
 ///
 /// Opened from [ConformityAxisButton] in the question screen's top bar. Slides
 /// in from the top over a dimmed barrier and covers roughly the top third of
 /// the screen; tapping outside (or system back) closes it — a read-only stat,
 /// so there is nothing to confirm.
 
-/// The tier's localized display name (title case; callers uppercase where the
-/// design wants it).
+/// The rung's localized display name (sentence case; callers uppercase where
+/// the design wants it).
+///
+/// NAMING RULE, load-bearing: **the axis gets positional PHRASES, the 2×2
+/// grid gets nouns.** A phrase describes a spot on a scale; a noun claims an
+/// identity. The old noun rungs collided head-on with the grid ("Samotny
+/// wilk" lived on both, meaning different things), and phrases can't collide
+/// with future nouns by construction — keep any new rung a phrase.
 String conformityTierName(AppLocalizations l10n, ConformityTier tier) {
   return switch (tier) {
-    ConformityTier.loneWolf => l10n.conformityTierLoneWolf,
-    ConformityTier.rebel => l10n.conformityTierRebel,
-    ConformityTier.independent => l10n.conformityTierIndependent,
-    ConformityTier.inTheCurrent => l10n.conformityTierInTheCurrent,
-    ConformityTier.crowdVoice => l10n.conformityTierCrowdVoice,
+    ConformityTier.loneWolf => l10n.axisRungAgainst2,
+    ConformityTier.rebel => l10n.axisRungAgainst1,
+    ConformityTier.independent => l10n.axisRungMiddle,
+    ConformityTier.inTheCurrent => l10n.axisRungWith1,
+    ConformityTier.crowdVoice => l10n.axisRungWith2,
   };
 }
 
@@ -102,26 +112,47 @@ class ConformityPanel extends ConsumerWidget {
           clipBehavior: Clip.antiAlias,
           child: SafeArea(
             bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
-              child: stats.when(
-                loading: () => const SizedBox(
-                  height: 140,
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (_, _) => SizedBox(
-                  height: 140,
-                  child: Center(
-                    child: Text(
-                      l10n.conformityLoadError,
-                      textAlign: TextAlign.center,
-                      style: AppTypography.body(
-                        fontSize: 14,
-                      ).copyWith(color: context.colors.subtle),
-                    ),
+            child: ConstrainedBox(
+              // The profile section under the axis can outgrow the top third
+              // on small phones — the panel then scrolls instead of clipping
+              // the retention hook off the bottom.
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.85,
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      stats.when(
+                        loading: () => const SizedBox(
+                          height: 140,
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                        error: (_, _) => SizedBox(
+                          height: 140,
+                          child: Center(
+                            child: Text(
+                              l10n.conformityLoadError,
+                              textAlign: TextAlign.center,
+                              style: AppTypography.body(
+                                fontSize: 14,
+                              ).copyWith(color: context.colors.subtle),
+                            ),
+                          ),
+                        ),
+                        data: (value) => _ConformityView(stats: value),
+                      ),
+                      // The 2×2 debate profile — an EXTENSION of this axis,
+                      // deliberately not a screen of its own. Renders its own
+                      // locked/provisional/full states and nothing at all
+                      // while its data is missing.
+                      const DebateProfileSection(),
+                    ],
                   ),
                 ),
-                data: (value) => _ConformityView(stats: value),
               ),
             ),
           ),
@@ -145,7 +176,15 @@ class _ConformityView extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
+        // Wrap, not Row: at a large system font the title and the percentage
+        // together outrun the panel, and a Row would clip the percentage —
+        // the one number in this header — off the right edge. Wrapped, it
+        // simply drops to a second line.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 2,
           children: [
             Text(
               l10n.conformityTitle.toUpperCase(),
@@ -154,7 +193,6 @@ class _ConformityView extends StatelessWidget {
                 tracking: 0.18,
               ).copyWith(color: context.colors.subtle),
             ),
-            const Spacer(),
             if (stats.hasData)
               Text(
                 l10n.conformityPctLine(stats.majorityPct),
@@ -242,45 +280,80 @@ class _ConformityView extends StatelessWidget {
 }
 
 /// The current tier's name as an orange badge sitting over its axis segment.
+///
+/// The badge is set at full size and merely *positioned* over its fifth — it
+/// is NOT boxed into it. A rung phrase ("Częściej pod prąd") is roughly half
+/// the panel wide, so squeezing it into a fifth (the old `Expanded` +
+/// `FittedBox`) scaled it down to an unreadable smudge. Instead the offset is
+/// computed from the measured badge width and clamped to the panel, so an end
+/// rung's badge hugs the edge rather than hanging off it.
 class _TierBadgeRow extends StatelessWidget {
   const _TierBadgeRow({required this.activeIndex, required this.l10n});
 
   final int activeIndex;
   final AppLocalizations l10n;
 
+  static const double _hPad = 7;
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (final tier in ConformityTier.values)
-          Expanded(
-            child: tier.index == activeIndex
-                ? Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.spark,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          conformityTierName(l10n, tier).toUpperCase(),
-                          maxLines: 1,
-                          style: AppTypography.eyebrow(
-                            fontSize: 11,
-                            tracking: 0.12,
-                          ).copyWith(color: AppTheme.ctaForeground),
-                        ),
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
+    final label = conformityTierName(
+      l10n,
+      ConformityTier.values[activeIndex],
+    ).toUpperCase();
+    // One style object for both the measurement and the Text, so the two can
+    // never drift apart.
+    final style = AppTypography.eyebrow(
+      fontSize: 11,
+      tracking: 0.12,
+    ).copyWith(color: AppTheme.ctaForeground);
+
+    final painter = TextPainter(
+      text: TextSpan(text: label, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final badgeWidth = painter.width + _hPad * 2;
+    painter.dispose();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final centre =
+            width * (activeIndex + 0.5) / ConformityTier.values.length;
+        final left = clampDouble(
+          centre - badgeWidth / 2,
+          0,
+          math.max(0, width - badgeWidth),
+        );
+        return Padding(
+          padding: EdgeInsets.only(left: left),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            // Bounded width + scaleDown: the last resort for a badge that
+            // outgrows the whole panel (huge system font), never the norm.
+            child: SizedBox(
+              width: math.min(badgeWidth, width),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: _hPad,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.spark,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(label, maxLines: 1, style: style),
+                ),
+              ),
+            ),
           ),
-      ],
+        );
+      },
     );
   }
 }
@@ -340,39 +413,107 @@ class _AxisBar extends StatelessWidget {
 }
 
 /// The five tier names under the axis, the active one lit in spark orange.
+///
+/// The rungs are positional PHRASES ("Częściej pod prąd"), never one word, so
+/// they must WRAP inside their fifth of the axis. A plain `FittedBox` here
+/// laid each phrase out on one unconstrained line and scaled it to ~4px —
+/// five illegible smudges running into each other. Instead every label wraps
+/// at the full label size, and the size is only reduced when the longest
+/// WORD ("CZĘŚCIEJ", 51.5px at 10px) would not fit its cell — on a 320dp
+/// screen, or under a large system font. The reduction is measured once and
+/// applied to all five, because five labels at four different sizes look
+/// broken; a per-cell shrink is what mid-word breaks are made of.
 class _TierLabelRow extends StatelessWidget {
   const _TierLabelRow({required this.activeIndex, required this.l10n});
 
   final int activeIndex;
   final AppLocalizations l10n;
 
+  /// Nominal label size, and the ceiling a large system font may lift it to.
+  /// Past ~1.2x the axis would be all label and no axis.
+  static const double _size = 10;
+  static const double _maxSize = 12;
+
+  /// Breathing room between neighbouring labels. Deliberately small: at 320dp
+  /// each cell is only 56px wide and the longest word needs 51.5 of them.
+  static const double _gap = 2;
+
+  /// Words break on spaces and on the hyphen in "Fifty-fifty".
+  static final RegExp _wordBreak = RegExp('[ -]');
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final tier in ConformityTier.values)
-          Expanded(
-            // FittedBox: the widest names ("NIEZALEŻNY") would overrun their
-            // fifth of the axis at the eyebrow's tracked 10px — shrink-to-fit
-            // beats a mid-word break.
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                conformityTierName(l10n, tier).toUpperCase(),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                style: AppTypography.eyebrow(fontSize: 10, tracking: 0.12)
-                    .copyWith(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cell =
+            constraints.maxWidth / ConformityTier.values.length - _gap * 2;
+        final fontSize = _fittingSize(context, cell);
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final tier in ConformityTier.values)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: _gap),
+                  child: Text(
+                    conformityTierName(l10n, tier).toUpperCase(),
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    // The system font is already baked into [fontSize] by
+                    // [_fittingSize] — scaling it again would undo the fit.
+                    textScaler: TextScaler.noScaling,
+                    style: _style(fontSize).copyWith(
                       height: 1.25,
                       color: tier.index == activeIndex
                           ? AppTheme.spark
                           : context.colors.subtle,
                     ),
+                  ),
+                ),
               ),
-            ),
-          ),
-      ],
+          ],
+        );
+      },
     );
+  }
+
+  static TextStyle _style(double fontSize) =>
+      AppTypography.eyebrow(fontSize: fontSize, tracking: 0.04);
+
+  /// The size at which the longest WORD of any rung still fits one cell.
+  ///
+  /// Starts from the system-font size (capped at [_maxSize]) and shrinks only
+  /// when it has to — a 320dp screen, or a large accessibility font. Because
+  /// [AppTypography.eyebrow] derives its tracking from the font size, a label's
+  /// width is exactly linear in that size, so one division lands on the fit;
+  /// scaling via [TextScaler] would not, as letter spacing does not scale with
+  /// it. The size is measured once and shared by all five labels — five labels
+  /// at five sizes look broken, and a per-cell shrink is what mid-word breaks
+  /// are made of.
+  double _fittingSize(BuildContext context, double cell) {
+    final scaled = MediaQuery.textScalerOf(
+      context,
+    ).scale(_size).clamp(_size, _maxSize);
+    if (cell <= 0) return scaled;
+
+    final direction = Directionality.of(context);
+    final style = _style(scaled);
+    var widest = 0.0;
+    for (final tier in ConformityTier.values) {
+      for (final word in conformityTierName(
+        l10n,
+        tier,
+      ).toUpperCase().split(_wordBreak)) {
+        final painter = TextPainter(
+          text: TextSpan(text: word, style: style),
+          textDirection: direction,
+          textScaler: TextScaler.noScaling,
+        )..layout();
+        widest = math.max(widest, painter.width);
+        painter.dispose();
+      }
+    }
+    return widest <= cell ? scaled : scaled * cell / widest;
   }
 }

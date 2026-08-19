@@ -31,11 +31,13 @@ class QuestionScreen extends ConsumerWidget {
     ref.watch(sessionProvider);
     ref.watch(userStatsProvider);
 
-    // Prefetch the conformity axis and hold the subscription for the screen's
-    // lifetime, so opening the panel shows data instantly instead of a
-    // spinner. Freshness comes from invalidation (after a vote, on identity
-    // switch, on reconnect), not from autoDispose refetch-per-open.
+    // Prefetch the conformity axis + debate profile and hold the
+    // subscriptions for the screen's lifetime, so opening the panel shows
+    // data instantly instead of a spinner. Freshness comes from invalidation
+    // (after a vote, on identity switch, on reconnect), not from autoDispose
+    // refetch-per-open.
     ref.watch(conformityStatsProvider);
+    ref.watch(debateProfileProvider);
 
     // When the signed-in identity changes (log in / log out / account switch),
     // drop every per-user cache so the new user never inherits the previous
@@ -56,7 +58,9 @@ class QuestionScreen extends ConsumerWidget {
       ref.invalidate(todaysDailyQuestionProvider);
       ref.invalidate(dailyVoteStateProvider);
       ref.invalidate(smaczkiProvider);
+      ref.invalidate(smaczkiMetaProvider);
       ref.invalidate(conformityStatsProvider);
+      ref.invalidate(debateProfileProvider);
       // Snap back to the daily so a new user never inherits the previous
       // user's position in the deck.
       ref.read(questionIndexProvider.notifier).toDaily();
@@ -97,9 +101,11 @@ class QuestionScreen extends ConsumerWidget {
         // Swap the offline "you voted X" snapshot back for the live community
         // split now that we can reach the server.
         ref.invalidate(dailyVoteStateProvider);
-        // The prefetched conformity axis failed while offline — retry it now
-        // so the panel has data (not a stale error) by the time it's opened.
+        // The prefetched conformity axis + profile failed while offline —
+        // retry them now so the panel has data (not a stale error) by the
+        // time it's opened.
         ref.invalidate(conformityStatsProvider);
+        ref.invalidate(debateProfileProvider);
       }
     });
 

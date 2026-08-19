@@ -1,3 +1,5 @@
+import 'dart:async' show TimeoutException;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -118,10 +120,12 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       // engagement upkeep runs for all of them: refresh the streak chip, flip
       // today's reminder to a post-vote message, maybe ask for a review.
       ref.invalidate(userStatsProvider);
-      // The vote just moved the conformity axis too; refresh it in the
-      // background so the panel opens up-to-date without a spinner (the
-      // question screen keeps it subscribed — see conformityStatsProvider).
+      // The vote just moved the conformity axis and the debate profile too;
+      // refresh both in the background so the panel opens up-to-date without
+      // a spinner (the question screen keeps them subscribed — see
+      // conformityStatsProvider / debateProfileProvider).
       ref.invalidate(conformityStatsProvider);
+      ref.invalidate(debateProfileProvider);
       await _refreshReminderAfterVote(result, l10n);
       await _maybeNudgeAfterVote();
     } catch (e) {
@@ -190,6 +194,7 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
             outcome: challenge.outcome,
             smaczekPosition: smaczek.position,
             smaczekTagged: smaczek.isTagged,
+            choice: choice,
           ),
         );
 
@@ -232,13 +237,21 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
     }
   }
 
+  /// How long the post-vote smaczki fetch may hold the gate (and with it the
+  /// percentages) hostage. Typical RPC latency is a few hundred ms; past this
+  /// the gate yields, the split appears, and the still-running fetch warms the
+  /// sheet for later. Well under [kNetworkCallTimeout] on purpose.
+  static const Duration _challengeFetchBudget = Duration(milliseconds: 2500);
+
   /// Picks the argument to throw at a user who just voted [choice].
   ///
-  /// Prefers what was already warmed while they were reading the question — for
-  /// a PRO user, and for the whole untagged catalog, that is a hit with no round
-  /// trip. Only when nothing readable there is aimed at this side does it go
-  /// back to the server, which now knows the vote and unlocks the argument that
-  /// matches it (see the `get_question_smaczki` RPC).
+  /// A PRO feed warms the full set while the question is read, so that path is
+  /// a hit with no round trip. A free user's device deliberately holds no
+  /// readable text before the vote (the pre-vote prefetch is metadata-only —
+  /// see `get_question_smaczki_meta`), so their pick always goes to the
+  /// server, which now knows the vote and unlocks exactly the argument aimed
+  /// at it. That round trip is bounded by [_challengeFetchBudget]: the
+  /// percentages must never wait long on a smaczek.
   ///
   /// Every null return logs `smaczek_challenge_skipped` with its reason, so
   /// the share of votes that silently bypass the gate is measurable.
@@ -249,20 +262,29 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       'reason': reason,
     });
     try {
-      final warmed = _pickChallenger(
-        ref.read(smaczkiProvider(id)).value,
-        choice,
-      );
+      // `exists` guards the warm read: merely reading an un-instantiated
+      // family entry would START a fetch the invalidate below immediately
+      // restarts, doubling the request.
+      final warmed = ref.exists(smaczkiProvider(id))
+          ? _pickChallenger(ref.read(smaczkiProvider(id)).value, choice)
+          : null;
       if (warmed != null) return warmed;
       ref.invalidate(smaczkiProvider(id));
-      final fresh = await ref.read(smaczkiProvider(id).future);
+      final fresh = await ref
+          .read(smaczkiProvider(id).future)
+          .timeout(_challengeFetchBudget);
       final pick = _pickChallenger(fresh, choice);
       if (pick == null) {
         logSkip(fresh.isEmpty ? 'no_smaczki' : 'no_match_after_refetch');
       }
       return pick;
+    } on TimeoutException {
+      // Not offline, just slow — the gate yields rather than making the user
+      // stare at nothing; the fetch keeps running and warms the sheet.
+      logSkip('slow_fetch');
+      return null;
     } catch (e) {
-      // Offline, a slow RPC, an empty question — all mean "no challenge",
+      // Offline, a failed RPC, an empty question — all mean "no challenge",
       // never "no result".
       logSkip(isOfflineError(e) ? 'offline' : 'no_smaczki');
       return null;

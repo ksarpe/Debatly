@@ -5,6 +5,7 @@ import '../../core/network/network_timeout.dart';
 import '../../services/supabase_service.dart';
 import '../mock/mock_questions.dart';
 import '../models/conformity_stats.dart';
+import '../models/debate_profile.dart';
 import '../models/question.dart';
 import '../models/rank.dart';
 import '../models/smaczek.dart';
@@ -34,10 +35,19 @@ abstract class QuestionRepository {
 
   /// The discussion prompts ("smaczki") for a single question.
   ///
-  /// The source applies the premium gate: a free user gets the first smaczek
-  /// readable plus the rest as locked placeholders (no text), premium users get
-  /// them all. See [Smaczek].
+  /// The source applies the gates: premium reads everything; a free user gets
+  /// readable text only AFTER voting on the question, and then exactly one row
+  /// — the argument aimed at their own side (or a neutral / untagged one) —
+  /// with the rest as locked placeholders (no text). Call this only once the
+  /// vote exists; before it, use [fetchSmaczkiMeta]. See [Smaczek].
   Future<List<Smaczek>> fetchSmaczki(String questionId);
+
+  /// The pre-vote smaczki prefetch: positions + rough lengths, never any text.
+  ///
+  /// Calls `get_question_smaczki_meta` — the only smaczki request allowed
+  /// before the caller's vote, so no readable argument can sit on the device
+  /// while the reflex the community split measures is still forming.
+  Future<List<SmaczekMeta>> fetchSmaczkiMeta(String questionId);
 
   /// Syncs and returns the user's engagement state (streak, rank).
   ///
@@ -116,6 +126,35 @@ abstract class QuestionRepository {
   /// panel). Votes are the gate — a question the user merely saw but never
   /// voted on has no row. See the `get_vote_history` RPC.
   Future<List<VoteHistoryEntry>> fetchVoteHistory();
+
+  /// The caller's debate profile: conformity + resilience raw counts plus the
+  /// server's live boundaries and unlock thresholds (`get_debate_profile`).
+  ///
+  /// Like the conformity stats it aggregates only the caller's own votes, so
+  /// it is NOT premium-gated — the 2×2 type is deliberately free (a free user
+  /// who never sees their type never wants the PRO depth behind it).
+  Future<DebateProfile> fetchDebateProfile();
+
+  /// The PRO trend: the profile's counts bucketed per month, oldest first
+  /// (`get_profile_trend`). Throws 'premium required' for a free caller.
+  Future<List<ProfileTrendPoint>> fetchProfileTrend();
+
+  /// PRO: what share of unlocked profiles lands in the caller's 2×2 cell
+  /// (`get_type_rarity`). Null when the number would embarrass the feature
+  /// (population under the server's floor, or the caller's own profile still
+  /// locked) — the UI hides the block then. Throws 'premium required' for a
+  /// free caller.
+  ///
+  /// The category breakdown (`get_profile_categories`) deliberately has NO
+  /// client method: the catalog's category labels are English-only, so the
+  /// section was pulled from the UI until they're localized. The RPC stays
+  /// live server-side.
+  Future<int?> fetchTypeRarity();
+
+  /// The PRO "zdania, które Cię przewróciły" list: every qualifying gate the
+  /// caller answered "to mnie ruszyło", newest first (`get_moved_smaczki`).
+  /// Throws 'premium required' for a free caller.
+  Future<List<MovedSmaczek>> fetchMovedSmaczki();
 
   /// How often the caller votes with the community majority — one aggregate
   /// row (total / with-majority / with-minority) behind the conformity-axis
@@ -241,6 +280,23 @@ class MockQuestionRepository implements QuestionRepository {
             'Odpowiedziałeś od razu. Ile z tego było decyzją, a ile '
             'odruchem?',
       ),
+    ];
+  }
+
+  @override
+  Future<List<SmaczekMeta>> fetchSmaczkiMeta(String questionId) async {
+    // Mirror the meta RPC's shape off the mock list: positions plus lengths
+    // rounded to 10, no text — so the pre-vote path is exercisable in dev.
+    // No simulated latency, same reasoning as peekNextQuestion above: the
+    // feed prefetches this for every visible question, so a delay here would
+    // leave a pending fake timer failing any widget test that merely shows
+    // the feed. NOT routed through fetchSmaczki (and its delay) for the same
+    // reason — subclass test repos overriding fetchSmaczki keep their canned
+    // list, while the meta path stays instant.
+    return const [
+      SmaczekMeta(position: 1, approxLen: 70),
+      SmaczekMeta(position: 2, approxLen: 70),
+      SmaczekMeta(position: 3, approxLen: 60),
     ];
   }
 
@@ -371,6 +427,84 @@ class MockQuestionRepository implements QuestionRepository {
   }
 
   @override
+  Future<DebateProfile> fetchDebateProfile() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    // Mirrors the conformity mock (34% with the majority) plus a 3/12 moved
+    // share — an unlocked, FULL "Poszukiwacz", so the whole grid renders in
+    // keyless dev. Boundaries/thresholds are the server defaults.
+    return const DebateProfile(
+      totalVotes: 47,
+      majorityVotes: 15,
+      minorityVotes: 29,
+      gateHeld: 9,
+      gateMoved: 3,
+    );
+  }
+
+  @override
+  Future<List<ProfileTrendPoint>> fetchProfileTrend() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    // Mock sessions are premium, so serve a plausible three-month curve.
+    final base = DateTime.now();
+    final thisMonth = DateTime(base.year, base.month);
+    DateTime monthsAgo(int n) => DateTime(thisMonth.year, thisMonth.month - n);
+    return [
+      ProfileTrendPoint(
+        month: monthsAgo(2),
+        totalVotes: 12,
+        majorityVotes: 5,
+        minorityVotes: 6,
+        gateHeld: 2,
+        gateMoved: 1,
+      ),
+      ProfileTrendPoint(
+        month: monthsAgo(1),
+        totalVotes: 18,
+        majorityVotes: 6,
+        minorityVotes: 11,
+        gateHeld: 4,
+        gateMoved: 1,
+      ),
+      ProfileTrendPoint(
+        month: thisMonth,
+        totalVotes: 17,
+        majorityVotes: 4,
+        minorityVotes: 12,
+        gateHeld: 3,
+        gateMoved: 1,
+      ),
+    ];
+  }
+
+  @override
+  Future<int?> fetchTypeRarity() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    // A plausible minority share so the PRO rarity line renders in dev.
+    return 9;
+  }
+
+  @override
+  Future<List<MovedSmaczek>> fetchMovedSmaczki() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final now = DateTime.now();
+    return [
+      MovedSmaczek(
+        questionText: 'Czy pytanie dnia jest darmowe?',
+        smaczekText:
+            'Zgodziłeś się w sekundę — a to samo zdanie podpisałby ktoś, '
+            'kogo nie znosisz.',
+        movedAt: now.subtract(const Duration(days: 2)),
+      ),
+      MovedSmaczek(
+        questionText: 'Czy wiek uprawnia do wszystkiego?',
+        smaczekText:
+            'Odpowiedziałeś od razu. Ile z tego było decyzją, a ile odruchem?',
+        movedAt: now.subtract(const Duration(days: 9)),
+      ),
+    ];
+  }
+
+  @override
   Future<Set<String>> fetchRecentQuestionIds({required DateTime since}) async {
     await Future.delayed(const Duration(milliseconds: 100));
     // Offline preview: mark the first couple of pool questions "new" so the
@@ -488,9 +622,11 @@ class SupabaseQuestionRepository implements QuestionRepository {
   Future<List<Smaczek>> fetchSmaczki(String questionId) async {
     // The RPC returns every smaczek for the question, ordered by how relevant
     // each one is to the caller's own vote, but withholds the text of the
-    // locked ones (a free user reads only the first row of that order).
-    // RLS/grants are deliberately off on the smaczki tables — this SECURITY
-    // DEFINER RPC is the only way in.
+    // locked ones. A free caller gets readable text only after their vote
+    // exists — and then only the argument aimed at them (attacker of their
+    // side, else neutral/untagged; a pure defense stays locked). RLS/grants
+    // are deliberately off on the smaczki tables — this SECURITY DEFINER RPC
+    // is the only way in.
     final data = await _db
         .rpc(
           'get_question_smaczki',
@@ -501,6 +637,24 @@ class SupabaseQuestionRepository implements QuestionRepository {
     return (data as List)
         .cast<Map<String, dynamic>>()
         .map(Smaczek.fromJson)
+        .toList();
+  }
+
+  @override
+  Future<List<SmaczekMeta>> fetchSmaczkiMeta(String questionId) async {
+    // SECURITY DEFINER RPC, metadata only: positions + lengths rounded to 10
+    // characters. This is the whole pre-vote surface of the smaczki — no text
+    // column even exists in the result.
+    final data = await _db
+        .rpc(
+          'get_question_smaczki_meta',
+          params: {'p_question_id': questionId, 'p_locale': locale},
+        )
+        .withNetworkTimeout();
+
+    return (data as List)
+        .cast<Map<String, dynamic>>()
+        .map(SmaczekMeta.fromJson)
         .toList();
   }
 
@@ -675,6 +829,51 @@ class SupabaseQuestionRepository implements QuestionRepository {
     final rows = (data as List).cast<Map<String, dynamic>>();
     if (rows.isEmpty) return ConformityStats.empty;
     return ConformityStats.fromJson(rows.first);
+  }
+
+  @override
+  Future<DebateProfile> fetchDebateProfile() async {
+    // SECURITY DEFINER RPC: the caller's own counts on both axes PLUS the
+    // live boundaries/thresholds from profile_config — the client never
+    // hard-codes a boundary, so the server can retune them without a release.
+    final data = await _db.rpc('get_debate_profile').withNetworkTimeout();
+    final rows = (data as List).cast<Map<String, dynamic>>();
+    if (rows.isEmpty) return DebateProfile.empty;
+    return DebateProfile.fromJson(rows.first);
+  }
+
+  @override
+  Future<List<ProfileTrendPoint>> fetchProfileTrend() async {
+    // SECURITY DEFINER RPC, premium-gated server-side ('premium required').
+    final data = await _db.rpc('get_profile_trend').withNetworkTimeout();
+    return (data as List)
+        .cast<Map<String, dynamic>>()
+        .map(ProfileTrendPoint.fromJson)
+        .toList();
+  }
+
+  @override
+  Future<int?> fetchTypeRarity() async {
+    // SECURITY DEFINER RPC, premium-gated server-side ('premium required').
+    // One row; rarity_pct is NULL below the server's population floor.
+    final data = await _db.rpc('get_type_rarity').withNetworkTimeout();
+    final rows = (data as List).cast<Map<String, dynamic>>();
+    if (rows.isEmpty) return null;
+    return (rows.first['rarity_pct'] as num?)?.toInt();
+  }
+
+  @override
+  Future<List<MovedSmaczek>> fetchMovedSmaczki() async {
+    // SECURITY DEFINER RPC, premium-gated server-side ('premium required').
+    // Localized: the smaczek/question text follows the app locale with an
+    // English fallback, same as every other content RPC.
+    final data = await _db
+        .rpc('get_moved_smaczki', params: {'p_locale': locale})
+        .withNetworkTimeout();
+    return (data as List)
+        .cast<Map<String, dynamic>>()
+        .map(MovedSmaczek.fromJson)
+        .toList();
   }
 
   @override

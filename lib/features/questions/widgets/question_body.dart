@@ -69,13 +69,36 @@ class QuestionBody extends ConsumerWidget {
     // the question does — otherwise a fresh user keeps seeing the old vote bars.
     final userId = ref.watch(sessionProvider.select((s) => s.value?.userId));
 
+    // The rows that sit under the question need this early: the smaczki warm
+    // below picks its provider by it, and the sheet/pill gating reads it too.
+    final isPremium = ref.watch(isPremiumProvider);
+
+    // The smaczki sheet is VOTE-GATED, for both tiers (see the pill wiring
+    // below) — and so is the smaczki TEXT itself for free users, server-side.
+    final hasVoted =
+        isReadable &&
+        questionId != null &&
+        (questionId == kDevCustomQuestionId ||
+            (ref.watch(dailyVoteStateProvider(questionId)).value?.hasVoted ??
+                false));
+
     // Warm the smaczki for a readable question in the background, so the "go
     // deeper" panel opens straight to content instead of a spinner. The result
     // is ignored here — the panel reads the same, now-resolved provider
     // (FutureProvider.family caches per question id). Each swipe re-warms the
     // newly visible question. Locked questions have no panel, so skip them.
+    //
+    // WHICH provider is the leak fix: before the vote a free user's device
+    // must hold no readable argument, so only the metadata prefetch
+    // (positions + rough lengths) runs. The full set is warmed once the vote
+    // exists — and for PRO immediately (they own the text either way, and the
+    // post-vote gate then opens with zero round trips).
     if (isReadable && questionId != null) {
-      ref.watch(smaczkiProvider(questionId));
+      if (isPremium || hasVoted) {
+        ref.watch(smaczkiProvider(questionId));
+      } else {
+        ref.watch(smaczkiMetaProvider(questionId));
+      }
     }
 
     // Same trick for the day wall's teaser: warm it while the free user is
@@ -113,22 +136,18 @@ class QuestionBody extends ConsumerWidget {
     // waits there is part of the reason to vote — but tapping it before the
     // vote answers with a hook instead of the sheet. The DEV custom pin is
     // exempt: it has no server vote row, so this gate could never open for it
-    // (its sheet only renders the "no smaczki" note anyway).
-    final hasVoted =
-        hasRows &&
-        (questionId == kDevCustomQuestionId ||
-            (ref.watch(dailyVoteStateProvider(questionId)).value?.hasVoted ??
-                false));
+    // (its sheet only renders the "no smaczki" note anyway). `hasVoted` is
+    // computed above, next to the smaczki warm that keys off it.
 
     // What the "go deeper" pill promises. Default is the standing "PRZECIWKO
     // TOBIE"; once the post-vote gate has run on THIS question the label must
     // match what the sheet can actually deliver: an untagged argument can't
     // promise "against you" at all, a tagged one leaves PRO the short "KONTRA"
-    // (set larger) and free the honest "two locked ones remain".
+    // (set larger) and free the "case FOR you" hook — the defense is exactly
+    // what remains locked in the sheet.
     final record = hasRows
         ? ref.watch(challengeRecordsProvider)[questionId]
         : null;
-    final isPremium = ref.watch(isPremiumProvider);
     final (goDeeperLabel, goDeeperProminent) = switch (record) {
       null => (context.l10n.goDeeper, false),
       ChallengeRecord(smaczekTagged: false) => (

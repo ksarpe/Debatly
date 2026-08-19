@@ -1,5 +1,6 @@
 import 'package:debatly/core/locale/app_locale.dart';
 import 'package:debatly/data/models/question.dart';
+import 'package:debatly/data/models/smaczek.dart';
 import 'package:debatly/data/models/vote_result.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
@@ -42,6 +43,7 @@ void main() {
     WidgetTester tester, {
     required bool voted,
     bool premium = false,
+    _VoteStateRepo? repo,
   }) async {
     final container = ProviderContainer(
       overrides: [
@@ -57,7 +59,9 @@ void main() {
           (ref) async => q('daily', 'Czy pytanie dnia jest darmowe?'),
         ),
         deckShuffleSeedProvider.overrideWithValue(1),
-        questionRepositoryProvider.overrideWithValue(_VoteStateRepo(voted)),
+        questionRepositoryProvider.overrideWithValue(
+          repo ?? _VoteStateRepo(voted),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -121,17 +125,54 @@ void main() {
     expect(sheetContent, findsOneWidget);
     expect(find.text(lockedToast), findsNothing);
   });
+
+  testWidgets(
+    'pre-vote free feed prefetches METADATA only — the full-text RPC is '
+    'never called, so no readable argument can reach the device',
+    (tester) async {
+      final repo = _VoteStateRepo(false);
+      await pumpFeed(tester, voted: false, repo: repo);
+
+      expect(repo.metaCallIds, isNotEmpty);
+      expect(repo.fullCallIds, isEmpty);
+    },
+  );
+
+  testWidgets('post-vote the feed warms the full set for the sheet', (
+    tester,
+  ) async {
+    final repo = _VoteStateRepo(true);
+    await pumpFeed(tester, voted: true, repo: repo);
+
+    expect(repo.fullCallIds, isNotEmpty);
+  });
 }
 
-/// Mock repo whose vote state the test controls. The smaczki come from
-/// [MockQuestionRepository]'s canned list — the sheet-content marker above.
+/// Mock repo whose vote state the test controls, recording which smaczki RPC
+/// each fetch hits — the regression lock on the pre-vote text leak. The
+/// smaczki come from [MockQuestionRepository]'s canned list — the
+/// sheet-content marker above.
 class _VoteStateRepo extends MockQuestionRepository {
   _VoteStateRepo(this.voted);
 
   final bool voted;
+  final List<String> fullCallIds = [];
+  final List<String> metaCallIds = [];
 
   @override
   Future<VoteResult> getDailyVoteState(String questionId) async => voted
       ? const VoteResult(yesCount: 61, noCount: 39, myChoice: VoteResult.yes)
       : VoteResult.empty;
+
+  @override
+  Future<List<Smaczek>> fetchSmaczki(String questionId) {
+    fullCallIds.add(questionId);
+    return super.fetchSmaczki(questionId);
+  }
+
+  @override
+  Future<List<SmaczekMeta>> fetchSmaczkiMeta(String questionId) {
+    metaCallIds.add(questionId);
+    return super.fetchSmaczkiMeta(questionId);
+  }
 }

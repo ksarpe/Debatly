@@ -82,7 +82,10 @@ first vote. It is always dismissible (the floating X or system back) and
 lands the user back where they were. The pitch is identical for every entry
 point: the fixed slogan headline ("Bez limitu. / Bez końca. / Globalnie.")
 over the catalog subline — no streak escalation, no per-feature headline
-(the `PaywallSource` enum only feeds analytics). The monthly plan comes
+(the `PaywallSource` enum only feeds analytics) — with ONE sanctioned
+exception: opened from the debate profile's locked rows, the headline is the
+portrait line "{n} głosów. Zobacz, co mówią o Tobie." (the paywall then sells
+the user's own portrait, not the catalog). The monthly plan comes
 preselected (with a weekly-equivalent price subline, "To ok. 4,61 zł
 tygodniowo") so the CTA is armed on open; there is no "best value" badge.
 The offering is live from RevenueCat: monthly 19,99 zł / lifetime 69,99 zł
@@ -146,12 +149,18 @@ day wall stands where the catalog would continue.
   Each one is tagged with the answer it attacks (`side`: `attacks_yes` /
   `attacks_no` / `neutral`, NULL until it is tagged in the admin panel), and
   the RPC orders them by relevance to the caller's OWN vote — the argument
-  aimed at the side they actually picked comes first. Everyone reads that top
-  one on a question they've seen; PRO reads them all. The smaczki sheet is
-  vote-gated for both tiers: before the vote the bottom-bar pill stays
-  visible, but tapping it shows the "Najpierw zagłosuj" hook instead of the
-  sheet — arguments read before taking a side would pollute the reflex the
-  community split measures.
+  aimed at the side they actually picked comes first. A free user reads that
+  top one on a question they've seen, but ONLY once their vote exists and only
+  when it actually aims at them (their side's attacker, a neutral or an
+  untagged one — a row that merely defends their answer stays locked: the
+  defense is what PRO is sold on); PRO reads them all. Before the vote the
+  server returns no readable text to a free caller at all, and the client's
+  pre-vote prefetch uses `get_question_smaczki_meta` (positions + lengths
+  rounded to 10 chars, no text column) — so a free device holds at most ONE
+  readable argument per question, ever. The smaczki sheet is vote-gated for
+  both tiers: before the vote the bottom-bar pill stays visible, but tapping
+  it shows the "Najpierw zagłosuj" hook instead of the sheet — arguments read
+  before taking a side would pollute the reflex the community split measures.
 - **The argument comes before the percentages — and the vote is final.** A
   vote does not reveal the split straight away: the smaczek aimed at the side
   just picked falls in word by word, lands on the user's own answer (which
@@ -172,11 +181,51 @@ day wall stands where the catalog would continue.
   the text appears whole and the buttons come right after the tile-shake
   (which stays — it is the whole message). Skipped gates are measured
   (`smaczek_challenge_skipped`: `no_smaczki` / `offline` /
-  `no_match_after_refetch` / `session_cap`). After the gate the bottom bar
-  stops promising "PRZECIWKO TOBIE": it says "KONTRA" (PRO), "ZOSTAŁY JESZCZE
-  DWA" (free) or "JESZCZE DWA ARGUMENTY" (the served smaczek was untagged) —
-  and a free user's smaczki sheet then hides the argument they already read,
-  opening straight on the two locked ones.
+  `no_match_after_refetch` / `slow_fetch` — the post-vote fetch gets a 2.5 s
+  budget, past which the split appears and the fetch keeps warming the sheet —
+  / `session_cap`). After the gate the bottom bar stops promising "PRZECIWKO
+  TOBIE": it says "KONTRA" (PRO), "ARGUMENT ZA TOBĄ" (free — the attack is
+  behind them, so the pill sells the locked defense) or "JESZCZE DWA
+  ARGUMENTY" (the served smaczek was untagged) — and a free user's smaczki
+  sheet then hides the argument they already read, opening straight on the
+  locked ones under an attack → defense header ("jeden, który Cię broni, i
+  jeden, który komplikuje sprawę") when the locked cards really are a defense
+  plus a neutral, or a plain count when that promise can't be kept.
+- **The debate profile** extends the conformity axis (same slide-down panel,
+  deliberately not a screen of its own) with a 2×2 grid: conformity (with /
+  against the crowd) × resilience (how often a qualifying gate ends in "to
+  mnie ruszyło"). The four types — FILAR, PŁYNIE Z PRĄDEM, SAMOTNY WILK,
+  POSZUKIWACZ — are all written with equal dignity: the moment one reads as a
+  punishment, the mechanic teaches people to stop reading smaczki.
+  Resilience counts only gate answers with dwell ≥ the configured minimum
+  (default 1500 ms — below that nobody read the argument; such a "held" is
+  stored as `skipped_fast` and excluded from the personal axis, while the
+  question's flip counters keep today's arithmetic). The boundaries live in
+  `profile_config` server-side — conformity 0.65 (not 50%: a random voter's
+  expected conformity at real splits is ~65%, so a 50% cut would collapse
+  the grid) and resilience 0.15 — and `recompute_profile_boundaries()`
+  (weekly pg_cron job) re-derives them as medians once ≥200 profiles are
+  unlocked. Unlocking needs BOTH ≥6 votes and ≥6 qualifying gate answers
+  (the progress bar tracks whichever counter is further behind); 6–11 shows
+  the type as "profil wstępny", 12+ drops the tag.
+  The free/PRO split follows one rule: **the present is free, the past and
+  the comparison are paid.** Free: the type, both current percentages, the
+  axis rung and the Stories-ready share poster (`ProfileShareCard`). PRO: the
+  monthly trend, the type's rarity ("Twój typ ma X% użytkowników" —
+  `get_type_rarity`, NULL below 20 unlocked profiles), "zdania, które Cię
+  przewróciły" (`get_moved_smaczki`) and the loneliest vote (computed
+  client-side from the PRO vote history). Free sees these as locked rows
+  where **the counter is visible and the content is locked** — the flips row
+  carries the user's real moved count and is hidden entirely at zero (an
+  empty vault teaches the feature is worthless); tapping any row opens the
+  paywall with the portrait headline. The category breakdown was pulled from
+  the UI (the catalog's category labels are English-only); its RPC stays live
+  server-side for when they're localized.
+  **Naming rule:** the conformity axis's five rungs are positional PHRASES
+  ("Zawsze pod prąd" … "Zawsze z tłumem", same 20-pp thresholds), while the
+  2×2 grid keeps the NOUNS — a phrase locates you on a scale, a noun claims
+  an identity, so the two vocabularies can never collide again (the axis rung
+  "Samotny wilk" used to contradict the grid on the same panel).
   Favorites, the vote-history screen and the offline catalog download are PRO
   features — tapping any of them opens the paywall sheet.
 

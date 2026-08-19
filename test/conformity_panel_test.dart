@@ -1,4 +1,5 @@
 import 'package:debatly/data/models/conformity_stats.dart';
+import 'package:debatly/data/models/debate_profile.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/widgets/conformity_panel.dart';
@@ -45,10 +46,12 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('the icon opens the panel with axis, tier and progress card', (
+  testWidgets('the icon opens the panel with axis, rung and progress card', (
     tester,
   ) async {
-    // 15/44 decided ≈ 34% with the majority → Buntownik.
+    // 15/44 decided ≈ 34% with the majority → "Częściej pod prąd". The rungs
+    // are positional PHRASES (the 2×2 grid keeps the nouns), so the axis can
+    // never collide with a profile-type name again.
     await pumpPanelOpener(
       tester,
       stats: const ConformityStats(
@@ -60,13 +63,16 @@ void main() {
 
     expect(find.text('OŚ ZGODNOŚCI'), findsOneWidget);
     expect(find.text('34% z większością'), findsOneWidget);
-    // The active tier appears twice: the badge over the axis + its label row.
-    expect(find.text('BUNTOWNIK'), findsNWidgets(2));
-    // Neighbouring tiers only once, in the label row.
-    expect(find.text('NIEZALEŻNY'), findsOneWidget);
-    expect(find.text('GŁOS TŁUMU'), findsOneWidget);
+    // The active rung appears twice: the badge over the axis + its label row.
+    expect(find.text('CZĘŚCIEJ POD PRĄD'), findsNWidgets(2));
+    // Neighbouring rungs only once, in the label row.
+    expect(find.text('PÓŁ NA PÓŁ'), findsOneWidget);
+    expect(find.text('ZAWSZE Z TŁUMEM'), findsOneWidget);
+    // The old noun rungs are gone — SAMOTNY WILK is a 2×2 type, not a rung.
+    expect(find.textContaining('SAMOTNY WILK'), findsNothing);
+    expect(find.text('BUNTOWNIK'), findsNothing);
     // The next-tier card: 5 more majority votes lift 34% over the 40% bound.
-    expect(find.text('Do stopnia «Niezależny»'), findsOneWidget);
+    expect(find.text('Do stopnia «Pół na pół»'), findsOneWidget);
     expect(find.text('5 głosów z większością'), findsOneWidget);
     expect(find.text('+6%'), findsOneWidget);
   });
@@ -118,7 +124,9 @@ void main() {
 }
 
 /// Mock repo with a canned (or failing) conformity aggregate and no simulated
-/// latency, so the panel resolves within a single pumpAndSettle.
+/// latency, so the panel resolves within a single pumpAndSettle. The debate
+/// profile is pinned LOCKED so these tests stay about the axis — the profile
+/// section has its own test file (debate_profile_section_test.dart).
 class _ConformityRepo extends MockQuestionRepository {
   _ConformityRepo({this.stats, this.fail = false});
 
@@ -130,4 +138,7 @@ class _ConformityRepo extends MockQuestionRepository {
     if (fail) throw Exception('boom');
     return stats ?? ConformityStats.empty;
   }
+
+  @override
+  Future<DebateProfile> fetchDebateProfile() async => DebateProfile.empty;
 }

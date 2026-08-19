@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:debatly/data/models/debate_profile.dart';
 import 'package:debatly/data/models/smaczek.dart';
 import 'package:debatly/data/models/vote_result.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
@@ -221,6 +222,89 @@ void main() {
             outcome: ChallengeOutcome.held,
           );
       expect(v.flipPct, isNull);
+    });
+  });
+
+  group('fetchSmaczkiMeta', () {
+    test('calls the metadata RPC and maps positions + rough lengths', () async {
+      final meta = await repo('''
+        [{"position": 1, "approx_len": 40}, {"position": 2, "approx_len": 50}]
+      ''').fetchSmaczkiMeta('q1');
+
+      expect(capturedUrl.path, endsWith('/rpc/get_question_smaczki_meta'));
+      expect(capturedBody['p_question_id'], 'q1');
+      expect(capturedBody['p_locale'], 'pl');
+      expect(meta, hasLength(2));
+      expect(meta.first.position, 1);
+      expect(meta.first.approxLen, 40);
+    });
+  });
+
+  group('fetchDebateProfile', () {
+    test('maps counts and the server-fed boundaries', () async {
+      final p = await repo('''
+        [{"total_votes": 47, "majority_votes": 15, "minority_votes": 29,
+          "gate_held": 9, "gate_moved": 3,
+          "conformity_boundary": 0.65, "resilience_boundary": 0.15,
+          "unlock_min": 6, "full_min": 12}]
+      ''').fetchDebateProfile();
+
+      expect(capturedUrl.path, endsWith('/rpc/get_debate_profile'));
+      expect(p.totalVotes, 47);
+      expect(p.gateMoved, 3);
+      expect(p.conformityBoundary, 0.65);
+      expect(p.stage, DebateProfileStage.full);
+      expect(p.type, DebateProfileType.seeker);
+    });
+
+    test('falls back to the empty profile on an empty set', () async {
+      final p = await repo('[]').fetchDebateProfile();
+      expect(p.totalVotes, 0);
+      expect(p.stage, DebateProfileStage.locked);
+    });
+  });
+
+  group('fetchMovedSmaczki', () {
+    test('sends the locale and maps the flipped arguments', () async {
+      final moved = await repo('''
+        [{"question_text": "Czy A?", "smaczek_text": "Kontra.",
+          "moved_at": "2026-08-01T10:00:00Z"}]
+      ''').fetchMovedSmaczki();
+
+      expect(capturedUrl.path, endsWith('/rpc/get_moved_smaczki'));
+      expect(capturedBody['p_locale'], 'pl');
+      expect(moved.single.questionText, 'Czy A?');
+      expect(moved.single.smaczekText, 'Kontra.');
+    });
+  });
+
+  group('fetchProfileTrend / fetchTypeRarity', () {
+    test('trend maps month buckets', () async {
+      final trend = await repo('''
+        [{"month": "2026-08-01", "total_votes": 5, "majority_votes": 2,
+          "minority_votes": 2, "gate_held": 1, "gate_moved": 1}]
+      ''').fetchProfileTrend();
+
+      expect(capturedUrl.path, endsWith('/rpc/get_profile_trend'));
+      expect(trend.single.month.month, 8);
+      expect(trend.single.conformityPct, 50);
+    });
+
+    test('rarity maps the percentage and passes NULL through', () async {
+      final rarity = await repo('''
+        [{"rarity_pct": 9, "population": 240}]
+      ''').fetchTypeRarity();
+      expect(capturedUrl.path, endsWith('/rpc/get_type_rarity'));
+      expect(rarity, 9);
+
+      // Below the server's population floor the number is withheld — the
+      // client must see null (block hidden), not zero.
+      expect(
+        await repo('''
+        [{"rarity_pct": null, "population": 3}]
+      ''').fetchTypeRarity(),
+        isNull,
+      );
     });
   });
 

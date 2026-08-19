@@ -1,6 +1,7 @@
 import '../../core/network/network_error.dart';
 import '../../services/question_cache.dart';
 import '../models/conformity_stats.dart';
+import '../models/debate_profile.dart';
 import '../models/question.dart';
 import '../models/rank.dart';
 import '../models/smaczek.dart';
@@ -95,6 +96,20 @@ class CachingQuestionRepository implements QuestionRepository {
     }
   }
 
+  // Pre-vote layout data, not content: offline it degrades to "no smaczki"
+  // (an empty list) rather than erroring or caching — the gate can't run
+  // offline anyway (the vote itself needs the server) and the sheet is
+  // vote-gated, so nothing user-facing is lost.
+  @override
+  Future<List<SmaczekMeta>> fetchSmaczkiMeta(String questionId) async {
+    try {
+      return await inner.fetchSmaczkiMeta(questionId);
+    } catch (e) {
+      if (!isOfflineError(e)) rethrow;
+      return const <SmaczekMeta>[];
+    }
+  }
+
   @override
   Future<List<Smaczek>> fetchSmaczki(String questionId) async {
     try {
@@ -181,6 +196,22 @@ class CachingQuestionRepository implements QuestionRepository {
   @override
   Future<ConformityStats> fetchConformityStats() =>
       inner.fetchConformityStats();
+
+  // Same reasoning as the conformity axis for all four profile reads: live
+  // aggregates over shifting tallies, never cached — offline the panel's
+  // profile section simply doesn't render.
+  @override
+  Future<DebateProfile> fetchDebateProfile() => inner.fetchDebateProfile();
+
+  @override
+  Future<List<ProfileTrendPoint>> fetchProfileTrend() =>
+      inner.fetchProfileTrend();
+
+  @override
+  Future<int?> fetchTypeRarity() => inner.fetchTypeRarity();
+
+  @override
+  Future<List<MovedSmaczek>> fetchMovedSmaczki() => inner.fetchMovedSmaczki();
 
   // The "Nowe" badge is decoration, never worth an offline error screen: with
   // no network the badge simply doesn't show, so a transport failure degrades

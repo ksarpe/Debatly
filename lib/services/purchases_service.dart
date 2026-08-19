@@ -219,6 +219,11 @@ class PurchasesService {
       case PurchasesErrorCode.storeProblemError:
       case PurchasesErrorCode.apiEndpointBlocked:
       case PurchasesErrorCode.productRequestTimeout:
+      // BILLING_UNAVAILABLE: the device has no working Play billing at all
+      // (emulators and the Play pre-launch bots, rooted/de-Googled phones), or
+      // the account is barred from buying (parental controls, work profile,
+      // unsupported country). The store answered — with "not you, not here".
+      case PurchasesErrorCode.purchaseNotAllowedError:
         return true;
       case null:
         // Not a RevenueCat error — fall back to the app-wide "is this just a

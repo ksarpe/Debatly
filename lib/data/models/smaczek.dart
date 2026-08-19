@@ -113,3 +113,25 @@ class Smaczek {
     'side': side?.wire,
   };
 }
+
+/// The pre-vote shape of a smaczek: position and a rough length, never any
+/// text — the wording stays server-side until the caller's vote exists.
+///
+/// Returned by `get_question_smaczki_meta`, the only smaczki call the client
+/// makes BEFORE a vote. Full [Smaczek] rows (via `get_question_smaczki`) are
+/// fetched only after the vote lands, which is what keeps a free device at
+/// exactly one readable argument per question.
+class SmaczekMeta {
+  const SmaczekMeta({required this.position, required this.approxLen});
+
+  final int position;
+
+  /// Text length rounded server-side to the nearest 10 characters — enough to
+  /// reserve plausible space in a layout, useless for guessing the sentence.
+  final int approxLen;
+
+  factory SmaczekMeta.fromJson(Map<String, dynamic> json) => SmaczekMeta(
+    position: (json['position'] as num?)?.toInt() ?? 0,
+    approxLen: (json['approx_len'] as num?)?.toInt() ?? 0,
+  );
+}

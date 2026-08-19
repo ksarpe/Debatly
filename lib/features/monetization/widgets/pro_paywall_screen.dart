@@ -23,18 +23,29 @@ export 'paywall_content.dart' show PaywallSource;
 /// [trigger] is `'auto'` only for the day wall's once-a-day automatic open;
 /// every user-initiated open is `'tap'`.
 ///
+/// [headline] overrides the fixed slogan headline — the ONE sanctioned use is
+/// the debate-profile entry, whose paywall talks about the user's portrait
+/// ("{n} głosów. Zobacz, co mówią o Tobie."), not the catalog. Every other
+/// entry point keeps the identical default copy; do not add more variants
+/// without the owner's sign-off.
+///
 /// A dismissed paywall is a quiet `false`, so call sites keep their "purchase
 /// not completed" handling unchanged.
 Future<bool> showProPaywall(
   BuildContext context, {
   PaywallSource source = PaywallSource.general,
   String trigger = 'tap',
+  String? headline,
 }) async {
   final openedAt = DateTime.now();
   final result = await Navigator.of(context).push<bool>(
     MaterialPageRoute<bool>(
       fullscreenDialog: true,
-      builder: (_) => ProPaywallScreen(source: source, trigger: trigger),
+      builder: (_) => ProPaywallScreen(
+        source: source,
+        trigger: trigger,
+        headline: headline,
+      ),
     ),
   );
   final purchased = result ?? false;
@@ -61,12 +72,16 @@ class ProPaywallScreen extends ConsumerStatefulWidget {
     super.key,
     this.source = PaywallSource.general,
     this.trigger = 'tap',
+    this.headline,
     this.loadPackages,
     this.buy,
   });
 
   final PaywallSource source;
   final String trigger;
+
+  /// Optional headline override (see [showProPaywall]); null = the slogan.
+  final String? headline;
   final Future<List<Package>> Function()? loadPackages;
   final Future<PurchaseOutcome> Function(Package package)? buy;
 
@@ -119,6 +134,7 @@ class _ProPaywallScreenState extends ConsumerState<ProPaywallScreen> {
                 child: ProPaywallContent(
                   source: widget.source,
                   trigger: widget.trigger,
+                  headline: widget.headline,
                   loadPackages: widget.loadPackages,
                   buy: widget.buy,
                   // This link is how a returning buyer reaches the account their

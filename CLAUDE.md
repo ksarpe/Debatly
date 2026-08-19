@@ -45,7 +45,11 @@ surface.
 - **Paywall:** fullscreen dialog, identical copy for EVERY entry point — the
   fixed slogan headline ("Bez limitu. / Bez końca. / Globalnie.") + catalog
   subline; no streak escalation, no per-feature headlines (`PaywallSource`
-  feeds analytics only). Monthly plan preselected, with a weekly-equivalent
+  feeds analytics only) — with ONE owner-approved exception (2026-08-19): the
+  debate profile's locked rows pass the portrait headline "{n} głosów.
+  Zobacz, co mówią o Tobie." (`paywallProfileHeadline` via
+  `showProPaywall(headline:)`). Do not add further variants without the
+  owner's sign-off. Monthly plan preselected, with a weekly-equivalent
   price subline ("To ok. X zł tygodniowo"); no "best value" badge. Offering
   live from RevenueCat: monthly 19,99 zł / lifetime 69,99 zł (PL) — no
   weekly, no annual, no trial.
@@ -88,12 +92,46 @@ surface.
   stays). Post-gate the bar label and the free sheet change (no repeat of the
   read argument — see `challengeRecordsProvider`). `get_question_smaczki`
   orders by relevance to the caller's own vote and the FREE row is the
-  top-ranked one, not position 1. The smaczki SHEET is vote-gated for BOTH
-  tiers: before the vote the bottom-bar pill stays visible but a tap shows the
-  "Najpierw zagłosuj" toast instead of opening it (arguments read pre-vote
-  would pollute the reflex the split measures). Never a trap: system back =
-  `dismissed`, and no readable argument means no gate (skips logged as
-  `smaczek_challenge_skipped`).
+  top-ranked one, not position 1 — and it is readable ONLY once the caller's
+  vote exists and only when it aims at them (attacker of their side, neutral,
+  or untagged; a row that merely defends their answer stays locked). Pre-vote
+  the client prefetches `get_question_smaczki_meta` (positions + rounded
+  lengths, NO text) — a free device never holds more than one readable
+  argument per question. The post-vote fetch has a 2.5 s budget
+  (`slow_fetch` skip): past it, bars immediately. The smaczki SHEET is
+  vote-gated for BOTH tiers: before the vote the bottom-bar pill stays
+  visible but a tap shows the "Najpierw zagłosuj" toast instead of opening it
+  (arguments read pre-vote would pollute the reflex the split measures).
+  Never a trap: system back = `dismissed`, and no readable argument means no
+  gate (skips logged as `smaczek_challenge_skipped`).
+- **The debate profile is an extension of the conformity axis, not a screen.**
+  Under the axis panel sits a 2×2 grid (conformity × resilience): FILAR /
+  PŁYNIE Z PRĄDEM / SAMOTNY WILK / POSZUKIWACZ — all four names equal in
+  dignity, none a punishment (or gamification teaches people to stop reading
+  smaczki). Resilience counts ONLY qualifying gate results: `held`/`moved`
+  with dwell ≥ the server minimum (1500 ms default; a faster "held" is stored
+  as `skipped_fast` and excluded — but still bumps the question's
+  `challenge_held_count`, so the under-question flip line is untouched).
+  Boundaries are **server-side config** (`profile_config`: conformity 0.65 —
+  deliberately NOT 50%, expected random-voter conformity is ~65% — resilience
+  0.15), re-derived as population medians by `recompute_profile_boundaries()`
+  (weekly pg_cron; no-op under 200 unlocked profiles). Unlock needs BOTH ≥6
+  votes AND ≥6 qualifying gates (progress bar shows the counter further
+  behind); 6–11 = "profil wstępny", 12+ = full. Free/PRO rule: **the present
+  is free, the past and the comparison are paid.** Free: type, both current
+  percentages, axis rung, share card. PRO: trend, type rarity
+  (`get_type_rarity`, NULL under 20 unlocked profiles → block hidden),
+  "zdania, które Cię przewróciły" (`get_moved_smaczki`) and the loneliest
+  vote (client-side off the PRO vote history). Free sees locked rows with
+  VISIBLE counters (the flips row shows the real `gate_moved` and is hidden
+  at zero — never show an empty vault); a tap opens the paywall with the
+  portrait headline. The category breakdown is UI-removed (English labels);
+  `get_profile_categories` stays live server-side. Data RPC:
+  `get_debate_profile` (not premium-gated). **Naming rule:** the conformity
+  axis's five rungs are positional PHRASES ("Zawsze pod prąd" … "Zawsze z
+  tłumem", thresholds unchanged), the 2×2 grid keeps the NOUNS — never give
+  a rung a noun name, that's how "Samotny wilk" ended up meaning two things
+  on one panel.
 - Voting is allowed on any readable question; the split shown is the
   **all-time** tally, not "today's result". The streak advances on any vote,
   at most once per UTC day, and decays one rank per 3 missed days.

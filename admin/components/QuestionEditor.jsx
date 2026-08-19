@@ -266,8 +266,8 @@ export default function QuestionEditor({
   }
 
   // Odwrotność "Kopiuj dla agenta": wkleja JSON od agenta i wypełnia formularz.
-  // Akceptuje { question: { pl, en }, smaczki: [{ id?, pl, en }] } — pola
-  // nieobecne w JSON-ie zostają bez zmian.
+  // Akceptuje { question: { pl, en }, smaczki: [{ id?, pl, en, side|type }] } —
+  // pola nieobecne w JSON-ie zostają bez zmian.
   function parsePaste() {
     setPasteErr(null);
     let json;
@@ -286,20 +286,41 @@ export default function QuestionEditor({
     if (typeof q.pl === 'string') next.pl = q.pl;
     if (typeof q.en === 'string') next.en = q.en;
     if (Array.isArray(json.smaczki)) {
+      // Tag smaczka: kanonicznie "side", alias "type" (agenty piszą różnie).
+      // Brak klucza = zostaje obecny tag; jawne null = zdejmij tag; nieznana
+      // wartość = twardy błąd, żeby literówka agenta nie przeszła po cichu.
+      const readSide = (s, cur, i) => {
+        const key = 'side' in s ? 'side' : ('type' in s ? 'type' : null);
+        if (!key) return cur ?? null;
+        const raw = s[key];
+        if (raw === null) return null;
+        const v = String(raw).trim().toLowerCase();
+        if (!SIDES.some((o) => o.value === v)) {
+          throw new Error(`Smaczek ${i + 1}: nieznana wartość "${key}": "${raw}". `
+            + 'Dozwolone: attacks_yes, attacks_no, neutral albo null.');
+        }
+        return v;
+      };
       // Merged onto the rows already in the form, by position: a JSON that
       // carries only sides — {"smaczki":[{"side":"attacks_yes"}, …]}, which is
       // what a tagging pass returns — tags them instead of blanking their text.
-      next.smaczki = [...json.smaczki]
-        .sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0))
-        .map((s, i) => {
-          const cur = form.smaczki[i] ?? {};
-          return {
-            pl: typeof s?.pl === 'string' ? s.pl : String(cur.pl ?? ''),
-            en: typeof s?.en === 'string' ? s.en : String(cur.en ?? ''),
-            side: SIDES.some((o) => o.value === s?.side) ? s.side : (cur.side ?? null),
-          };
-        })
-        .filter((s) => s.pl !== '' || s.en !== '');
+      try {
+        next.smaczki = [...json.smaczki]
+          .sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0))
+          .map((s, i) => {
+            const cur = form.smaczki[i] ?? {};
+            const src = s && typeof s === 'object' ? s : {};
+            return {
+              pl: typeof src.pl === 'string' ? src.pl : String(cur.pl ?? ''),
+              en: typeof src.en === 'string' ? src.en : String(cur.en ?? ''),
+              side: readSide(src, cur.side, i),
+            };
+          })
+          .filter((s) => s.pl !== '' || s.en !== '');
+      } catch (e) {
+        setPasteErr(e.message);
+        return;
+      }
       if (next.smaczki.length === 0) delete next.smaczki;
     }
     if (typeof json.category === 'string' && CATEGORIES.includes(json.category)) {
@@ -524,7 +545,8 @@ export default function QuestionEditor({
               Format: {'{ "question": { "pl", "en" }, "smaczki": [{ "pl", "en", "side" }] }'} —
               pola nieobecne w JSON-ie zostaną bez zmian, więc sam
               {' "smaczki": [{ "side": "attacks_yes" }, …] '} otaguje istniejące wiersze.
-              Dozwolone strony: attacks_yes, attacks_no, neutral.
+              Dozwolone strony: attacks_yes, attacks_no, neutral, null (zdejmuje tag);
+              {' "type" '}działa jako alias {'"side"'}.
             </p>
             <textarea rows={12} value={pasteText} autoFocus
                       style={{ width: '100%', fontFamily: 'monospace', fontSize: 13 }}

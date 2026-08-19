@@ -79,13 +79,16 @@ class ConformityStats {
 /// The five steps of the conformity axis, ordered from "always the minority"
 /// to "always the majority". Each tier spans 20 percentage points of
 /// [ConformityStats.majorityFraction]; a fraction on a bound belongs to the
-/// higher tier (40% is already Niezależny, not Buntownik).
+/// higher tier (40% is already "Pół na pół", not "Częściej pod prąd").
 enum ConformityTier {
-  loneWolf(0), // 0–19% with the majority — Samotny wilk
-  rebel(1), // 20–39% — Buntownik
-  independent(2), // 40–59% — Niezależny
-  inTheCurrent(3), // 60–79% — W nurcie
-  crowdVoice(4); // 80–100% — Głos tłumu
+  // Display names are positional PHRASES (see conformityTierName): the 2×2
+  // profile grid owns the nouns, so the two vocabularies can never collide.
+  // The enum member names are internal identifiers only.
+  loneWolf(0), // 0–19% with the majority — Zawsze pod prąd
+  rebel(1), // 20–39% — Częściej pod prąd
+  independent(2), // 40–59% — Pół na pół
+  inTheCurrent(3), // 60–79% — Częściej z tłumem
+  crowdVoice(4); // 80–100% — Zawsze z tłumem
 
   const ConformityTier(this.lowerBoundFifths);
 

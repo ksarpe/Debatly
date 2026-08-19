@@ -44,6 +44,10 @@ enum PaywallSource {
 
   /// The history upsell (voting record).
   history,
+
+  /// The locked PRO depth (trend / categories / moved list) under the debate
+  /// profile in the conformity panel.
+  profile,
 }
 
 /// The paywall body inside the fullscreen paywall ([ProPaywallScreen]): a
@@ -67,12 +71,18 @@ class ProPaywallContent extends ConsumerStatefulWidget {
     required this.source,
     required this.onEntitled,
     this.trigger = 'tap',
+    this.headline,
     this.onBusyChanged,
     this.showSignInLink = false,
     this.loadPackages,
     this.buy,
     this.retryBackoff,
   });
+
+  /// Optional headline override, already localized. Null renders the fixed
+  /// slogan ([AppLocalizations.paywallTitleDefault]). The one sanctioned
+  /// caller is the debate-profile entry — see [showProPaywall].
+  final String? headline;
 
   /// How long to wait before each automatic re-fetch of the offering, and
   /// therefore how many of them there are.
@@ -458,7 +468,8 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
     // (the screen's floating X keeps the top-right), then the slogan headline
     // over the pitch line, the plan stack, and the compact feature list. The
     // copy is identical for every entry point — the source only feeds
-    // analytics.
+    // analytics — with ONE sanctioned exception: the debate-profile entry
+    // passes its portrait headline via [ProPaywallContent.headline].
     final scrollBody = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -471,7 +482,7 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
         ),
         const SizedBox(height: 18),
         Text(
-          context.l10n.paywallTitleDefault.toUpperCase(),
+          (widget.headline ?? context.l10n.paywallTitleDefault).toUpperCase(),
           style: AppTypography.display(40).copyWith(color: colors.ink),
         ),
         const SizedBox(height: 12),

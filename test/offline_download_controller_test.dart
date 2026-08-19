@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:debatly/core/locale/app_locale.dart';
 import 'package:debatly/data/models/conformity_stats.dart';
+import 'package:debatly/data/models/debate_profile.dart';
 import 'package:debatly/data/models/question.dart';
 import 'package:debatly/data/models/rank.dart';
 import 'package:debatly/data/models/smaczek.dart';
@@ -170,6 +171,10 @@ class _FakeRepo implements QuestionRepository {
   }
 
   @override
+  Future<List<SmaczekMeta>> fetchSmaczkiMeta(String questionId) async =>
+      const [];
+
+  @override
   Future<Question?> fetchDailyQuestion(DateTime date) async => null;
 
   @override
@@ -216,6 +221,18 @@ class _FakeRepo implements QuestionRepository {
 
   @override
   Future<ConformityStats> fetchConformityStats() async => ConformityStats.empty;
+
+  @override
+  Future<DebateProfile> fetchDebateProfile() async => DebateProfile.empty;
+
+  @override
+  Future<List<ProfileTrendPoint>> fetchProfileTrend() async => const [];
+
+  @override
+  Future<int?> fetchTypeRarity() async => null;
+
+  @override
+  Future<List<MovedSmaczek>> fetchMovedSmaczki() async => const [];
 
   @override
   Future<Set<String>> fetchRecentQuestionIds({required DateTime since}) async =>

@@ -87,8 +87,9 @@ void main() {
   );
 
   testWidgets(
-    'free user AFTER the gate: the served argument is not repeated — two '
-    'locked cards, the honest header, numbering picks up at 2',
+    'free user AFTER the gate (untagged catalog): the served argument is not '
+    'repeated — two locked cards, the honest count header, numbering picks up '
+    'at 2',
     (tester) async {
       await pumpSheet(
         tester,
@@ -96,7 +97,8 @@ void main() {
         gateRecord: const ChallengeRecord(
           outcome: ChallengeOutcome.held,
           smaczekPosition: 1,
-          smaczekTagged: true,
+          smaczekTagged: false,
+          choice: 1,
         ),
         smaczki: const [
           Smaczek(position: 1, isLocked: false, text: 'Pierwszy argument.'),
@@ -113,9 +115,46 @@ void main() {
       expect(find.text('2'), findsOneWidget);
       expect(find.text('3'), findsOneWidget);
       expect(find.text('1'), findsNothing);
-      // The header owns the story instead of the generic remaining-count line.
+      // Untagged rows can't promise a defense, so the header only counts.
       expect(
-        find.text('Pierwszy masz za sobą. Zostały dwa — oba przeciwko Tobie.'),
+        find.text('Pierwszy masz za sobą. Zostały jeszcze dwa.'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'free user AFTER the gate on a fully tagged question: the header sells '
+    'attack → defense (one card defends the answer, one complicates it)',
+    (tester) async {
+      await pumpSheet(
+        tester,
+        premium: false,
+        gateRecord: const ChallengeRecord(
+          outcome: ChallengeOutcome.moved,
+          smaczekPosition: 2,
+          smaczekTagged: true,
+          choice: 1, // voted TAK; the gate served the attacks_yes row (pos 2)
+        ),
+        smaczki: const [
+          Smaczek(
+            position: 2,
+            isLocked: false,
+            text: 'Atak na TAK.',
+            side: SmaczekSide.attacksYes,
+          ),
+          Smaczek(position: 1, isLocked: true, side: SmaczekSide.attacksNo),
+          Smaczek(position: 3, isLocked: true, side: SmaczekSide.neutral),
+        ],
+      );
+
+      expect(find.text('Atak na TAK.'), findsNothing);
+      expect(find.byIcon(Icons.lock_rounded), findsNWidgets(2));
+      expect(
+        find.text(
+          'Dostałeś argument przeciwko sobie. Zostały dwa: jeden, który Cię '
+          'broni, i jeden, który komplikuje sprawę.',
+        ),
         findsOneWidget,
       );
     },
