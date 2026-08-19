@@ -16,11 +16,18 @@ import '../../../services/supabase_service.dart';
 /// are; the initial session, a plain `signedIn`, and a token refresh carry no
 /// identity change to act on and are deliberately ignored.
 ///
+/// `passwordRecovery` counts too: redeeming a reset link REPLACES the session
+/// with the recovered account's, so without a reload the UI keeps rendering the
+/// previous identity while every RPC already runs as the new one — and the user
+/// can dismiss the "set a new password" sheet, leaving that mismatch standing.
+///
 /// Extracted from [SessionNotifier] so the "which events trip a reload" rule —
 /// easy to widen by accident into a reload storm — is pinned by a unit test.
 @visibleForTesting
 bool isIdentityChangingAuthEvent(AuthChangeEvent event) =>
-    event == AuthChangeEvent.signedOut || event == AuthChangeEvent.userUpdated;
+    event == AuthChangeEvent.signedOut ||
+    event == AuthChangeEvent.userUpdated ||
+    event == AuthChangeEvent.passwordRecovery;
 
 /// Whether the auth listener should answer [event] with a session reload,
 /// given which in-app flow currently owns its own reload. An in-app sign-out
@@ -195,19 +202,34 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
   /// refresh events are ignored (no identity change to act on).
   void _subscribeToAuthChanges() {
     if (!SupabaseService.isInitialised) return;
-    final sub = SupabaseService.client.auth.onAuthStateChange.listen((data) {
-      // An in-app sign-out / register / social link owns its own reload (see
-      // [signOutAndReload] and [runAuthFlowAndReload]); don't double up on the
-      // event it emits.
-      if (!shouldReloadOnAuthEvent(
-        data.event,
-        selfDrivenSignOut: _selfDrivenSignOut,
-        selfDrivenUserUpdate: _selfDrivenUserUpdate,
-      )) {
-        return;
-      }
-      refresh();
-    });
+    final sub = SupabaseService.client.auth.onAuthStateChange.listen(
+      (data) {
+        // An in-app sign-out / register / social link owns its own reload (see
+        // [signOutAndReload] and [runAuthFlowAndReload]); don't double up on the
+        // event it emits.
+        if (!shouldReloadOnAuthEvent(
+          data.event,
+          selfDrivenSignOut: _selfDrivenSignOut,
+          selfDrivenUserUpdate: _selfDrivenUserUpdate,
+        )) {
+          return;
+        }
+        refresh();
+      },
+      // gotrue reports failures by pushing an ERROR onto this stream
+      // (`notifyException` — e.g. a reset link whose PKCE verifier belongs to
+      // another install, or a refresh that keeps failing). A `listen` without
+      // `onError` hands those to the zone, where Sentry logs them as UNHANDLED
+      // crashes even though the flow that cares (see [PasswordRecoveryListener])
+      // already handled them. Identity is unchanged by a failure, so there is
+      // nothing to reload — leave a trail and swallow it.
+      onError: (Object error) {
+        Monitoring.addBreadcrumb(
+          'Auth stream error: ${error.runtimeType}',
+          category: 'auth',
+        );
+      },
+    );
     ref.onDispose(sub.cancel);
   }
 

@@ -67,6 +67,30 @@ class AppConfig {
     defaultValue: 'https://debatly.app/email-potwierdzony',
   );
 
+  /// Deep link the password-reset mail sends the user back to, so the new
+  /// password is typed IN THE APP.
+  ///
+  /// This cannot be a web page: the default auth flow is PKCE, and GoTrue
+  /// stores the `code_verifier` needed to redeem the recovery code in the app's
+  /// own storage — only this install can finish the exchange. Pointing the mail
+  /// at the marketing site (what happens when `redirectTo` is omitted) leaves
+  /// the user on a page with nowhere to type a password and no way back, which
+  /// makes an email/password account unrecoverable.
+  ///
+  /// `supabase_flutter` picks the link up on its own (it listens for incoming
+  /// links and hands anything carrying a `code` to `getSessionFromUrl`), which
+  /// emits `AuthChangeEvent.passwordRecovery` — see [PasswordRecoveryListener].
+  ///
+  /// The scheme has to be registered natively on both platforms
+  /// (`AndroidManifest.xml` intent-filter, `CFBundleURLSchemes` in
+  /// `Info.plist`) AND allow-listed in the Supabase dashboard under
+  /// Authentication → URL Configuration → Redirect URLs, or GoTrue drops it and
+  /// falls back to the Site URL.
+  static const String passwordResetRedirectUrl = String.fromEnvironment(
+    'PASSWORD_RESET_REDIRECT_URL',
+    defaultValue: 'debatly://reset-password',
+  );
+
   /// Sentry DSN (the project's ingest URL, found in Sentry under
   /// `Settings → Projects → your project → Client Keys (DSN)`). When empty, Sentry is
   /// initialised in a disabled state so the app still runs against mock data with

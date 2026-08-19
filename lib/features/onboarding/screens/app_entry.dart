@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../account/providers/session_providers.dart';
+import '../../account/widgets/password_recovery_listener.dart';
 import '../../account/widgets/save_pro_prompt.dart';
 import '../../questions/screens/question_screen.dart';
 import '../../questions/widgets/load_error.dart';
@@ -69,13 +70,17 @@ class _AppEntryState extends ConsumerState<AppEntry> {
       _Phase.home => const HomeGate(),
     };
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 450),
-      switchInCurve: Curves.easeOut,
-      switchOutCurve: Curves.easeIn,
-      // Key on the phase so the switcher cross-fades between screens rather than
-      // reusing the previous element.
-      child: KeyedSubtree(key: ValueKey(_phase), child: child),
+    // Above the phase switcher: a tapped password-reset link can arrive in any
+    // phase, splash included, and must not be swallowed.
+    return PasswordRecoveryListener(
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 450),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        // Key on the phase so the switcher cross-fades between screens rather
+        // than reusing the previous element.
+        child: KeyedSubtree(key: ValueKey(_phase), child: child),
+      ),
     );
   }
 }

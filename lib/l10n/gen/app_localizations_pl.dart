@@ -142,6 +142,26 @@ class AppLocalizationsPl extends AppLocalizations {
       'Jeśli istnieje konto dla tego adresu, wysłaliśmy link do resetu hasła.';
 
   @override
+  String get authSetNewPasswordTitle => 'Ustaw nowe hasło';
+
+  @override
+  String get authSetNewPasswordSubtitle =>
+      'Link Cię zalogował — wybierz nowe hasło do swojego konta.';
+
+  @override
+  String get authNewPasswordLabel => 'NOWE HASŁO';
+
+  @override
+  String get authSetNewPasswordCta => 'ZAPISZ NOWE HASŁO';
+
+  @override
+  String get authPasswordUpdated => 'Hasło zmienione. Jesteś zalogowany.';
+
+  @override
+  String get authRecoveryLinkInvalid =>
+      'Ten link do resetu wygasł albo został już użyty. Poproś o nowy.';
+
+  @override
   String get authMissingSupabaseConfig =>
       'Brakuje konfiguracji Supabase. Uruchom aplikację z SUPABASE_URL i SUPABASE_ANON_KEY.';
 
@@ -1098,7 +1118,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bridgeCtaPrimary => 'Odbierz dzisiejsze pytanie';
 
   @override
-  String get bridgeCtaSecondary => 'Odblokuj wszystkie 500';
+  String get bridgeCtaSecondary => 'Odblokuj wszystkie';
 
   @override
   String get bridgeCtaSecondaryHint => '(i wiele innych korzyści)';

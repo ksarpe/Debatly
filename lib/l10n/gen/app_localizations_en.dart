@@ -142,6 +142,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'If an account exists for that email, we\'ve sent a reset link.';
 
   @override
+  String get authSetNewPasswordTitle => 'Set a new password';
+
+  @override
+  String get authSetNewPasswordSubtitle =>
+      'You\'re signed in from the link — pick the new password for your account.';
+
+  @override
+  String get authNewPasswordLabel => 'NEW PASSWORD';
+
+  @override
+  String get authSetNewPasswordCta => 'SAVE NEW PASSWORD';
+
+  @override
+  String get authPasswordUpdated => 'Password changed. You\'re signed in.';
+
+  @override
+  String get authRecoveryLinkInvalid =>
+      'That reset link has expired or was already used. Request a new one.';
+
+  @override
   String get authMissingSupabaseConfig =>
       'Supabase configuration is missing. Run the app with SUPABASE_URL and SUPABASE_ANON_KEY.';
 
@@ -1078,7 +1098,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bridgeCtaPrimary => 'Get today\'s question';
 
   @override
-  String get bridgeCtaSecondary => 'Unlock all 500';
+  String get bridgeCtaSecondary => 'Unlock all';
 
   @override
   String get bridgeCtaSecondaryHint => '(and many more perks)';

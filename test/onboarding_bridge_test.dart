@@ -45,7 +45,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('ODBIERZ DZISIEJSZE PYTANIE'), findsOneWidget);
-    expect(find.text('ODBLOKUJ WSZYSTKIE 500'), findsOneWidget);
+    expect(find.text('ODBLOKUJ WSZYSTKIE'), findsOneWidget);
   });
 
   testWidgets('the primary CTA continues for free — no paywall anywhere', (
@@ -66,7 +66,7 @@ void main() {
     var continued = false;
     await pumpBridge(tester, onContinue: () => continued = true);
 
-    await tester.tap(find.text('ODBLOKUJ WSZYSTKIE 500'));
+    await tester.tap(find.text('ODBLOKUJ WSZYSTKIE'));
     await tester.pumpAndSettle();
     expect(find.byType(ProPaywallScreen), findsOneWidget);
 
@@ -77,6 +77,6 @@ void main() {
     expect(continued, isFalse);
     // Both paths are still on offer.
     expect(find.text('ODBIERZ DZISIEJSZE PYTANIE'), findsOneWidget);
-    expect(find.text('ODBLOKUJ WSZYSTKIE 500'), findsOneWidget);
+    expect(find.text('ODBLOKUJ WSZYSTKIE'), findsOneWidget);
   });
 }

@@ -302,8 +302,14 @@ class SupabaseService {
   }
 
   /// Sends a password-reset email so a user who forgot their password can set a
-  /// new one. Supabase emails a recovery link out of the box; the link's target
-  /// is the project's configured Site URL (no client-side deep link required).
+  /// new one.
+  ///
+  /// [AppConfig.passwordResetRedirectUrl] steers the link back INTO the app —
+  /// without it the mail lands on the project's Site URL, where there is
+  /// nothing to type a password into and (under the default PKCE flow) nothing
+  /// that could redeem the code anyway. Redeeming happens automatically once
+  /// the deep link arrives; [PasswordRecoveryListener] then opens the
+  /// "set a new password" sheet.
   ///
   /// Note: Supabase deliberately returns success even for an unknown email so
   /// the endpoint can't be used to probe which addresses have accounts, so the
@@ -312,7 +318,22 @@ class SupabaseService {
     if (!_initialised) {
       throw StateError('Supabase is not configured.');
     }
-    await client.auth.resetPasswordForEmail(email.trim());
+    await client.auth.resetPasswordForEmail(
+      email.trim(),
+      redirectTo: AppConfig.passwordResetRedirectUrl,
+    );
+  }
+
+  /// Sets a new password on the CURRENT session.
+  ///
+  /// Used to finish a password recovery: redeeming the mail's code already
+  /// signed this user in, so the update needs no old password. Emits
+  /// `userUpdated`, which the session listener converges on.
+  static Future<void> updatePassword(String password) async {
+    if (!_initialised) {
+      throw StateError('Supabase is not configured.');
+    }
+    await client.auth.updateUser(UserAttributes(password: password));
   }
 
   /// Decides what submitting the register form would actually DO to the

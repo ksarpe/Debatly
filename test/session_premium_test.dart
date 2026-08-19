@@ -91,6 +91,17 @@ void main() {
       expect(isIdentityChangingAuthEvent(AuthChangeEvent.userUpdated), isTrue);
     });
 
+    // Redeeming a reset link swaps in the recovered account's session. Without a
+    // reload the UI keeps showing the previous identity while every RPC already
+    // runs as the new one — and dismissing the "set a new password" sheet leaves
+    // that mismatch standing until the app is killed.
+    test('redeeming a password-reset link reloads', () {
+      expect(
+        isIdentityChangingAuthEvent(AuthChangeEvent.passwordRecovery),
+        isTrue,
+      );
+    });
+
     test('the initial session / sign-in / token refresh do NOT reload', () {
       expect(
         isIdentityChangingAuthEvent(AuthChangeEvent.initialSession),

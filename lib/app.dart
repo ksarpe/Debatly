@@ -65,6 +65,16 @@ class DebatlyApp extends ConsumerWidget {
         // After onboarding has run once, this drops straight through to the
         // question screen (see AppEntry).
         home: const AppEntry(),
+        // The app has exactly one route, so any name other than "/" is a deep
+        // link the platform tried to route (a password-reset URI arrives as
+        // "/?code=..."). Those are consumed by app_links inside
+        // supabase_flutter, not by the Navigator — the engine's own deep-link
+        // routing is switched off (AndroidManifest / Info.plist). This is the
+        // last line of defence: without it an unroutable name is a FATAL
+        // "could not find a generator for route", so send it to the one screen
+        // the app has instead of crashing.
+        onUnknownRoute: (_) =>
+            MaterialPageRoute<void>(builder: (_) => const AppEntry()),
       ),
     );
   }

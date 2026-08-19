@@ -30,9 +30,34 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- The engine must NOT turn an incoming deep link into a Navigator
+                 route name. The password-reset URI is consumed by app_links
+                 (via supabase_flutter), which reads the intent itself; letting
+                 Flutter also route it pushed "/?code=..." at a MaterialApp that
+                 only declares `home`, which is a fatal "could not find a
+                 generator for route". -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false"
+              />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- Password-reset deep link. The recovery mail points here so the
+                 new password is typed IN THE APP: the auth flow is PKCE, and the
+                 code_verifier that redeems the link lives in this install's
+                 storage, so a web page could not finish the exchange. The
+                 scheme/host pair must match AppConfig.passwordResetRedirectUrl
+                 (debatly://reset-password) and be allow-listed in Supabase under
+                 Authentication -> URL Configuration -> Redirect URLs. A custom
+                 scheme (not an App Link) keeps this off any hosted
+                 assetlinks.json. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="debatly" android:host="reset-password"/>
             </intent-filter>
         </activity>
         <!-- flutter_local_notifications: receivers that fire the scheduled daily

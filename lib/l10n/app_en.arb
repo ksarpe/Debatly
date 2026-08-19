@@ -48,6 +48,12 @@
   "authLegalTermsLink": "Terms of Service",
   "authLegalPrivacyLink": "Privacy Policy",
   "authPasswordResetSent": "If an account exists for that email, we've sent a reset link.",
+  "authSetNewPasswordTitle": "Set a new password",
+  "authSetNewPasswordSubtitle": "You're signed in from the link — pick the new password for your account.",
+  "authNewPasswordLabel": "NEW PASSWORD",
+  "authSetNewPasswordCta": "SAVE NEW PASSWORD",
+  "authPasswordUpdated": "Password changed. You're signed in.",
+  "authRecoveryLinkInvalid": "That reset link has expired or was already used. Request a new one.",
   "authMissingSupabaseConfig": "Supabase configuration is missing. Run the app with SUPABASE_URL and SUPABASE_ANON_KEY.",
   "authMissingGoogleConfig": "GOOGLE_SERVER_CLIENT_ID is missing, so Google is temporarily disabled.",
   "authAlreadySignedIn": "You're already signed in to your account — no need to register again.",
@@ -507,7 +513,7 @@
   "@bridgeCtaPrimary": {
     "description": "Primary (visually dominant) bridge CTA — continues into the app for free."
   },
-  "bridgeCtaSecondary": "Unlock all 500",
+  "bridgeCtaSecondary": "Unlock all",
   "@bridgeCtaSecondary": {
     "description": "Secondary bridge CTA — opens the paywall sheet."
   },

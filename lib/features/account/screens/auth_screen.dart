@@ -16,6 +16,7 @@ import '../../../services/supabase_service.dart';
 import '../providers/session_providers.dart';
 import '../widgets/auth_brand_glyph.dart';
 import '../widgets/auth_circle_icon_button.dart';
+import '../widgets/auth_field.dart';
 import '../widgets/auth_legal_consent_text.dart';
 import '../widgets/auth_notice.dart';
 import '../widgets/auth_or_divider.dart';
@@ -166,7 +167,7 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                         ),
                         const SizedBox(height: 14),
                       ],
-                      _fieldLabel(context.l10n.authEmailLabel),
+                      authFieldLabel(context, context.l10n.authEmailLabel),
                       TextFormField(
                         controller: _emailController,
                         enabled: !_isSubmitting,
@@ -176,11 +177,14 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                         style: AppTypography.body(
                           fontSize: 15,
                         ).copyWith(color: context.colors.ink),
-                        decoration: _fieldDecoration(hint: 'you@example.com'),
+                        decoration: authFieldDecoration(
+                          context,
+                          hint: 'you@example.com',
+                        ),
                         validator: _validateEmail,
                       ),
                       const SizedBox(height: 14),
-                      _fieldLabel(context.l10n.authPasswordLabel),
+                      authFieldLabel(context, context.l10n.authPasswordLabel),
                       TextFormField(
                         controller: _passwordController,
                         enabled: !_isSubmitting,
@@ -194,7 +198,8 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                         style: AppTypography.body(
                           fontSize: 15,
                         ).copyWith(color: context.colors.ink),
-                        decoration: _fieldDecoration(
+                        decoration: authFieldDecoration(
+                          context,
                           hint: '••••••••',
                           suffixIcon: IconButton(
                             tooltip: _obscurePassword
@@ -219,7 +224,10 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                       ),
                       if (!_isLogin) ...[
                         const SizedBox(height: 14),
-                        _fieldLabel(context.l10n.authConfirmPasswordLabel),
+                        authFieldLabel(
+                          context,
+                          context.l10n.authConfirmPasswordLabel,
+                        ),
                         TextFormField(
                           controller: _confirmPasswordController,
                           enabled: !_isSubmitting,
@@ -229,7 +237,10 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                           style: AppTypography.body(
                             fontSize: 15,
                           ).copyWith(color: context.colors.ink),
-                          decoration: _fieldDecoration(hint: '••••••••'),
+                          decoration: authFieldDecoration(
+                            context,
+                            hint: '••••••••',
+                          ),
                           validator: _validateConfirmPassword,
                           onFieldSubmitted: (_) => _submit(),
                         ),
@@ -427,37 +438,6 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
       _mode = mode;
       _formKey.currentState?.reset();
     });
-  }
-
-  Widget _fieldLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, left: 2),
-    child: Text(
-      text,
-      style: AppTypography.support().copyWith(color: context.colors.subtle),
-    ),
-  );
-
-  InputDecoration _fieldDecoration({String? hint, Widget? suffixIcon}) {
-    OutlineInputBorder border(Color color, [double width = 1]) =>
-        OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: color, width: width),
-        );
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: AppTypography.support(
-        fontSize: 13,
-      ).copyWith(color: context.colors.subtle),
-      filled: true,
-      fillColor: context.colors.accent,
-      suffixIcon: suffixIcon,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      enabledBorder: border(context.colors.hairline),
-      focusedBorder: border(AppTheme.spark, 1.5),
-      errorBorder: border(const Color(0xFFE5484D)),
-      focusedErrorBorder: border(const Color(0xFFE5484D), 1.5),
-      disabledBorder: border(context.colors.hairline),
-    );
   }
 
   String? _validateEmail(String? value) {

@@ -350,6 +350,42 @@ abstract class AppLocalizations {
   /// **'If an account exists for that email, we\'ve sent a reset link.'**
   String get authPasswordResetSent;
 
+  /// No description provided for @authSetNewPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a new password'**
+  String get authSetNewPasswordTitle;
+
+  /// No description provided for @authSetNewPasswordSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re signed in from the link — pick the new password for your account.'**
+  String get authSetNewPasswordSubtitle;
+
+  /// No description provided for @authNewPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW PASSWORD'**
+  String get authNewPasswordLabel;
+
+  /// No description provided for @authSetNewPasswordCta.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE NEW PASSWORD'**
+  String get authSetNewPasswordCta;
+
+  /// No description provided for @authPasswordUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed. You\'re signed in.'**
+  String get authPasswordUpdated;
+
+  /// No description provided for @authRecoveryLinkInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'That reset link has expired or was already used. Request a new one.'**
+  String get authRecoveryLinkInvalid;
+
   /// No description provided for @authMissingSupabaseConfig.
   ///
   /// In en, this message translates to:
@@ -1871,7 +1907,7 @@ abstract class AppLocalizations {
   /// Secondary bridge CTA — opens the paywall sheet.
   ///
   /// In en, this message translates to:
-  /// **'Unlock all 500'**
+  /// **'Unlock all'**
   String get bridgeCtaSecondary;
 
   /// Small line under the secondary bridge CTA label — hints that PRO carries more than just the catalog.

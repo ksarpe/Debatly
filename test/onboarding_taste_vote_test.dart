@@ -235,7 +235,7 @@ void main() {
   // suppressed there) — the dominant one continues for free.
   Future<void> passBridge(WidgetTester tester) async {
     expect(find.text('TO BYŁY DWA — A ZOSTAŁY JESZCZE SETKI'), findsOneWidget);
-    expect(find.text('ODBLOKUJ WSZYSTKIE 500'), findsOneWidget);
+    expect(find.text('ODBLOKUJ WSZYSTKIE'), findsOneWidget);
     await tapText(tester, 'ODBIERZ DZISIEJSZE PYTANIE');
     await settlePage(tester);
   }
