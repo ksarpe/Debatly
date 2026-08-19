@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/layout/content_width.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -18,6 +19,9 @@ Future<void> showRankSheet(BuildContext context) {
     backgroundColor: context.colors.background,
     showDragHandle: true,
     isScrollControlled: true,
+    // Tablets: keep the sheet a centred column instead of letting one line
+    // of text run the full width of an iPad.
+    constraints: const BoxConstraints(maxWidth: kReadingMaxWidth),
     // Without this the sheet (and its drag handle) can grow up behind the
     // status bar when the ladder is tall, leaving the handle in the notch /
     // safe area. `useSafeArea: true` keeps the top edge below it — the inner

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/feedback/app_toast.dart';
+import '../../../core/layout/content_width.dart';
 import '../../../core/locale/app_locale.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
@@ -31,6 +32,9 @@ Future<void> showAuthSheet(BuildContext context) {
     context: context,
     backgroundColor: context.colors.cardSurface,
     isScrollControlled: true,
+    // Tablets: hug the form (the card inside caps itself the same) rather
+    // than framing a wide band of empty sheet around it.
+    constraints: const BoxConstraints(maxWidth: kFormMaxWidth),
     showDragHandle: true,
     useSafeArea: true,
     barrierColor: Colors.black.withValues(alpha: 0.62),
@@ -112,7 +116,10 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     final maxHeight = media.size.height - media.padding.top - 24;
 
     return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: 480, maxHeight: maxHeight),
+      constraints: BoxConstraints(
+        maxWidth: kFormMaxWidth,
+        maxHeight: maxHeight,
+      ),
       child: Material(
         type: MaterialType.transparency,
         child: Column(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/layout/content_width.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/connectivity_providers.dart';
 import '../../../services/question_cache.dart';
@@ -132,6 +133,9 @@ class QuestionScreen extends ConsumerWidget {
         ref.watch(questionsProvider).error ??
         ref.watch(todaysDailyQuestionProvider).error;
     final deck = ref.watch(questionDeckProvider);
+    // Zero on phones; on wider screens it is how far the capped question column
+    // sits from each edge, which the app-bar icons follow.
+    final gutter = horizontalGutter(context);
 
     return Scaffold(
       // Let the body fill the whole screen so the question centres against the
@@ -153,9 +157,15 @@ class QuestionScreen extends ConsumerWidget {
         // Not tied to the visible question — it's a whole-history stat, so it
         // stays put while the deck swipes. (The favorites star moved down into
         // the pill row under the question, next to share.)
-        leading: const Padding(
-          padding: EdgeInsets.only(left: 4),
-          child: ConformityAxisButton(),
+        // On a tablet the question column is capped and centred, so icons left
+        // at the screen edges end up stranded a few hundred points away from the
+        // content they belong to. Pull both of them in by the gutter (zero on
+        // phones, so their layout is untouched); `leadingWidth` has to grow with
+        // the padding or the 56pt leading slot would clip it.
+        leadingWidth: 56 + gutter,
+        leading: Padding(
+          padding: EdgeInsets.only(left: 4 + gutter),
+          child: const ConformityAxisButton(),
         ),
         centerTitle: true,
         title: const StreakChip(),
@@ -173,6 +183,7 @@ class QuestionScreen extends ConsumerWidget {
               );
             },
           ),
+          if (gutter > 0) SizedBox(width: gutter),
         ],
       ),
       // Only treat a load error as fatal when there's genuinely nothing to show:

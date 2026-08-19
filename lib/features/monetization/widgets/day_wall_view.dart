@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/layout/content_width.dart';
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
@@ -186,7 +187,7 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
             top: false,
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
+                constraints: const BoxConstraints(maxWidth: kReadingMaxWidth),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                   child: Column(
@@ -197,14 +198,23 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
                         _TeaserPreview(teaser: teaser),
                         const SizedBox(height: 30),
                       ],
-                      Text(
-                        _formatLeft(_left),
-                        textAlign: TextAlign.center,
-                        style: AppTypography.numeric(56).copyWith(
-                          color: colors.ink,
-                          // Fixed-width digits so the ticking clock doesn't
-                          // wobble the line.
-                          fontFeatures: const [FontFeature.tabularFigures()],
+                      // The biggest type in the app, and "23:59:59" cannot break
+                      // (a colon is class IS in UAX #14), so at a large system
+                      // text size it used to run past the column and get clipped
+                      // — on the free tier's main conversion surface. Scale it
+                      // down to fit instead; it never scales UP past 56.
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          _formatLeft(_left),
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                          style: AppTypography.numeric(56).copyWith(
+                            color: colors.ink,
+                            // Fixed-width digits so the ticking clock doesn't
+                            // wobble the line.
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/feedback/app_toast.dart';
+import '../../../core/layout/content_width.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/network_error.dart';
 import '../../../core/theme/app_theme.dart';
@@ -31,6 +32,12 @@ Future<void> showSuggestQuestionSheet(BuildContext context) {
     // The keyboard eats most of a phone screen; without this the sheet is
     // capped at 9/16 and the send button ends up underneath the keyboard.
     isScrollControlled: true,
+    // Tablets: keep the sheet a centred column instead of letting one line
+    // of text run the full width of an iPad.
+    constraints: const BoxConstraints(maxWidth: kReadingMaxWidth),
+    // Keeps the top edge below the notch / Dynamic Island once the sheet
+    // grows tall with the keyboard up.
+    useSafeArea: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),

@@ -64,11 +64,17 @@ class SparkCtaButton extends StatelessWidget {
           else if (icon != null)
             Icon(icon, color: AppTheme.ctaForeground, size: fontSize + 3),
           if (busy || icon != null) const SizedBox(width: 8),
-          Text(
-            label.toUpperCase(),
-            style: AppTypography.action(
-              fontSize: fontSize,
-            ).copyWith(color: AppTheme.ctaForeground),
+          // Flexible, or a long label next to the icon overflows the Row
+          // horizontally at a large system text size (the icon cannot shrink,
+          // so the text has to be the part that gives).
+          Flexible(
+            child: Text(
+              label.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: AppTypography.action(
+                fontSize: fontSize,
+              ).copyWith(color: AppTheme.ctaForeground),
+            ),
           ),
         ],
       );

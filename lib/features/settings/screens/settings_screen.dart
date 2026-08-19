@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/feedback/app_toast.dart';
+import '../../../core/layout/content_width.dart';
 import '../../../core/locale/app_locale.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
@@ -242,6 +243,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       context: context,
       backgroundColor: context.colors.cardSurface,
       isScrollControlled: true,
+      // Tablets: keep the sheet a centred column instead of letting one line
+      // of text run the full width of an iPad.
+      constraints: const BoxConstraints(maxWidth: kReadingMaxWidth),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -527,6 +531,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       // Without this the sheet is capped at 9/16 of the screen, which a short
       // window or a large system font can push the last option straight out of.
       isScrollControlled: true,
+      // Tablets: keep the sheet a centred column instead of letting one line
+      // of text run the full width of an iPad.
+      constraints: const BoxConstraints(maxWidth: kReadingMaxWidth),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -606,6 +613,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       // Three options plus a header don't fit the default 9/16 cap on a short
       // window — "Ciemny" fell off the bottom, painted but out of reach.
       isScrollControlled: true,
+      // Tablets: keep the sheet a centred column instead of letting one line
+      // of text run the full width of an iPad.
+      constraints: const BoxConstraints(maxWidth: kReadingMaxWidth),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),

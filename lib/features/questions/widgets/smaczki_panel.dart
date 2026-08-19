@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/feedback/app_toast.dart';
+import '../../../core/layout/content_width.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/network_error.dart';
 import '../../../core/theme/app_theme.dart';
@@ -37,6 +38,12 @@ Future<void> showSmaczkiSheet(BuildContext context, String questionId) {
     backgroundColor: context.colors.background,
     showDragHandle: true,
     isScrollControlled: true,
+    // Tablets: keep the sheet a centred column instead of letting one line
+    // of text run the full width of an iPad.
+    constraints: const BoxConstraints(maxWidth: kReadingMaxWidth),
+    // Keeps the top edge below the notch / Dynamic Island once the sheet
+    // grows tall with the keyboard up.
+    useSafeArea: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),

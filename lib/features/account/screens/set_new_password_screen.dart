@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/feedback/app_toast.dart';
+import '../../../core/layout/content_width.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/network_error.dart';
 import '../../../core/theme/app_theme.dart';
@@ -22,6 +23,9 @@ Future<void> showSetNewPasswordSheet(BuildContext context) {
     context: context,
     backgroundColor: context.colors.cardSurface,
     isScrollControlled: true,
+    // Tablets: hug the form (the card inside caps itself the same) rather
+    // than framing a wide band of empty sheet around it.
+    constraints: const BoxConstraints(maxWidth: kFormMaxWidth),
     showDragHandle: true,
     useSafeArea: true,
     barrierColor: Colors.black.withValues(alpha: 0.62),
@@ -63,7 +67,10 @@ class _SetNewPasswordCardState extends State<SetNewPasswordCard> {
     final maxHeight = media.size.height - media.padding.top - 24;
 
     return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: 480, maxHeight: maxHeight),
+      constraints: BoxConstraints(
+        maxWidth: kFormMaxWidth,
+        maxHeight: maxHeight,
+      ),
       child: Material(
         type: MaterialType.transparency,
         child: Column(

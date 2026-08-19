@@ -74,24 +74,32 @@ class SecureAccountButton extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: AppTheme.ctaRadius,
-          child: SizedBox(
-            height: 54,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.shield_outlined,
-                  color: AppTheme.ctaForeground,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  context.l10n.secureAccount.toUpperCase(),
-                  style: AppTypography.action(
-                    fontSize: 14,
-                  ).copyWith(color: AppTheme.ctaForeground),
-                ),
-              ],
+          // Minimum height plus a Flexible label: a fixed 54 around an
+          // unshrinkable icon + text Row overflowed at a large system text size.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 54),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.shield_outlined,
+                    color: AppTheme.ctaForeground,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      context.l10n.secureAccount.toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: AppTypography.action(
+                        fontSize: 14,
+                      ).copyWith(color: AppTheme.ctaForeground),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

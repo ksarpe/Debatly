@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/layout/content_width.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -20,13 +21,14 @@ import 'swipe_hand_hint.dart';
 import 'vote_visuals.dart' show voteRowMaxHeight;
 import 'wind_question_view.dart';
 
-/// Widest the centred question group is allowed to get.
+/// Widest the centred question group is allowed to get: the shared reading
+/// width, so the feed, the day wall and the paywall line up rather than each
+/// picking their own tablet width. Uncapped, an 11" iPad turns a one-line
+/// question into an unreadable 1148pt ribbon.
 ///
-/// Every other surface caps itself for tablets (onboarding and the auth sheet at
-/// 480, settings at 520, the vote row and the paywall CTAs at 320) — the feed
-/// was the only one that let the question stretch the full width, which on an
-/// 11" iPad turns a one-line question into an unreadable 1148pt ribbon.
-const double _kFeedMaxWidth = 560;
+/// Denser surfaces keep tighter caps of their own (onboarding and the auth
+/// sheets at 480, settings at 520, the vote row at 320).
+const double _kFeedMaxWidth = kReadingMaxWidth;
 
 /// Smallest height worth giving the question. Below this the text has stopped
 /// being the point of the screen, so the group stops shrinking and the feed

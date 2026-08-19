@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart' show Package;
 
+import '../../../core/layout/content_width.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/analytics.dart';
 import '../../../services/purchases_service.dart' show PurchaseOutcome;
@@ -108,18 +109,27 @@ class _ProPaywallScreenState extends ConsumerState<ProPaywallScreen> {
           // inset itself — so only the top inset is handled here.
           SafeArea(
             bottom: false,
-            child: ProPaywallContent(
-              source: widget.source,
-              trigger: widget.trigger,
-              loadPackages: widget.loadPackages,
-              buy: widget.buy,
-              // This link is how a returning buyer reaches the account their
-              // PRO actually sits on, instead of buying again.
-              showSignInLink: true,
-              onBusyChanged: (busy) => setState(() => _busy = busy),
-              // Nothing to await: the pop unmounts the content, which is
-              // exactly the "the owner handled it" signal it looks for.
-              onEntitled: () async => Navigator.of(context).pop(true),
+            // Cap and centre the pitch. Uncapped, an iPad in landscape spread
+            // the plan cards, the feature rows and the CTA across ~1320pt while
+            // the day wall right next to it stayed at 560 — and this is the
+            // surface App Review looks at on a tablet.
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: kReadingMaxWidth),
+                child: ProPaywallContent(
+                  source: widget.source,
+                  trigger: widget.trigger,
+                  loadPackages: widget.loadPackages,
+                  buy: widget.buy,
+                  // This link is how a returning buyer reaches the account their
+                  // PRO actually sits on, instead of buying again.
+                  showSignInLink: true,
+                  onBusyChanged: (busy) => setState(() => _busy = busy),
+                  // Nothing to await: the pop unmounts the content, which is
+                  // exactly the "the owner handled it" signal it looks for.
+                  onEntitled: () async => Navigator.of(context).pop(true),
+                ),
+              ),
             ),
           ),
           // Close affordance floating over the scrollable content.

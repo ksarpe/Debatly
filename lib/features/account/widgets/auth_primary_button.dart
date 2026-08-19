@@ -32,34 +32,46 @@ class AuthPrimaryButton extends StatelessWidget {
           child: InkWell(
             onTap: enabled ? onPressed : null,
             borderRadius: AppTheme.ctaRadius,
-            child: SizedBox(
-              height: 56,
-              child: Center(
-                child: loading
-                    ? const SizedBox.square(
-                        dimension: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppTheme.ctaForeground,
-                        ),
-                      )
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            label.toUpperCase(),
-                            style: AppTypography.action(
-                              fontSize: 14,
-                            ).copyWith(color: AppTheme.ctaForeground),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(
-                            Icons.arrow_forward,
+            // Minimum height, and a Flexible label beside the arrow: a fixed 56
+            // around a Row whose text could not shrink overflowed once the
+            // system text size grew (the arrow is a fixed 20).
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 56),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: Center(
+                  child: loading
+                      ? const SizedBox.square(
+                          dimension: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
                             color: AppTheme.ctaForeground,
-                            size: 20,
                           ),
-                        ],
-                      ),
+                        )
+                      : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                label.toUpperCase(),
+                                textAlign: TextAlign.center,
+                                style: AppTypography.action(
+                                  fontSize: 14,
+                                ).copyWith(color: AppTheme.ctaForeground),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.arrow_forward,
+                              color: AppTheme.ctaForeground,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                ),
               ),
             ),
           ),

@@ -43,38 +43,52 @@ class PaywallCtaButton extends StatelessWidget {
           child: InkWell(
             borderRadius: AppTheme.ctaRadius,
             onTap: busy ? null : onTap,
-            child: SizedBox(
-              height: caption == null ? 54 : 62,
-              child: Center(
-                child: busy
-                    ? const SizedBox(
-                        height: 22,
-                        width: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: AppTheme.ctaForeground,
-                        ),
-                      )
-                    : Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            label.toUpperCase(),
-                            style: AppTypography.action(
-                              fontSize: 14,
-                            ).copyWith(color: AppTheme.ctaForeground),
+            // A MINIMUM height, not a fixed one. The pill used to be a hard 54 /
+            // 62 around an unbounded Column, so at a large system text size the
+            // Polish copy ("ODBLOKUJ PONAD 500 PYTAŃ" over "(co tydzień nowe
+            // zestawy!)") wrapped, outgrew the box and overflowed. Now the pill
+            // grows with its label; padding, not a magic number, sets the height
+            // a phone actually sees.
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: caption == null ? 54 : 62),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: Center(
+                  child: busy
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: AppTheme.ctaForeground,
                           ),
-                          if (caption != null)
+                        )
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                             Text(
-                              caption!,
-                              style: AppTypography.support().copyWith(
-                                color: AppTheme.ctaForeground.withValues(
-                                  alpha: 0.85,
+                              label.toUpperCase(),
+                              textAlign: TextAlign.center,
+                              style: AppTypography.action(
+                                fontSize: 14,
+                              ).copyWith(color: AppTheme.ctaForeground),
+                            ),
+                            if (caption != null)
+                              Text(
+                                caption!,
+                                textAlign: TextAlign.center,
+                                style: AppTypography.support().copyWith(
+                                  color: AppTheme.ctaForeground.withValues(
+                                    alpha: 0.85,
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
+                          ],
+                        ),
+                ),
               ),
             ),
           ),
