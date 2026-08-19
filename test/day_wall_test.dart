@@ -9,6 +9,7 @@ import 'package:debatly/features/monetization/widgets/day_wall_view.dart';
 import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/widgets/question_body.dart';
+import 'package:debatly/features/questions/widgets/vote_visuals.dart';
 import 'package:debatly/features/questions/widgets/wind_question_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -121,6 +122,17 @@ void main() {
     // (the ticking HH:MM:SS above it changes every second, so the caption is
     // the stable anchor).
     expect(find.text('DO DARMOWEGO'), findsOneWidget);
+    // The wall wears the feed's furniture so it reads as the next question
+    // screen: the vote row sits under the blurred question — blurred and
+    // inert itself, wrapped in an IgnorePointer so no tap can cast a vote.
+    expect(find.byType(VoteButtonsRow), findsOneWidget);
+    expect(
+      find.ancestor(
+        of: find.byType(VoteButtonsRow),
+        matching: find.byType(IgnorePointer),
+      ),
+      findsWidgets,
+    );
     // The streak line was dropped from the wall — the caption must stay gone.
     expect(find.textContaining('Twoja seria'), findsNothing);
     // The single CTA: unlock (the pill renders its label uppercase). The way

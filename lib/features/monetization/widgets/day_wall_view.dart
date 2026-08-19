@@ -19,6 +19,8 @@ import '../../account/providers/stats_providers.dart';
 import '../../onboarding/providers/onboarding_providers.dart'
     show installDayNumber;
 import '../../questions/providers/question_providers.dart';
+import '../../questions/widgets/vote_visuals.dart'
+    show VoteButtonsRow, voteRowMaxHeight;
 import 'paywall_cta_button.dart';
 import 'pro_paywall_screen.dart';
 
@@ -31,18 +33,38 @@ const String kWallAutoPaywallDatePrefKey = 'wall_auto_paywall_date';
 /// with ~zero release velocity — same threshold as the feed's swipe.
 const double _kSwipeCommitDistance = 64;
 
-/// The shortest the wall's three bands (ring · teaser · CTA) are laid out in.
-/// Roughly the ring at full size, a breath of teaser and a CTA grown by a large
-/// system text size; under this the wall scrolls rather than squeezing.
-const double _kMinWallHeight = 460;
+/// Smallest height worth giving the blurred question. Higher than the feed's
+/// own 56, because the preview is two stacked blocks (the readable teaser and
+/// the blurred continuation) plus the room the blur needs to fade out in.
+const double _kMinQuestionHeight = 120;
+
+/// The shortest the wall's three bands (ring · question group · CTA) are laid
+/// out in: the ring at full size, the feed's minimum question group (question +
+/// 28 gap + the vote row at this text scale) and a CTA that grows with the
+/// system font. Under this the wall scrolls rather than squeezing — and it has
+/// to be generous, because everything but the middle band is a fixed height
+/// that an undersized floor would simply overflow.
+double _minWallHeight(BuildContext context) {
+  final scale = math.max(1.0, MediaQuery.textScalerOf(context).scale(1));
+  return 12 +
+      _CountdownRing.maxDiameter +
+      _kMinQuestionHeight +
+      28 +
+      voteRowMaxHeight(context) +
+      62 * scale +
+      20;
+}
 
 /// The free tier's day wall — the screen a free user lands on when they swipe
 /// forward past today's daily, and the model's main conversion surface.
 ///
 /// It shows, top to bottom: a circular countdown to the user's LOCAL midnight
 /// (when the next free question arrives) with the live HH:MM:SS set inside the
-/// ring, a blurred teaser of the next question (the first few words, from the
-/// read-only `peek_next_question`) and the unlock CTA (opens the paywall,
+/// ring; then the feed's own centred group — a blurred teaser of the next
+/// question (the first few words, from the read-only `peek_next_question`) with
+/// an equally blurred, inert TAK/NIE row under it, at the feed's widths, gap
+/// and type sizes, so the wall reads as the next question screen behind
+/// frosted glass; and at the bottom the unlock CTA (opens the paywall,
 /// always). The streak lives in the app-bar chip — the wall never repeats it.
 /// The way back to today's daily is a rightward swipe — the same gesture that
 /// browses the feed — or the system back gesture/button, which the wall
@@ -225,51 +247,86 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
           padding: EdgeInsets.only(
             top: MediaQuery.paddingOf(context).top + kToolbarHeight,
           ),
-          child: SafeArea(
-            top: false,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: kReadingMaxWidth),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                  // Three bands, not a centred stack: the ring sits high, just
-                  // under the app bar's streak chip; the teaser owns the middle
-                  // and stays centred in whatever is left; the CTA rides the
-                  // bottom edge of the safe area, where a thumb already is.
-                  // Below [_kMinWallHeight] (landscape, a split-screen column)
-                  // the whole thing scrolls instead of overflowing — an
-                  // overflowed CTA is painted but untouchable.
-                  child: FitOrScroll(
-                    minContentHeight: _kMinWallHeight,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _CountdownRing(
-                          left: _left,
-                          dayLength: _dayLength,
-                          caption: l10n.wallCountdownCaption,
+          // Three bands, deliberately the feed's own geometry with the ring
+          // added on top: the countdown sits high, just under the app bar's
+          // streak chip; the middle band is the feed's centred group — the
+          // question with the vote row 28px under it, both blurred — laid out
+          // by the same widths, gap and fit rules, so the wall reads as the
+          // next question screen behind frosted glass rather than as a
+          // different screen; the CTA rides the bottom edge of the safe area,
+          // where the feed's action bar is. Below [_minWallHeight] (landscape,
+          // a split-screen column) the whole thing scrolls instead of
+          // overflowing — an overflowed CTA is painted but untouchable.
+          child: FitOrScroll(
+            minContentHeight: _minWallHeight(context),
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
+                _CountdownRing(
+                  left: _left,
+                  dayLength: _dayLength,
+                  caption: l10n.wallCountdownCaption,
+                ),
+                Expanded(
+                  child: Padding(
+                    // The feed's own side margins, so the blurred question
+                    // wraps its lines exactly where the real one does.
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Align(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: kReadingMaxWidth,
                         ),
-                        Expanded(
-                          child: teaser == null
-                              ? const SizedBox.shrink()
-                              // Centres the preview in the middle band, and
-                              // lets it scroll on its own rather than spill
-                              // into the ring at a huge text scale.
-                              : FitOrScroll(
-                                  child: _TeaserPreview(teaser: teaser),
-                                ),
+                        // The feed's own group: question and vote row centred
+                        // together, the question flexing against a box that
+                        // [FitOrScroll] keeps from ever shrinking past the
+                        // floor (below which the preview would be laid out in
+                        // less height than its smallest type needs, and an
+                        // overflowing Column paints where nothing hit-tests).
+                        child: FitOrScroll(
+                          minContentHeight:
+                              _kMinQuestionHeight +
+                              28 +
+                              voteRowMaxHeight(context),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (teaser != null) ...[
+                                Flexible(child: _TeaserPreview(teaser: teaser)),
+                                const SizedBox(height: 28),
+                              ],
+                              const _BlurredVoteRow(),
+                            ],
+                          ),
                         ),
-                        PaywallCtaButton(
+                      ),
+                    ),
+                  ),
+                ),
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: kReadingMaxWidth,
+                      ),
+                      // The pill wraps its label, so without a width of its
+                      // own it would shrink to its own text in the middle of
+                      // the screen instead of spanning the column.
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: PaywallCtaButton(
                           label: l10n.wallCtaUnlock,
                           caption: l10n.wallCtaCaption,
                           busy: false,
                           onTap: () => _openPaywall(trigger: 'tap'),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
@@ -297,8 +354,10 @@ class _CountdownRing extends StatelessWidget {
   final String caption;
 
   /// Outer diameter on a comfortable phone; a narrower column scales it down.
-  static const double _maxDiameter = 220;
-  static const double _stroke = 10;
+  /// Deliberately compact: every pixel it takes is a pixel the question below
+  /// it doesn't get, and the question is what the wall is selling.
+  static const double maxDiameter = 168;
+  static const double _stroke = 9;
 
   static String _formatLeft(Duration d) {
     String two(int v) => v.toString().padLeft(2, '0');
@@ -316,8 +375,8 @@ class _CountdownRing extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final diameter = constraints.maxWidth.isFinite
-            ? math.min(_maxDiameter, constraints.maxWidth)
-            : _maxDiameter;
+            ? math.min(maxDiameter, constraints.maxWidth)
+            : maxDiameter;
         return Center(
           child: SizedBox.square(
             dimension: diameter,
@@ -340,7 +399,7 @@ class _CountdownRing extends StatelessWidget {
                         _formatLeft(left),
                         maxLines: 1,
                         textAlign: TextAlign.center,
-                        style: AppTypography.numeric(44).copyWith(
+                        style: AppTypography.numeric(34).copyWith(
                           color: colors.ink,
                           // Fixed-width digits so the ticking clock doesn't
                           // wobble the line.
@@ -348,7 +407,7 @@ class _CountdownRing extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
@@ -356,7 +415,7 @@ class _CountdownRing extends StatelessWidget {
                         maxLines: 1,
                         textAlign: TextAlign.center,
                         style: AppTypography.eyebrow(
-                          fontSize: 11,
+                          fontSize: 10.5,
                         ).copyWith(color: colors.subtle),
                       ),
                     ),
@@ -440,7 +499,11 @@ class _RingPainter extends CustomPainter {
       old.progress != progress || old.track != track || old.stroke != stroke;
 }
 
-/// The bait: the next question's first words readable, the rest blurred.
+/// The bait: the next question's first words readable, the rest blurred —
+/// laid out exactly like a real question, because that is what it is pretending
+/// to be. Same uppercase Barlow, same white-fill-over-black-stroke, same
+/// length-then-fit sizing as the feed ([QuestionTextStyles.fitFontSize]), so
+/// the blurred block lands where the next question's text will land.
 ///
 /// Only the teaser ever reaches the client (`peek_next_question` cuts it
 /// server-side); the blurred continuation is a fixed placeholder string, so
@@ -454,51 +517,99 @@ class _TeaserPreview extends StatelessWidget {
 
   final String teaser;
 
-  static const _placeholder = 'blablabla blabla blablabla blabla blablabla';
+  /// Stands in for the rest of the question: enough words to read as one or
+  /// two more lines under the teaser, not a paragraph — a real question is
+  /// two or three lines all in.
+  static const _placeholder = 'blablabla blabla blablabla';
 
-  /// The ring above and the CTA below own most of the screen, so the preview
-  /// is set below the feed's question sizes rather than at them.
-  static const double _maxFontSize = 30;
-
-  /// Room around the blurred line for the blur to fade out in, instead of
+  /// Room around the blurred block for the blur to fade out in, instead of
   /// being cut off against its neighbours.
-  static const double _bleed = 14;
+  static const double _bleed = 12;
 
   @override
   Widget build(BuildContext context) {
-    // Same signature look as the real question (uppercase Barlow Condensed,
-    // white fill over a black stroke), sized as if teaser + hidden
-    // continuation were the whole question so it lands where a mid-length
-    // question would.
-    final fontSize = math.min(
-      QuestionTextStyles.fontSizeFor('$teaser… $_placeholder'),
-      _maxFontSize,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Sized as if teaser + hidden continuation were one question: the
+        // length picks the nominal size, the box it was handed shrinks it
+        // further if it has to — the same two steps, in the same order, as the
+        // question on the feed.
+        final fontSize = QuestionTextStyles.fitFontSize(
+          '$teaser… $_placeholder',
+          maxWidth: constraints.maxWidth,
+          maxHeight: constraints.maxHeight - _bleed * 2,
+          textScaler: MediaQuery.textScalerOf(context),
+        );
+
+        Widget styled(String text) {
+          final upper = text.toUpperCase();
+          Text layer(TextStyle style) =>
+              Text(upper, textAlign: TextAlign.center, style: style);
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              layer(QuestionTextStyles.strokeFor(fontSize)),
+              layer(QuestionTextStyles.fillFor(fontSize)),
+            ],
+          );
+        }
+
+        // The size above is picked by the feed's simulator, which models one
+        // block of falling words — close, but this preview is two stacked
+        // blocks with a gap, so it can still come out a line taller than the
+        // band. Scaling the assembled preview down covers that difference and
+        // makes overflow impossible; at the sizes it actually gets, the scale
+        // is 1 and nothing is scaled at all.
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          child: SizedBox(
+            // Fixed to the band's width, so the lines wrap where they would
+            // unscaled instead of stretching into one long line.
+            width: constraints.maxWidth,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                styled('$teaser…'),
+                Padding(
+                  padding: const EdgeInsets.only(top: _bleed, bottom: _bleed),
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+                    child: styled(_placeholder),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
+  }
+}
 
-    Widget styled(String text) {
-      final upper = text.toUpperCase();
-      Text layer(TextStyle style) =>
-          Text(upper, textAlign: TextAlign.center, style: style);
-      return Stack(
-        alignment: Alignment.center,
-        children: [
-          layer(QuestionTextStyles.strokeFor(fontSize)),
-          layer(QuestionTextStyles.fillFor(fontSize)),
-        ],
-      );
-    }
+/// The TAK / NIE buttons of the question that isn't unlocked yet — the real
+/// [VoteButtonsRow], blurred and inert.
+///
+/// It carries no state and casts nothing; it is there because a question with
+/// no vote row under it doesn't read as a question screen, and the wall's whole
+/// argument is "this is the next one, you just can't reach it yet". Blur plus
+/// [IgnorePointer]: a tap lands on the wall's swipe surface, never on a vote.
+class _BlurredVoteRow extends StatelessWidget {
+  const _BlurredVoteRow();
 
-    return Column(
-      children: [
-        styled('$teaser…'),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: _bleed),
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Padding(
+        // Room for the blur to fade out in, as above.
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Opacity(
+          opacity: 0.75,
           child: ImageFiltered(
-            imageFilter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
-            child: styled(_placeholder),
+            imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+            child: VoteButtonsRow(busy: false, onVote: (_) {}),
           ),
         ),
-      ],
+      ),
     );
   }
 }
