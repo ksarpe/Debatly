@@ -214,7 +214,7 @@
   "offlineResultsHidden": "Wyniki wrócą po połączeniu",
   "yourVote": "Twój głos",
 
-  "goDeeper": "WEJDŹ GŁĘBIEJ",
+  "goDeeper": "PRZECIWKO TOBIE",
 
   "shareLabel": "Udostępnij",
   "shareTooltip": "Udostępnij pytanie",
@@ -282,7 +282,14 @@
 
   "smaczkiTitle": "Argumenty",
   "smaczkiTitleTag": "(smaczki)",
-  "smaczkiSubtitle": "Podpowiedzi, jak pogłębić rozmowę wokół tego pytania.",
+  "smaczkiSubtitle": "Nie spodoba Ci się to zdanie.",
+  "smaczkiRemaining": "{count, plural, =1{Został jeszcze jeden. Też przeciwko Tobie.} =2{Zostały jeszcze dwa. Oba przeciwko Tobie.} few{Zostały jeszcze {count}. Wszystkie przeciwko Tobie.} other{Zostało jeszcze {count}. Wszystkie przeciwko Tobie.}}",
+  "@smaczkiRemaining": {
+    "description": "Ile argumentów zostało poza tym, który użytkownik dostał zaraz po głosie.",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "smaczekSuggestCta": "Zaproponuj własny",
   "smaczekSuggestHint": "Twój argument…",
   "smaczekSuggestMinChars": "Co najmniej 5 znaków",
@@ -290,6 +297,10 @@
   "smaczkiLoadError": "Nie udało się wczytać smaczków.\n{error}",
   "smaczkiEmpty": "Do tego pytania nie ma jeszcze smaczków.",
   "smaczkiUnlockCta": "Odblokuj",
+
+  "smaczekChallengeEyebrow": "ZANIM POKAŻĘ WYNIK",
+  "smaczekChallengeHold": "Trzymam się",
+  "smaczekChallengeFlip": "Hmm, jednak nie",
 
   "ranksLoadError": "Nie udało się wczytać rang.",
   "rankLadder": "Drabinka rang",

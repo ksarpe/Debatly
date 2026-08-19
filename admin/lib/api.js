@@ -42,7 +42,7 @@ export const api = {
   dashboardStats: (days = null, includeInternal = false) =>
     rpc('admin_dashboard_stats', { p_days: days, p_include_internal: includeInternal }),
 
-  listQuestions: ({ search = null, onlyActive = true, onlyEnReview = false, onlyFavorites = false, onlyUnverified = false, onlyNeedsReview = false, limit = 50, offset = 0 } = {}) =>
+  listQuestions: ({ search = null, onlyActive = true, onlyEnReview = false, onlyFavorites = false, onlyUnverified = false, onlyNeedsReview = false, onlyUntagged = false, limit = 50, offset = 0 } = {}) =>
     rpc('admin_list_questions', {
       p_search: search,
       p_only_active: onlyActive,
@@ -50,6 +50,7 @@ export const api = {
       p_only_favorites: onlyFavorites,
       p_only_unverified: onlyUnverified,
       p_only_needs_review: onlyNeedsReview,
+      p_only_untagged: onlyUntagged,
       p_limit: limit,
       p_offset: offset,
     }),
@@ -137,6 +138,19 @@ export const api = {
  * so the counter warns rather than blocks.
  */
 export const LIMITS = { question: 110, smaczek: 75 };
+
+/**
+ * Which answer a smaczek attacks (`question_smaczki.side`). No value = untagged,
+ * which the server serves as if neutral — so the tag never blocks anything, it
+ * only decides whether the argument lands on the person who actually gave that
+ * answer. The app shows the matching one first, and for a free user that is the
+ * one it unlocks.
+ */
+export const SIDES = [
+  { value: 'attacks_yes', label: '⚔ przeciw TAK', hint: 'dostanie go ktoś, kto zagłosował TAK' },
+  { value: 'attacks_no', label: '⚔ przeciw NIE', hint: 'dostanie go ktoś, kto zagłosował NIE' },
+  { value: 'neutral', label: '◇ neutralny', hint: 'osobisty/praktyczny — działa w obie strony' },
+];
 
 export const CATEGORIES = [
   'Connection', 'Culture', 'Dreams', 'Environment', 'Ethics', 'Family',

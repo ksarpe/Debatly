@@ -19,7 +19,7 @@ import 'support/localized_test_app.dart';
 /// The Polish label of the "go deeper" pill (was `GoDeeperButton.label` before
 /// the string moved into the ARB localizations). Tests pin the locale to Polish
 /// (see [_mockPrefs] / [LocalizedTestApp]), so this is what renders.
-const _goDeeperLabelPl = 'WEJDŹ GŁĘBIEJ';
+const _goDeeperLabelPl = 'PRZECIWKO TOBIE';
 
 /// In-memory SharedPreferences pinned to Polish so [localeControllerProvider]
 /// (read by DebatlyApp/SettingsScreen) resolves deterministically to `pl`

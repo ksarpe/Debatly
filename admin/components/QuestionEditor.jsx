@@ -1,14 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, CATEGORIES, LIMITS } from '../lib/api';
+import { api, CATEGORIES, LIMITS, SIDES } from '../lib/api';
 import SmaczkiEditor from './SmaczkiEditor';
 import Counter from './Counter';
 import Diff from './Diff';
 
 const empty = {
   category: 'Reflection', is_premium: false, is_active: true,
-  pl: '', en: '', smaczki: [{ pl: '', en: '' }],
+  pl: '', en: '', smaczki: [{ pl: '', en: '', side: null }],
   en_review: null, // null = automatycznie; true/false = ręczna decyzja
 };
 
@@ -28,7 +28,7 @@ const norm = (q) => JSON.stringify({
   pl: (q?.pl ?? '').trim(),
   en: (q?.en ?? '').trim(),
   smaczki: (q?.smaczki ?? [])
-    .map((s) => ({ pl: (s.pl ?? '').trim(), en: (s.en ?? '').trim() }))
+    .map((s) => ({ pl: (s.pl ?? '').trim(), en: (s.en ?? '').trim(), side: s.side ?? null }))
     .filter((s) => s.pl !== ''),
 });
 
@@ -88,7 +88,7 @@ export default function QuestionEditor({
           is_active: src?.is_active ?? q?.is_active ?? true,
           pl: src?.pl ?? '',
           en: src?.en ?? '',
-          smaczki: (src?.smaczki ?? []).map((s) => ({ pl: s.pl ?? '', en: s.en ?? '' })),
+          smaczki: (src?.smaczki ?? []).map((s) => ({ pl: s.pl ?? '', en: s.en ?? '', side: s.side ?? null })),
           en_review: src?.en_review ?? null,
         });
         api.history(id).then((h) => !cancelled && setHistory(h ?? [])).catch(() => {});
@@ -118,7 +118,7 @@ export default function QuestionEditor({
     en: form.en.trim(),
     smaczki: form.smaczki
       .filter((s) => (s.pl ?? '').trim() !== '')
-      .map((s) => ({ pl: s.pl.trim(), en: (s.en ?? '').trim() })),
+      .map((s) => ({ pl: s.pl.trim(), en: (s.en ?? '').trim(), side: s.side ?? null })),
   }), [form]);
 
   // Auto-propozycja flagi "EN do weryfikacji": zmieniono coś po polsku,
@@ -246,6 +246,7 @@ export default function QuestionEditor({
       .forEach((s, i) => {
         lines.push(`Smaczek ${i + 1} PL: ${(s.pl ?? '').trim()}`);
         lines.push(`Smaczek ${i + 1} EN: ${(s.en ?? '').trim()}`);
+        lines.push(`Smaczek ${i + 1} strona: ${s.side ?? 'nie ustawiono'}`);
       });
     const text = lines.join('\n');
     try {
@@ -285,9 +286,19 @@ export default function QuestionEditor({
     if (typeof q.pl === 'string') next.pl = q.pl;
     if (typeof q.en === 'string') next.en = q.en;
     if (Array.isArray(json.smaczki)) {
+      // Merged onto the rows already in the form, by position: a JSON that
+      // carries only sides — {"smaczki":[{"side":"attacks_yes"}, …]}, which is
+      // what a tagging pass returns — tags them instead of blanking their text.
       next.smaczki = [...json.smaczki]
         .sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0))
-        .map((s) => ({ pl: String(s?.pl ?? ''), en: String(s?.en ?? '') }))
+        .map((s, i) => {
+          const cur = form.smaczki[i] ?? {};
+          return {
+            pl: typeof s?.pl === 'string' ? s.pl : String(cur.pl ?? ''),
+            en: typeof s?.en === 'string' ? s.en : String(cur.en ?? ''),
+            side: SIDES.some((o) => o.value === s?.side) ? s.side : (cur.side ?? null),
+          };
+        })
         .filter((s) => s.pl !== '' || s.en !== '');
       if (next.smaczki.length === 0) delete next.smaczki;
     }
@@ -510,12 +521,14 @@ export default function QuestionEditor({
           <div className="card" style={{ width: 'min(640px, 100%)', margin: 0 }}>
             <h3 style={{ marginTop: 0 }}>Wklej JSON od agenta</h3>
             <p className="faint" style={{ marginTop: 0 }}>
-              Format: {'{ "question": { "pl", "en" }, "smaczki": [{ "pl", "en" }] }'} —
-              pola nieobecne w JSON-ie zostaną bez zmian.
+              Format: {'{ "question": { "pl", "en" }, "smaczki": [{ "pl", "en", "side" }] }'} —
+              pola nieobecne w JSON-ie zostaną bez zmian, więc sam
+              {' "smaczki": [{ "side": "attacks_yes" }, …] '} otaguje istniejące wiersze.
+              Dozwolone strony: attacks_yes, attacks_no, neutral.
             </p>
             <textarea rows={12} value={pasteText} autoFocus
                       style={{ width: '100%', fontFamily: 'monospace', fontSize: 13 }}
-                      placeholder='{"question": {"pl": "…", "en": "…"}, "smaczki": [{"pl": "…", "en": "…"}]}'
+                      placeholder='{"question": {"pl": "…", "en": "…"}, "smaczki": [{"pl": "…", "en": "…", "side": "attacks_yes"}]}'
                       onChange={(e) => { setPasteText(e.target.value); setPasteErr(null); }} />
             {pasteErr && <div className="alert err" style={{ marginTop: 10 }}>{pasteErr}</div>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 12 }}>

@@ -671,7 +671,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get yourVote => 'Your vote';
 
   @override
-  String get goDeeper => 'GO DEEPER';
+  String get goDeeper => 'AGAINST YOU';
 
   @override
   String get shareLabel => 'Share';
@@ -831,8 +831,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smaczkiTitleTag => '(smaczki)';
 
   @override
-  String get smaczkiSubtitle =>
-      'Tips to deepen the conversation around this question.';
+  String get smaczkiSubtitle => 'You are not going to like this one.';
+
+  @override
+  String smaczkiRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count more left. All against you.',
+      two: 'Two more left. Both against you.',
+      one: 'One more left. Also against you.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get smaczekSuggestCta => 'Suggest your own';
@@ -856,6 +867,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get smaczkiUnlockCta => 'Unlock';
+
+  @override
+  String get smaczekChallengeEyebrow => 'BEFORE I SHOW YOU THE RESULT';
+
+  @override
+  String get smaczekChallengeHold => 'I\'m holding';
+
+  @override
+  String get smaczekChallengeFlip => 'Hmm, maybe not';
 
   @override
   String get ranksLoadError => 'Could not load ranks.';

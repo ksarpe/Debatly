@@ -31,6 +31,7 @@ export default function QuestionList() {
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [onlyUnverified, setOnlyUnverified] = useState(false);
   const [onlyNeedsReview, setOnlyNeedsReview] = useState(false);
+  const [onlyUntagged, setOnlyUntagged] = useState(false);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -38,7 +39,7 @@ export default function QuestionList() {
   const [expandedId, setExpandedId] = useState(null);
   const [editorDirty, setEditorDirty] = useState(false);
 
-  const load = useCallback(async (q, active, enReview, favs, unverified, needsReview, p, silent = false) => {
+  const load = useCallback(async (q, active, enReview, favs, unverified, needsReview, untagged, p, silent = false) => {
     if (!silent) setLoading(true);
     setErr(null);
     try {
@@ -49,6 +50,7 @@ export default function QuestionList() {
         onlyFavorites: favs,
         onlyUnverified: unverified,
         onlyNeedsReview: needsReview,
+        onlyUntagged: untagged,
         limit: PAGE,
         offset: p * PAGE,
       });
@@ -63,16 +65,16 @@ export default function QuestionList() {
 
   // debounce search
   useEffect(() => {
-    const t = setTimeout(() => { setPage(0); load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, 0); }, 250);
+    const t = setTimeout(() => { setPage(0); load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, onlyUntagged, 0); }, 250);
     return () => clearTimeout(t);
-  }, [search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, load]);
+  }, [search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, onlyUntagged, load]);
 
-  useEffect(() => { load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, page); /* eslint-disable-next-line */ }, [page]);
+  useEffect(() => { load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, onlyUntagged, page); /* eslint-disable-next-line */ }, [page]);
 
   // Silent refresh after an inline save/publish — keeps the open editor mounted.
   const reload = useCallback(() => {
-    load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, page, true);
-  }, [load, search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, page]);
+    load(search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, onlyUntagged, page, true);
+  }, [load, search, onlyActive, onlyEnReview, onlyFavorites, onlyUnverified, onlyNeedsReview, onlyUntagged, page]);
 
   const pages = Math.ceil(total / PAGE) || 1;
 
@@ -171,6 +173,12 @@ export default function QuestionList() {
                  onChange={(e) => setOnlyNeedsReview(e.target.checked)} style={{ width: 'auto' }} />
           ⚑ tylko do weryfikacji
         </label>
+        <label className="faint" style={{ display: 'flex', gap: 7, alignItems: 'center' }}
+               title="Pytania, w których choć jeden smaczek nie ma ustawionej strony — worklista tagowania">
+          <input type="checkbox" checked={onlyUntagged}
+                 onChange={(e) => setOnlyUntagged(e.target.checked)} style={{ width: 'auto' }} />
+          🎯 smaczki bez strony
+        </label>
       </div>
 
       {err && <div className="alert err">{err}</div>}
@@ -229,7 +237,16 @@ export default function QuestionList() {
                       <div className="en">{r.en}</div>
                     </td>
                     <td className="muted">{r.category}</td>
-                    <td className="muted">{r.smaczki_count}</td>
+                    <td className="muted" title={r.smaczki_untagged > 0
+                          ? `${r.smaczki_untagged} bez ustawionej strony`
+                          : 'wszystkie otagowane stroną'}>
+                      {r.smaczki_count}
+                      {r.smaczki_untagged > 0 && (
+                        <span className="badge enreview" style={{ marginLeft: 6 }}>
+                          🎯 {r.smaczki_untagged}
+                        </span>
+                      )}
+                    </td>
                     <td>
                       {r.open_draft_id && <span className="badge draft">wersja robocza</span>}
                       {r.en_review_needed && <span className="badge enreview">EN do weryfikacji</span>}

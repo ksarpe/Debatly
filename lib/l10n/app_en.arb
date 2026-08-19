@@ -263,7 +263,7 @@
   "offlineBannerLabel": "You're offline",
   "offlineResultsHidden": "Results return when you're back online",
   "yourVote": "Your vote",
-  "goDeeper": "GO DEEPER",
+  "goDeeper": "AGAINST YOU",
   "shareLabel": "Share",
   "shareTooltip": "Share question",
   "shareSubject": "A question from Debatly",
@@ -363,7 +363,14 @@
   "suggestQuestionNudgeAction": "Suggest",
   "smaczkiTitle": "Arguments",
   "smaczkiTitleTag": "(smaczki)",
-  "smaczkiSubtitle": "Tips to deepen the conversation around this question.",
+  "smaczkiSubtitle": "You are not going to like this one.",
+  "smaczkiRemaining": "{count, plural, =1{One more left. Also against you.} =2{Two more left. Both against you.} other{{count} more left. All against you.}}",
+  "@smaczkiRemaining": {
+    "description": "How many arguments are left besides the one served right after the vote.",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "smaczekSuggestCta": "Suggest your own",
   "smaczekSuggestHint": "Your argument…",
   "smaczekSuggestMinChars": "At least 5 characters",
@@ -378,6 +385,9 @@
   },
   "smaczkiEmpty": "No tidbits for this question yet.",
   "smaczkiUnlockCta": "Unlock",
+  "smaczekChallengeEyebrow": "BEFORE I SHOW YOU THE RESULT",
+  "smaczekChallengeHold": "I'm holding",
+  "smaczekChallengeFlip": "Hmm, maybe not",
   "ranksLoadError": "Could not load ranks.",
   "rankLadder": "Rank ladder",
   "yourRankUpper": "YOUR RANK",

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/feedback/haptics.dart';
 import '../../../data/models/question.dart';
 import '../../account/providers/session_providers.dart';
 import '../providers/question_providers.dart';
@@ -197,11 +198,13 @@ class WindQuestionViewState extends ConsumerState<WindQuestionView>
     });
   }
 
-  /// Fires as each word of the new question lands. The hook is intentionally
-  /// empty for now — this is where a per-word haptic tick will go.
+  /// Fires as each word of the new question lands — one light tick each, so a
+  /// question assembling itself can be felt as well as watched. Skipped when
+  /// the OS asks for reduced motion: nothing is moving on screen then, and a
+  /// buzz with no matching movement is just noise.
   void _onWordLanded() {
-    // TODO(vibration): add a short haptic here, e.g.
-    // HapticFeedback.selectionClick(), so each landing word can be felt.
+    if (!mounted || MediaQuery.disableAnimationsOf(context)) return;
+    Haptics.tick();
   }
 
   @override

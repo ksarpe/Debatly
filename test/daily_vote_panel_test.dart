@@ -49,6 +49,21 @@ void main() {
     return repo;
   }
 
+  /// The post-vote smaczek challenge now stands between the tap and the split:
+  /// the argument aimed at the side just picked falls in, and the bars appear
+  /// only once the user has answered it. These tests take the "held" branch —
+  /// the vote is unchanged, so everything below the challenge is as it was.
+  Future<void> holdGround(WidgetTester tester) async {
+    await tester.pumpAndSettle();
+    expect(
+      find.text('ZANIM POKAŻĘ WYNIK'),
+      findsOneWidget,
+      reason: 'the argument comes before the percentages',
+    );
+    await tester.tap(find.text('TRZYMAM SIĘ'));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('a guest votes like anyone else — recorded, split revealed', (
     tester,
   ) async {
@@ -69,7 +84,7 @@ void main() {
     expect(find.textContaining('%'), findsNothing);
 
     await tester.tap(find.text('TAK'));
-    await tester.pumpAndSettle();
+    await holdGround(tester);
 
     // The tap voted — it did NOT open the sign-in sheet.
     expect(repo.castCalls, 1, reason: 'a guest vote is a real vote');
@@ -114,7 +129,7 @@ void main() {
     );
 
     await tester.tap(find.text('TAK'));
-    await tester.pumpAndSettle(); // cast + AnimatedSwitcher to the results
+    await holdGround(tester); // cast + challenge + AnimatedSwitcher to results
 
     expect(repo.castCalls, 1);
     expect(repo.lastChoice, VoteResult.yes);
@@ -194,7 +209,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('TAK'));
-      await tester.pumpAndSettle();
+      await holdGround(tester);
       expect(repo.castCalls, 1);
       // The result bars (keyed 'results'), not the vote buttons (keyed 'buttons').
       expect(find.byKey(const ValueKey('results')), findsOneWidget);

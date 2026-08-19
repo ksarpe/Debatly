@@ -60,6 +60,70 @@ double voteRowMaxHeight(BuildContext context) {
   return _voteHeight(context) + 6 + 16 * math.max(1, scale);
 }
 
+/// Gap between the two slanted tiles in the post-vote layouts, wide enough for
+/// the "VS" badge to sit over the seam. Public so the smaczek challenge can lay
+/// its own pair out on exactly the same grid.
+const double kVoteSeamGap = 28;
+
+/// The height one slanted tile renders at, grown for the system font exactly as
+/// the result panels are. Public for the same reason as [kVoteSeamGap].
+double voteTileHeight(BuildContext context) => _voteHeight(context);
+
+/// One slanted TAK / NIE tile with nothing in it but its label — the vote
+/// shape, stripped of the percentage.
+///
+/// Used by the post-vote smaczek challenge, where the two tiles stand for the
+/// answer the user gave and the one they didn't, and the argument visibly hits
+/// the [lit] one. Presentational only: the caller owns the animation and wraps
+/// this in whatever transform the beat calls for.
+class VoteSideTile extends StatelessWidget {
+  const VoteSideTile({required this.isYes, required this.lit, super.key});
+
+  /// Which side this tile is: TAK when true, NIE when false.
+  final bool isYes;
+
+  /// Whether this is the side the user picked — lit and checked, against the
+  /// other one faded back.
+  final bool lit;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isYes ? AppTheme.yes : AppTheme.no;
+    return ClipPath(
+      clipper: _SkewClipper(isYes ? _Slant.left : _Slant.right),
+      child: SizedBox(
+        height: _voteHeight(context),
+        child: ColoredBox(
+          color: color.withValues(alpha: lit ? 0.42 : 0.10),
+          child: Center(
+            child: _scaledTile(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      (isYes ? context.l10n.voteYes : context.l10n.voteNo)
+                          .toUpperCase(),
+                      maxLines: 1,
+                      style: AppTypography.action(fontSize: 16).copyWith(
+                        color: color.withValues(alpha: lit ? 1 : 0.45),
+                      ),
+                    ),
+                  ),
+                  if (lit) ...[
+                    const SizedBox(width: 6),
+                    Icon(Icons.check_rounded, color: color, size: 16),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// The pre-vote state: the two slanted TAK / NIE buttons. [onVote] is handed the
 /// chosen side ([VoteResult.yes] / [VoteResult.no]); [busy] dims + disables them
 /// while a cast is in flight.
@@ -150,7 +214,7 @@ class VoteResultsRow extends StatelessWidget {
                   showPct: !communityHidden,
                 ),
               ),
-              const SizedBox(width: 28),
+              const SizedBox(width: kVoteSeamGap),
               Expanded(
                 child: _ResultPanel(
                   label: context.l10n.voteNo,
@@ -222,7 +286,7 @@ class _MyVoteCaption extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: mineIsYes ? label : const SizedBox.shrink()),
-        const SizedBox(width: 28),
+        const SizedBox(width: kVoteSeamGap),
         Expanded(child: mineIsYes ? const SizedBox.shrink() : label),
       ],
     );

@@ -676,7 +676,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get yourVote => 'Twój głos';
 
   @override
-  String get goDeeper => 'WEJDŹ GŁĘBIEJ';
+  String get goDeeper => 'PRZECIWKO TOBIE';
 
   @override
   String get shareLabel => 'Udostępnij';
@@ -839,8 +839,20 @@ class AppLocalizationsPl extends AppLocalizations {
   String get smaczkiTitleTag => '(smaczki)';
 
   @override
-  String get smaczkiSubtitle =>
-      'Podpowiedzi, jak pogłębić rozmowę wokół tego pytania.';
+  String get smaczkiSubtitle => 'Nie spodoba Ci się to zdanie.';
+
+  @override
+  String smaczkiRemaining(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zostało jeszcze $count. Wszystkie przeciwko Tobie.',
+      few: 'Zostały jeszcze $count. Wszystkie przeciwko Tobie.',
+      two: 'Zostały jeszcze dwa. Oba przeciwko Tobie.',
+      one: 'Został jeszcze jeden. Też przeciwko Tobie.',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get smaczekSuggestCta => 'Zaproponuj własny';
@@ -864,6 +876,15 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get smaczkiUnlockCta => 'Odblokuj';
+
+  @override
+  String get smaczekChallengeEyebrow => 'ZANIM POKAŻĘ WYNIK';
+
+  @override
+  String get smaczekChallengeHold => 'Trzymam się';
+
+  @override
+  String get smaczekChallengeFlip => 'Hmm, jednak nie';
 
   @override
   String get ranksLoadError => 'Nie udało się wczytać rang.';

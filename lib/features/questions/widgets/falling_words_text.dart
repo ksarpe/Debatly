@@ -8,8 +8,9 @@ import 'styled_question_text.dart';
 /// left-to-right, top-to-bottom.
 ///
 /// Whenever [text] changes the build replays from scratch. [onWordLanded] fires
-/// once for each word the moment it settles — the natural seam for adding a
-/// haptic tick per landing later on.
+/// once for each word the moment it settles (the seam the per-word haptic tick
+/// rides on), and [onFinished] once more when the LAST word has landed — the
+/// beat the smaczek challenge uses to shake the answer the argument just hit.
 ///
 /// Pass `animate: false` where the sentence is already familiar — a stage that
 /// re-shows a question the user has just read — and it renders fully assembled
@@ -19,6 +20,7 @@ class FallingWordsText extends StatefulWidget {
     this.text, {
     super.key,
     this.onWordLanded,
+    this.onFinished,
     this.animate = true,
   });
 
@@ -27,8 +29,13 @@ class FallingWordsText extends StatefulWidget {
   /// Called once per word as it lands. Intended for haptic feedback.
   final VoidCallback? onWordLanded;
 
+  /// Called once, right after the last word of this [text] has landed.
+  final VoidCallback? onFinished;
+
   /// Whether the words fall in. When false the text appears whole and
-  /// [onWordLanded] never fires — no word ever was in flight.
+  /// [onWordLanded] never fires — no word ever was in flight. [onFinished]
+  /// still fires (on the next frame): the sentence IS complete, it just never
+  /// moved, and a caller waiting on the landing must not wait forever.
   final bool animate;
 
   @override
@@ -47,6 +54,9 @@ class _FallingWordsTextState extends State<FallingWordsText>
 
   /// Words whose landing callback has already fired this run.
   int _landed = 0;
+
+  /// Whether [FallingWordsText.onFinished] has already fired this run.
+  bool _finished = false;
 
   @override
   void initState() {
@@ -83,10 +93,20 @@ class _FallingWordsTextState extends State<FallingWordsText>
       // Marked landed *before* the jump: setting the value notifies listeners,
       // and nothing should read as having "just landed" when it never fell.
       _landed = count;
+      _finished = true;
       _controller.value = 1;
+      // Out of the build/layout pass this may be running inside, but still
+      // immediate — a caller gated on the landing gets its beat either way.
+      final onFinished = widget.onFinished;
+      if (onFinished != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) onFinished();
+        });
+      }
       return;
     }
     _landed = 0;
+    _finished = false;
     _controller.forward(from: 0);
   }
 
@@ -99,17 +119,21 @@ class _FallingWordsTextState extends State<FallingWordsText>
     return (start: start, end: end);
   }
 
-  /// Fire [onWordLanded] for any word that has just reached the end of its
-  /// window since the last tick.
+  /// Fire [FallingWordsText.onWordLanded] for any word that has just reached
+  /// the end of its window since the last tick, then [onFinished] once the
+  /// last one has.
   void _emitLandings() {
-    if (widget.onWordLanded == null) return;
     final t = _controller.value;
     var landed = _landed;
     while (landed < _words.length && t >= _window(landed).end) {
-      widget.onWordLanded!.call();
+      widget.onWordLanded?.call();
       landed++;
     }
     _landed = landed;
+    if (!_finished && landed >= _words.length && _words.isNotEmpty) {
+      _finished = true;
+      widget.onFinished?.call();
+    }
   }
 
   @override

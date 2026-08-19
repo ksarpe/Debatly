@@ -198,28 +198,33 @@ class MockQuestionRepository implements QuestionRepository {
   Future<List<Smaczek>> fetchSmaczki(String questionId) async {
     await Future.delayed(const Duration(milliseconds: 200));
     // Mock sessions are premium (see SessionNotifier), so every smaczek comes
-    // back readable — the entitled shape of the RPC.
+    // back readable — the entitled shape of the RPC. One argument per side plus
+    // a neutral one, so the post-vote challenge has something aimed at whichever
+    // way a keyless dev session votes.
     return const [
       Smaczek(
         position: 1,
         isLocked: false,
+        side: SmaczekSide.attacksYes,
         text:
-            'Zapytaj o konkretny przykład z ostatniego tygodnia — konkret '
-            'otwiera rozmowę szybciej niż ogólniki.',
+            'Zgodziłeś się w sekundę — a to samo zdanie podpisałby ktoś, '
+            'kogo nie znosisz.',
       ),
       Smaczek(
         position: 2,
         isLocked: false,
+        side: SmaczekSide.attacksNo,
         text:
-            'Poproś każdego o jedno zdanie uzasadnienia, zanim zaczniecie '
-            'dyskutować — unikniecie mówienia obok siebie.',
+            'Odmawiasz dzisiaj. Za pięć lat to będzie standard i nikt już '
+            'Cię o to nie zapyta.',
       ),
       Smaczek(
         position: 3,
         isLocked: false,
+        side: SmaczekSide.neutral,
         text:
-            'Zamieńcie się rolami: każdy broni odpowiedzi przeciwnej do '
-            'własnej przez dwie minuty.',
+            'Odpowiedziałeś od razu. Ile z tego było decyzją, a ile '
+            'odruchem?',
       ),
     ];
   }
@@ -442,9 +447,11 @@ class SupabaseQuestionRepository implements QuestionRepository {
 
   @override
   Future<List<Smaczek>> fetchSmaczki(String questionId) async {
-    // The RPC returns every smaczek for the question but withholds the text of
-    // locked ones (premium-only beyond the first). RLS/grants are deliberately
-    // off on the smaczki tables — this SECURITY DEFINER RPC is the only way in.
+    // The RPC returns every smaczek for the question, ordered by how relevant
+    // each one is to the caller's own vote, but withholds the text of the
+    // locked ones (a free user reads only the first row of that order).
+    // RLS/grants are deliberately off on the smaczki tables — this SECURITY
+    // DEFINER RPC is the only way in.
     final data = await _db
         .rpc(
           'get_question_smaczki',

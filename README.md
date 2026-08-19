@@ -142,11 +142,21 @@ day wall stands where the catalog would continue.
   (0/3/7/14/30/60/100 days). The daily rolls over on the user's *local* date
   (a countdown + `DailyRolloverWatcher` re-resolve it at midnight without a
   relaunch); the streak on *UTC* days — two clocks, on purpose.
-- **Smaczki** are per-question discussion prompts served by
-  `get_question_smaczki`: everyone reads argument #1 of a question they've
-  seen; PRO reads them all. Favorites, the vote-history screen and the
-  offline catalog download are PRO features — tapping any of them opens the
-  paywall sheet.
+- **Smaczki** are per-question arguments served by `get_question_smaczki`.
+  Each one is tagged with the answer it attacks (`side`: `attacks_yes` /
+  `attacks_no` / `neutral`, NULL until it is tagged in the admin panel), and
+  the RPC orders them by relevance to the caller's OWN vote — the argument
+  aimed at the side they actually picked comes first. Everyone reads that top
+  one on a question they've seen; PRO reads them all.
+- **The argument comes before the percentages.** A vote does not reveal the
+  split straight away: the smaczek aimed at the side just picked falls in word
+  by word, lands on the user's own answer (which shakes, with a haptic), and
+  they answer "trzymam się" / "hmm, jednak nie". A flip re-casts the vote for
+  the other side. Only then do the bars appear — so the percentage reads as a
+  verdict on whether they held rather than as a fact. Never a trap: system back
+  resolves as "held", and no readable argument means no gate at all.
+  Favorites, the vote-history screen and the offline catalog download are PRO
+  features — tapping any of them opens the paywall sheet.
 
 ## Tech stack
 
@@ -309,7 +319,7 @@ their local date and stored in `user_daily_questions`.
 | `peek_next_question` | **Live again** — the day wall's blurred teaser. A pure read returning `{id, first-4-words}` for one random unvoted question; consumes nothing, writes nothing. |
 | free unlock credit / reveal slot / ad reveals | **Legacy 2025 free-tier machinery.** Still removed from the client; the RPCs (`reveal_free_question`, `reveal_ad_question`) stay live server-side only for old app versions. |
 | day wall | The free tier's end-of-deck screen (`DayWallView`): teaser + countdown to local midnight + unlock CTA. Back swipe / system back return to the daily. |
-| smaczki | Per-question arguments/prompts behind the "go deeper" button. Argument #1 is free on a seen question; the rest are PRO. |
+| smaczki | Per-question arguments, tagged with the side they attack. The one aimed at the user's own vote is free on a seen question; the rest are PRO. One is served automatically between the vote and the result; the rest sit behind the bottom-bar CTA. |
 
 ### Edge functions
 

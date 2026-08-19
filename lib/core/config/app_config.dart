@@ -67,28 +67,40 @@ class AppConfig {
     defaultValue: 'https://debatly.app/email-potwierdzony',
   );
 
-  /// Deep link the password-reset mail sends the user back to, so the new
-  /// password is typed IN THE APP.
+  /// Where the password-reset mail sends the user, so the new password can be
+  /// typed IN THE APP.
   ///
-  /// This cannot be a web page: the default auth flow is PKCE, and GoTrue
-  /// stores the `code_verifier` needed to redeem the recovery code in the app's
-  /// own storage — only this install can finish the exchange. Pointing the mail
-  /// at the marketing site (what happens when `redirectTo` is omitted) leaves
-  /// the user on a page with nowhere to type a password and no way back, which
-  /// makes an email/password account unrecoverable.
+  /// This is a WEB page that forwards into the app, not the `debatly://` deep
+  /// link itself. Both end in the same place on a phone, but only this one
+  /// survives being opened somewhere else: a desktop browser handed a
+  /// `debatly://` redirect shows a protocol error, and our domain is never
+  /// reached, so nothing can explain what happened. The bridge page
+  /// ([site/reset-hasla](../../../site/README.md)) hops into the app on a phone
+  /// and explains itself anywhere else.
   ///
-  /// `supabase_flutter` picks the link up on its own (it listens for incoming
-  /// links and hands anything carrying a `code` to `getSessionFromUrl`), which
-  /// emits `AuthChangeEvent.passwordRecovery` — see [PasswordRecoveryListener].
+  /// The reset can only ever be completed on the install that ASKED for it: the
+  /// flow is PKCE, and the `code_verifier` that redeems the recovery code lives
+  /// in that app's storage. No web page can finish it — the bridge exists to
+  /// route people to the right device, not to shortcut them past it.
   ///
-  /// The scheme has to be registered natively on both platforms
+  /// Once the link is back in the app, `supabase_flutter` picks it up on its own
+  /// (it listens for incoming links and hands anything carrying a `code` to
+  /// `getSessionFromUrl`), which emits `AuthChangeEvent.passwordRecovery` — see
+  /// [PasswordRecoveryListener].
+  ///
+  /// DEPLOY ORDER MATTERS. This URL must be live AND allow-listed in the
+  /// Supabase dashboard (Authentication → URL Configuration → Redirect URLs)
+  /// BEFORE a build carrying it ships, or every reset link lands on a 404 and
+  /// email/password accounts become unrecoverable again. The escape hatch is
+  /// `--dart-define=PASSWORD_RESET_REDIRECT_URL=debatly://reset-password`,
+  /// which restores the app-only behaviour without a code change.
+  ///
+  /// The `debatly://` scheme stays registered natively either way
   /// (`AndroidManifest.xml` intent-filter, `CFBundleURLSchemes` in
-  /// `Info.plist`) AND allow-listed in the Supabase dashboard under
-  /// Authentication → URL Configuration → Redirect URLs, or GoTrue drops it and
-  /// falls back to the Site URL.
+  /// `Info.plist`) — the bridge page forwards into it.
   static const String passwordResetRedirectUrl = String.fromEnvironment(
     'PASSWORD_RESET_REDIRECT_URL',
-    defaultValue: 'debatly://reset-password',
+    defaultValue: 'https://debatly.app/reset-hasla',
   );
 
   /// Sentry DSN (the project's ingest URL, found in Sentry under

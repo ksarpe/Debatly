@@ -26,7 +26,11 @@ podmienił kod panelu w przeglądarce, może wykonać **wyłącznie te operacje*
 
 Baza pilnuje też reguł, których interfejs nie obejdzie:
 
-- smaczki zawsze przenumerowane 1..N (puste pomijane, pozycja 1 = darmowy teaser),
+- smaczki zawsze przenumerowane 1..N (puste pomijane),
+- każdy smaczek ma stronę (`side`: przeciw TAK / przeciw NIE / neutralny, brak =
+  nieotagowany). Aplikacja serwuje najpierw ten, który atakuje głos danego
+  użytkownika, i to on jest darmowy — nieotagowany działa jak neutralny.
+  Filtr „🎯 smaczki bez strony" na liście to worklista tagowania,
 - pytanie zawsze ma wersję PL i EN oraz wiersz w `question_vote_seeds`,
 - usunięcie najpierw zwalnia sloty w `daily_questions` (klucz `ON DELETE RESTRICT`).
 

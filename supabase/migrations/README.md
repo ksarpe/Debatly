@@ -201,3 +201,21 @@ catastrophe. Do not "fix" it by flattening the folders back.
   0 rows, both without error; `get_questions('pl', today)` as the PRO user
   still returns 560/560 rows with text. Idempotent (`drop policy if exists` +
   `create policy`).
+- `20260819120000_smaczek_side.sql` (`question_smaczki.side` —
+  `attacks_yes` / `attacks_no` / `neutral`, NULL = not tagged yet;
+  `get_question_smaczki` returns it and orders the rows by relevance to the
+  CALLER'S OWN vote, with the free row moving from "position 1" to "the
+  top-ranked one"; `question_snapshot` + `_admin_write_smaczki` carry the tag
+  through the admin draft flow; `admin_list_questions` gains
+  `smaczki_untagged` + `p_only_untagged`) — **applied to prod 2026-08-19** via
+  MCP as `smaczek_side`. Two functions change result shape
+  (`get_question_smaczki`, `admin_list_questions`), so both are dropped and
+  recreated with their grants re-asserted. The snapshot gaining a key changes
+  `question_content_hash` for every question, which would have made all 38 open
+  drafts fail `admin_approve_draft`'s conflict guard on an edit nobody made —
+  the same statement re-bases their `base_hash`, content untouched. Verified
+  live: both signatures show the new columns, and the ranking expression
+  returns position order for a caller with no vote (today's behaviour), the
+  `attacks_no` row first for a NIE voter, `attacks_yes` first for a TAK voter.
+  All 1676 live smaczki start untagged, i.e. served exactly as before until the
+  catalog is tagged. Idempotent.

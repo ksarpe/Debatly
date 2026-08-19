@@ -1,6 +1,10 @@
 'use client';
 
 import { wordDiff, isChanged } from '../lib/wordDiff';
+import { SIDES } from '../lib/api';
+
+/** Human label for `question_smaczki.side`, so the diff reads as words. */
+const sideLabel = (v) => SIDES.find((o) => o.value === v)?.label ?? 'nie ustawiono';
 
 /**
  * Shows ONLY what changed, with the change highlighted in place:
@@ -31,6 +35,11 @@ export default function Diff({ before, after }) {
   for (let i = 0; i < max; i++) {
     rows.push({ label: `Smaczek ${i + 1} PL`, a: sa[i]?.pl, b: sb[i]?.pl });
     rows.push({ label: `Smaczek ${i + 1} EN`, a: sa[i]?.en, b: sb[i]?.en });
+    rows.push({
+      label: `Smaczek ${i + 1} strona`,
+      a: sa[i] ? sideLabel(sa[i].side) : undefined,
+      b: sb[i] ? sideLabel(sb[i].side) : undefined,
+    });
   }
 
   const changed = rows.filter((r) => isChanged(r.a, r.b));

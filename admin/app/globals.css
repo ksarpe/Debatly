@@ -235,7 +235,10 @@ tr.editor-row > td {
   font-size: 11px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
 }
-.sm-row.free .sm-num { background: var(--accent); color: #fff; }
+/* A smaczek with no side set: served to everyone the same way, so it is the
+   one thing on this card still worth doing. Marked, not alarmed. */
+.sm-row.untagged { border-style: dashed; }
+.sm-row.untagged .sm-num { background: var(--warn); color: #fff; }
 .sm-fields { flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .sm-acts { display: flex; gap: 3px; flex: none; margin-top: 2px; }
 .sm-acts button {

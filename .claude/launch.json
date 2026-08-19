@@ -12,6 +12,12 @@
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", "cd /d admin && npx next dev -p 3210"],
       "port": 3210
+    },
+    {
+      "name": "site",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "3300", "--directory", "site"],
+      "port": 3300
     }
   ]
 }

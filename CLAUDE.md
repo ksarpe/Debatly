@@ -72,6 +72,15 @@ surface.
 - **Two clocks on purpose:** the daily rolls over at the user's *local*
   midnight (countdown + `DailyRolloverWatcher` handle it in-session); the
   streak counts *UTC* days. Don't "fix" one to match the other.
+- **The argument sits between the vote and the result.** Casting a vote does
+  not reveal the split: the smaczek tagged against the side just picked
+  (`question_smaczki.side` — `attacks_yes` / `attacks_no` / `neutral`, NULL =
+  untagged, served as neutral) falls in word by word, hits the user's own
+  answer tile, and they answer "trzymam się" / "hmm, jednak nie" — a flip
+  re-casts the vote. Only then do the bars appear. `get_question_smaczki`
+  orders by relevance to the caller's own vote and the FREE row is the
+  top-ranked one, not position 1. Never a trap: system back = held, and no
+  readable argument means no gate.
 - Voting is allowed on any readable question; the split shown is the
   **all-time** tally, not "today's result". The streak advances on any vote,
   at most once per UTC day, and decays one rank per 3 missed days.

@@ -156,8 +156,15 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
                   ],
                 ),
                 const SizedBox(height: 6),
+                // How many arguments are still ahead of the reader — everything
+                // past the one the post-vote challenge already threw at them.
+                // Falls back to the flat line until the list has loaded.
                 Text(
-                  context.l10n.smaczkiSubtitle,
+                  switch ((smaczkiAsync.value?.length ?? 0) - 1) {
+                    final int rest when rest > 0 =>
+                      context.l10n.smaczkiRemaining(rest),
+                    _ => context.l10n.smaczkiSubtitle,
+                  },
                   style: AppTypography.support(
                     fontSize: 13,
                   ).copyWith(color: context.colors.subtle),

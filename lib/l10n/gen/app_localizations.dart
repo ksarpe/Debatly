@@ -1253,7 +1253,7 @@ abstract class AppLocalizations {
   /// No description provided for @goDeeper.
   ///
   /// In en, this message translates to:
-  /// **'GO DEEPER'**
+  /// **'AGAINST YOU'**
   String get goDeeper;
 
   /// No description provided for @shareLabel.
@@ -1523,8 +1523,14 @@ abstract class AppLocalizations {
   /// No description provided for @smaczkiSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Tips to deepen the conversation around this question.'**
+  /// **'You are not going to like this one.'**
   String get smaczkiSubtitle;
+
+  /// How many arguments are left besides the one served right after the vote.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{One more left. Also against you.} =2{Two more left. Both against you.} other{{count} more left. All against you.}}'**
+  String smaczkiRemaining(int count);
 
   /// No description provided for @smaczekSuggestCta.
   ///
@@ -1567,6 +1573,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unlock'**
   String get smaczkiUnlockCta;
+
+  /// No description provided for @smaczekChallengeEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'BEFORE I SHOW YOU THE RESULT'**
+  String get smaczekChallengeEyebrow;
+
+  /// No description provided for @smaczekChallengeHold.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'m holding'**
+  String get smaczekChallengeHold;
+
+  /// No description provided for @smaczekChallengeFlip.
+  ///
+  /// In en, this message translates to:
+  /// **'Hmm, maybe not'**
+  String get smaczekChallengeFlip;
 
   /// No description provided for @ranksLoadError.
   ///

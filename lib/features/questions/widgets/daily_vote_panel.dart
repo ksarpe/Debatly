@@ -6,6 +6,7 @@ import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/network_error.dart';
 import '../../../data/models/rank.dart';
+import '../../../data/models/smaczek.dart';
 import '../../../data/models/vote_result.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../../services/analytics.dart';
@@ -16,6 +17,7 @@ import '../../settings/providers/reminder_providers.dart';
 import '../../settings/providers/review_providers.dart';
 import '../providers/question_providers.dart';
 import 'prototype_history_entry.dart';
+import 'smaczek_challenge_screen.dart';
 import 'suggest_question_nudge.dart';
 import 'vote_visuals.dart';
 
@@ -81,7 +83,7 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
     // Captured before the await so we never read context across an async gap.
     final l10n = context.l10n;
     try {
-      final result = await ref
+      var result = await ref
           .read(questionRepositoryProvider)
           .castDailyVote(widget.questionId, choice);
       if (!mounted) return;
@@ -93,13 +95,24 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       // letting the user "vote" a second time. Invalidating forces a refetch of the
       // server's post-vote state (myChoice set → result bars on the next mount).
       ref.invalidate(dailyVoteStateProvider(widget.questionId));
-      setState(() => _local = result);
 
       // Activation, the step the onboarding funnel drives toward, is a vote on
       // the served daily; feed votes get their own event.
       Analytics.log(widget.isDaily ? 'daily_vote_cast' : 'question_vote_cast', {
         'choice': choiceLabel,
       });
+
+      // The argument comes BEFORE the percentages: the split stops being a fact
+      // and becomes a verdict on whether the user held. `_local` is deliberately
+      // still unset here — assigning it is what reveals the bars, so it waits
+      // until the challenge is done with.
+      final challenged = await _runChallenge(choice);
+      if (!mounted) return;
+      if (challenged != null) {
+        result = challenged.result;
+        choice = challenged.choice;
+      }
+      setState(() => _local = result);
       // EVERY vote may move the streak now (server: once per UTC day), so the
       // engagement upkeep runs for all of them: refresh the streak chip, flip
       // today's reminder to a post-vote message, maybe ask for a review.
@@ -121,6 +134,105 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Runs the post-vote challenge: the argument aimed at the side the user just
+  /// picked, dropped on them before the community split appears.
+  ///
+  /// Returns null when nothing was shown — no argument is readable, or fetching
+  /// one failed. That is a normal outcome, not an error: the percentages are
+  /// the thing the user voted for, and they must never wait on a smaczek.
+  /// Otherwise it returns the outcome's result and the choice now on record,
+  /// which differ from the ones passed in exactly when the user changed
+  /// their mind.
+  Future<({VoteResult result, int choice})?> _runChallenge(int choice) async {
+    final smaczek = await _resolveChallenger(choice);
+    if (!mounted || smaczek == null) return null;
+
+    final outcome = await showSmaczekChallenge(
+      context,
+      smaczek: smaczek,
+      choice: choice,
+    );
+    if (!mounted) return null;
+
+    Analytics.log('smaczek_challenge', {
+      'question_id': widget.questionId,
+      'position': smaczek.position,
+      'side': smaczek.side.wire,
+      'outcome': outcome.name,
+      'choice': choice == VoteResult.yes ? 'tak' : 'nie',
+    });
+
+    if (outcome == ChallengeOutcome.held) return null;
+
+    // Changed their mind: the cast RPC is an upsert and the counter trigger
+    // swaps the side, so re-casting IS the change of vote.
+    final flipped = choice == VoteResult.yes ? VoteResult.no : VoteResult.yes;
+    try {
+      final result = await ref
+          .read(questionRepositoryProvider)
+          .castDailyVote(widget.questionId, flipped);
+      if (!mounted) return null;
+      ref.invalidate(dailyVoteStateProvider(widget.questionId));
+      return (result: result, choice: flipped);
+    } catch (e) {
+      // The original vote still stands — say so rather than showing bars for a
+      // side the server never recorded.
+      if (!mounted) return null;
+      AppToast.error(
+        context,
+        isOfflineError(e) ? context.l10n.noConnection : context.l10n.voteFailed,
+      );
+      return null;
+    }
+  }
+
+  /// Picks the argument to throw at a user who just voted [choice].
+  ///
+  /// Prefers what was already warmed while they were reading the question — for
+  /// a PRO user, and for the whole untagged catalog, that is a hit with no round
+  /// trip. Only when nothing readable there is aimed at this side does it go
+  /// back to the server, which now knows the vote and unlocks the argument that
+  /// matches it (see the `get_question_smaczki` RPC).
+  Future<Smaczek?> _resolveChallenger(int choice) async {
+    final id = widget.questionId;
+    try {
+      final warmed = _pickChallenger(
+        ref.read(smaczkiProvider(id)).value,
+        choice,
+      );
+      if (warmed != null) return warmed;
+      ref.invalidate(smaczkiProvider(id));
+      return _pickChallenger(
+        await ref.read(smaczkiProvider(id).future),
+        choice,
+      );
+    } catch (_) {
+      // Offline, a slow RPC, an empty question — all mean "no challenge", never
+      // "no result".
+      return null;
+    }
+  }
+
+  /// The first readable argument written against [choice]; failing that, the
+  /// first readable neutral one. An argument aimed at the OTHER side is skipped
+  /// on purpose — it is not a challenge to this user, it is agreement.
+  ///
+  /// Untagged smaczki read as neutral, so this picks a sensible one across the
+  /// whole catalog before any of it has been tagged.
+  static Smaczek? _pickChallenger(List<Smaczek>? smaczki, int choice) {
+    if (smaczki == null) return null;
+    Smaczek? neutral;
+    for (final s in smaczki) {
+      if ((s.text ?? '').trim().isEmpty) continue;
+      if (s.side != SmaczekSide.neutral) {
+        if (s.attacks(choice)) return s;
+        continue;
+      }
+      neutral ??= s;
+    }
+    return neutral;
   }
 
   /// A vote just counted for today (any question moves the streak now), so
