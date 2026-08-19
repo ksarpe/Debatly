@@ -9,7 +9,7 @@
 // platform channel, and on a connected device/emulator with `-d <device>`. See
 // CONTRIBUTING.md → "Integration smoke test".
 //
-// It pumps the genuine [QuestionApp] (the same `home: AppEntry()` launch state
+// It pumps the genuine [DebatlyApp] (the same `home: AppEntry()` launch state
 // machine `main()` boots) rather than a stubbed screen, so the splash timer, the
 // AppEntry → QuestionScreen routing, the mock repository's simulated delays and
 // the real gestures are all exercised. Two overrides keep it deterministic and
@@ -73,7 +73,7 @@ void main() {
           // shows (see file header for why a guest can't do either).
           sessionProvider.overrideWith(_FreeAccountSession.new),
         ],
-        child: const QuestionApp(),
+        child: const DebatlyApp(),
       ),
     );
 
