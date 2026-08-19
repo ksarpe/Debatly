@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/feedback/app_toast.dart';
 import '../../../core/layout/content_width.dart';
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
@@ -11,6 +13,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/repositories/question_repository.dart' show dateOnlyKey;
 import '../../../services/analytics.dart';
+import '../../account/providers/session_providers.dart';
 import '../../account/providers/stats_providers.dart';
 import '../../onboarding/providers/onboarding_providers.dart'
     show installDayNumber;
@@ -30,13 +33,14 @@ const double _kSwipeCommitDistance = 64;
 /// The free tier's day wall — the screen a free user lands on when they swipe
 /// forward past today's daily, and the model's main conversion surface.
 ///
-/// It shows, in order: a blurred teaser of the next question (the first few
-/// words, from the read-only `peek_next_question`), a live countdown to the
-/// user's LOCAL midnight (when the next free question arrives) and the unlock
-/// CTA (opens the paywall, always). The way back to today's daily is a
-/// rightward swipe — the same gesture that browses the feed — or the system
-/// back gesture/button, which the wall intercepts so it never exits the app
-/// ("never a trap").
+/// It shows, top to bottom: a circular countdown to the user's LOCAL midnight
+/// (when the next free question arrives) with the live HH:MM:SS set inside the
+/// ring, a blurred teaser of the next question (the first few words, from the
+/// read-only `peek_next_question`) and the unlock CTA (opens the paywall,
+/// always). The streak lives in the app-bar chip — the wall never repeats it.
+/// The way back to today's daily is a rightward swipe — the same gesture that
+/// browses the feed — or the system back gesture/button, which the wall
+/// intercepts so it never exits the app ("never a trap").
 ///
 /// On arrival it logs `wall_reached` and — at most once per local day, and
 /// only after today's daily has been voted on — opens the paywall
@@ -52,6 +56,7 @@ class DayWallView extends ConsumerStatefulWidget {
 class _DayWallViewState extends ConsumerState<DayWallView> {
   Timer? _ticker;
   Duration _left = Duration.zero;
+  Duration _dayLength = const Duration(days: 1);
 
   /// Accumulated horizontal finger travel of the drag in progress.
   double _dragDx = 0;
@@ -63,6 +68,7 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
   void initState() {
     super.initState();
     _left = _untilLocalMidnight();
+    _dayLength = _localDayLength();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
     WidgetsBinding.instance.addPostFrameCallback((_) => _onArrived());
   }
@@ -80,6 +86,18 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
     return DateTime(now.year, now.month, now.day + 1).difference(now);
   }
 
+  /// How long *today* is locally — 24h except on the two DST switch days, when
+  /// it is 23 or 25. The ring divides by this, so its arc keeps reading as
+  /// "the slice of the day that is left" on those days too.
+  static Duration _localDayLength() {
+    final now = DateTime.now();
+    return DateTime(
+      now.year,
+      now.month,
+      now.day + 1,
+    ).difference(DateTime(now.year, now.month, now.day));
+  }
+
   void _tick() {
     if (!mounted) return;
     // Once midnight passes, the fetch-day comparison trips and the feed rolls
@@ -87,7 +105,10 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
     // flag watches the daily provider), so there is no manual hide here.
     maybeRolloverDaily(ref);
     if (!mounted) return;
-    setState(() => _left = _untilLocalMidnight());
+    setState(() {
+      _left = _untilLocalMidnight();
+      _dayLength = _localDayLength();
+    });
   }
 
   /// One-shot per arrival: the funnel event, then maybe the once-a-day
@@ -119,15 +140,36 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
     await _openPaywall(trigger: 'auto');
   }
 
+  /// Opens the paywall and, if money changed hands, settles what the user sees.
+  ///
+  /// The result used to be discarded here — the one place in the app where it
+  /// was. The happy path limped along on the RevenueCat listener flipping
+  /// `isPremium`, but a `PurchaseOutcome.pending` (paid, entitlement not
+  /// visible yet) fires no listener, so nothing re-read the session and the
+  /// person who had just paid was returned to the same countdown with no
+  /// acknowledgement at all. On the tier's main conversion surface.
   Future<void> _openPaywall({required String trigger}) async {
     if (_sheetOpen) return;
     _sheetOpen = true;
     try {
-      await showProPaywall(
+      // True for `pending` as well as `entitled` — both mean the money left
+      // their account, and the reconcile below is what decides which it was.
+      final purchased = await showProPaywall(
         context,
         source: PaywallSource.wall,
         trigger: trigger,
       );
+      if (!purchased || !mounted) return;
+      await ref.read(sessionProvider.notifier).refresh();
+      if (!mounted) return;
+      // Say which one it actually was. Claiming "Premium active" over a
+      // still-pending purchase would be a lie the wall itself contradicts —
+      // it only hides once the entitlement really lands.
+      if (ref.read(isPremiumProvider)) {
+        AppToast.success(context, context.l10n.settingsPremiumActiveToast);
+      } else {
+        AppToast.info(context, context.l10n.purchaseSyncPending);
+      }
     } finally {
       _sheetOpen = false;
     }
@@ -152,15 +194,9 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
     }
   }
 
-  String _formatLeft(Duration d) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${two(d.inHours)}:${two(d.inMinutes % 60)}:${two(d.inSeconds % 60)}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final colors = context.colors;
     final teaser = ref.watch(wallTeaserProvider).asData?.value;
 
     return PopScope(
@@ -194,38 +230,16 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      _CountdownRing(
+                        left: _left,
+                        dayLength: _dayLength,
+                        caption: l10n.wallCountdownCaption,
+                      ),
+                      const SizedBox(height: 32),
                       if (teaser != null) ...[
                         _TeaserPreview(teaser: teaser),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 32),
                       ],
-                      // The biggest type in the app, and "23:59:59" cannot break
-                      // (a colon is class IS in UAX #14), so at a large system
-                      // text size it used to run past the column and get clipped
-                      // — on the free tier's main conversion surface. Scale it
-                      // down to fit instead; it never scales UP past 56.
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          _formatLeft(_left),
-                          maxLines: 1,
-                          textAlign: TextAlign.center,
-                          style: AppTypography.numeric(56).copyWith(
-                            color: colors.ink,
-                            // Fixed-width digits so the ticking clock doesn't
-                            // wobble the line.
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        l10n.wallCountdownCaption,
-                        textAlign: TextAlign.center,
-                        style: AppTypography.support(
-                          fontSize: 13,
-                        ).copyWith(color: colors.subtle),
-                      ),
-                      const SizedBox(height: 28),
                       PaywallCtaButton(
                         label: l10n.wallCtaUnlock,
                         caption: l10n.wallCtaCaption,
@@ -244,19 +258,191 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
   }
 }
 
+/// The countdown as a ring: a spark-coloured arc that shrinks clockwise from
+/// twelve o'clock as the day burns down, with the live HH:MM:SS and its
+/// caption set inside it.
+///
+/// The digits are the biggest type on the screen and "23:59:59" cannot break
+/// (a colon is class IS in UAX #14), so they are fitted down rather than
+/// allowed to run past the ring at a large system text size.
+class _CountdownRing extends StatelessWidget {
+  const _CountdownRing({
+    required this.left,
+    required this.dayLength,
+    required this.caption,
+  });
+
+  final Duration left;
+  final Duration dayLength;
+  final String caption;
+
+  /// Outer diameter on a comfortable phone; a narrower column scales it down.
+  static const double _maxDiameter = 220;
+  static const double _stroke = 10;
+
+  static String _formatLeft(Duration d) {
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${two(d.inHours)}:${two(d.inMinutes % 60)}:${two(d.inSeconds % 60)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final total = dayLength.inSeconds;
+    final progress = total <= 0
+        ? 0.0
+        : (left.inSeconds / total).clamp(0.0, 1.0).toDouble();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final diameter = constraints.maxWidth.isFinite
+            ? math.min(_maxDiameter, constraints.maxWidth)
+            : _maxDiameter;
+        return Center(
+          child: SizedBox.square(
+            dimension: diameter,
+            child: CustomPaint(
+              painter: _RingPainter(
+                progress: progress,
+                track: colors.accent,
+                stroke: _stroke,
+              ),
+              // Clear of the stroke and its glow, so the digits never touch
+              // the ring.
+              child: Padding(
+                padding: EdgeInsets.all(_stroke + diameter * 0.13),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        _formatLeft(left),
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                        style: AppTypography.numeric(44).copyWith(
+                          color: colors.ink,
+                          // Fixed-width digits so the ticking clock doesn't
+                          // wobble the line.
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        caption.toUpperCase(),
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                        style: AppTypography.eyebrow(
+                          fontSize: 11,
+                        ).copyWith(color: colors.subtle),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Paints the ring: a full quiet circle, then the remaining slice of the day
+/// as a glowing spark arc running clockwise from twelve o'clock.
+class _RingPainter extends CustomPainter {
+  const _RingPainter({
+    required this.progress,
+    required this.track,
+    required this.stroke,
+  });
+
+  /// 1 at local midnight, 0 as the next one lands.
+  final double progress;
+  final Color track;
+  final double stroke;
+
+  static const double _startAngle = -math.pi / 2;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = (size.shortestSide - stroke) / 2;
+    if (radius <= 0) return;
+
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..color = track,
+    );
+
+    if (progress <= 0) return;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    final sweep = 2 * math.pi * progress;
+
+    // The halo first, so the crisp arc sits on top of its own glow.
+    canvas.drawArc(
+      rect,
+      _startAngle,
+      sweep,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round
+        ..color = AppTheme.sparkGlow.withValues(alpha: 0.35)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+    );
+    canvas.drawArc(
+      rect,
+      _startAngle,
+      sweep,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round
+        ..shader = const SweepGradient(
+          colors: [AppTheme.spark, AppTheme.sparkGlow, AppTheme.spark],
+          transform: GradientRotation(_startAngle),
+        ).createShader(rect),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.progress != progress || old.track != track || old.stroke != stroke;
+}
+
 /// The bait: the next question's first words readable, the rest blurred.
 ///
 /// Only the teaser ever reaches the client (`peek_next_question` cuts it
-/// server-side); the blurred continuation is a fixed dummy string, so removing
-/// the blur reveals nothing — same trick as the locked smaczki cards.
+/// server-side); the blurred continuation is a fixed placeholder string, so
+/// removing the blur reveals nothing — same trick as the locked smaczki cards.
+/// The blur is deliberately left unclipped and given room to bleed into: the
+/// [ClipRect] that used to wrap it sheared the soft edges flat and cut the
+/// second line mid-glyph, which reads as a rendering bug rather than as
+/// something withheld.
 class _TeaserPreview extends StatelessWidget {
   const _TeaserPreview({required this.teaser});
 
   final String teaser;
 
-  static const _dummy =
-      'aaabbbbaaabbb aaabbbbaaabbb aaabbbbaaabbb '
-      'aaabbbbaaabbb aaabbbbaaabbb aaabbbbaaabbb';
+  static const _placeholder = 'blablabla blabla blablabla blabla blablabla';
+
+  /// The ring above and the CTA below own most of the screen, so the preview
+  /// is set below the feed's question sizes rather than at them.
+  static const double _maxFontSize = 30;
+
+  /// Room around the blurred line for the blur to fade out in, instead of
+  /// being cut off against its neighbours.
+  static const double _bleed = 14;
 
   @override
   Widget build(BuildContext context) {
@@ -264,17 +450,15 @@ class _TeaserPreview extends StatelessWidget {
     // white fill over a black stroke), sized as if teaser + hidden
     // continuation were the whole question so it lands where a mid-length
     // question would.
-    final fontSize = QuestionTextStyles.fontSizeFor('$teaser… $_dummy');
+    final fontSize = math.min(
+      QuestionTextStyles.fontSizeFor('$teaser… $_placeholder'),
+      _maxFontSize,
+    );
 
-    Widget styled(String text, {int? maxLines}) {
+    Widget styled(String text) {
       final upper = text.toUpperCase();
-      Text layer(TextStyle style) => Text(
-        upper,
-        textAlign: TextAlign.center,
-        maxLines: maxLines,
-        overflow: maxLines == null ? null : TextOverflow.clip,
-        style: style,
-      );
+      Text layer(TextStyle style) =>
+          Text(upper, textAlign: TextAlign.center, style: style);
       return Stack(
         alignment: Alignment.center,
         children: [
@@ -287,11 +471,11 @@ class _TeaserPreview extends StatelessWidget {
     return Column(
       children: [
         styled('$teaser…'),
-        const SizedBox(height: 8),
-        ClipRect(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: _bleed),
           child: ImageFiltered(
             imageFilter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
-            child: styled(_dummy, maxLines: 2),
+            child: styled(_placeholder),
           ),
         ),
       ],

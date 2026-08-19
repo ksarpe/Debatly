@@ -29,6 +29,29 @@ bool isIdentityChangingAuthEvent(AuthChangeEvent event) =>
     event == AuthChangeEvent.userUpdated ||
     event == AuthChangeEvent.passwordRecovery;
 
+/// Whether a just-bought entitlement has to be re-posted against the identity
+/// the user just signed into.
+///
+/// True only when a PREMIUM session moved to a DIFFERENT Supabase uid. The
+/// flows that upgrade the anonymous user in place (registering, linking a
+/// social identity) keep the same uid, so PRO follows on its own and this is a
+/// no-op; the flows that swap identity — signing in with email/password, and a
+/// social sign-in onto an account that already exists — land on a uid
+/// RevenueCat has never seen, where the entitlement would silently read false.
+///
+/// Lives here, not inside the auth screen, so the rule is stated once and
+/// pinned by a unit test — having it inline in one branch is how the other
+/// branch came to be missing it.
+bool shouldCarryEntitlement({
+  required SessionState? previous,
+  required String? next,
+}) {
+  if (previous == null || !previous.isPremium) return false;
+  final previousUserId = previous.userId;
+  if (previousUserId == null || next == null) return false;
+  return previousUserId != next;
+}
+
 /// Whether the auth listener should answer [event] with a session reload,
 /// given which in-app flow currently owns its own reload. An in-app sign-out
 /// suppresses the `signedOut` it emits ([SessionNotifier.signOutAndReload]);

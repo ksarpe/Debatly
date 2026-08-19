@@ -480,8 +480,10 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     setState(() => _isSubmitting = true);
 
     // Read before the network calls: dismissing the sheet mid-request unmounts
-    // this widget, and the session still has to be refreshed afterwards.
+    // this widget, and the session still has to be refreshed afterwards. The
+    // previous identity is what decides whether PRO has to be moved.
     final session = ref.read(sessionProvider.notifier);
+    final previous = ref.read(sessionProvider).value;
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text;
@@ -491,6 +493,16 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
           await SupabaseService.signInWithPassword(
             email: email,
             password: password,
+          );
+          // Signing in REPLACES the session with the target account's, so this
+          // is always a switch of identity — unlike registering, which upgrades
+          // the current user in place. A guest who just bought PRO and then
+          // signs into their old account would otherwise land on a uid
+          // RevenueCat has never seen. Carry the receipt over BEFORE the
+          // reload, which is what re-reads the entitlement.
+          await _carryEntitlementToNewIdentity(
+            previous: previous,
+            next: SupabaseService.currentUser?.id,
           );
           await session.refresh();
           if (!mounted) return;
@@ -612,17 +624,21 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
 
   /// Moves a just-bought entitlement onto the account the user signed into.
   ///
-  /// Registering with email/password and the social buttons both UPGRADE the
+  /// REGISTERING with email/password and the social buttons both UPGRADE the
   /// anonymous user in place (`updateUser` / `linkIdentityWithIdToken`, same
-  /// UUID), so PRO normally follows on its own and the same-uid guard below
-  /// makes this a no-op. The one flow that still switches identities is a
-  /// social sign-in whose Google/Apple identity already belongs to ANOTHER
-  /// Supabase account (a reinstall / new phone signing back in) — and
-  /// RevenueCat does not move purchases between two identified app user ids on
-  /// `logIn` alone. Left as-is, a guest who buys PRO and then signs back into
-  /// an old account lands on a uid RevenueCat has never seen —
-  /// `sync-entitlement` gets a 404, `isPremium` goes false, and the paywall
-  /// slams shut on someone who paid a minute ago.
+  /// UUID), so PRO follows on its own and the same-uid guard below makes this a
+  /// no-op. Two flows genuinely switch identity, and RevenueCat does not move
+  /// purchases between two identified app user ids on `logIn` alone:
+  ///
+  ///  * signing IN with email/password — always, since it replaces the session
+  ///    with the target account's;
+  ///  * a social sign-in whose Google/Apple identity already belongs to ANOTHER
+  ///    Supabase account (a reinstall / new phone signing back in).
+  ///
+  /// Left as-is, a guest who buys PRO and then signs back into an old account
+  /// lands on a uid RevenueCat has never seen — `sync-entitlement` gets a 404,
+  /// `isPremium` goes false, and the paywall slams shut on someone who paid a
+  /// minute ago.
   ///
   /// So the receipt is re-posted against the NEW identity before the session is
   /// re-read. Identify first: RevenueCat is still logged in as the old uid at
@@ -635,13 +651,10 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
   /// dashboard's transfer behaviour being "transfer to the new App User ID".
   Future<void> _carryEntitlementToNewIdentity({
     required SessionState? previous,
-    required String next,
+    required String? next,
   }) async {
-    if (previous == null || !previous.isPremium) return;
-    final previousUserId = previous.userId;
-    // Same uid = an in-place upgrade; nothing moved, nothing to carry.
-    if (previousUserId == null || previousUserId == next) return;
-    await PurchasesService.identify(next);
+    if (!shouldCarryEntitlement(previous: previous, next: next)) return;
+    await PurchasesService.identify(next!);
     await PurchasesService.restorePurchases();
   }
 
