@@ -169,17 +169,23 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
     super.dispose();
   }
 
-  /// Re-fetches a failed offer when the user comes back to the app.
+  /// Re-fetches an absent offer when the user comes back to the app.
   ///
   /// The realistic recovery from a store/network failure is the user leaving
   /// to do something about it — toggle airplane mode, find signal, update the
   /// Play Store — and the wall they return to must not still be the dead one
-  /// they left. Only when the offer actually failed: a resume after the store's
-  /// own purchase sheet (or any other trip out) has nothing to reload.
+  /// they left. An EMPTY offering is refetched here too: it shows no retry
+  /// button (nothing the user can do would change the answer), but a store
+  /// configuration fixed while the app sat in the background should still heal
+  /// on the next resume rather than needing a relaunch. Only when the offer is
+  /// actually missing: a resume after the store's own purchase sheet (or any
+  /// other trip out) has nothing to reload.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) return;
-    if (!_loadFailed || _busy) return;
+    if (_busy) return;
+    final emptyOffering = _packages?.isEmpty ?? false;
+    if (!_loadFailed && !emptyOffering) return;
     _retryLoad();
   }
 
@@ -521,8 +527,19 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
   /// The live part of the pitch: the plan cards once the fetch resolves, with
   /// loading and retryable error states in the meantime.
   Widget _buildOffer(BuildContext context) {
-    if (_loadFailed || (_packages?.isEmpty ?? false)) {
-      return PaywallOfferError(onRetry: _retryLoad);
+    // A failed fetch and an empty offering look the same here but are not the
+    // same problem — see [PaywallOfferProblem].
+    if (_loadFailed) {
+      return PaywallOfferError(
+        problem: PaywallOfferProblem.unreachable,
+        onRetry: _retryLoad,
+      );
+    }
+    if (_packages?.isEmpty ?? false) {
+      return PaywallOfferError(
+        problem: PaywallOfferProblem.unavailable,
+        onRetry: _retryLoad,
+      );
     }
     final packages = _packages;
     if (packages == null) {

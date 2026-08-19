@@ -355,21 +355,44 @@ void main() {
     expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
   });
 
+  // The two ways the plans can be missing are NOT the same problem, and used to
+  // share one screen. An offering that resolves empty is a store-configuration
+  // state — telling that user to check their connection is wrong, and the retry
+  // provably cannot help, because the same call returns the same nothing. It is
+  // also the state an App Review build lands in before its IAPs are approved,
+  // where "network error" reads as a broken app.
   testWidgets(
-    'an empty package list (unconfigured RevenueCat) shows the error state '
-    'without throwing',
+    'an empty offering says the plans are unavailable, with no dead retry',
     (tester) async {
       await pumpSheet(tester, loadPackages: () async => const []);
 
       expect(
-        find.text(
-          'Nie udało się wczytać oferty. Sprawdź połączenie i spróbuj ponownie.',
-        ),
+        find.textContaining('Plany są chwilowo niedostępne'),
         findsOneWidget,
       );
+      // Not the connection copy, and no button that could not work.
+      expect(find.textContaining('Sprawdź połączenie'), findsNothing);
+      expect(find.text('SPRÓBUJ PONOWNIE'), findsNothing);
       expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsNothing);
+      // The escape hatch for someone who already paid has to survive: it is the
+      // only thing that gets their PRO back while the plans are missing.
+      expect(find.text('Przywróć zakup'), findsOneWidget);
     },
   );
+
+  testWidgets('a failed fetch keeps the connection copy and the retry', (
+    tester,
+  ) async {
+    await pumpSheet(
+      tester,
+      loadPackages: () async => throw Exception('store unreachable'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Sprawdź połączenie'), findsOneWidget);
+    expect(find.text('SPRÓBUJ PONOWNIE'), findsOneWidget);
+    expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsNothing);
+  });
 
   testWidgets('footer links clear the bottom system inset', (tester) async {
     // Regression: the sheet route uses `useSafeArea: true`, which is

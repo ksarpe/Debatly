@@ -658,6 +658,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadErrorBody => 'Check your internet connection and try again.';
 
   @override
+  String get loadErrorBodyEmpty =>
+      'Today\'s question didn\'t come through. Try again in a moment.';
+
+  @override
   String get offlineBannerLabel => 'You\'re offline';
 
   @override
@@ -1191,6 +1195,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get paywallLoadError =>
       'Couldn\'t load the offers. Check your connection and try again.';
+
+  @override
+  String get paywallOfferUnavailable =>
+      'Plans are unavailable right now. Check back shortly — and if you already have PRO, use Restore below.';
 
   @override
   String get paywallTermsLink => 'Terms';

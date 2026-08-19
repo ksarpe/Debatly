@@ -1226,6 +1226,12 @@ abstract class AppLocalizations {
   /// **'Check your internet connection and try again.'**
   String get loadErrorBody;
 
+  /// No description provided for @loadErrorBodyEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s question didn\'t come through. Try again in a moment.'**
+  String get loadErrorBodyEmpty;
+
   /// No description provided for @offlineBannerLabel.
   ///
   /// In en, this message translates to:
@@ -2065,6 +2071,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the offers. Check your connection and try again.'**
   String get paywallLoadError;
+
+  /// No description provided for @paywallOfferUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Plans are unavailable right now. Check back shortly — and if you already have PRO, use Restore below.'**
+  String get paywallOfferUnavailable;
 
   /// No description provided for @paywallTermsLink.
   ///

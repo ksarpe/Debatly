@@ -209,6 +209,7 @@
   "swipeHint": "Przesuń, aby zobaczyć następne pytanie",
   "loadErrorTitle": "Nie udało się załadować pytań",
   "loadErrorBody": "Sprawdź połączenie z internetem i spróbuj ponownie.",
+  "loadErrorBodyEmpty": "Nie udało się pobrać dzisiejszego pytania. Spróbuj ponownie za chwilę.",
   "offlineBannerLabel": "Jesteś offline",
   "offlineResultsHidden": "Wyniki wrócą po połączeniu",
   "yourVote": "Twój głos",
@@ -397,6 +398,7 @@
   "paywallLifetimeNote": "Jedna płatność — na zawsze",
   "paywallSubscriptionNote": "Odnawia się automatycznie — anulujesz w każdej chwili",
   "paywallLoadError": "Nie udało się wczytać oferty. Sprawdź połączenie i spróbuj ponownie.",
+  "paywallOfferUnavailable": "Plany są chwilowo niedostępne. Zajrzyj za jakiś czas — a jeśli masz już PRO, użyj „Przywróć zakup” poniżej.",
   "paywallTermsLink": "Regulamin",
   "paywallPrivacyLink": "Prywatność",
   "paywallBuildStamp": "v{version} ({build}) · ID {code}"

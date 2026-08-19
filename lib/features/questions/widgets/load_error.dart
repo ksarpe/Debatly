@@ -8,9 +8,16 @@ import '../../../core/theme/app_typography.dart';
 /// to render. Replaces the old endless spinner with a friendly message and a
 /// retry that re-runs sign-in + the question/daily/stats fetches.
 class LoadError extends StatelessWidget {
-  const LoadError({super.key, required this.onRetry});
+  const LoadError({super.key, required this.onRetry, this.body});
 
   final VoidCallback onRetry;
+
+  /// Overrides the explanation under the title. The default blames the network,
+  /// which is right for a thrown fetch — but the feed also lands here when every
+  /// fetch SUCCEEDED and simply produced no question, where telling somebody
+  /// with four bars to check their connection sends them chasing the wrong
+  /// thing.
+  final String? body;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +38,7 @@ class LoadError extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              context.l10n.loadErrorBody,
+              body ?? context.l10n.loadErrorBody,
               textAlign: TextAlign.center,
               style: AppTypography.body(
                 fontSize: 14,

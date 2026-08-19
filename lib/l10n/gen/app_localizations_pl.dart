@@ -663,6 +663,10 @@ class AppLocalizationsPl extends AppLocalizations {
       'Sprawdź połączenie z internetem i spróbuj ponownie.';
 
   @override
+  String get loadErrorBodyEmpty =>
+      'Nie udało się pobrać dzisiejszego pytania. Spróbuj ponownie za chwilę.';
+
+  @override
   String get offlineBannerLabel => 'Jesteś offline';
 
   @override
@@ -1214,6 +1218,10 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get paywallLoadError =>
       'Nie udało się wczytać oferty. Sprawdź połączenie i spróbuj ponownie.';
+
+  @override
+  String get paywallOfferUnavailable =>
+      'Plany są chwilowo niedostępne. Zajrzyj za jakiś czas — a jeśli masz już PRO, użyj „Przywróć zakup” poniżej.';
 
   @override
   String get paywallTermsLink => 'Regulamin';

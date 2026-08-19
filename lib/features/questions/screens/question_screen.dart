@@ -129,10 +129,25 @@ class QuestionScreen extends ConsumerWidget {
     // Either fetch failing leaves the deck empty; surface BOTH so an offline
     // launch shows a retry instead of an endless spinner (the daily's error in
     // particular never reached the UI before, so the deck just stayed empty).
-    final loadError =
-        ref.watch(questionsProvider).error ??
-        ref.watch(todaysDailyQuestionProvider).error;
+    final poolAsync = ref.watch(questionsProvider);
+    final dailyAsync = ref.watch(todaysDailyQuestionProvider);
+    final loadError = poolAsync.error ?? dailyAsync.error;
     final deck = ref.watch(questionDeckProvider);
+    // An empty deck only means "still loading" while a fetch is actually in
+    // flight. Once BOTH have RESOLVED and the deck is still empty, nothing is
+    // ever coming: the daily RPC returned no row and the free pool is empty by
+    // design. That happens for real — a failed anonymous sign-in leaves
+    // `ensureSignedIn` returning null, so `get_daily_question` sees no uid and
+    // returns nothing (Supabase rate-limits anonymous sign-ups per IP, which a
+    // carrier CGNAT or an office network reaches), and a question with no
+    // translation in either language resolves to blank text. Without this the
+    // screen sat on a spinner with no message and no retry, forever.
+    final resolvedEmpty =
+        deck.isEmpty &&
+        dailyAsync.hasValue &&
+        !dailyAsync.isLoading &&
+        poolAsync.hasValue &&
+        !poolAsync.isLoading;
     // Zero on phones; on wider screens it is how far the capped question column
     // sits from each edge, which the app-bar icons follow.
     final gutter = horizontalGutter(context);
@@ -193,8 +208,15 @@ class QuestionScreen extends ConsumerWidget {
         fit: StackFit.expand,
         children: [
           Positioned.fill(
-            child: deck.isEmpty && loadError != null
+            child: deck.isEmpty && (loadError != null || resolvedEmpty)
                 ? LoadError(
+                    // A thrown fetch really is usually the network; a resolved
+                    // but empty one is not, so don't send that user off to
+                    // check their wifi. The retry is the same either way — it
+                    // re-runs sign-in, which is what recovers the empty case.
+                    body: loadError == null
+                        ? context.l10n.loadErrorBodyEmpty
+                        : null,
                     onRetry: () {
                       ref.invalidate(sessionProvider);
                       ref.invalidate(questionsProvider);
