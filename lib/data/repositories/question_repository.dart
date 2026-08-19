@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/monitoring/monitoring.dart';
+import '../../core/network/network_timeout.dart';
 import '../../services/supabase_service.dart';
 import '../mock/mock_questions.dart';
 import '../models/conformity_stats.dart';
@@ -382,10 +383,12 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // the device's local date (`p_date`), which the gate clamps to UTC ±1 so the
     // user's real "today" is honoured but the archive can't be harvested.
     // Everything else comes back locked (no text) and renders as a locked card.
-    final data = await _db.rpc(
-      'get_questions',
-      params: {'p_locale': locale, 'p_date': dateOnlyKey(DateTime.now())},
-    );
+    final data = await _db
+        .rpc(
+          'get_questions',
+          params: {'p_locale': locale, 'p_date': dateOnlyKey(DateTime.now())},
+        )
+        .withNetworkTimeout();
 
     return (data as List)
         .cast<Map<String, dynamic>>()
@@ -399,10 +402,12 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // first call of the day it draws a random not-yet-voted question (unseen
     // first) and pins it for the rest of that date, so every user opens to a
     // fresh, votable question — never a re-run they already answered.
-    final data = await _db.rpc(
-      'get_daily_question',
-      params: {'p_locale': locale, 'p_date': dateOnlyKey(date)},
-    );
+    final data = await _db
+        .rpc(
+          'get_daily_question',
+          params: {'p_locale': locale, 'p_date': dateOnlyKey(date)},
+        )
+        .withNetworkTimeout();
 
     final rows = (data as List).cast<Map<String, dynamic>>();
     if (rows.isEmpty) return null;
@@ -417,14 +422,16 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // eligible question, the teaser cut server-side to the first few words —
     // the full text never reaches a non-premium client, and the peek records
     // nothing (no question_seen row, no spend).
-    final data = await _db.rpc(
-      'peek_next_question',
-      params: {
-        'p_locale': locale,
-        'p_date': dateOnlyKey(DateTime.now()),
-        'p_exclude_ids': excludeIds,
-      },
-    );
+    final data = await _db
+        .rpc(
+          'peek_next_question',
+          params: {
+            'p_locale': locale,
+            'p_date': dateOnlyKey(DateTime.now()),
+            'p_exclude_ids': excludeIds,
+          },
+        )
+        .withNetworkTimeout();
 
     final rows = (data as List).cast<Map<String, dynamic>>();
     if (rows.isEmpty) return null;
@@ -438,10 +445,12 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // The RPC returns every smaczek for the question but withholds the text of
     // locked ones (premium-only beyond the first). RLS/grants are deliberately
     // off on the smaczki tables — this SECURITY DEFINER RPC is the only way in.
-    final data = await _db.rpc(
-      'get_question_smaczki',
-      params: {'p_question_id': questionId, 'p_locale': locale},
-    );
+    final data = await _db
+        .rpc(
+          'get_question_smaczki',
+          params: {'p_question_id': questionId, 'p_locale': locale},
+        )
+        .withNetworkTimeout();
 
     return (data as List)
         .cast<Map<String, dynamic>>()
@@ -454,7 +463,9 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // SECURITY DEFINER RPC: returns the server's view of streak / rank as a
     // single row. (Server-side it still tops up the legacy daily credit for
     // older app versions; this client ignores those fields.)
-    final data = await _db.rpc('sync_user_state', params: {'p_locale': locale});
+    final data = await _db
+        .rpc('sync_user_state', params: {'p_locale': locale})
+        .withNetworkTimeout();
 
     final rows = (data as List).cast<Map<String, dynamic>>();
     if (rows.isEmpty) return null;
@@ -463,10 +474,9 @@ class SupabaseQuestionRepository implements QuestionRepository {
 
   @override
   Future<VoteResult> getDailyVoteState(String questionId) async {
-    final data = await _db.rpc(
-      'get_daily_vote_state',
-      params: {'p_question_id': questionId},
-    );
+    final data = await _db
+        .rpc('get_daily_vote_state', params: {'p_question_id': questionId})
+        .withNetworkTimeout();
 
     final rows = (data as List).cast<Map<String, dynamic>>();
     if (rows.isEmpty) return VoteResult.empty;
@@ -479,15 +489,17 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // returns the fresh community split. Pass the device's local date so the
     // streak's "is this the daily" check honours the user's timezone (clamped to
     // UTC ±1 server-side).
-    final data = await _db.rpc(
-      'cast_daily_vote',
-      params: {
-        'p_question_id': questionId,
-        'p_choice': choice,
-        'p_date': dateOnlyKey(DateTime.now()),
-        'p_locale': locale,
-      },
-    );
+    final data = await _db
+        .rpc(
+          'cast_daily_vote',
+          params: {
+            'p_question_id': questionId,
+            'p_choice': choice,
+            'p_date': dateOnlyKey(DateTime.now()),
+            'p_locale': locale,
+          },
+        )
+        .withNetworkTimeout();
 
     final rows = (data as List).cast<Map<String, dynamic>>();
     if (rows.isEmpty) return VoteResult.empty;
@@ -497,7 +509,11 @@ class SupabaseQuestionRepository implements QuestionRepository {
   @override
   Future<List<Rank>> fetchRanks() async {
     // The ranks table is public-readable; order by tier for the ladder.
-    final data = await _db.from('ranks').select().order('tier');
+    final data = await _db
+        .from('ranks')
+        .select()
+        .order('tier')
+        .withNetworkTimeout();
 
     return (data as List)
         .cast<Map<String, dynamic>>()
@@ -512,10 +528,9 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // question might be surfaced as "new" again, so swallow errors rather than
     // bubbling them into a fire-and-forget call site.
     try {
-      await _db.rpc(
-        'mark_question_seen',
-        params: {'p_question_id': questionId},
-      );
+      await _db
+          .rpc('mark_question_seen', params: {'p_question_id': questionId})
+          .withNetworkTimeout();
     } catch (e) {
       // Non-fatal: the deck still works, just without this view recorded. Keep a
       // breadcrumb only — a failed marker is benign and routinely offline.
@@ -530,7 +545,7 @@ class SupabaseQuestionRepository implements QuestionRepository {
   @override
   Future<Set<String>> fetchFavoriteIds() async {
     // SECURITY DEFINER RPC: the caller's favorite ids (own rows only).
-    final data = await _db.rpc('get_favorite_ids');
+    final data = await _db.rpc('get_favorite_ids').withNetworkTimeout();
     return (data as List).map((e) => e.toString()).toSet();
   }
 
@@ -539,10 +554,9 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // SECURITY DEFINER RPC: pins the row to auth.uid(), enforces the premium
     // gate on ADD server-side, and returns the new state. Throws on a non-premium
     // add ('premium required') — the caller surfaces the paywall instead.
-    final data = await _db.rpc(
-      'toggle_question_favorite',
-      params: {'p_question_id': questionId},
-    );
+    final data = await _db
+        .rpc('toggle_question_favorite', params: {'p_question_id': questionId})
+        .withNetworkTimeout();
     return data as bool;
   }
 
@@ -551,10 +565,9 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // SECURITY DEFINER RPC: returns favorites WITH text (readable forever), so —
     // unlike get_questions — nothing comes back locked. fromJson sees no `locked`
     // key, defaulting isLocked to false.
-    final data = await _db.rpc(
-      'get_favorite_questions',
-      params: {'p_locale': locale},
-    );
+    final data = await _db
+        .rpc('get_favorite_questions', params: {'p_locale': locale})
+        .withNetworkTimeout();
     return (data as List)
         .cast<Map<String, dynamic>>()
         .map(Question.fromJson)
@@ -568,10 +581,9 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // — a non-premium caller gets only their last 48 hours of votes (the
     // always-free daily), which the screen trims to the local today. No date
     // param: the row's date is the vote's own timestamp, rendered locally.
-    final data = await _db.rpc(
-      'get_vote_history',
-      params: {'p_locale': locale},
-    );
+    final data = await _db
+        .rpc('get_vote_history', params: {'p_locale': locale})
+        .withNetworkTimeout();
     return (data as List)
         .cast<Map<String, dynamic>>()
         .map(VoteHistoryEntry.fromJson)
@@ -584,7 +596,7 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // majority decided on the seed-inclusive totals (so the axis matches the
     // result bars the user saw). Always exactly one row; zeros for a fresh
     // user, but guard the empty shape anyway.
-    final data = await _db.rpc('get_conformity_stats');
+    final data = await _db.rpc('get_conformity_stats').withNetworkTimeout();
     final rows = (data as List).cast<Map<String, dynamic>>();
     if (rows.isEmpty) return ConformityStats.empty;
     return ConformityStats.fromJson(rows.first);
@@ -611,10 +623,12 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // SECURITY DEFINER RPC: inserts into the admin-reviewed suggestions inbox,
     // pinning the row to auth.uid() and enforcing length + a per-day cap
     // server-side (TOO_SHORT / TOO_LONG / RATE_LIMITED).
-    await _db.rpc(
-      'submit_question_suggestion',
-      params: {'p_text': text, 'p_locale': locale},
-    );
+    await _db
+        .rpc(
+          'submit_question_suggestion',
+          params: {'p_text': text, 'p_locale': locale},
+        )
+        .withNetworkTimeout();
   }
 
   @override
@@ -626,10 +640,16 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // (kind = 'smaczek'). The server normalises whitespace and enforces length
     // (5–80), control-character and question-id checks plus the shared per-day
     // cap (BAD_TEXT / TOO_SHORT / TOO_LONG / BAD_QUESTION / RATE_LIMITED).
-    await _db.rpc(
-      'submit_smaczek_suggestion',
-      params: {'p_question_id': questionId, 'p_text': text, 'p_locale': locale},
-    );
+    await _db
+        .rpc(
+          'submit_smaczek_suggestion',
+          params: {
+            'p_question_id': questionId,
+            'p_text': text,
+            'p_locale': locale,
+          },
+        )
+        .withNetworkTimeout();
   }
 }
 

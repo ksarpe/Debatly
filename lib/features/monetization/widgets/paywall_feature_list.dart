@@ -18,7 +18,7 @@ class PaywallFeatureList extends StatelessWidget {
       (Icons.all_inclusive, l10n.paywallFeatureUnlimited),
       (Icons.check_rounded, l10n.paywallFeatureSmaczki),
       (Icons.check_rounded, l10n.paywallFeatureHistory),
-      (Icons.check_rounded, l10n.paywallFeatureNoAds),
+      (Icons.check_rounded, l10n.paywallFeatureOffline),
     ];
 
     return Column(

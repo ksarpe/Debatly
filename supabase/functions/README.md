@@ -6,7 +6,7 @@ only these functions (running with the `service_role` key) do.
 
 | Function | Trigger | Writes |
 |----------|---------|--------|
-| `revenuecat-webhook` (live slug: `revenue-cat-webhook`, hyphenated — see below) | RevenueCat webhook (POST) | `billing_events`, `subscriptions`, `profiles.is_premium` |
+| `revenue-cat-webhook` | RevenueCat webhook (POST) | `billing_events`, `subscriptions`, `profiles.is_premium` |
 | `admob-ssv` | AdMob SSV callback (GET) | `ad_reward_events` (audit only) |
 | `sync-entitlement` | App, on launch / after purchase (POST, JWT) | `profiles.is_premium` / `premium_until` |
 | `delete-account` | App, Settings → Delete account (POST, JWT) | deletes `auth.users` (cascades to all user data) |
@@ -23,13 +23,11 @@ supabase db push        # applies migrations/20260618120000_init.sql
 supabase secrets set REVENUECAT_WEBHOOK_SECRET="<long-random-secret>"
 
 # Functions — public (Google / RevenueCat call them, not a logged-in user)
-# NOTE: the live RevenueCat webhook is deployed under the slug
-# `revenue-cat-webhook` (hyphenated), not this folder's name
-# `revenuecat-webhook` — deploying with the command below as-is creates a
-# SEPARATE, unused function rather than updating the live one. Confirm the
-# right target slug for your Supabase CLI version before running it (either
-# rename this folder to match, or deploy with an explicit slug argument).
-supabase functions deploy revenuecat-webhook --no-verify-jwt
+# Every folder name here matches its LIVE slug, so these commands update the
+# existing functions. Keep it that way: a mismatched name deploys a second
+# function beside the live one, and the caller (RevenueCat, AdMob) keeps hitting
+# the old one while the code moves on.
+supabase functions deploy revenue-cat-webhook --no-verify-jwt
 supabase functions deploy admob-ssv          --no-verify-jwt
 
 # Functions — JWT verified (the logged-in user/guest calls them)

@@ -1946,16 +1946,16 @@ abstract class AppLocalizations {
   /// **'Maybe later'**
   String get onboardingNotifySkip;
 
-  /// Small caption under the day wall's big HH:MM:SS timer ticking down to the user's local midnight.
+  /// Tiny uppercase caption set inside the day wall's circular countdown, under the live HH:MM:SS ticking down to the user's local midnight. Keep it short — it has to fit inside the ring.
   ///
   /// In en, this message translates to:
-  /// **'Countdown to the next free question'**
+  /// **'Until free'**
   String get wallCountdownCaption;
 
   /// No description provided for @wallCtaUnlock.
   ///
   /// In en, this message translates to:
-  /// **'Unlock 500+ questions'**
+  /// **'Don\'t wait — unlock everything'**
   String get wallCtaUnlock;
 
   /// Small second line inside the day wall's unlock CTA pill, under the main label, teasing that the catalog keeps growing.
@@ -2000,11 +2000,11 @@ abstract class AppLocalizations {
   /// **'History and favorites forever'**
   String get paywallFeatureHistory;
 
-  /// No description provided for @paywallFeatureNoAds.
+  /// No description provided for @paywallFeatureOffline.
   ///
   /// In en, this message translates to:
-  /// **'Zero ads, offline mode'**
-  String get paywallFeatureNoAds;
+  /// **'Offline mode — the whole catalog on your phone'**
+  String get paywallFeatureOffline;
 
   /// No description provided for @paywallSignInLink.
   ///

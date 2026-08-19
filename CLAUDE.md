@@ -146,7 +146,7 @@ supabase/
   migrations/schema/     61 files: tables, RPCs, views, RLS, grants (has DDL).
                          The real schema; newest file wins per object
   migrations/data/       33 files: question seeds + catalog edits (no DDL, 3× bigger)
-  functions/             Edge functions (Deno/TS): revenuecat-webhook,
+  functions/             Edge functions (Deno/TS): revenue-cat-webhook,
                          sync-entitlement, admob-ssv, send-auth-email,
                          delete-account
   backups/               Pre-edit row snapshots for data/ migrations — data, not code

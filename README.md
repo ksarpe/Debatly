@@ -301,7 +301,7 @@ their local date and stored in `user_daily_questions`.
 
 ### Edge functions
 
-`supabase/functions/` holds the Deno functions: `revenuecat-webhook` (reflects
+`supabase/functions/` holds the Deno functions: `revenue-cat-webhook` (reflects
 entitlement changes onto `profiles.is_premium`), `sync-entitlement`,
 `admob-ssv` (ad-reward verification — legacy, kept only for old app versions),
 `send-auth-email` (localized auth emails, reading `profiles.locale`) and
@@ -356,7 +356,7 @@ resolves as premium and runs on local data.
   bridge, locked features and Settings. Packages and localized prices come
   live from the current RevenueCat offering (monthly / lifetime; monthly
   preselected, no badge); the purchase goes through `Purchases.purchase`.
-  The `revenuecat-webhook` edge function reflects entitlement changes onto
+  The `revenue-cat-webhook` edge function reflects entitlement changes onto
   `profiles.is_premium` (the flag the RLS gate reads). Restore-purchases is
   reachable from Settings and the paywall (guests get a sign-in-first chooser
   so a store restore can't hijack an account-held entitlement).

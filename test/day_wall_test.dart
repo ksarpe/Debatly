@@ -117,16 +117,15 @@ void main() {
     // the real question's style: uppercased, as two stacked text layers
     // (stroke below, fill on top).
     expect(find.textContaining('CZY CZTERY PIERWSZE SŁOWA'), findsNWidgets(2));
-    // Live countdown to local midnight: the big timer plus its caption.
-    expect(
-      find.text('Odliczanie do kolejnego darmowego pytania'),
-      findsOneWidget,
-    );
+    // Live countdown to local midnight: the caption set inside the ring
+    // (the ticking HH:MM:SS above it changes every second, so the caption is
+    // the stable anchor).
+    expect(find.text('DO DARMOWEGO'), findsOneWidget);
     // The streak line was dropped from the wall — the caption must stay gone.
     expect(find.textContaining('Twoja seria'), findsNothing);
     // The single CTA: unlock (the pill renders its label uppercase). The way
     // back is the back swipe.
-    expect(find.text('ODBLOKUJ PONAD 500 PYTAŃ'), findsOneWidget);
+    expect(find.text('NIE CZEKAJ — ODBLOKUJ WSZYSTKIE'), findsOneWidget);
     expect(find.text('(co tydzień nowe zestawy!)'), findsOneWidget);
     // The "come back tomorrow" button was dropped — it must stay gone.
     expect(find.text('albo wróć jutro'), findsNothing);
@@ -204,7 +203,7 @@ void main() {
       reason: 'no paywall before the first vote of the day',
     );
     // The manual CTA still works, of course.
-    await tester.tap(find.text('ODBLOKUJ PONAD 500 PYTAŃ'));
+    await tester.tap(find.text('NIE CZEKAJ — ODBLOKUJ WSZYSTKIE'));
     await pumpABit(tester);
     expect(find.byType(ProPaywallScreen), findsOneWidget);
   });

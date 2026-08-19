@@ -99,7 +99,13 @@ void main() {
     expect(find.text('Pytania bez limitu dziennego'), findsOneWidget);
     expect(find.text('Wszystkie argumenty, nie pierwszy'), findsOneWidget);
     expect(find.text('Historia i ulubione na zawsze'), findsOneWidget);
-    expect(find.text('Zero reklam, tryb offline'), findsOneWidget);
+    // Offline, not "zero ads": the free tier has no ads either, so selling
+    // their absence was selling something the user already had.
+    expect(
+      find.text('Tryb offline — cały katalog w telefonie'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Zero reklam'), findsNothing);
 
     // Both plans with their store-formatted prices; every card renders its
     // label uppercase over the same big price, monthly gets the price suffix

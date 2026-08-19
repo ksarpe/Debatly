@@ -526,11 +526,11 @@
   "onboardingNotifyBody": "I can remind you to vote every day, at a time you pick. Voting takes 10 seconds — and your streak grows on its own. You can always switch it off in settings.",
   "onboardingNotifyEnable": "Turn on reminders",
   "onboardingNotifySkip": "Maybe later",
-  "wallCountdownCaption": "Countdown to the next free question",
+  "wallCountdownCaption": "Until free",
   "@wallCountdownCaption": {
-    "description": "Small caption under the day wall's big HH:MM:SS timer ticking down to the user's local midnight."
+    "description": "Tiny uppercase caption set inside the day wall's circular countdown, under the live HH:MM:SS ticking down to the user's local midnight. Keep it short — it has to fit inside the ring."
   },
-  "wallCtaUnlock": "Unlock 500+ questions",
+  "wallCtaUnlock": "Don't wait — unlock everything",
   "wallCtaCaption": "(new sets every week!)",
   "@wallCtaCaption": {
     "description": "Small second line inside the day wall's unlock CTA pill, under the main label, teasing that the catalog keeps growing."
@@ -550,7 +550,7 @@
   },
   "paywallFeatureSmaczki": "Every argument, not just the first",
   "paywallFeatureHistory": "History and favorites forever",
-  "paywallFeatureNoAds": "Zero ads, offline mode",
+  "paywallFeatureOffline": "Offline mode — the whole catalog on your phone",
   "paywallSignInLink": "Sign in",
   "paywallLifetime": "Lifetime",
   "paywallAnnual": "Yearly",

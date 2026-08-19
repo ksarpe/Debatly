@@ -4,13 +4,12 @@
 // Setup
 //   1. RevenueCat dashboard: Project > Integrations > Webhooks
 //        URL:  https://<project-ref>.functions.supabase.co/revenue-cat-webhook
-//        (NOTE the hyphen before "cat" — the function is LIVE under the slug
-//        `revenue-cat-webhook`, which does not match this folder's name
-//        `revenuecat-webhook`. Pointing RevenueCat at the folder-name URL
-//        instead returns a 404 and renewals/cancellations silently stop
-//        syncing. Before changing the deploy command below, confirm which
-//        slug your Supabase CLI version actually deploys to — either rename
-//        this folder to match, or deploy with an explicit slug argument.)
+//        (NOTE the hyphen before "cat". This folder is named to MATCH the live
+//        slug, so `deploy` updates the live function instead of creating a
+//        second one beside it. It used to be `revenuecat-webhook`, and a deploy
+//        with that name would have left RevenueCat still calling the old
+//        function while the code moved on — renewals and cancellations
+//        silently drifting. Keep folder and slug identical.)
 //        Authorization header: pick a long random secret.
 //   2. Store the SAME secret for this function:
 //        supabase secrets set REVENUECAT_WEBHOOK_SECRET="<that-secret>"
@@ -18,9 +17,8 @@
 //        supabase secrets set PREMIUM_ENTITLEMENT="premium"
 //   3. In the Flutter app, tie RevenueCat to the Supabase user:
 //        await Purchases.logIn(supabaseUserId);   // app_user_id == auth.uid()
-//   4. Deploy — see the slug note above before running this, to make sure it
-//      updates the live function rather than creating a new one:
-//        supabase functions deploy revenuecat-webhook --no-verify-jwt
+//   4. Deploy:
+//        supabase functions deploy revenue-cat-webhook --no-verify-jwt
 //      (--no-verify-jwt because RevenueCat calls it, not a logged-in user;
 //       we authenticate via the Authorization secret instead.)
 // ============================================================================

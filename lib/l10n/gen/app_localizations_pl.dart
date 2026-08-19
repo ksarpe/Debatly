@@ -1141,11 +1141,10 @@ class AppLocalizationsPl extends AppLocalizations {
   String get onboardingNotifySkip => 'Może później';
 
   @override
-  String get wallCountdownCaption =>
-      'Odliczanie do kolejnego darmowego pytania';
+  String get wallCountdownCaption => 'Do darmowego';
 
   @override
-  String get wallCtaUnlock => 'Odblokuj ponad 500 pytań';
+  String get wallCtaUnlock => 'Nie czekaj — odblokuj wszystkie';
 
   @override
   String get wallCtaCaption => '(co tydzień nowe zestawy!)';
@@ -1170,7 +1169,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get paywallFeatureHistory => 'Historia i ulubione na zawsze';
 
   @override
-  String get paywallFeatureNoAds => 'Zero reklam, tryb offline';
+  String get paywallFeatureOffline => 'Tryb offline — cały katalog w telefonie';
 
   @override
   String get paywallSignInLink => 'Zaloguj się';

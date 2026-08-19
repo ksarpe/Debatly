@@ -11,6 +11,7 @@ import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/fit_or_scroll.dart';
 import '../../../data/repositories/question_repository.dart' show dateOnlyKey;
 import '../../../services/analytics.dart';
 import '../../account/providers/session_providers.dart';
@@ -29,6 +30,11 @@ const String kWallAutoPaywallDatePrefKey = 'wall_auto_paywall_date';
 /// A slow, deliberate back-drag commits past this many logical pixels even
 /// with ~zero release velocity — same threshold as the feed's swipe.
 const double _kSwipeCommitDistance = 64;
+
+/// The shortest the wall's three bands (ring · teaser · CTA) are laid out in.
+/// Roughly the ring at full size, a breath of teaser and a CTA grown by a large
+/// system text size; under this the wall scrolls rather than squeezing.
+const double _kMinWallHeight = 460;
 
 /// The free tier's day wall — the screen a free user lands on when they swipe
 /// forward past today's daily, and the model's main conversion surface.
@@ -224,29 +230,43 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: kReadingMaxWidth),
-                child: SingleChildScrollView(
+                child: Padding(
                   padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _CountdownRing(
-                        left: _left,
-                        dayLength: _dayLength,
-                        caption: l10n.wallCountdownCaption,
-                      ),
-                      const SizedBox(height: 32),
-                      if (teaser != null) ...[
-                        _TeaserPreview(teaser: teaser),
-                        const SizedBox(height: 32),
+                  // Three bands, not a centred stack: the ring sits high, just
+                  // under the app bar's streak chip; the teaser owns the middle
+                  // and stays centred in whatever is left; the CTA rides the
+                  // bottom edge of the safe area, where a thumb already is.
+                  // Below [_kMinWallHeight] (landscape, a split-screen column)
+                  // the whole thing scrolls instead of overflowing — an
+                  // overflowed CTA is painted but untouchable.
+                  child: FitOrScroll(
+                    minContentHeight: _kMinWallHeight,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _CountdownRing(
+                          left: _left,
+                          dayLength: _dayLength,
+                          caption: l10n.wallCountdownCaption,
+                        ),
+                        Expanded(
+                          child: teaser == null
+                              ? const SizedBox.shrink()
+                              // Centres the preview in the middle band, and
+                              // lets it scroll on its own rather than spill
+                              // into the ring at a huge text scale.
+                              : FitOrScroll(
+                                  child: _TeaserPreview(teaser: teaser),
+                                ),
+                        ),
+                        PaywallCtaButton(
+                          label: l10n.wallCtaUnlock,
+                          caption: l10n.wallCtaCaption,
+                          busy: false,
+                          onTap: () => _openPaywall(trigger: 'tap'),
+                        ),
                       ],
-                      PaywallCtaButton(
-                        label: l10n.wallCtaUnlock,
-                        caption: l10n.wallCtaCaption,
-                        busy: false,
-                        onTap: () => _openPaywall(trigger: 'tap'),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -310,7 +330,7 @@ class _CountdownRing extends StatelessWidget {
               // Clear of the stroke and its glow, so the digits never touch
               // the ring.
               child: Padding(
-                padding: EdgeInsets.all(_stroke + diameter * 0.13),
+                padding: EdgeInsets.all(_stroke + diameter * 0.10),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

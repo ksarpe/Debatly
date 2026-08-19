@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/config/app_config.dart';
 import '../core/monitoring/monitoring.dart';
+import '../core/network/network_timeout.dart';
 
 /// Thin wrapper around the Supabase client lifecycle.
 ///
@@ -57,7 +58,13 @@ class SupabaseService {
     if (existing != null) return existing.id;
 
     try {
-      final response = await client.auth.signInAnonymously();
+      // Bounded: everything downstream needs this uid, so a sign-in that never
+      // answers is the one call that can hang the whole launch (the gate waits
+      // on the session, the feed waits on the gate). Failing turns it into a
+      // retryable error state instead.
+      final response = await client.auth
+          .signInAnonymously()
+          .withNetworkTimeout();
       return response.user?.id;
     } catch (e, st) {
       debugPrint('SupabaseService.ensureSignedIn failed: $e');
@@ -558,7 +565,8 @@ class SupabaseService {
           .from('profiles')
           .select('is_premium, premium_until')
           .eq('id', user.id)
-          .maybeSingle();
+          .maybeSingle()
+          .withNetworkTimeout();
       if (row == null) return null;
       if (row['is_premium'] != true) return false;
       final until = row['premium_until'];

@@ -242,9 +242,10 @@ flowchart TB
 1. **Dwa różne pliki `.p8` od Apple.** In-App Purchase Key → **RevenueCat**. App Store
    Connect API Key (rola App Manager) → **Codemagic**. To NIE ten sam klucz. Każdy
    pobierasz tylko raz i każdy ma własne Key ID + Issuer ID.
-2. **Myślnik w slugu webhooka.** Live funkcja to `revenue-cat-webhook` (z myślnikiem),
-   a folder w repo to `revenuecat-webhook`. RC musi wskazywać na wersję z myślnikiem —
-   inaczej 404 i odnowienia/anulacje/zwroty **po cichu przestają się synchronizować**
+2. **Myślnik w slugu webhooka.** Live funkcja to `revenue-cat-webhook` (z myślnikiem)
+   i folder w repo nazywa się teraz tak samo, więc `deploy` aktualizuje ją, a nie
+   tworzy drugiej obok. RC musi wskazywać na wersję z myślnikiem — inaczej 404
+   i odnowienia/anulacje/zwroty **po cichu przestają się synchronizować**
    (pierwszy zakup i tak zadziała przez `sync-entitlement`, więc łatwo przeoczyć).
 3. **REST key degraduje po cichu.** Bez `REVENUECAT_REST_API_KEY` `sync-entitlement`
    zwraca 200, ale bez reconciliacji — poleganie na samym „200 OK” jest mylące.

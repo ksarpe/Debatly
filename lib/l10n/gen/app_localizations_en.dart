@@ -1121,10 +1121,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingNotifySkip => 'Maybe later';
 
   @override
-  String get wallCountdownCaption => 'Countdown to the next free question';
+  String get wallCountdownCaption => 'Until free';
 
   @override
-  String get wallCtaUnlock => 'Unlock 500+ questions';
+  String get wallCtaUnlock => 'Don\'t wait — unlock everything';
 
   @override
   String get wallCtaCaption => '(new sets every week!)';
@@ -1149,7 +1149,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get paywallFeatureHistory => 'History and favorites forever';
 
   @override
-  String get paywallFeatureNoAds => 'Zero ads, offline mode';
+  String get paywallFeatureOffline =>
+      'Offline mode — the whole catalog on your phone';
 
   @override
   String get paywallSignInLink => 'Sign in';

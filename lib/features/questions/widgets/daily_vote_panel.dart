@@ -221,9 +221,23 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
     final async = ref.watch(dailyVoteStateProvider(widget.questionId));
     final result = _local ?? async.value;
 
-    // Until the state is known, reserve the space with a slim placeholder so the
-    // overlay doesn't jump when the buttons/bars appear.
     if (result == null) {
+      // A state that FAILED to load must not swallow the product's main action.
+      // The caching layer rethrows here on purpose "so the buttons stay" — but
+      // this panel then rendered a blank 52px gap, so a user who opened the app
+      // offline, or hit a 500 / expired JWT, saw the question with nothing to
+      // tap and no explanation. As far as we know they haven't voted, so offer
+      // the buttons: the cast is an upsert, and it surfaces its own "no
+      // connection" / "vote failed" toast if the backend is still down.
+      if (async.hasError) {
+        return VoteButtonsRow(
+          key: const ValueKey('buttons'),
+          busy: _busy,
+          onVote: _vote,
+        );
+      }
+      // Still in flight: reserve the space with a slim placeholder so the
+      // overlay doesn't jump when the buttons/bars appear.
       return const SizedBox(height: 52);
     }
 

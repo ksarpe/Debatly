@@ -220,6 +220,49 @@ void main() {
       );
     },
   );
+
+  // A vote state that FAILS to load used to render a blank 52px gap: the user
+  // saw the question with nothing to tap and no explanation. Offline with
+  // nothing cached, a 500, or an expired JWT all land here — and the caching
+  // layer rethrows precisely "so the buttons stay".
+  testWidgets('a failed vote-state read still offers the buttons', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [
+        sessionProvider.overrideWith(() => _FakeSession(guest())),
+        questionRepositoryProvider.overrideWithValue(_UnreadableStateRepo()),
+      ],
+    );
+    // Disposed inline rather than via addTearDown: a provider that throws makes
+    // Riverpod schedule its own retry timer, and teardown runs too late to stop
+    // the "timer still pending" invariant from firing.
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const LocalizedTestApp(
+          home: Scaffold(
+            body: Center(child: DailyVotePanel(questionId: 'q1')),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('buttons')), findsOneWidget);
+    expect(find.byKey(const ValueKey('results')), findsNothing);
+
+    container.dispose();
+  });
+}
+
+/// A repo whose vote-state read always fails — the offline / 500 / expired-JWT
+/// case.
+class _UnreadableStateRepo extends MockQuestionRepository {
+  @override
+  Future<VoteResult> getDailyVoteState(String questionId) async =>
+      throw Exception('vote state unavailable');
 }
 
 /// A repo that remembers a cast vote, so `getDailyVoteState` reflects it on the
