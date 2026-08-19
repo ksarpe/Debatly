@@ -39,6 +39,60 @@ flutter test
 
 Flutter is pinned to **3.44.1** (`.metadata`); CI uses the same version.
 
+## Pre-commit hook
+
+The first two of those gates can run automatically on `git commit` via
+[lefthook](https://lefthook.dev) (a single static binary — no Node runtime). The
+shared config lives in [`lefthook.yml`](lefthook.yml): it checks `dart format` on
+the staged Dart files and runs `flutter analyze`, and only does the latter when a
+commit actually touches Dart, so it stays fast.
+
+Install the binary, then wire it into this repo's `.git/hooks/` once:
+
+```bash
+brew install lefthook            # macOS / Linux
+scoop install lefthook           # Windows (or: winget install evilmartians.lefthook)
+# no package manager? grab a binary from the releases page linked above
+
+lefthook install                 # run from the repo root, installs the git hook
+```
+
+It's opt-in and local — `flutter test` and the full gates still live in CI, so
+skipping the hook never lets a red build merge.
+
+**Skipping it for a WIP commit** — use any of:
+
+```bash
+git commit --no-verify ...                  # git's own bypass (-n)
+LEFTHOOK=0 git commit ...                    # skip every lefthook hook
+LEFTHOOK_EXCLUDE=analyze git commit ...      # skip just the analyzer
+```
+
+## Integration smoke test
+
+`integration_test/app_smoke_test.dart` boots the real app widget tree against the
+in-memory mock data (no SDK keys) and walks the core daily loop: it passes the
+splash, asserts the daily question renders, casts a TAK/NIE vote, and opens
+Settings. It's a fast guard that the launch path is wired together end to end.
+
+`flutter test` only scans `test/`, so this is **not** part of the normal suite or
+CI — run it on demand. It touches no platform channels, so it runs on the desktop
+host (`flutter-tester`), no emulator required:
+
+```bash
+flutter test integration_test/app_smoke_test.dart -d flutter-tester
+```
+
+To exercise it on a real device or emulator instead, target that device:
+
+```bash
+flutter test integration_test/app_smoke_test.dart -d <device-id>
+```
+
+There's no emulator job in CI today. If you want this to gate merges on a real
+device, add a separate workflow job that boots an Android emulator (e.g. via
+`reactivecircus/android-emulator-runner`) and runs the device command above.
+
 ## Conventions
 
 - **Architecture.** Feature-first under `lib/features/<feature>/` with

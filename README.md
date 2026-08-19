@@ -1,6 +1,7 @@
 # Debatly
 
 [![CI](https://github.com/ksarpe/questionapp/actions/workflows/ci.yml/badge.svg)](https://github.com/ksarpe/questionapp/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A546%25-blue)](https://github.com/ksarpe/questionapp/actions/workflows/ci.yml)
 
 A minimalist mobile app built around **provocative TAK/NIE questions**. One
 question fills the screen as styled text; you answer TAK or NIE, immediately see
@@ -256,6 +257,17 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
+CI also enforces a **line-coverage floor** (currently 46%) via
+[`very_good_coverage`](https://github.com/VeryGoodOpenSource/very_good_coverage) —
+no third-party upload, so nothing about this proprietary codebase leaves CI. The
+floor is set just below the coverage at the time it was added; **only raise it**,
+never lower it without discussion. Reproduce the measurement locally with:
+
+```bash
+flutter test --coverage
+# overall % = sum(LH) / sum(LF) across coverage/lcov.info
+```
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) for conventions (architecture, l10n,
 theming, migrations, commit style).
 
@@ -364,3 +376,8 @@ resolves as premium and runs on local data.
   `CachingQuestionRepository`, scoped to the locale and the signed-in UUID, so
   reads survive a dropped network and PRO users can download the whole catalog
   for offline use. A lapsed subscription wipes the cached content.
+
+## License
+
+Proprietary — Copyright (c) 2026 Kasper Janowski. All rights reserved. See
+[LICENSE](LICENSE).

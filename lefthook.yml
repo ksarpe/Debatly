@@ -1,0 +1,33 @@
+# Git hooks, managed by lefthook (https://lefthook.dev) — a single static binary,
+# no Node/Ruby runtime required. Install it once and the hook runs on every
+# commit; see CONTRIBUTING.md ("Pre-commit hook") for setup.
+#
+# The pre-commit hook mirrors the CI gates (.github/workflows/ci.yml) so a red
+# build is caught before it leaves your machine. It is deliberately lightweight:
+# formatting is checked on the staged Dart files only, and the analyzer runs at
+# all only when the commit actually touches Dart.
+#
+# Skip it for a work-in-progress commit with any of:
+#   git commit --no-verify ...        # git's own bypass (-n)
+#   LEFTHOOK=0 git commit ...         # skip every lefthook hook
+#   LEFTHOOK_EXCLUDE=analyze git commit ...   # skip one command by name
+
+pre-commit:
+  parallel: true
+  # Don't get in the way of in-progress merges/rebases — those replay commits
+  # that already passed when first authored.
+  skip:
+    - merge
+    - rebase
+  commands:
+    format:
+      # Staged Dart files only, so this stays effectively instant. Check-only to
+      # match CI exactly (never rewrites your tree); fix with `dart format .`.
+      glob: "*.dart"
+      run: dart format --output=none --set-exit-if-changed {staged_files}
+    analyze:
+      # The analyzer needs the whole project (cross-file references), so it can't
+      # be scoped to staged files — but `glob` means we only pay for it when the
+      # commit touches Dart at all. Flags match CI: every hint is a hard failure.
+      glob: "*.dart"
+      run: flutter analyze --fatal-infos --fatal-warnings

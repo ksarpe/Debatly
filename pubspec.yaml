@@ -77,6 +77,14 @@ dev_dependencies:
   # the production RPC↔model mapping with no live backend.
   http: ^1.6.0
 
+  # End-to-end smoke test harness (see integration_test/). Pinned to the SDK like
+  # flutter_test. `flutter test` only scans test/ by default, so these never run
+  # in the normal suite (or CI) — invoke them on demand against mock data:
+  #   flutter test integration_test/app_smoke_test.dart
+  # See CONTRIBUTING.md → "Integration smoke test".
+  integration_test:
+    sdk: flutter
+
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
