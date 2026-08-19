@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'core/layout/orientation_lock.dart';
+import 'core/layout/wide_screen_scale.dart';
 import 'core/locale/app_locale.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
@@ -57,9 +58,13 @@ class DebatlyApp extends ConsumerWidget {
         // everywhere, not only where an AppBar happens to annotate them. The
         // style lives on the AppBar theme (app_theme.dart) so both paths stay
         // identical; screens with an AppBar re-annotate with the same value.
+        //
+        // WideScreenScale sits here, above the Navigator, so pushed routes and
+        // modal sheets are magnified along with the screen behind them — see
+        // the widget for why a tablet needs magnifying rather than widening.
         builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
           value: Theme.of(context).appBarTheme.systemOverlayStyle!,
-          child: child!,
+          child: WideScreenScale(child: child!),
         ),
         // The launch flow: brand splash → first-run tutorial → the live daily.
         // After onboarding has run once, this drops straight through to the
