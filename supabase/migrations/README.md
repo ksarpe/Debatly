@@ -219,3 +219,19 @@ catastrophe. Do not "fix" it by flattening the folders back.
   `attacks_no` row first for a NIE voter, `attacks_yes` first for a TAK voter.
   All 1676 live smaczki start untagged, i.e. served exactly as before until the
   catalog is tagged. Idempotent.
+- `20260819160000_smaczek_challenge_outcome.sql` (the vote is FINAL, the gate's
+  outcome is data: `question_votes` gains `challenge_smaczek_id` /
+  `challenge_outcome` (`held`/`moved`/`dismissed`) / `challenge_dwell_ms`;
+  `question_vote_counts` gains `challenge_held_count` + `challenge_moved_count`;
+  new `record_smaczek_challenge` RPC — first write wins, resolves the smaczek id
+  from `(question_id, position)`, `dismissed` recorded but never counted; new
+  internal `question_flip_pct` helper; `get_daily_vote_state` +
+  `cast_daily_vote` return an extra `flip_pct` column — `moved/(held+moved)`,
+  NULL until ≥30 answered gates on the question, threshold enforced
+  server-side) — **applied to prod 2026-08-19** via MCP as
+  `smaczek_challenge_outcome`. Both tally RPCs change result shape (arguments
+  unchanged), so they are dropped and recreated with grants re-asserted;
+  shipped app versions ignore the new key. Verified live in a rolled-back
+  transaction impersonating a real voter: `record_smaczek_challenge('moved')`
+  left `choice` untouched, stamped outcome + dwell, bumped only the moved
+  counter, and a replay was a full no-op. Idempotent.

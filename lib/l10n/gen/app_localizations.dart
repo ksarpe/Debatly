@@ -1256,6 +1256,24 @@ abstract class AppLocalizations {
   /// **'AGAINST YOU'**
   String get goDeeper;
 
+  /// No description provided for @smaczkiBarPro.
+  ///
+  /// In en, this message translates to:
+  /// **'THE CASE AGAINST'**
+  String get smaczkiBarPro;
+
+  /// No description provided for @smaczkiBarFree.
+  ///
+  /// In en, this message translates to:
+  /// **'TWO MORE LEFT'**
+  String get smaczkiBarFree;
+
+  /// No description provided for @smaczkiBarUntagged.
+  ///
+  /// In en, this message translates to:
+  /// **'TWO MORE ARGUMENTS'**
+  String get smaczkiBarUntagged;
+
   /// No description provided for @shareLabel.
   ///
   /// In en, this message translates to:
@@ -1574,23 +1592,41 @@ abstract class AppLocalizations {
   /// **'Unlock'**
   String get smaczkiUnlockCta;
 
+  /// No description provided for @smaczkiLockedBeforeVote.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote first. Then I\'ll see if you hold.'**
+  String get smaczkiLockedBeforeVote;
+
   /// No description provided for @smaczekChallengeEyebrow.
   ///
   /// In en, this message translates to:
   /// **'BEFORE I SHOW YOU THE RESULT'**
   String get smaczekChallengeEyebrow;
 
-  /// No description provided for @smaczekChallengeHold.
+  /// No description provided for @challengeHoldCta.
   ///
   /// In en, this message translates to:
-  /// **'I\'m holding'**
-  String get smaczekChallengeHold;
+  /// **'I\'M NOT BUDGING'**
+  String get challengeHoldCta;
 
-  /// No description provided for @smaczekChallengeFlip.
+  /// No description provided for @challengeMovedCta.
   ///
   /// In en, this message translates to:
-  /// **'Hmm, maybe not'**
-  String get smaczekChallengeFlip;
+  /// **'THAT GOT ME'**
+  String get challengeMovedCta;
+
+  /// No description provided for @smaczkiSheetFreeHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve read the first. Two left — both against you.'**
+  String get smaczkiSheetFreeHeader;
+
+  /// No description provided for @resultFlipLine.
+  ///
+  /// In en, this message translates to:
+  /// **'The counter-argument flipped {percent}% of voters.'**
+  String resultFlipLine(int percent);
 
   /// No description provided for @ranksLoadError.
   ///

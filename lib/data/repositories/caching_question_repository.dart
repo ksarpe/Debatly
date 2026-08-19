@@ -232,6 +232,29 @@ class CachingQuestionRepository implements QuestionRepository {
     return result;
   }
 
+  /// A write — the gate's outcome needs the server (the vote panel treats a
+  /// failure as best-effort and keeps the split it already has). On success the
+  /// returned state is written through like a cast, so the freshest snapshot
+  /// survives a signal drop right after the gate.
+  @override
+  Future<VoteResult> recordSmaczekChallenge({
+    required String questionId,
+    required int position,
+    required ChallengeOutcome outcome,
+    int? dwellMs,
+  }) async {
+    final result = await inner.recordSmaczekChallenge(
+      questionId: questionId,
+      position: position,
+      outcome: outcome,
+      dwellMs: dwellMs,
+    );
+    if (result.hasVoted) {
+      await cache.writeVoteState(questionId, userId, result);
+    }
+    return result;
+  }
+
   @override
   Future<void> markQuestionSeen(String questionId) =>
       inner.markQuestionSeen(questionId);

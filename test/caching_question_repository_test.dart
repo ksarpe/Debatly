@@ -254,6 +254,14 @@ class _FakeRepo implements QuestionRepository {
       _read(castResult);
 
   @override
+  Future<VoteResult> recordSmaczekChallenge({
+    required String questionId,
+    required int position,
+    required ChallengeOutcome outcome,
+    int? dwellMs,
+  }) async => _read(castResult);
+
+  @override
   Future<void> markQuestionSeen(String questionId) async {}
 
   @override

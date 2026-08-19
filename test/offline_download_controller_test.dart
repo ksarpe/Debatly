@@ -198,6 +198,14 @@ class _FakeRepo implements QuestionRepository {
       VoteResult.empty;
 
   @override
+  Future<VoteResult> recordSmaczekChallenge({
+    required String questionId,
+    required int position,
+    required ChallengeOutcome outcome,
+    int? dwellMs,
+  }) async => VoteResult.empty;
+
+  @override
   Future<void> markQuestionSeen(String questionId) async {}
 
   @override

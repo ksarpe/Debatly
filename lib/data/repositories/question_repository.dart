@@ -58,6 +58,21 @@ abstract class QuestionRepository {
   /// personal-daily migration. Returns the updated split.
   Future<VoteResult> castDailyVote(String questionId, int choice);
 
+  /// Records how the user answered the post-vote gate (the smaczek challenge)
+  /// on their existing vote row — the vote itself is never modified.
+  ///
+  /// [position] identifies the shown smaczek within the question (the server
+  /// resolves the row id from it), [dwellMs] is the time from the argument
+  /// landing to the tap (null when dismissed before it landed). First write
+  /// wins server-side, so a retry can never double-count. Returns the fresh
+  /// split including [VoteResult.flipPct].
+  Future<VoteResult> recordSmaczekChallenge({
+    required String questionId,
+    required int position,
+    required ChallengeOutcome outcome,
+    int? dwellMs,
+  });
+
   /// The full rank ladder (ordered by tier), for the rank sheet.
   Future<List<Rank>> fetchRanks();
 
@@ -249,15 +264,39 @@ class MockQuestionRepository implements QuestionRepository {
     return const VoteResult(yesCount: 0, noCount: 0);
   }
 
+  /// The last cast choice, so the mock challenge record can echo a plausible
+  /// post-gate state the way the real RPC does.
+  int? _lastChoice;
+
   @override
   Future<VoteResult> castDailyVote(String questionId, int choice) async {
     await Future.delayed(const Duration(milliseconds: 150));
+    _lastChoice = choice;
     // Fake a 60/40-ish split so the result bars render in dev; the user's own
     // vote is folded into the side they picked.
     return VoteResult(
       yesCount: choice == VoteResult.yes ? 61 : 60,
       noCount: choice == VoteResult.no ? 41 : 40,
       myChoice: choice,
+    );
+  }
+
+  @override
+  Future<VoteResult> recordSmaczekChallenge({
+    required String questionId,
+    required int position,
+    required ChallengeOutcome outcome,
+    int? dwellMs,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 120));
+    final choice = _lastChoice;
+    // Same fake split as the cast, plus a plausible flip share so the
+    // "Kontra przewróciła X%" line can be eyeballed in keyless dev.
+    return VoteResult(
+      yesCount: choice == VoteResult.yes ? 61 : 60,
+      noCount: choice == VoteResult.no ? 41 : 40,
+      myChoice: choice,
+      flipPct: 11,
     );
   }
 
@@ -504,6 +543,35 @@ class SupabaseQuestionRepository implements QuestionRepository {
             'p_choice': choice,
             'p_date': dateOnlyKey(DateTime.now()),
             'p_locale': locale,
+          },
+        )
+        .withNetworkTimeout();
+
+    final rows = (data as List).cast<Map<String, dynamic>>();
+    if (rows.isEmpty) return VoteResult.empty;
+    return VoteResult.fromJson(rows.first);
+  }
+
+  @override
+  Future<VoteResult> recordSmaczekChallenge({
+    required String questionId,
+    required int position,
+    required ChallengeOutcome outcome,
+    int? dwellMs,
+  }) async {
+    // SECURITY DEFINER RPC: stamps the outcome onto the caller's OWN vote row
+    // (first write wins — a retry never double-counts) and resolves the shown
+    // smaczek's id from its position server-side. The vote's `choice` is never
+    // touched. Returns the same row shape as get_daily_vote_state, so the
+    // panel can show the freshest split (incl. flip_pct) without a refetch.
+    final data = await _db
+        .rpc(
+          'record_smaczek_challenge',
+          params: {
+            'p_question_id': questionId,
+            'p_position': position,
+            'p_outcome': outcome.name,
+            'p_dwell_ms': dwellMs,
           },
         )
         .withNetworkTimeout();

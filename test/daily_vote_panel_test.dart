@@ -51,8 +51,8 @@ void main() {
 
   /// The post-vote smaczek challenge now stands between the tap and the split:
   /// the argument aimed at the side just picked falls in, and the bars appear
-  /// only once the user has answered it. These tests take the "held" branch —
-  /// the vote is unchanged, so everything below the challenge is as it was.
+  /// only once the user has answered it. These tests take the "held" branch;
+  /// the vote is final regardless of the answer.
   Future<void> holdGround(WidgetTester tester) async {
     await tester.pumpAndSettle();
     expect(
@@ -233,6 +233,99 @@ void main() {
         1,
         reason: 'returning to the daily is not a re-vote',
       );
+    },
+  );
+
+  testWidgets(
+    '"to mnie ruszyło" never re-casts — the vote is final, the bars keep '
+    'the side that was picked',
+    (tester) async {
+      final repo = await pumpPanel(
+        tester,
+        session: account(),
+        initial: VoteResult.empty,
+        castReturns: const VoteResult(
+          yesCount: 80,
+          noCount: 20,
+          myChoice: VoteResult.yes,
+        ),
+      );
+
+      await tester.tap(find.text('TAK'));
+      await tester.pumpAndSettle();
+      expect(find.text('ZANIM POKAŻĘ WYNIK'), findsOneWidget);
+
+      await tester.tap(find.text('TO MNIE RUSZYŁO'));
+      await tester.pumpAndSettle();
+
+      // ONE cast — admitting the argument landed records an outcome on a
+      // separate axis, it does not change the vote. (The old behaviour, a
+      // second cast for the other side, is what made every split drift
+      // toward 50/50.)
+      expect(repo.castCalls, 1, reason: 'the gate must never re-cast');
+      expect(repo.lastChoice, VoteResult.yes);
+      // The bars appear and still mark the ORIGINAL side as mine.
+      expect(find.byKey(const ValueKey('results')), findsOneWidget);
+      expect(find.text('80%'), findsOneWidget);
+      expect(find.text('20%'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'the fourth vote of a session skips the gate — percentages straight away',
+    (tester) async {
+      final repo = _VotePanelRepo(initial: VoteResult.empty);
+      final container = ProviderContainer(
+        overrides: [
+          sessionProvider.overrideWith(() => _FakeSession(account())),
+          questionRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Four questions voted back-to-back in ONE session (same container).
+      for (var i = 1; i <= 4; i++) {
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: LocalizedTestApp(
+              home: Scaffold(
+                body: Center(
+                  // Keyed like the real feed keys it, so swapping the question
+                  // resets the panel's local state instead of reusing it.
+                  child: DailyVotePanel(
+                    key: ValueKey('q$i'),
+                    questionId: 'q$i',
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('TAK'));
+        await tester.pumpAndSettle();
+
+        if (i <= 3) {
+          expect(
+            find.text('ZANIM POKAŻĘ WYNIK'),
+            findsOneWidget,
+            reason: 'gate $i of the session still shows',
+          );
+          await tester.tap(find.text('TRZYMAM SIĘ'));
+          await tester.pumpAndSettle();
+        } else {
+          // The valve for PRO: the fourth vote goes straight to the split.
+          expect(
+            find.text('ZANIM POKAŻĘ WYNIK'),
+            findsNothing,
+            reason: 'the session cap is 3 gates',
+          );
+          expect(find.byKey(const ValueKey('results')), findsOneWidget);
+        }
+      }
+      expect(repo.castCalls, 4);
     },
   );
 

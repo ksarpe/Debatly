@@ -1,5 +1,24 @@
 import 'vote_result.dart';
 
+/// How the user answered the post-vote gate — the argument dropped between
+/// their vote and the community split.
+///
+/// The vote itself is NEVER changed by the gate (it measures the reflex; the
+/// gate measures resilience), so the outcome is a separate axis recorded on
+/// the vote row via the `record_smaczek_challenge` RPC. [Enum.name] doubles as
+/// the wire value.
+enum ChallengeOutcome {
+  /// Tapped "trzymam się" — stood by the answer.
+  held,
+
+  /// Tapped "to mnie ruszyło" — the argument landed, the vote still stands.
+  moved,
+
+  /// Left through system back without answering. Recorded, but deliberately
+  /// excluded from the flip statistic's denominator.
+  dismissed,
+}
+
 /// Which answer a smaczek argues against.
 ///
 /// The server serves the smaczki ordered by how relevant they are to the
@@ -23,14 +42,15 @@ enum SmaczekSide {
   /// The value stored in `question_smaczki.side`.
   final String wire;
 
-  /// Parses a server value. Anything unknown — including the NULL that every
-  /// smaczek carries until it is tagged in the admin panel — reads as
-  /// [neutral], which is how the server orders it too.
-  static SmaczekSide fromWire(Object? value) {
+  /// Parses a server value. Returns null for the NULL every smaczek carries
+  /// until it is tagged in the admin panel (and for anything unknown) — the
+  /// client keeps "untagged" distinguishable from a deliberate [neutral],
+  /// because the gate's bottom-bar label depends on exactly that difference.
+  static SmaczekSide? fromWire(Object? value) {
     for (final side in SmaczekSide.values) {
       if (side.wire == value) return side;
     }
-    return SmaczekSide.neutral;
+    return null;
   }
 }
 
@@ -48,16 +68,21 @@ class Smaczek {
   final bool isLocked;
   final String? text;
 
-  /// Which answer this argument attacks. Untagged rows arrive as
-  /// [SmaczekSide.neutral].
-  final SmaczekSide side;
+  /// Which answer this argument attacks — or null while the catalog row is
+  /// still untagged. An untagged smaczek is SERVED like a neutral one (see
+  /// [attacks]), but the UI must not promise "against you" for it, so the
+  /// distinction is kept rather than collapsed here.
+  final SmaczekSide? side;
 
   const Smaczek({
     required this.position,
     required this.isLocked,
     this.text,
-    this.side = SmaczekSide.neutral,
+    this.side,
   });
+
+  /// Whether the catalog owner has tagged this argument's side yet.
+  bool get isTagged => side != null;
 
   /// Builds a [Smaczek] from a `get_question_smaczki` row. Locked rows come
   /// back without text, so [text] stays null.
@@ -70,9 +95,10 @@ class Smaczek {
 
   /// Whether this argument is aimed at [choice] ([VoteResult.yes] /
   /// [VoteResult.no]). A neutral smaczek counts as aimed at everyone — it is
-  /// written to work against either side.
+  /// written to work against either side — and an untagged one reads the same
+  /// way, matching how the server orders it.
   bool attacks(int choice) => switch (side) {
-    SmaczekSide.neutral => true,
+    null || SmaczekSide.neutral => true,
     SmaczekSide.attacksYes => choice == VoteResult.yes,
     SmaczekSide.attacksNo => choice == VoteResult.no,
   };
@@ -84,6 +110,6 @@ class Smaczek {
     'position': position,
     'is_locked': isLocked,
     'text': text,
-    'side': side.wire,
+    'side': side?.wire,
   };
 }

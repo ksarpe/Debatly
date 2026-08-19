@@ -215,6 +215,18 @@
   "yourVote": "Twój głos",
 
   "goDeeper": "PRZECIWKO TOBIE",
+  "smaczkiBarPro": "KONTRA",
+  "@smaczkiBarPro": {
+    "description": "Bottom-bar label after a PRO user passed the post-vote gate on a TAGGED smaczek. Six characters on purpose — it is set larger than the default label."
+  },
+  "smaczkiBarFree": "ZOSTAŁY JESZCZE DWA",
+  "@smaczkiBarFree": {
+    "description": "Bottom-bar label after a FREE user passed the post-vote gate on a tagged smaczek — two locked arguments remain in the sheet."
+  },
+  "smaczkiBarUntagged": "JESZCZE DWA ARGUMENTY",
+  "@smaczkiBarUntagged": {
+    "description": "Bottom-bar label after the gate served an UNTAGGED smaczek (side IS NULL) — no 'against you' promise can be kept, so the label only counts."
+  },
 
   "shareLabel": "Udostępnij",
   "shareTooltip": "Udostępnij pytanie",
@@ -297,10 +309,28 @@
   "smaczkiLoadError": "Nie udało się wczytać smaczków.\n{error}",
   "smaczkiEmpty": "Do tego pytania nie ma jeszcze smaczków.",
   "smaczkiUnlockCta": "Odblokuj",
+  "smaczkiLockedBeforeVote": "Najpierw zagłosuj. Potem sprawdzę, czy się utrzymasz.",
+  "@smaczkiLockedBeforeVote": {
+    "description": "Toast shown when the bottom-bar smaczki pill is tapped BEFORE the user has voted on the visible question. The sheet is vote-gated for BOTH tiers — a hook toward voting, not a dead 'you can't'."
+  },
 
   "smaczekChallengeEyebrow": "ZANIM POKAŻĘ WYNIK",
-  "smaczekChallengeHold": "Trzymam się",
-  "smaczekChallengeFlip": "Hmm, jednak nie",
+  "challengeHoldCta": "TRZYMAM SIĘ",
+  "challengeMovedCta": "TO MNIE RUSZYŁO",
+  "@challengeMovedCta": {
+    "description": "The gate's second button. It admits the argument landed WITHOUT changing the vote — the vote is final, so it must not read as 'I changed my answer'."
+  },
+  "smaczkiSheetFreeHeader": "Pierwszy masz za sobą. Zostały dwa — oba przeciwko Tobie.",
+  "@smaczkiSheetFreeHeader": {
+    "description": "Sheet subtitle for a FREE user who already read the gate's argument — the sheet then hides that argument and shows only the two locked ones."
+  },
+  "resultFlipLine": "Kontra przewróciła {percent}% głosujących.",
+  "@resultFlipLine": {
+    "description": "Line under the community split: the share of gate-takers the counter-argument flipped. Only shown when the server sends the number (>=30 answers).",
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
 
   "ranksLoadError": "Nie udało się wczytać rang.",
   "rankLadder": "Drabinka rang",

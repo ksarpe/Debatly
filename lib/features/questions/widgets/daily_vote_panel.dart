@@ -5,6 +5,8 @@ import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/network_error.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../data/models/rank.dart';
 import '../../../data/models/smaczek.dart';
 import '../../../data/models/vote_result.dart';
@@ -15,6 +17,7 @@ import '../../account/providers/stats_providers.dart';
 import '../../account/widgets/secure_streak_prompt.dart';
 import '../../settings/providers/reminder_providers.dart';
 import '../../settings/providers/review_providers.dart';
+import '../providers/challenge_providers.dart';
 import '../providers/question_providers.dart';
 import 'prototype_history_entry.dart';
 import 'smaczek_challenge_screen.dart';
@@ -105,13 +108,11 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       // The argument comes BEFORE the percentages: the split stops being a fact
       // and becomes a verdict on whether the user held. `_local` is deliberately
       // still unset here — assigning it is what reveals the bars, so it waits
-      // until the challenge is done with.
+      // until the challenge is done with. The VOTE the user just cast is final:
+      // the gate records its outcome on a separate axis and never re-casts.
       final challenged = await _runChallenge(choice);
       if (!mounted) return;
-      if (challenged != null) {
-        result = challenged.result;
-        choice = challenged.choice;
-      }
+      if (challenged != null) result = challenged;
       setState(() => _local = result);
       // EVERY vote may move the streak now (server: once per UTC day), so the
       // engagement upkeep runs for all of them: refresh the streak chip, flip
@@ -139,51 +140,94 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
   /// Runs the post-vote challenge: the argument aimed at the side the user just
   /// picked, dropped on them before the community split appears.
   ///
-  /// Returns null when nothing was shown — no argument is readable, or fetching
-  /// one failed. That is a normal outcome, not an error: the percentages are
-  /// the thing the user voted for, and they must never wait on a smaczek.
-  /// Otherwise it returns the outcome's result and the choice now on record,
-  /// which differ from the ones passed in exactly when the user changed
-  /// their mind.
-  Future<({VoteResult result, int choice})?> _runChallenge(int choice) async {
+  /// The vote is FINAL before this runs — whatever happens in the gate, the
+  /// choice on record never changes. The gate's answer (held / moved /
+  /// dismissed, plus how long the user sat with the argument) is recorded on a
+  /// separate axis via `record_smaczek_challenge`.
+  ///
+  /// Returns the freshest vote state when the outcome was persisted, or null
+  /// when no gate ran (session cap, nothing readable, offline) or the record
+  /// failed — the caller then keeps the split it already has. A skipped gate
+  /// is a normal outcome, not an error: the percentages are the thing the user
+  /// voted for, and they must never wait on a smaczek.
+  Future<VoteResult?> _runChallenge(int choice) async {
+    final session = ref.read(challengeSessionProvider.notifier);
+    // The per-session valve for PRO: the fourth and later votes of a session
+    // go straight to the percentages. Free users never reach it — they have
+    // one question a day.
+    if (session.capReached) {
+      Analytics.log('smaczek_challenge_skipped', {
+        'question_id': widget.questionId,
+        'reason': 'session_cap',
+      });
+      return null;
+    }
+
     final smaczek = await _resolveChallenger(choice);
     if (!mounted || smaczek == null) return null;
 
-    final outcome = await showSmaczekChallenge(
+    // From the second gate of a session on, the beat is shortened: the text
+    // appears whole and only the hit remains.
+    final compact = session.nextIsCompact;
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
+    session.recordShown();
+
+    final challenge = await showSmaczekChallenge(
       context,
       smaczek: smaczek,
       choice: choice,
+      compact: compact,
     );
     if (!mounted) return null;
+
+    // The surfaces around the gate — the bottom bar's label and the free
+    // tier's smaczki sheet — tell the truth from this record.
+    ref
+        .read(challengeRecordsProvider.notifier)
+        .record(
+          widget.questionId,
+          ChallengeRecord(
+            outcome: challenge.outcome,
+            smaczekPosition: smaczek.position,
+            smaczekTagged: smaczek.isTagged,
+          ),
+        );
 
     Analytics.log('smaczek_challenge', {
       'question_id': widget.questionId,
       'position': smaczek.position,
-      'side': smaczek.side.wire,
-      'outcome': outcome.name,
+      'side': smaczek.side?.wire,
+      'outcome': challenge.outcome.name,
+      if (challenge.dwellMs != null) 'dwell_ms': challenge.dwellMs,
       'choice': choice == VoteResult.yes ? 'tak' : 'nie',
+      'compact': compact,
     });
+    if (reducedMotion) {
+      // NOT a skip — the gate did show — but flagged with the same event so
+      // the share of votes where the beat ran without motion is measurable
+      // alongside the real skips.
+      Analytics.log('smaczek_challenge_skipped', {
+        'question_id': widget.questionId,
+        'reason': 'reduce_motion_ok',
+      });
+    }
 
-    if (outcome == ChallengeOutcome.held) return null;
-
-    // Changed their mind: the cast RPC is an upsert and the counter trigger
-    // swaps the side, so re-casting IS the change of vote.
-    final flipped = choice == VoteResult.yes ? VoteResult.no : VoteResult.yes;
+    // Persist the outcome on the vote row. Best-effort: the vote already
+    // counted and the split is already in hand, so a failure here costs only
+    // the statistic, never the user's result.
     try {
-      final result = await ref
+      final fresh = await ref
           .read(questionRepositoryProvider)
-          .castDailyVote(widget.questionId, flipped);
-      if (!mounted) return null;
+          .recordSmaczekChallenge(
+            questionId: widget.questionId,
+            position: smaczek.position,
+            outcome: challenge.outcome,
+            dwellMs: challenge.dwellMs,
+          );
+      if (!mounted || !fresh.hasVoted) return null;
       ref.invalidate(dailyVoteStateProvider(widget.questionId));
-      return (result: result, choice: flipped);
-    } catch (e) {
-      // The original vote still stands — say so rather than showing bars for a
-      // side the server never recorded.
-      if (!mounted) return null;
-      AppToast.error(
-        context,
-        isOfflineError(e) ? context.l10n.noConnection : context.l10n.voteFailed,
-      );
+      return fresh;
+    } catch (_) {
       return null;
     }
   }
@@ -195,8 +239,15 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
   /// trip. Only when nothing readable there is aimed at this side does it go
   /// back to the server, which now knows the vote and unlocks the argument that
   /// matches it (see the `get_question_smaczki` RPC).
+  ///
+  /// Every null return logs `smaczek_challenge_skipped` with its reason, so
+  /// the share of votes that silently bypass the gate is measurable.
   Future<Smaczek?> _resolveChallenger(int choice) async {
     final id = widget.questionId;
+    void logSkip(String reason) => Analytics.log('smaczek_challenge_skipped', {
+      'question_id': id,
+      'reason': reason,
+    });
     try {
       final warmed = _pickChallenger(
         ref.read(smaczkiProvider(id)).value,
@@ -204,13 +255,16 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       );
       if (warmed != null) return warmed;
       ref.invalidate(smaczkiProvider(id));
-      return _pickChallenger(
-        await ref.read(smaczkiProvider(id).future),
-        choice,
-      );
-    } catch (_) {
-      // Offline, a slow RPC, an empty question — all mean "no challenge", never
-      // "no result".
+      final fresh = await ref.read(smaczkiProvider(id).future);
+      final pick = _pickChallenger(fresh, choice);
+      if (pick == null) {
+        logSkip(fresh.isEmpty ? 'no_smaczki' : 'no_match_after_refetch');
+      }
+      return pick;
+    } catch (e) {
+      // Offline, a slow RPC, an empty question — all mean "no challenge",
+      // never "no result".
+      logSkip(isOfflineError(e) ? 'offline' : 'no_smaczki');
       return null;
     }
   }
@@ -226,7 +280,8 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
     Smaczek? neutral;
     for (final s in smaczki) {
       if ((s.text ?? '').trim().isEmpty) continue;
-      if (s.side != SmaczekSide.neutral) {
+      final side = s.side;
+      if (side != null && side != SmaczekSide.neutral) {
         if (s.attacks(choice)) return s;
         continue;
       }
@@ -368,6 +423,20 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
                   // split until we're back online.
                   communityHidden: result.fromCache,
                 ),
+                // The second number: how many gate-takers the counter-argument
+                // flipped. The server only sends it past 30 answered gates, so
+                // a non-null value is always worth showing — except offline,
+                // where the community numbers are withheld wholesale.
+                if (result.flipPct != null && !result.fromCache) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    context.l10n.resultFlipLine(result.flipPct!),
+                    textAlign: TextAlign.center,
+                    style: AppTypography.support(
+                      fontSize: 12,
+                    ).copyWith(color: context.colors.subtle),
+                  ),
+                ],
                 // PROTOTYPE (debug-only, renders nothing in release): the
                 // post-vote "see your history" entry — see
                 // prototype_history_entry.dart. Remove with it.

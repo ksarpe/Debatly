@@ -264,6 +264,9 @@
   "offlineResultsHidden": "Results return when you're back online",
   "yourVote": "Your vote",
   "goDeeper": "AGAINST YOU",
+  "smaczkiBarPro": "THE CASE AGAINST",
+  "smaczkiBarFree": "TWO MORE LEFT",
+  "smaczkiBarUntagged": "TWO MORE ARGUMENTS",
   "shareLabel": "Share",
   "shareTooltip": "Share question",
   "shareSubject": "A question from Debatly",
@@ -385,9 +388,17 @@
   },
   "smaczkiEmpty": "No tidbits for this question yet.",
   "smaczkiUnlockCta": "Unlock",
+  "smaczkiLockedBeforeVote": "Vote first. Then I'll see if you hold.",
   "smaczekChallengeEyebrow": "BEFORE I SHOW YOU THE RESULT",
-  "smaczekChallengeHold": "I'm holding",
-  "smaczekChallengeFlip": "Hmm, maybe not",
+  "challengeHoldCta": "I'M NOT BUDGING",
+  "challengeMovedCta": "THAT GOT ME",
+  "smaczkiSheetFreeHeader": "You've read the first. Two left — both against you.",
+  "resultFlipLine": "The counter-argument flipped {percent}% of voters.",
+  "@resultFlipLine": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
   "ranksLoadError": "Could not load ranks.",
   "rankLadder": "Rank ladder",
   "yourRankUpper": "YOUR RANK",

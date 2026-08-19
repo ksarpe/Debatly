@@ -679,6 +679,15 @@ class AppLocalizationsPl extends AppLocalizations {
   String get goDeeper => 'PRZECIWKO TOBIE';
 
   @override
+  String get smaczkiBarPro => 'KONTRA';
+
+  @override
+  String get smaczkiBarFree => 'ZOSTAŁY JESZCZE DWA';
+
+  @override
+  String get smaczkiBarUntagged => 'JESZCZE DWA ARGUMENTY';
+
+  @override
   String get shareLabel => 'Udostępnij';
 
   @override
@@ -878,13 +887,26 @@ class AppLocalizationsPl extends AppLocalizations {
   String get smaczkiUnlockCta => 'Odblokuj';
 
   @override
+  String get smaczkiLockedBeforeVote =>
+      'Najpierw zagłosuj. Potem sprawdzę, czy się utrzymasz.';
+
+  @override
   String get smaczekChallengeEyebrow => 'ZANIM POKAŻĘ WYNIK';
 
   @override
-  String get smaczekChallengeHold => 'Trzymam się';
+  String get challengeHoldCta => 'TRZYMAM SIĘ';
 
   @override
-  String get smaczekChallengeFlip => 'Hmm, jednak nie';
+  String get challengeMovedCta => 'TO MNIE RUSZYŁO';
+
+  @override
+  String get smaczkiSheetFreeHeader =>
+      'Pierwszy masz za sobą. Zostały dwa — oba przeciwko Tobie.';
+
+  @override
+  String resultFlipLine(int percent) {
+    return 'Kontra przewróciła $percent% głosujących.';
+  }
 
   @override
   String get ranksLoadError => 'Nie udało się wczytać rang.';

@@ -674,6 +674,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get goDeeper => 'AGAINST YOU';
 
   @override
+  String get smaczkiBarPro => 'THE CASE AGAINST';
+
+  @override
+  String get smaczkiBarFree => 'TWO MORE LEFT';
+
+  @override
+  String get smaczkiBarUntagged => 'TWO MORE ARGUMENTS';
+
+  @override
   String get shareLabel => 'Share';
 
   @override
@@ -869,13 +878,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smaczkiUnlockCta => 'Unlock';
 
   @override
+  String get smaczkiLockedBeforeVote =>
+      'Vote first. Then I\'ll see if you hold.';
+
+  @override
   String get smaczekChallengeEyebrow => 'BEFORE I SHOW YOU THE RESULT';
 
   @override
-  String get smaczekChallengeHold => 'I\'m holding';
+  String get challengeHoldCta => 'I\'M NOT BUDGING';
 
   @override
-  String get smaczekChallengeFlip => 'Hmm, maybe not';
+  String get challengeMovedCta => 'THAT GOT ME';
+
+  @override
+  String get smaczkiSheetFreeHeader =>
+      'You\'ve read the first. Two left — both against you.';
+
+  @override
+  String resultFlipLine(int percent) {
+    return 'The counter-argument flipped $percent% of voters.';
+  }
 
   @override
   String get ranksLoadError => 'Could not load ranks.';

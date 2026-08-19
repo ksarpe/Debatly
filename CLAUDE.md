@@ -72,15 +72,28 @@ surface.
 - **Two clocks on purpose:** the daily rolls over at the user's *local*
   midnight (countdown + `DailyRolloverWatcher` handle it in-session); the
   streak counts *UTC* days. Don't "fix" one to match the other.
-- **The argument sits between the vote and the result.** Casting a vote does
-  not reveal the split: the smaczek tagged against the side just picked
-  (`question_smaczki.side` — `attacks_yes` / `attacks_no` / `neutral`, NULL =
-  untagged, served as neutral) falls in word by word, hits the user's own
-  answer tile, and they answer "trzymam się" / "hmm, jednak nie" — a flip
-  re-casts the vote. Only then do the bars appear. `get_question_smaczki`
+- **The argument sits between the vote and the result — and the vote is
+  FINAL.** Casting a vote does not reveal the split: the smaczek tagged
+  against the side just picked (`question_smaczki.side` — `attacks_yes` /
+  `attacks_no` / `neutral`, NULL = untagged, served as neutral) falls in word
+  by word, hits the user's own answer tile, and they answer "TRZYMAM SIĘ" /
+  "TO MNIE RUSZYŁO". Neither answer re-casts the vote (that used to drag every
+  split toward 50/50): the outcome (`held`/`moved`/`dismissed` = system back)
+  + dwell is recorded on the vote row via `record_smaczek_challenge`, which
+  never touches `choice`. Only then do the bars appear, plus — at ≥30 answered
+  gates on the question (server-enforced, `flip_pct` is NULL below) — the
+  "Kontra przewróciła X%" line (`moved/(held+moved)`, `dismissed` excluded).
+  Max 3 gates per session (cold start, reset after 30 min backgrounded —
+  `challengeSessionProvider`); gates 2–3 are compact (text whole, tile-shake
+  stays). Post-gate the bar label and the free sheet change (no repeat of the
+  read argument — see `challengeRecordsProvider`). `get_question_smaczki`
   orders by relevance to the caller's own vote and the FREE row is the
-  top-ranked one, not position 1. Never a trap: system back = held, and no
-  readable argument means no gate.
+  top-ranked one, not position 1. The smaczki SHEET is vote-gated for BOTH
+  tiers: before the vote the bottom-bar pill stays visible but a tap shows the
+  "Najpierw zagłosuj" toast instead of opening it (arguments read pre-vote
+  would pollute the reflex the split measures). Never a trap: system back =
+  `dismissed`, and no readable argument means no gate (skips logged as
+  `smaczek_challenge_skipped`).
 - Voting is allowed on any readable question; the split shown is the
   **all-time** tally, not "today's result". The streak advances on any vote,
   at most once per UTC day, and decays one rank per 3 missed days.
@@ -152,7 +165,7 @@ lib/
 supabase/
   schema.sql             Bootstrap only — the ORIGINAL base tables, not today's
                          shape (see the hard rule above)
-  migrations/schema/     61 files: tables, RPCs, views, RLS, grants (has DDL).
+  migrations/schema/     68 files: tables, RPCs, views, RLS, grants (has DDL).
                          The real schema; newest file wins per object
   migrations/data/       33 files: question seeds + catalog edits (no DDL, 3× bigger)
   functions/             Edge functions (Deno/TS): revenue-cat-webhook,

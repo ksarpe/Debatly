@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:debatly/data/models/smaczek.dart';
 import 'package:debatly/data/models/vote_result.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -183,6 +184,43 @@ void main() {
 
     test('falls back to VoteResult.empty on an empty set', () async {
       expect((await repo('[]').castDailyVote('q1', 1)).total, 0);
+    });
+  });
+
+  group('recordSmaczekChallenge', () {
+    test('sends the outcome wire values and maps flip_pct', () async {
+      final v =
+          await repo('''
+        [{"yes_count": 61, "no_count": 39, "my_choice": 1, "flip_pct": 11}]
+      ''').recordSmaczekChallenge(
+            questionId: 'q1',
+            position: 2,
+            outcome: ChallengeOutcome.moved,
+            dwellMs: 3200,
+          );
+
+      expect(capturedUrl.path, endsWith('/rpc/record_smaczek_challenge'));
+      expect(capturedBody['p_question_id'], 'q1');
+      expect(capturedBody['p_position'], 2);
+      expect(capturedBody['p_outcome'], 'moved');
+      expect(capturedBody['p_dwell_ms'], 3200);
+      // The vote itself is untouched by the gate: my_choice comes back as the
+      // side cast BEFORE it, and the flip share arrives only past the server's
+      // 30-answer threshold.
+      expect(v.myChoice, 1);
+      expect(v.flipPct, 11);
+    });
+
+    test('flip_pct stays null below the server threshold', () async {
+      final v =
+          await repo('''
+        [{"yes_count": 6, "no_count": 4, "my_choice": 1, "flip_pct": null}]
+      ''').recordSmaczekChallenge(
+            questionId: 'q1',
+            position: 1,
+            outcome: ChallengeOutcome.held,
+          );
+      expect(v.flipPct, isNull);
     });
   });
 

@@ -1,5 +1,7 @@
 import 'package:debatly/data/models/smaczek.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
+import 'package:debatly/features/account/providers/session_providers.dart';
+import 'package:debatly/features/questions/providers/challenge_providers.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/widgets/smaczki_panel.dart';
 import 'package:flutter/material.dart';
@@ -18,10 +20,15 @@ void main() {
     WidgetTester tester, {
     required List<Smaczek> smaczki,
     Object? throws,
+    bool? premium,
+    ChallengeRecord? gateRecord,
   }) async {
     final repo = _SmaczkiRepo(smaczki: smaczki, throws: throws);
     final container = ProviderContainer(
-      overrides: [questionRepositoryProvider.overrideWithValue(repo)],
+      overrides: [
+        questionRepositoryProvider.overrideWithValue(repo),
+        if (premium != null) isPremiumProvider.overrideWithValue(premium),
+      ],
     );
     addTearDown(container.dispose);
 
@@ -42,6 +49,14 @@ void main() {
         ),
       ),
     );
+    // Settle FIRST so the (mock) session has resolved — the records notifier
+    // resets on an identity change, which would wipe a record primed earlier.
+    await tester.pumpAndSettle();
+    if (gateRecord != null) {
+      container
+          .read(challengeRecordsProvider.notifier)
+          .record('q1', gateRecord);
+    }
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
   }
@@ -68,6 +83,41 @@ void main() {
       // Each locked row carries its own bare "unlock" label next to the lock
       // (an ACTION label, rendered uppercase).
       expect(find.text('ODBLOKUJ'), findsNWidgets(2));
+    },
+  );
+
+  testWidgets(
+    'free user AFTER the gate: the served argument is not repeated — two '
+    'locked cards, the honest header, numbering picks up at 2',
+    (tester) async {
+      await pumpSheet(
+        tester,
+        premium: false,
+        gateRecord: const ChallengeRecord(
+          outcome: ChallengeOutcome.held,
+          smaczekPosition: 1,
+          smaczekTagged: true,
+        ),
+        smaczki: const [
+          Smaczek(position: 1, isLocked: false, text: 'Pierwszy argument.'),
+          Smaczek(position: 2, isLocked: true),
+          Smaczek(position: 3, isLocked: true),
+        ],
+      );
+
+      // The argument read in the gate does NOT reappear — repeating it right
+      // at the paywall is the broken promise this view exists to avoid.
+      expect(find.text('Pierwszy argument.'), findsNothing);
+      // Straight to the locked state: two locked cards, numbered 2 and 3.
+      expect(find.byIcon(Icons.lock_rounded), findsNWidgets(2));
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
+      expect(find.text('1'), findsNothing);
+      // The header owns the story instead of the generic remaining-count line.
+      expect(
+        find.text('Pierwszy masz za sobą. Zostały dwa — oba przeciwko Tobie.'),
+        findsOneWidget,
+      );
     },
   );
 

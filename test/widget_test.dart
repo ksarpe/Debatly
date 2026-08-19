@@ -337,7 +337,9 @@ void main() {
     await tester.pumpWidget(
       LocalizedTestApp(
         home: Scaffold(
-          body: Center(child: GoDeeperButton(onTap: () => taps++)),
+          body: Center(
+            child: GoDeeperButton(onTap: () => taps++, label: _goDeeperLabelPl),
+          ),
         ),
       ),
     );

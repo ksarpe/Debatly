@@ -147,14 +147,36 @@ day wall stands where the catalog would continue.
   `attacks_no` / `neutral`, NULL until it is tagged in the admin panel), and
   the RPC orders them by relevance to the caller's OWN vote — the argument
   aimed at the side they actually picked comes first. Everyone reads that top
-  one on a question they've seen; PRO reads them all.
-- **The argument comes before the percentages.** A vote does not reveal the
-  split straight away: the smaczek aimed at the side just picked falls in word
-  by word, lands on the user's own answer (which shakes, with a haptic), and
-  they answer "trzymam się" / "hmm, jednak nie". A flip re-casts the vote for
-  the other side. Only then do the bars appear — so the percentage reads as a
-  verdict on whether they held rather than as a fact. Never a trap: system back
-  resolves as "held", and no readable argument means no gate at all.
+  one on a question they've seen; PRO reads them all. The smaczki sheet is
+  vote-gated for both tiers: before the vote the bottom-bar pill stays
+  visible, but tapping it shows the "Najpierw zagłosuj" hook instead of the
+  sheet — arguments read before taking a side would pollute the reflex the
+  community split measures.
+- **The argument comes before the percentages — and the vote is final.** A
+  vote does not reveal the split straight away: the smaczek aimed at the side
+  just picked falls in word by word, lands on the user's own answer (which
+  shakes, with a haptic), and they answer "TRZYMAM SIĘ" / "TO MNIE RUSZYŁO".
+  Neither answer re-casts anything — the split measures the reflex, the gate
+  measures resilience, and mixing the two made every split drift toward 50/50
+  (`p' = p + f·(1−2p)`). The outcome (`held` / `moved` / `dismissed` for
+  system back) plus the dwell time is recorded on the vote row by
+  `record_smaczek_challenge` (first write wins), never touching `choice`.
+  Under the bars a second number appears — "Kontra przewróciła X% głosujących"
+  (`moved / (held + moved)`; `dismissed` never enters the denominator) — but
+  only once the question has ≥30 answered gates; below that the server
+  withholds `flip_pct` entirely. Never a trap: system back resolves as
+  "dismissed", and no readable argument means no gate at all.
+- **The gate is capped at 3 per session** (cold start; 30+ minutes in the
+  background starts a new session) — the valve for PRO, who bought speed;
+  a free user's single daily never meets the cap. Gates 2 and 3 are compact:
+  the text appears whole and the buttons come right after the tile-shake
+  (which stays — it is the whole message). Skipped gates are measured
+  (`smaczek_challenge_skipped`: `no_smaczki` / `offline` /
+  `no_match_after_refetch` / `session_cap`). After the gate the bottom bar
+  stops promising "PRZECIWKO TOBIE": it says "KONTRA" (PRO), "ZOSTAŁY JESZCZE
+  DWA" (free) or "JESZCZE DWA ARGUMENTY" (the served smaczek was untagged) —
+  and a free user's smaczki sheet then hides the argument they already read,
+  opening straight on the two locked ones.
   Favorites, the vote-history screen and the offline catalog download are PRO
   features — tapping any of them opens the paywall sheet.
 

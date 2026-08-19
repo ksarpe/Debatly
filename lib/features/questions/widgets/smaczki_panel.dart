@@ -14,6 +14,7 @@ import '../../../data/models/smaczek.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/widgets/save_pro_prompt.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
+import '../providers/challenge_providers.dart';
 import '../providers/question_providers.dart';
 
 /// Shortest smaczek suggestion the server accepts — mirrors the
@@ -97,6 +98,14 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
   Widget build(BuildContext context) {
     final smaczkiAsync = ref.watch(smaczkiProvider(widget.questionId));
 
+    // A FREE user who already read the gate's argument on this question must
+    // not meet it again here — that would be a broken promise at the exact
+    // moment of the paywall. The sheet then opens straight on the locked
+    // state: the gate's card is hidden and the remaining ones render locked
+    // (the server sends free users one readable row — the gate's — anyway).
+    final record = ref.watch(challengeRecordsProvider)[widget.questionId];
+    final gatePassed = !ref.watch(isPremiumProvider) && record != null;
+
     return Padding(
       // Rides above the keyboard when the smaczek composer has focus.
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
@@ -158,13 +167,17 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
                 const SizedBox(height: 6),
                 // How many arguments are still ahead of the reader — everything
                 // past the one the post-vote challenge already threw at them.
-                // Falls back to the flat line until the list has loaded.
+                // A free reader who passed the gate gets the honest header
+                // ("the first is behind you"); otherwise it falls back to the
+                // flat line until the list has loaded.
                 Text(
-                  switch ((smaczkiAsync.value?.length ?? 0) - 1) {
-                    final int rest when rest > 0 =>
-                      context.l10n.smaczkiRemaining(rest),
-                    _ => context.l10n.smaczkiSubtitle,
-                  },
+                  gatePassed
+                      ? context.l10n.smaczkiSheetFreeHeader
+                      : switch ((smaczkiAsync.value?.length ?? 0) - 1) {
+                          final int rest when rest > 0 =>
+                            context.l10n.smaczkiRemaining(rest),
+                          _ => context.l10n.smaczkiSubtitle,
+                        },
                   style: AppTypography.support(
                     fontSize: 13,
                   ).copyWith(color: context.colors.subtle),
@@ -196,6 +209,13 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
                     ),
                     data: (smaczki) => _SmaczkiList(
                       smaczki: smaczki,
+                      // Post-gate free view: hide the argument the gate already
+                      // served and render everything else locked — never a
+                      // repeat, never a second free smaczek.
+                      hiddenPosition: gatePassed
+                          ? record.smaczekPosition
+                          : null,
+                      lockAll: gatePassed,
                       onGetPremium: _busy ? null : _getPremium,
                     ),
                   ),
@@ -342,15 +362,34 @@ class _SmaczekComposerState extends ConsumerState<_SmaczekComposer> {
 
 /// The resolved list: numbered cards for readable smaczki, blurred placeholders
 /// for the locked ones — each locked card carries its own inline unlock hook.
+///
+/// [hiddenPosition] drops the card whose smaczek carries that position — the
+/// argument the post-vote gate already served a free user. [lockAll] renders
+/// every remaining card locked regardless of what the server sent, so the
+/// post-gate free sheet can never leak a second readable argument. Cards keep
+/// their pre-filter numbering ("2", "3"): the header just said the first one
+/// is behind the reader.
 class _SmaczkiList extends StatelessWidget {
-  const _SmaczkiList({required this.smaczki, required this.onGetPremium});
+  const _SmaczkiList({
+    required this.smaczki,
+    required this.onGetPremium,
+    this.hiddenPosition,
+    this.lockAll = false,
+  });
 
   final List<Smaczek> smaczki;
   final VoidCallback? onGetPremium;
+  final int? hiddenPosition;
+  final bool lockAll;
 
   @override
   Widget build(BuildContext context) {
-    if (smaczki.isEmpty) {
+    final entries = <(int, Smaczek)>[
+      for (var i = 0; i < smaczki.length; i++)
+        if (smaczki[i].position != hiddenPosition) (i + 1, smaczki[i]),
+    ];
+
+    if (entries.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: Text(
@@ -367,10 +406,10 @@ class _SmaczkiList extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          for (var i = 0; i < smaczki.length; i++)
-            smaczki[i].isLocked
-                ? _LockedSmaczekCard(index: i + 1, onUnlock: onGetPremium)
-                : _SmaczekCard(index: i + 1, text: smaczki[i].text ?? ''),
+          for (final (index, smaczek) in entries)
+            smaczek.isLocked || lockAll
+                ? _LockedSmaczekCard(index: index, onUnlock: onGetPremium)
+                : _SmaczekCard(index: index, text: smaczek.text ?? ''),
         ],
       ),
     );

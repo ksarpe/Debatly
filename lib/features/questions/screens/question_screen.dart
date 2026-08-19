@@ -9,6 +9,7 @@ import '../../account/providers/session_providers.dart';
 import '../../account/providers/stats_providers.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../providers/question_providers.dart';
+import '../widgets/challenge_session_watcher.dart';
 import '../widgets/conformity_panel.dart';
 import '../widgets/daily_rollover_watcher.dart';
 import '../widgets/load_error.dart';
@@ -231,6 +232,9 @@ class QuestionScreen extends ConsumerWidget {
           // Rolls the feed to the new local day (resume + slow tick) so an app
           // left open across midnight serves the fresh daily. Zero-size.
           const DailyRolloverWatcher(),
+          // Feeds app-lifecycle changes into the challenge session, so 30+
+          // minutes in the background re-arms the gate cap. Zero-size.
+          const ChallengeSessionWatcher(),
           // Celebrates a rank climb (confetti + shareable card) the moment the
           // synced stats cross a tier — caught on launch and after a daily vote.
           // Zero-size; mounts here so it lives for the whole session.

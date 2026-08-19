@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/feedback/app_toast.dart';
 import '../../../core/layout/content_width.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
@@ -9,6 +10,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/fit_or_scroll.dart';
 import '../../account/providers/session_providers.dart';
 import '../../monetization/widgets/day_wall_view.dart';
+import '../providers/challenge_providers.dart';
 import '../providers/question_providers.dart';
 import '../providers/swipe_hint_providers.dart';
 import 'daily_vote_panel.dart';
@@ -104,6 +106,39 @@ class QuestionBody extends ConsumerWidget {
     final showJumpToLatest = ref.watch(canJumpToLatestProvider);
     final showOverlay = showHintAndDeeper || showJumpToLatest;
 
+    // The smaczki sheet is VOTE-GATED, for both tiers: a counter-argument read
+    // before taking a side is just information without a target, and a vote
+    // cast after reading the arguments is no longer the reflex the community
+    // split claims to measure. The pill stays visible — knowing something
+    // waits there is part of the reason to vote — but tapping it before the
+    // vote answers with a hook instead of the sheet. The DEV custom pin is
+    // exempt: it has no server vote row, so this gate could never open for it
+    // (its sheet only renders the "no smaczki" note anyway).
+    final hasVoted =
+        hasRows &&
+        (questionId == kDevCustomQuestionId ||
+            (ref.watch(dailyVoteStateProvider(questionId)).value?.hasVoted ??
+                false));
+
+    // What the "go deeper" pill promises. Default is the standing "PRZECIWKO
+    // TOBIE"; once the post-vote gate has run on THIS question the label must
+    // match what the sheet can actually deliver: an untagged argument can't
+    // promise "against you" at all, a tagged one leaves PRO the short "KONTRA"
+    // (set larger) and free the honest "two locked ones remain".
+    final record = hasRows
+        ? ref.watch(challengeRecordsProvider)[questionId]
+        : null;
+    final isPremium = ref.watch(isPremiumProvider);
+    final (goDeeperLabel, goDeeperProminent) = switch (record) {
+      null => (context.l10n.goDeeper, false),
+      ChallengeRecord(smaczekTagged: false) => (
+        context.l10n.smaczkiBarUntagged,
+        false,
+      ),
+      _ when isPremium => (context.l10n.smaczkiBarPro, true),
+      _ => (context.l10n.smaczkiBarFree, false),
+    };
+
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     // The whole feed is one swipe surface: WindQuestionView's own detector only
@@ -154,9 +189,16 @@ class QuestionBody extends ConsumerWidget {
                       showJumpToLatest: showJumpToLatest,
                       questionId: hasRows ? questionId : null,
                       questionText: hasRows ? current.questionText : null,
+                      goDeeperLabel: goDeeperLabel,
+                      goDeeperProminent: goDeeperProminent,
                       onGoDeeper: questionId == null
                           ? null
-                          : () => showSmaczkiSheet(context, questionId),
+                          : hasVoted
+                          ? () => showSmaczkiSheet(context, questionId)
+                          : () => AppToast.info(
+                              context,
+                              context.l10n.smaczkiLockedBeforeVote,
+                            ),
                       onJumpToLatest: () =>
                           ref.read(questionIndexProvider.notifier).toLatest(),
                     )
@@ -293,6 +335,8 @@ class _BottomOverlay extends StatelessWidget {
     required this.showJumpToLatest,
     required this.questionId,
     required this.questionText,
+    required this.goDeeperLabel,
+    required this.goDeeperProminent,
     required this.onGoDeeper,
     required this.onJumpToLatest,
   });
@@ -304,6 +348,11 @@ class _BottomOverlay extends StatelessWidget {
   /// needs its text, the star its id.
   final String? questionId;
   final String? questionText;
+
+  /// The state-dependent promise on the "go deeper" pill — computed in
+  /// [QuestionBody] from the post-vote gate's record for this question.
+  final String goDeeperLabel;
+  final bool goDeeperProminent;
   final VoidCallback? onGoDeeper;
   final VoidCallback onJumpToLatest;
 
@@ -346,7 +395,11 @@ class _BottomOverlay extends StatelessWidget {
                     ],
                     Expanded(
                       flex: 4,
-                      child: GoDeeperButton(onTap: onGoDeeper ?? () {}),
+                      child: GoDeeperButton(
+                        onTap: onGoDeeper ?? () {},
+                        label: goDeeperLabel,
+                        prominent: goDeeperProminent,
+                      ),
                     ),
                     if (questionId != null) ...[
                       const SizedBox(width: 10),

@@ -10,6 +10,7 @@ class VoteResult {
     required this.yesCount,
     required this.noCount,
     this.myChoice,
+    this.flipPct,
     this.fromCache = false,
   });
 
@@ -22,6 +23,12 @@ class VoteResult {
 
   /// The caller's vote (1 = TAK, 2 = NIE), or null if they haven't voted.
   final int? myChoice;
+
+  /// Share (0..100) of gate-takers this question's counter-argument flipped:
+  /// `moved / (held + moved)`. The SERVER withholds it (null) until the
+  /// question has at least 30 answered challenges, so a non-null value is
+  /// always safe to show — the client never re-checks the threshold.
+  final int? flipPct;
 
   /// True when this result was served from the on-device cache after a failed
   /// fetch (offline) rather than freshly from the server. It's a serve-time flag
@@ -52,11 +59,14 @@ class VoteResult {
       yesCount: asInt(json['yes_count']),
       noCount: asInt(json['no_count']),
       myChoice: json['my_choice'] == null ? null : asInt(json['my_choice']),
+      flipPct: json['flip_pct'] == null ? null : asInt(json['flip_pct']),
     );
   }
 
   /// The counts + the caller's own choice, ready to persist in the on-device
   /// cache. [fromCache] is deliberately NOT serialised — it's a serve-time tag.
+  /// [flipPct] isn't either: offline the panel already withholds the (possibly
+  /// stale) community split, and the flip line follows the same rule.
   Map<String, dynamic> toJson() => {
     'yes_count': yesCount,
     'no_count': noCount,

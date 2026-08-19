@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 
@@ -11,10 +10,27 @@ import '../../../core/theme/app_typography.dart';
 /// the bottom. Every few seconds it plays a short nudge — alternating between
 /// a shake and a heartbeat pulse — as a reminder that there is more behind
 /// the question.
+///
+/// The [label] is state-dependent (see QuestionBody): the default "PRZECIWKO
+/// TOBIE" promise before/without the post-vote gate, and truthful variants
+/// after it — the promise must match what the sheet can actually deliver.
 class GoDeeperButton extends StatefulWidget {
-  const GoDeeperButton({super.key, required this.onTap});
+  const GoDeeperButton({
+    super.key,
+    required this.onTap,
+    required this.label,
+    this.prominent = false,
+  });
 
   final VoidCallback onTap;
+
+  /// The pill's text, already localized (rendered uppercase).
+  final String label;
+
+  /// Larger type for the short post-gate PRO label ("KONTRA", 6 chars) — at
+  /// that length the word can carry the row instead of hiding in pill-sized
+  /// type.
+  final bool prominent;
 
   @override
   State<GoDeeperButton> createState() => _GoDeeperButtonState();
@@ -70,7 +86,7 @@ class _GoDeeperButtonState extends State<GoDeeperButton>
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
-      label: context.l10n.goDeeper,
+      label: widget.label,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
@@ -91,15 +107,17 @@ class _GoDeeperButtonState extends State<GoDeeperButton>
           // premium button in BOTH themes. Sized to the shared touch-target
           // height and stretching to whatever width the action bar hands it,
           // so it lines up flush with the share / favorite pills beside it.
-          child: const DecoratedBox(
-            decoration: BoxDecoration(
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
               borderRadius: AppTheme.ctaRadius,
               gradient: AppTheme.ctaGradient,
               boxShadow: AppTheme.ctaGlow,
             ),
             child: SizedBox(
               height: kMinTouchTarget,
-              child: Center(child: _Label()),
+              child: Center(
+                child: _Label(text: widget.label, prominent: widget.prominent),
+              ),
             ),
           ),
         ),
@@ -109,15 +127,21 @@ class _GoDeeperButtonState extends State<GoDeeperButton>
 }
 
 class _Label extends StatelessWidget {
-  const _Label();
+  const _Label({required this.text, required this.prominent});
+
+  final String text;
+  final bool prominent;
 
   @override
   Widget build(BuildContext context) {
     return Text(
-      context.l10n.goDeeper.toUpperCase(),
+      text.toUpperCase(),
       textAlign: TextAlign.center,
+      // The prominent cut carries the short "KONTRA": six characters fit any
+      // 360px row at this size, so the word gets to be typography instead of
+      // being squeezed into pill-sized type.
       style: AppTypography.action(
-        fontSize: 13,
+        fontSize: prominent ? 17 : 13,
       ).copyWith(color: AppTheme.ctaForeground),
     );
   }
