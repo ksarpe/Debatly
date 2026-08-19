@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:debatly/core/theme/app_theme.dart';
 import 'package:debatly/data/models/conformity_stats.dart';
 import 'package:debatly/data/models/debate_profile.dart';
@@ -29,6 +31,13 @@ import '../support/localized_test_app.dart';
 /// (no providers, no network), real fonts loaded by `flutter_test_config.dart`,
 /// and a fixed surface + 1× pixel ratio. Regenerate after an intentional visual
 /// change with `flutter test test/golden --update-goldens` and commit the PNGs.
+///
+/// Determinism stops at the host, though: text rasterisation (hinting,
+/// subpixel layout, shaping) differs per operating system, so the very same
+/// widget legitimately paints different pixels on Windows and on Linux. The
+/// committed PNGs are the Windows dev machine's, so the *pixel comparison*
+/// only runs there — see [_comparesPixels]. Everywhere else (Linux CI) the
+/// scenes are still pumped and asserted, just not diffed against a bitmap.
 void main() {
   // A repaint boundary wrapping each scene so the golden captures exactly this
   // frame — including drop shadows — instead of a child's tight bounds.
@@ -70,8 +79,12 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> expectGolden(WidgetTester tester, String name) {
-    return expectLater(
+  Future<void> expectGolden(WidgetTester tester, String name) async {
+    // Off the golden host the scene has still been built, laid out and pumped
+    // (so an overflow or a thrown exception fails the test as usual) — only the
+    // bitmap diff, which would compare foreign rasterisation, is skipped.
+    if (!_comparesPixels) return;
+    await expectLater(
       find.byKey(sceneKey),
       matchesGoldenFile('goldens/$name.png'),
     );
@@ -232,6 +245,13 @@ void main() {
     });
   });
 }
+
+/// Whether this host is the one the committed PNGs were rasterised on.
+///
+/// Regenerate them with `flutter test test/golden --update-goldens` on
+/// Windows; moving the golden host means flipping this check and
+/// regenerating every PNG in one commit.
+final _comparesPixels = Platform.isWindows;
 
 /// 15 of 44 decided votes with the majority ≈ 34% → "Częściej pod prąd", the
 /// middle-ish rung whose badge sits over the axis rather than clamped to an
