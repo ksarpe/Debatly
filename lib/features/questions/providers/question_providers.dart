@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/app_locale.dart';
@@ -527,7 +528,7 @@ final wallTeaserProvider = FutureProvider<String?>((ref) async {
 /// [maybeRolloverDaily]) detects exactly that staleness.
 final dailyFetchDayProvider = Provider<String>((ref) {
   ref.watch(todaysDailyQuestionProvider);
-  return dateOnlyKey(DateTime.now());
+  return dateOnlyKey(clock.now());
 });
 
 /// Rolls the feed over to the new local day when the daily on screen was
@@ -541,7 +542,7 @@ final dailyFetchDayProvider = Provider<String>((ref) {
 /// and — via the notifier's watch — hides the day wall; the index snaps back
 /// so every tier opens the new day on its daily.
 void maybeRolloverDaily(WidgetRef ref) {
-  if (ref.read(dailyFetchDayProvider) == dateOnlyKey(DateTime.now())) return;
+  if (ref.read(dailyFetchDayProvider) == dateOnlyKey(clock.now())) return;
   ref.invalidate(todaysDailyQuestionProvider);
   ref.invalidate(dailyVoteStateProvider);
   ref.invalidate(questionsProvider);

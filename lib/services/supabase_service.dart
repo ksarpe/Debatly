@@ -96,7 +96,7 @@ class SupabaseService {
   /// no current user and mints a BRAND NEW anonymous UUID, stranding the
   /// returning user's streak, votes, favourites and entitlement on the identity
   /// it just walked away from. A retry has to wait on the ORIGINAL future.
-  static Future<Supabase>? _initFuture;
+  static Future<void>? _initFuture;
 
   /// Whether the late-convergence hand-off is already attached to
   /// [_initFuture]. One is enough — attaching a fresh one per retry would pile
@@ -129,15 +129,32 @@ class SupabaseService {
       return SupabaseInitStatus.notConfigured;
     }
 
-    final init = _initFuture ??= Supabase.initialize(
-      url: AppConfig.supabaseUrl,
-      // Supabase renamed the anon key to "publishable key"; the env var keeps
-      // the familiar SUPABASE_ANON_KEY name.
-      publishableKey: AppConfig.supabaseAnonKey,
+    return initialiseOn(
+      () => Supabase.initialize(
+        url: AppConfig.supabaseUrl,
+        // Supabase renamed the anon key to "publishable key"; the env var
+        // keeps the familiar SUPABASE_ANON_KEY name.
+        publishableKey: AppConfig.supabaseAnonKey,
+      ),
     );
+  }
+
+  /// [initialise] with the SDK call injected, so the memoisation and the retry
+  /// contract can be tested without a real Supabase project.
+  ///
+  /// [start] is invoked AT MOST ONCE for the life of the process. That is the
+  /// whole point of this function and the reason it exists separately: calling
+  /// `Supabase.initialize` a second time is not a retry, it is a short-circuit
+  /// that returns success without restoring the session.
+  @visibleForTesting
+  static Future<SupabaseInitStatus> initialiseOn(
+    Future<void> Function() start, {
+    Duration timeout = kInitTimeout,
+  }) async {
+    final init = _initFuture ??= start();
 
     try {
-      await init.timeout(kInitTimeout);
+      await init.timeout(timeout);
       return _markReady();
     } catch (e, st) {
       debugPrint('SupabaseService.initialise failed: $e');
@@ -159,6 +176,15 @@ class SupabaseService {
       );
       return SupabaseInitStatus.failed;
     }
+  }
+
+  /// Drops the memoised init so each test starts from a cold process.
+  @visibleForTesting
+  static void resetInitForTest() {
+    _initFuture = null;
+    _convergenceArmed = false;
+    _initialised = false;
+    _statusListeners.clear();
   }
 
   static SupabaseInitStatus _markReady() {

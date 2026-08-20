@@ -9,6 +9,7 @@ import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/monitoring/monitoring.dart';
 import '../../../core/network/network_error.dart';
+import '../../../core/network/network_timeout.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/models/rank.dart';
@@ -386,9 +387,18 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
           ? _pickChallenger(ref.read(smaczkiProvider(id)).value, choice)
           : null;
       if (warmed != null) return warmed;
+      // Straight to the repository, NOT `ref.read(smaczkiProvider(id).future)`.
+      // In Riverpod 3 that future completes only with DATA — an errored
+      // provider leaves it pending forever — so awaiting it turned every
+      // failed fetch into a full 2.5s stall that then reported itself as
+      // `slow_fetch`. Which is precisely the distinction the skip reason
+      // exists to make: "the arguments are slow" vs "the arguments are gone".
+      // The invalidate still stands: the sheet must refetch post-vote to pick
+      // up the text the server only unlocks once the vote exists.
       ref.invalidate(smaczkiProvider(id));
       final fresh = await ref
-          .read(smaczkiProvider(id).future)
+          .read(questionRepositoryProvider)
+          .fetchSmaczki(id)
           .timeout(_challengeFetchBudget);
       final pick = _pickChallenger(fresh, choice);
       if (pick == null) {
@@ -479,7 +489,15 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       final review = ref.read(reviewPromptControllerProvider.notifier);
       await review.recordVote();
 
-      final stats = await ref.read(userStatsProvider.future);
+      // Bounded, and error-tolerant, for the same Riverpod 3 reason as the
+      // gate fetch above: `.future` never completes on an errored provider, so
+      // a failed stats sync used to hang here forever and silently swallow
+      // everything below it — the activation event, the review ask, the
+      // reminder update. No stats is a fine answer; no answer is not.
+      final stats = await ref
+          .read(userStatsProvider.future)
+          .timeout(kNetworkCallTimeout)
+          .onError((_, _) => null);
       // Swiping away unmounts this panel; skipping the ask is always acceptable,
       // so bail rather than reach through a `ref` that's no longer usable.
       if (!mounted) return;

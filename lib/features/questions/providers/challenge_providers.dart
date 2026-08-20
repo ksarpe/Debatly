@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/models/smaczek.dart';
@@ -44,14 +45,14 @@ class ChallengeSessionNotifier extends Notifier<int> {
   /// Called when the app leaves the foreground. Only the FIRST pause of a
   /// stretch counts — a resume clears it — so flapping through inactive states
   /// can't stretch the measured background time.
-  void markBackgrounded() => _backgroundedAt ??= DateTime.now();
+  void markBackgrounded() => _backgroundedAt ??= clock.now();
 
   /// Called on resume: away long enough means a fresh session.
   void maybeResetOnResume() {
     final away = _backgroundedAt;
     _backgroundedAt = null;
     if (away != null &&
-        DateTime.now().difference(away) >= kChallengeSessionResetAfter) {
+        clock.now().difference(away) >= kChallengeSessionResetAfter) {
       state = 0;
     }
   }
