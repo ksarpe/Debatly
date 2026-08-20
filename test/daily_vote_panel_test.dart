@@ -116,6 +116,35 @@ void main() {
     },
   );
 
+  testWidgets(
+    'a public tally with no vote of my own still offers the buttons — the '
+    "server's re-vote window has no client half",
+    (tester) async {
+      // The shape `get_daily_vote_state` returns inside the one-shot re-vote
+      // window (a free caller whose vote on today's shared pick predates the
+      // pick's day, e.g. cast back when they still had PRO): the counts are
+      // the real public tally, `my_choice` is deliberately NULL so every
+      // shipped client renders the vote buttons instead of dead bars. The
+      // server ships that rule alone — "no client code needs to change" — and
+      // this is the lock on that claim: a panel that decided "counts > 0 means
+      // voted" would silently close the window for everyone.
+      await pumpPanel(
+        tester,
+        session: account(),
+        initial: const VoteResult(yesCount: 120, noCount: 80),
+      );
+
+      expect(find.text('TAK'), findsOneWidget);
+      expect(find.text('NIE'), findsOneWidget);
+      expect(
+        find.text('VS'),
+        findsNothing,
+        reason: 'a tally without MY vote must not read as a cast vote',
+      );
+      expect(find.textContaining('%'), findsNothing);
+    },
+  );
+
   testWidgets('voting reveals the green/red split with VS and marks my side', (
     tester,
   ) async {

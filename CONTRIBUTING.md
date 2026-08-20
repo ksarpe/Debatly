@@ -81,6 +81,8 @@ paths a human otherwise re-clicks on a phone after every release:
   gesture both leave it;
 - the wall's paywall rules — never automatically before the daily vote,
   automatically on the first wall hit after it, and only once that local day;
+- PRO and the shared daily — the "PYTANIE DNIA" pill on the daily card, and the
+  bottom-of-feed jump link back to it from anywhere in the catalog;
 - sign-out — the settings hub falls back to its guest shape.
 
 The manual counterparts (with ids the test's header maps to) live in

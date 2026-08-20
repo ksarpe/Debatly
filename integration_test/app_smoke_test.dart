@@ -7,6 +7,7 @@
 //   * the smaczki sheet's vote gate — the pill answers with the hook (B5)
 //   * the free day wall — forward swipe lands on it, back leaves it (C1)
 //   * the wall's paywall rules — never before the vote, once after it (C2, C3)
+//   * PRO and the shared daily — the pill on it, the jump link back to it (B9)
 //   * sign-out — the settings hub falls back to its guest shape (E7)
 //
 // Why this lives here and not in test/: `flutter test` only scans test/, so this
@@ -27,11 +28,12 @@
 //     asserted below render regardless of the host device language. Fresh per
 //     test, which is what makes the wall's once-per-local-day paywall latch
 //     observable from both sides;
-//   * [sessionProvider] — a signed-in FREE account ([_SmokeSession]). Without
-//     SDK keys the real session resolves to premium (mock mode is premium), and
-//     a premium user never meets the day wall at all. A fixed free session is
-//     the minimal seam that puts the freemium paths on screen, exactly as the
-//     widget tests do;
+//   * [sessionProvider] — a signed-in account of the tier each test needs
+//     ([_SmokeSession], free by default). Without SDK keys the real session
+//     resolves to premium (mock mode is premium), and a premium user never
+//     meets the day wall at all. Pinning the tier is the minimal seam that puts
+//     both decks on screen — free's `[daily]`, PRO's daily-plus-catalog —
+//     exactly as the widget tests do;
 //   * [questionRepositoryProvider] — [_VoteRememberingMockRepo], the stock
 //     [MockQuestionRepository] with one hole plugged: its `getDailyVoteState`
 //     always answers "not voted", so the vote the UI just cast evaporates on the
@@ -48,6 +50,7 @@ import 'package:debatly/features/monetization/widgets/day_wall_view.dart';
 import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
 import 'package:debatly/features/onboarding/providers/onboarding_providers.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
+import 'package:debatly/features/questions/widgets/daily_question_badge.dart';
 import 'package:debatly/features/questions/widgets/falling_words_text.dart';
 import 'package:debatly/features/questions/widgets/go_deeper_button.dart';
 import 'package:debatly/features/questions/widgets/wind_question_view.dart';
@@ -70,14 +73,22 @@ Future<SharedPreferences> _mockPrefs() async {
   return SharedPreferences.getInstance();
 }
 
-/// Boots the real app as a returning FREE account and leaves it on the daily.
-Future<void> _pumpAppToDaily(WidgetTester tester) async {
+/// Boots the real app as a returning account and leaves it on the daily.
+///
+/// [premium] picks the tier, which is what picks the DECK: free is `[daily]`
+/// (the day wall stands where the catalog would continue), PRO is the daily
+/// followed by the whole catalog — the only shape in which the jump back to
+/// the daily can exist at all.
+Future<void> _pumpAppToDaily(
+  WidgetTester tester, {
+  bool premium = false,
+}) async {
   final prefs = await _mockPrefs();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
-        sessionProvider.overrideWith(_SmokeSession.new),
+        sessionProvider.overrideWith(() => _SmokeSession(premium: premium)),
         questionRepositoryProvider.overrideWithValue(
           _VoteRememberingMockRepo(),
         ),
@@ -351,6 +362,53 @@ void main() {
     },
   );
 
+  testWidgets(
+    'PRO: the daily wears its pill, and the catalog offers the one-tap jump '
+    'back to it',
+    (tester) async {
+      await _pumpAppToDaily(tester, premium: true);
+
+      // On the daily: the pill frames it as the question the whole community
+      // is arguing about today. Being on it, there is nothing to jump to — so
+      // the single "PYTANIE DNIA" on screen is the pill, not the link (both
+      // render that same string, which is why the widget type is asserted too).
+      expect(find.byType(DailyQuestionBadge), findsOneWidget);
+      expect(find.text('PYTANIE DNIA'), findsOneWidget);
+
+      // Forward into the catalog — the swipe a free account cannot make (it
+      // meets the day wall instead; see the wall tests above).
+      await _swipeForward(tester);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(DayWallView),
+        findsNothing,
+        reason: 'PRO swipes into the catalog, never into the wall',
+      );
+      // Away from the daily the pill is gone and the link takes over the
+      // string: one "PYTANIE DNIA" again, this time the way back.
+      expect(find.byType(DailyQuestionBadge), findsNothing);
+      final jumpLink = find.text('PYTANIE DNIA');
+      expect(
+        jumpLink,
+        findsOneWidget,
+        reason: 'mid-catalog PRO gets the jump back to the daily',
+      );
+
+      // One tap lands on the daily — the point of the link is that a PRO user
+      // who wandered off can still see (or cast) today's shared vote.
+      await tester.tap(jumpLink);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DailyQuestionBadge), findsOneWidget);
+      expect(find.text('PYTANIE DNIA'), findsOneWidget);
+      // The daily is still votable from here — landing on it is not a re-vote
+      // and not a dead end.
+      expect(find.text('TAK'), findsOneWidget);
+      expect(find.text('NIE'), findsOneWidget);
+    },
+  );
+
   testWidgets('signing out returns the settings hub to its guest shape', (
     tester,
   ) async {
@@ -403,6 +461,10 @@ void main() {
 /// done; everything the test then asserts — the pop, the toast, the hub's guest
 /// shape — is the real UI reacting to it.
 class _SmokeSession extends SessionNotifier {
+  _SmokeSession({this.premium = false});
+
+  final bool premium;
+
   bool _signedOut = false;
 
   @override
@@ -413,6 +475,7 @@ class _SmokeSession extends SessionNotifier {
           email: 'smoke@example.com',
           isAnonymous: false,
           createdAt: DateTime.utc(2026, 1, 1),
+          isPremium: premium,
         );
 
   @override

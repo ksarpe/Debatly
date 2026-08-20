@@ -79,6 +79,13 @@ class CachingQuestionRepository implements QuestionRepository {
       if (exact != null) return exact;
       final latest = cache.readLatestDaily(locale);
       if (latest != null) return latest.question;
+      // Nothing was EVER cached in this language — which is precisely what
+      // switching language offline looks like, since every key here is
+      // locale-scoped. The free deck is just the daily, so rethrowing traded
+      // the whole app for a retry screen the moment a user tapped the language
+      // row on a train. A question in the wrong language is still the app.
+      final translated = cache.readDailyFromOtherLocale(locale, dateKey);
+      if (translated != null) return translated;
       rethrow;
     }
   }

@@ -64,6 +64,37 @@ class QuestionScreen extends ConsumerWidget {
       );
     });
 
+    // The daily's failure modes are not equal, and only ONE of them is an
+    // exception. A dead pick, a gap in `daily_picks`, an exhausted calendar or
+    // a cron that never ran all end the same way: the server falls back to the
+    // personal draw and returns HTTP 200 with a real question — degraded, but
+    // nothing to report. A THROW here is the different case: the daily didn't
+    // load at all, and the deck has nothing to open onto.
+    //
+    // That case is not silent on screen — it shows [LoadError] with a retry —
+    // but a retry button looks identical whether one user's wifi died or
+    // `get_daily_question` is failing for everyone, and nobody is watching the
+    // second one. It never left the device before. (Same registration rule as
+    // the profile listener above: `WidgetRef.listen` has no `fireImmediately`,
+    // and this build is what kicks off the first daily fetch — see the
+    // `ref.watch(todaysDailyQuestionProvider)` further down — so the listener
+    // is in place before the error it has to catch. The retry re-invalidates
+    // while this screen is still mounted, so repeat failures land too.)
+    ref.listen(todaysDailyQuestionProvider, (_, next) {
+      final error = next.error;
+      if (error == null) return;
+      // A user on a train is not an incident — but that filter is NOT repeated
+      // here: [Monitoring.captureException] drops connectivity errors itself,
+      // deliberately in one place, so this call site stays a plain "report it".
+      unawaited(
+        Monitoring.captureException(
+          error,
+          stackTrace: next.stackTrace,
+          feature: 'daily_question',
+        ),
+      );
+    });
+
     // When the signed-in identity changes (log in / log out / account switch),
     // drop every per-user cache so the new user never inherits the previous
     // one's daily vote, unlocked text or smaczki. Providers keyed only on

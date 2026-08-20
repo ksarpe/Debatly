@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/monitoring/monitoring.dart';
@@ -589,10 +591,65 @@ class SupabaseQuestionRepository implements QuestionRepository {
         .withNetworkTimeout();
 
     final rows = (data as List).cast<Map<String, dynamic>>();
-    if (rows.isEmpty) return null;
+    if (rows.isEmpty) {
+      _reportNoDaily('no_row', date);
+      return null;
+    }
 
     final question = Question.fromJson(rows.first);
-    return question.questionText.trim().isEmpty ? null : question;
+    if (question.questionText.trim().isEmpty) {
+      _reportNoDaily('blank_text', date, questionId: question.id);
+      return null;
+    }
+    return question;
+  }
+
+  /// Reports a daily that resolved to NOTHING — the only daily failure with no
+  /// exception behind it, and so the only one nothing else can see.
+  ///
+  /// The degraded-but-working paths (a dead pick, a gap in `daily_picks`, an
+  /// exhausted calendar, a cron that never ran) all fall back to the personal
+  /// draw and return a real question; those are a spread problem, measured in
+  /// `user_daily_questions`, not an error. This is the other end: the RPC
+  /// answered 200 with nothing usable, so the caller has NO daily at all. It
+  /// throws nothing, logs nothing server-side and passes `beforeSend`
+  /// untouched, because there is no error object anywhere in it — which is
+  /// exactly why it has to be constructed here.
+  ///
+  /// Every empty-feed dead end funnels through this: the deck is empty only
+  /// when the daily is null (a non-null daily is always deck[0]), so the
+  /// screen's "resolved but empty" retry state cannot happen without one of
+  /// these two branches firing first. It also catches the case that dead end
+  /// MISSES — a premium user whose catalog loaded fine, who just silently
+  /// never gets a daily.
+  ///
+  /// [reason] separates the two in Sentry because they are different bugs:
+  ///   * `no_row` — the RPC selected nothing. Leading cause is a caller with no
+  ///     uid: a failed anonymous sign-in leaves `ensureSignedIn` null and
+  ///     `get_daily_question` has no user to draw for (Supabase rate-limits
+  ///     anonymous sign-ups per IP, which a carrier CGNAT or an office network
+  ///     reaches). `has_session` is in the payload to confirm or kill that
+  ///     hypothesis without guessing.
+  ///   * `blank_text` — a row came back with no readable text. Two very
+  ///     different bugs share this shape: the question has no translation in
+  ///     either language (content), or the gate STRIPPED the text because a
+  ///     premium question landed on a free user's daily slot (the leak guard —
+  ///     see the repo tests). `question_id` + `locale` are what tell them
+  ///     apart, so they are always in the payload here.
+  void _reportNoDaily(String reason, DateTime date, {String? questionId}) {
+    unawaited(
+      Monitoring.captureException(
+        StateError('get_daily_question returned no usable question ($reason)'),
+        feature: 'daily_question',
+        extra: {
+          'reason': reason,
+          'locale': locale,
+          'date': dateOnlyKey(date),
+          'has_session': SupabaseService.currentUser != null,
+          'question_id': ?questionId,
+        },
+      ),
+    );
   }
 
   @override

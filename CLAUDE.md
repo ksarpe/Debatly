@@ -41,7 +41,10 @@ surface.
   **one-shot re-vote window** — the single sanctioned exception to
   vote-finality: `_daily_pick_revote_ok` = free caller + the pick of the
   current UTC±1 day + a vote OLDER than the pick day's earliest possible
-  start anywhere (publish_date UTC − 14h). Inside the window
+  start anywhere (publish_date UTC − 14h) + `now()` already PAST that same
+  instant (20260820210000 — without it the window reopened for ten hours a
+  day on a pick dated UTC tomorrow, because the closing write stamped a
+  `voted_at` that was still below its own threshold). Inside the window
   `get_daily_vote_state` returns `my_choice` NULL (shipped clients show the
   buttons on their own) and `cast_daily_vote` UPDATEs choice + voted_at —
   which closes the window, so one flip per pick ever; the streak counts the

@@ -157,8 +157,32 @@ final furthestIndexProvider = NotifierProvider<FurthestIndexNotifier, int>(
 /// loop); backward is clamped at the daily, so a right swipe steps back
 /// through what was already on screen and stops at index 0.
 class QuestionDeckNotifier extends Notifier<int> {
+  /// The question the reader must land back on once the deck rebuilds under
+  /// them — see [keepReaderOn]. Null whenever nothing is pending.
+  String? _anchorId;
+
   @override
-  int build() => 0;
+  int build() {
+    // Restoring by ID rather than by index is what makes "leave the reader
+    // where they were" exact: the midnight rollover swaps index 0 for a
+    // different question, which pushes yesterday's daily back into the tail
+    // and shifts everything past it by one.
+    //
+    // An empty deck IS the rebuild in progress, not its result, so the anchor
+    // waits it out; any other deck consumes it, so a question that has since
+    // left the catalog can't leave it armed to hijack the next rebuild (a
+    // premium flip, an identity switch).
+    ref.listen(questionDeckProvider, (_, deck) {
+      final anchorId = _anchorId;
+      if (anchorId == null || deck.isEmpty) return;
+      _anchorId = null;
+      final at = deck.indexWhere((q) => q.id == anchorId);
+      if (at < 0) return;
+      state = at;
+      ref.read(furthestIndexProvider.notifier).bump(at);
+    });
+    return 0;
+  }
 
   // read, NOT watch: this is a one-off length lookup inside an action. Watching
   // here would subscribe the index notifier to the deck, so a pool refetch
@@ -196,6 +220,11 @@ class QuestionDeckNotifier extends Notifier<int> {
     state = min(furthest, length - 1);
   }
 
+  /// Keeps the reader on [questionId] across a rebuild of the deck, instead of
+  /// wherever its index happens to point afterwards. Applied as soon as the
+  /// rebuilt deck contains that question; a no-op if it never comes back.
+  void keepReaderOn(String questionId) => _anchorId = questionId;
+
   /// DEV tools only: shows the question at [index], clamped to the deck.
   void jumpTo(int index) {
     final length = _length;
@@ -224,7 +253,11 @@ final todaysDailyQuestionProvider = FutureProvider<Question?>((ref) async {
   // placeholder-identity fetch and reloading the moment the session resolves.
   if (ref.watch(sessionProvider.select((s) => s.isLoading))) return null;
   final repo = ref.watch(questionRepositoryProvider);
-  return repo.fetchDailyQuestion(DateTime.now());
+  // clock.now(), not DateTime.now(): identical in production, but it is what
+  // lets a test move the local date — and it is the same clock
+  // [dailyFetchDayProvider] stamps the result with, so the fetched date and
+  // the day it is filed under can never disagree.
+  return repo.fetchDailyQuestion(clock.now());
 });
 
 /// How long a question counts as "new" after being added to the catalog.
@@ -553,12 +586,33 @@ final dailyFetchDayProvider = Provider<String>((ref) {
 ///
 /// Invalidating [todaysDailyQuestionProvider] re-draws the daily for the new
 /// date (the server assigns per LOCAL date), drops the stale vote snapshots,
-/// and — via the notifier's watch — hides the day wall; the index snaps back
-/// so every tier opens the new day on its daily.
+/// and — via the notifier's watch — hides the day wall. Whoever was ON the
+/// daily opens the new day on it; whoever was reading the catalog stays on
+/// their own question (re-anchored by id, since the swap at index 0 shifts the
+/// deck) and is offered the new daily by the jump link rather than moved.
 void maybeRolloverDaily(WidgetRef ref) {
   if (ref.read(dailyFetchDayProvider) == dateOnlyKey(clock.now())) return;
+  // A reader who is off in the catalog when the clock turns over (PRO — a free
+  // deck is only ever the daily) did not ask to be moved. The new daily is
+  // ADVERTISED to them instead, by the "Pytanie dnia" jump link that is already
+  // beside them whenever they are away from index 0 (see
+  // [canJumpToDailyProvider]) — a better deal than being dragged out of
+  // whatever they were reading at midnight with no way back, since the reset
+  // below also empties the "back to the latest" jump.
+  final anchor = ref.read(isShowingDailyProvider)
+      ? null
+      : ref.read(currentQuestionProvider);
   ref.invalidate(todaysDailyQuestionProvider);
   ref.invalidate(dailyVoteStateProvider);
+  if (anchor != null) {
+    // The pool is deliberately NOT refetched for them: every question visited
+    // this session comes back marked seen, so a refetch reshuffles the deck
+    // into an order the reader never walked — which is exactly what makes a
+    // retained index (and the furthest one behind it) meaningless. They get
+    // the new catalog on the next launch.
+    ref.read(questionIndexProvider.notifier).keepReaderOn(anchor.id);
+    return;
+  }
   ref.invalidate(questionsProvider);
   ref.read(questionIndexProvider.notifier).toDaily();
   ref.read(furthestIndexProvider.notifier).reset();

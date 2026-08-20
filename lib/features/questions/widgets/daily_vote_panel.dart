@@ -165,8 +165,18 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
 
       // Activation, the step the onboarding funnel drives toward, is a vote on
       // the served daily; feed votes get their own event.
+      //
+      // `question_id` rides along because every way the global daily degrades —
+      // a deactivated pick, a gap in `daily_picks`, the calendar running out,
+      // `compact_daily_picks()` not running — fails the same silent way: the
+      // personal fallback draw serves a perfectly good question, HTTP 200, no
+      // error anywhere. The only symptom is that the daily stops being the SAME
+      // question for everyone, which is invisible unless the event says WHICH
+      // question was voted on. With this field a `daily_vote_cast` day that
+      // spreads across many distinct ids is the alarm.
       Analytics.log(widget.isDaily ? 'daily_vote_cast' : 'question_vote_cast', {
         'choice': choiceLabel,
+        'question_id': widget.questionId,
       });
 
       // The argument comes BEFORE the percentages: the split stops being a fact

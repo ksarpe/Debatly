@@ -6,7 +6,7 @@ priorytetem P0 możesz powiedzieć „okej, działa" — bez zgadywania.
 
 Testy automatyczne (`flutter test`, 68 plików) pokrywają logikę i widgety,
 a `integration_test/app_smoke_test.dart` przechodzi całą apkę end-to-end na
-mockowych danych (osiem pozycji z tej listy — oznaczone 🤖).
+mockowych danych (dziewięć pozycji z tej listy — oznaczone 🤖).
 Ta lista celowo pokrywa to, czego one **nie** dotykają: prawdziwe SDK (Supabase,
 RevenueCat, Google/Apple Sign-In), OS (powiadomienia, deep linki, share sheet,
 sklep), zimne starty, reinstalacje i realne dane.
@@ -48,6 +48,9 @@ Bez tego połowa testów jest bezwartościowa:
       konta, reset hasła).
 - [ ] Dostęp do Sentry i do tabeli `app_events` w Supabase.
 - [ ] Zanotuj wersję i numer builda — wchodzą do raportu na końcu pliku.
+- [ ] Sprawdź, że bramka aktualizacji nie stoi wyżej niż wypuszczana wersja
+      (`app_update_gate.min_version`, normalnie `0.0.0`) — inaczej świeży
+      release zablokuje sam siebie. Mogę to sprawdzić za Ciebie.
 
 > **Pułapka doby:** część testów (ściana dnia, paywall raz na dobę) zależy od
 > **lokalnej północy**, a streak od **doby UTC**. To są dwa różne zegary, celowo.
@@ -108,6 +111,48 @@ Bez tego połowa testów jest bezwartościowa:
 > Ten test najczęściej wyłapuje katastrofy (nadpisane UUID, wyczyszczone
 > preferencje, zmieniony klucz cache'a). Nie zastępuj go świeżą instalką.
 
+### A6 · Blokada starej wersji (force update) — **P1** ⚙️
+Od v2.1.0 apka pyta serwer o `app_update_gate.min_version` dla swojej platformy
+i przy starszej wersji pokazuje blokujący ekran zamiast feedu. To jedyny kill
+switch, jaki mamy — żaden sklep nie daje prawdziwego zdalnego wyłącznika.
+
+> **Uwaga na prod:** podniesienie `min_version` blokuje **wszystkich** userów tej
+> platformy poniżej tej wartości, natychmiast. Do testu użyj wartości, poniżej
+> której nie ma żadnego wypuszczonego builda: bramka istnieje dopiero od 2.1.0,
+> więc `1.0.1` nie dotyka nikogo w terenie, a zablokuje lokalny build, któremu
+> ustawisz w `pubspec.yaml` `version: 1.0.0`. **Nigdy** nie testuj wartością
+> z okolic realnej wersji.
+
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Zanim cokolwiek ruszysz: sprawdź obecny stan (ja mogę) | `select platform, min_version from app_update_gate` — normalnie `0.0.0` na obu, czyli bramka wyłączona |
+| 2 | Zbuduj lokalnie apkę z `version: 1.0.0` w `pubspec.yaml` i zainstaluj na telefonie | Apka startuje normalnie (bramka jeszcze śpi) |
+| 3 | Ustaw `min_version = '1.0.1'` dla swojej platformy | — |
+| 4 | Ubij apkę i odpal ponownie | Zamiast feedu: ekran „CZAS NA AKTUALIZACJĘ" z jednym przyciskiem „ZAKTUALIZUJ" |
+| 5 | Spróbuj obejść ekran | Brak „później", brak zamknięcia — to celowo ślepy zaułek. Systemowy wstecz **wychodzi z apki** (nie jest pułapką) |
+| 6 | Tapnij „ZAKTUALIZUJ" | Otwiera się **karta Debatly** we właściwym sklepie (Play na Androidzie, App Store na iOS), a nie strona www i nie cudza apka |
+| 7 | Przywróć `min_version = '0.0.0'`, ubij apkę i odpal | Feed wraca — bez reinstalacji |
+| 8 | Przywróć `version:` w `pubspec.yaml` | Nie zacommituj testowej wersji |
+
+### A7 · Bramka aktualizacji musi zawodzić „na otwarto" — **P1** ⚙️
+Wpis w jednej tabeli potrafi zamurować apkę wszystkim naraz, więc każda
+niepewność ma przepuszczać użytkownika dalej. To jest ważniejsze niż sama
+blokada.
+
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Z podniesioną bramką (A6 krok 3) włącz tryb samolotowy i odpal apkę | Apka **działa** — nie da się zablokować użytkownika brakiem sieci |
+| 2 | Wpisz do `min_version` śmieć, np. `dwa.jeden.zero`, i odpal apkę | Apka **działa** — literówka w jednym polu nie może zabić instalacji w terenie |
+| 3 | Ustaw `min_version` dokładnie na wersję zainstalowanego builda | Apka **działa** — blokuje tylko wersja *niższa*, nie równa |
+| 4 | Posprzątaj: `0.0.0` na obu platformach | `select` pokazuje `0.0.0` |
+
+> **Procedura właściciela przy releasie:** `min_version` podnosi się dopiero,
+> gdy nowy build jest **żywy w obu sklepach** (rollout etapowy się liczy —
+> zablokowany user musi mieć co pobrać). Wiersze są per platforma właśnie
+> dlatego, że App Review i Play rzadko kończą tego samego dnia. Przed każdym
+> releasem sprawdź, czy bramka nie stoi wyżej niż wersja, którą właśnie
+> wypuszczasz.
+
 ---
 
 ## B. Pytanie dnia, głosowanie i kontra (smaczek)
@@ -129,6 +174,9 @@ Bez tego połowa testów jest bezwartościowa:
 | 1 | Po B1 ubij apkę i odpal ponownie | Pytanie dnia pokazuje się **już zagłosowane**, z Twoim wyborem |
 | 2 | Spróbuj tapnąć drugi kafel | Nic się nie zmienia |
 | 3 | Cofnij datę w telefonie i wróć do pytania | Nadal pierwotny wybór — nie da się przegłosować |
+
+> Jeden zamierzony wyjątek: darmowe konto ze **starym** głosem na dzisiejszym
+> wspólnym pytaniu dnia dostaje jednorazowe ponowne głosowanie — patrz `B11`.
 
 ### B3 · „TO MNIE RUSZYŁO" nie zmienia głosu — **P0** ⚙️
 | # | Krok | Oczekiwany efekt |
@@ -163,6 +211,71 @@ Bez tego połowa testów jest bezwartościowa:
 | # | Krok | Oczekiwany efekt |
 |---|---|---|
 | 1 | Zagłosuj na pytaniu bez pasującego smaczka | Bramka **nie** pojawia się wcale, słupki od razu — bez pustego ekranu i bez zawieszki |
+
+### B8 · Wspólne pytanie dnia — to samo u wszystkich — **P0** ⚙️
+Od 2026-08-21 pytanie dnia jest **globalne** (tabela `daily_picks`), a nie losowane
+osobno dla każdego. To jest cały sens „jednego pytania, o które kłóci się świat".
+
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Tego samego dnia otwórz apkę na dwóch urządzeniach / dwóch kontach (FREE i PRO) | **To samo pytanie dnia** na obu, z pigułką „PYTANIE DNIA" |
+| 2 | Sprawdź, czy pigułka w ogóle jest | Karta pytania dnia nosi pigułkę; zwykłe pytanie z katalogu jej nie ma |
+| 3 | Sprawdź następnego dnia | Pytanie się zmieniło — u obu na to samo nowe |
+| 4 | (opcjonalnie, ja mogę) Sprawdź w bazie, czy jest pick na dziś | `select * from daily_picks where publish_date = (now() at time zone 'utc')::date` — jedna linia; brak = wszyscy dostają dobór osobisty |
+
+> Jeśli na dany dzień **nie ma** picku (albo pytanie picku zostało dezaktywowane),
+> nie jest to crash: apka po cichu wraca do doboru osobistego. Widać to tylko po
+> tym, że dwa urządzenia pokazują różne pytania.
+
+### B9 · PRO: powrót do pytania dnia — **P0** 🤖🧑
+**Pokryte smoke testem** (`flutter test integration_test/app_smoke_test.dart`) — ręcznie tylko wygląd linku i gest.
+
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Jako PRO stań na pytaniu dnia | Pigułka „PYTANIE DNIA" na karcie; **brak** linku powrotu (już tu jesteś) |
+| 2 | Przesuń w przód do katalogu | Pigułka znika, na dole feedu pojawia się link „PYTANIE DNIA" ze strzałką w lewo |
+| 3 | Odjedź jeszcze kilka pytań dalej | Link nadal jest (obok „Wróć do najnowszego pytania", jeśli cofałeś się w decku) |
+| 4 | Tapnij link | Ląduje **na pytaniu dnia**, pigułka wraca, link znika |
+| 5 | Jeśli jeszcze nie głosowałeś na dzisiejsze | Widać kafle TAK/NIE — da się zagłosować stamtąd |
+| 6 | Jako FREE | Linku **nigdy** nie ma — darmowy deck to samo pytanie dnia |
+
+### B10 · PRO, który już głosował na dzisiejszy pick — **P1** ⚙️
+Zasada: dla PRO pick wygrywa zawsze, a „już zagłosowane" znaczy tylko **słupki
+zamiast kafli**. PRO nie dostaje ponownego głosowania (ma cały katalog, więc
+byłoby bez sensu i otwierałoby furtkę do przestawiania wyniku).
+
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Jako PRO zagłosuj na dzisiejszym pytaniu dnia | Bramka kontry, potem słupki |
+| 2 | Odjedź w katalog i wróć linkiem z B9 | Pytanie dnia pokazuje **słupki z Twoim głosem**, bez kafli TAK/NIE |
+| 3 | Ubij apkę i wejdź ponownie | To samo — nadal dzisiejszy pick, nadal słupki (nie podmienia pytania na losowe) |
+
+### B11 · FREE: jednorazowe ponowne głosowanie na stary głos — **P1** ⚙️
+Najbardziej pokręcona z nowych reguł. Serwer oddaje kafle z powrotem **tylko** gdy
+naraz: (a) konto jest **darmowe**, (b) pytanie jest dzisiejszym pickiem, (c) Twój
+głos na nim jest **stary** — sprzed dnia publikacji picku (dokładnie: sprzed
+`publish_date` − 14 h, czyli sprzed początku tej doby w najwcześniejszej strefie
+na Ziemi). Typowy przypadek: głosowałeś na to pytanie z katalogu, gdy miałeś PRO,
+PRO wygasło, a dziś to pytanie jest pickiem.
+
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Przygotuj konto FREE ze **starym** głosem na pytaniu, które jest dziś pickiem (ja mogę ustawić to w bazie) | — |
+| 2 | Otwórz apkę | Pytanie dnia = ten pick, i widać **kafle TAK/NIE**, a nie martwe słupki |
+| 3 | Zagłosuj (może być inna strona niż poprzednio) | Bramka kontry → słupki; wynik uwzględnia zmianę strony |
+| 4 | Sprawdź streak | Podbił się — ponowny głos na dzisiejszy pick liczy się jako dzisiejsze zaangażowanie |
+| 5 | Ubij apkę i wejdź ponownie | **Słupki**, nie kafle — okno jest jednorazowe i samo się zamknęło |
+| 6 | Spróbuj jutro na tym samym pytaniu | Żadnego kolejnego ponownego głosowania |
+
+> **To jedyny wyjątek od „głos jest ostateczny" (B2).** Wszędzie indziej ponowny
+> głos nic nie zapisuje. Jeśli kiedykolwiek zobaczysz kafle na pytaniu, na które
+> głosowałeś **dzisiaj** — to jest błąd, zgłoś.
+
+### B12 · FREE ze świeżym głosem na picku — **P2** ⚙️
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Jako FREE zagłosuj na dzisiejszym picku, potem ubij apkę i wejdź ponownie | Pytanie dnia to nadal ten pick, ze słupkami — nie podmienia się na inne |
+| 2 | Konto FREE, które ma świeży głos na picku z **wczoraj** (a dziś jest nowy pick) | Dziś dostaje normalnie dzisiejszy pick |
 
 ---
 
@@ -649,7 +762,7 @@ Bez tego połowa testów jest bezwartościowa:
 
 Gdy release jest mały i chcesz jednego przebiegu:
 
-`A5` → `A2` → `B1` → `B2` → `C1` → `C2` → `E3` → `E7` → `F1` → `D5` →
+`A5` → `A2` → `B1` → `B2` → `B8` → `C1` → `C2` → `E3` → `E7` → `F1` → `D5` →
 `H3` → `K1` → `K2` → `J1` → `M5`
 
 Jeśli którykolwiek padnie — **nie wypuszczaj**.
@@ -666,20 +779,23 @@ systemowego dialogu, zostaje przy Tobie.
 | Co | Czym | Które testy zdejmuje |
 |---|---|---|
 | Bramki jakości kodu | `dart format .`, `flutter analyze --fatal-infos --fatal-warnings`, `flutter test` | Wszystkie regresje logiki (68 plików testów) |
-| Smoke integracyjny (5 przebiegów) | `flutter test integration_test/app_smoke_test.dart -d <device>` | `A2`, `B1`, `B3`, `B5`, `C1`, `C2`, `C3`, `E7` — reguły ściany dnia i paywalla, blokada panelu smaczków, bramka kontry, wylogowanie |
+| Smoke integracyjny (6 przebiegów) | `flutter test integration_test/app_smoke_test.dart -d <device>` | `A2`, `B1`, `B3`, `B5`, `B9`, `C1`, `C2`, `C3`, `E7` — bramka kontry, blokada panelu smaczków, ściana dnia i reguły paywalla, pigułka + powrót do pytania dnia dla PRO, wylogowanie |
 | Parytet tłumaczeń | Porównanie kluczy `app_en.arb` ↔ `app_pl.arb` + szukanie hardkodowanych stringów w widgetach | Dużą część `K1` (zostaje Ci przegląd wizualny) |
 | Weryfikacja danych po Twojej sesji | Supabase MCP: `app_events`, wiersze głosów, `question_suggestions`, `get_debate_profile` | `M3` + weryfikacje w `B1`, `B2`, `K3`, `G1` |
 | Reguła „głos jest ostateczny" po stronie serwera | Dwa wywołania `cast_daily_vote` przez SQL i porównanie zwróconego `my_choice` | `B2` (warstwa backendu) |
 | Wszystkie testy stron www | Przeglądarka: 200/404, treść, `noindex`, brak zewnętrznych requestów, hreflang, sitemapa | `N1`, `N2`, `N3`, `F3`, `M5` |
 | Zdrowie backendu | Supabase MCP `get_advisors` (RLS, indeksy), przegląd logów | Profilaktyka przed `M2` |
+| Stan bramki aktualizacji | Odczyt `app_update_gate` — i podniesienie / przywrócenie `min_version` na Twoje polecenie | `A6` krok 1, 3, 7 i `A7` krok 4 — zostaje Ci sam telefon |
+| Kondycja kalendarza pytań dnia | SQL po `daily_picks`: czy jest pick na dziś, czy nie ma dziur w datach, czy żaden pick nie wskazuje na nieaktywne pytanie | `B8` krok 4 — wykrywa dni, w których wspólne pytanie po cichu wraca do doboru osobistego |
 
 ### ⚙️ Mogę przygotować albo dopisać — klikasz Ty
 
 | Co mogę zrobić | Co zostaje Tobie |
 |---|---|
-| Dorzucić do smoke testu kolejne ścieżki (np. ekran historii, zmiana języka, ulubione) — dzisiejsze pięć przebiegów pokrywa `A2`, `B1`, `B3`, `B5`, `C1`–`C3`, `E7` | Uruchomienie na fizycznym telefonie (`-d <device-id>`) i ocena wyglądu — test sprawdza zachowanie, nie estetykę |
+| Dorzucić do smoke testu kolejne ścieżki (np. ekran historii, zmiana języka, ulubione) — dzisiejsze sześć przebiegów pokrywa `A2`, `B1`, `B3`, `B5`, `B9`, `C1`–`C3`, `E7` | Uruchomienie na fizycznym telefonie (`-d <device-id>`) i ocena wyglądu — test sprawdza zachowanie, nie estetykę |
 | Dopisać golden testy motywu jasnego/ciemnego dla kart share, paywalla i bramki kontry | Wizualna ocena na realnym ekranie (`K2`, `I3`) |
 | Ustawić konto testowe w stan „5 głosów, 5 bramek" przez SQL, żebyś nie klikał 6 razy | Odblokowanie profilu i ocena treści (`H5`) |
+| Postarzyć głos konta FREE na dzisiejszym picku (`question_votes.voted_at`), żeby otworzyć okno ponownego głosowania bez czekania na wygaśnięcie PRO | Sam przebieg na telefonie (`B11`) |
 | Wyzerować streak, głosy albo status potwierdzenia maila w bazie przed testem | Sam test na telefonie |
 | Dodać workflow CI z emulatorem Androida pod smoke test | Decyzja, czy chcesz płacić za emulator w CI |
 
@@ -700,7 +816,7 @@ systemowego dialogu, zostaje przy Tobie.
 
 ### Jak mnie wywołać
 
-- „przelec bramki jakości i smoke integracyjny" → wiersze 1–2 z tabeli 🤖 (zdejmuje 8 pozycji z listy)
+- „przelec bramki jakości i smoke integracyjny" → wiersze 1–2 z tabeli 🤖 (zdejmuje 9 pozycji z listy)
 - „sprawdź strony www z checklisty" → `N1`–`N3`, `F3`, `M5`
 - „zweryfikuj w bazie, co zapisała moja sesja testowa" → `M3` + weryfikacje danych
 - „ustaw mi konto X na 5 głosów i 5 bramek" → przygotowanie pod `H5`

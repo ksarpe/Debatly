@@ -76,6 +76,35 @@ class QuestionCache {
     return (question: question, date: date);
   }
 
+  /// The best cached daily stored under a DIFFERENT language than [locale],
+  /// preferring the one scheduled for [date]. Null when no other locale has one.
+  ///
+  /// The last rung of the offline ladder, and the one that keeps the app from
+  /// emptying out entirely: switching language offline points every read at a
+  /// key prefix nothing was ever written to, so the daily — which for a free
+  /// user IS the whole deck — had nothing to fall back on and threw, leaving a
+  /// retry screen where the app used to be. The question is the same question
+  /// in either language (the daily is global), so serving the copy the user
+  /// was reading a minute ago costs them the translation and nothing else.
+  Question? readDailyFromOtherLocale(String locale, String date) {
+    final others = [
+      for (final l in kSupportedLocales)
+        if (l.languageCode != locale) l.languageCode,
+    ];
+    // Today's question in the wrong language beats yesterday's in a third one,
+    // so every locale is tried for the exact date before any is asked for its
+    // latest.
+    for (final other in others) {
+      final exact = readDaily(other, date);
+      if (exact != null) return exact;
+    }
+    for (final other in others) {
+      final latest = readLatestDaily(other);
+      if (latest != null) return latest.question;
+    }
+    return null;
+  }
+
   Future<void> writeDaily(String locale, String date, Question question) =>
       _writeMap(_dailyPrefix + locale, {
         'date': date,

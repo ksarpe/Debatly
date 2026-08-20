@@ -377,8 +377,53 @@ Fresh-project setup:
 4. Deploy the edge functions in `supabase/functions/` (see below).
 5. Run the app with `--dart-define-from-file=env/dev.json`.
 
-No scheduling job is needed: each user's free question is drawn on first read of
-their local date and stored in `user_daily_questions`.
+The daily itself is the owner-curated `daily_picks` calendar; whatever wins —
+the pick or the personal fallback draw — is stored in `user_daily_questions` on
+first read of the user's local date. One scheduled job exists:
+`compact_daily_picks()` (nightly pg_cron, 02:47 UTC), which re-dates future
+picks whose question was deactivated.
+
+### Monitoring the global daily
+
+Every way the global daily degrades fails the *same silent way*: a dead pick, a
+gap in `daily_picks`, the calendar running out, the cron not running — each one
+falls back to the personal draw, which returns HTTP 200 with a perfectly good
+question. Nothing errors, so nothing reaches Sentry or the Supabase logs. The
+only symptom is spread: the daily quietly stops being the same question for
+everyone.
+
+One query, run on any day that should have a pick — `distinct_q` should be
+about 1:
+
+```sql
+select assigned_on, count(*) users, count(distinct question_id) distinct_q
+from user_daily_questions
+where assigned_on >= current_date - 1
+group by 1;
+```
+
+`daily_vote_cast` carries `question_id` in its properties for the same reason,
+so `app_events` can answer "what did the world actually debate today?" without
+joining. Check `cron.job_run_details` if the spread appears overnight — an
+empty table means the job has never run at all.
+
+Two daily failures are *not* fallbacks, and both now reach Sentry under the
+`feature:daily_question` tag:
+
+| What happened | Where it's reported | Payload |
+|---|---|---|
+| The fetch **threw** — no daily, the user gets the retry screen | `QuestionScreen` listens on `todaysDailyQuestionProvider` | the exception |
+| The fetch **returned nothing usable** — HTTP 200, no exception, empty feed | `SupabaseQuestionRepository.fetchDailyQuestion` | `reason` = `no_row` / `blank_text`, plus `has_session`, `locale`, `date`, `question_id` |
+
+The second one has no error object at all, which is why it is constructed at the
+point of failure rather than caught somewhere. `no_row` usually means the caller
+had no uid (a failed anonymous sign-in — Supabase rate-limits anon sign-ups per
+IP); `has_session` in the payload settles that without guessing. It also fires
+for a premium user whose catalog loaded fine and who therefore never sees a
+dead end — they just silently have no daily.
+
+Connectivity errors are dropped on the way out by `Monitoring`, so what lands
+under the tag is a backend failure, not a commute.
 
 ### Vocabulary traps
 

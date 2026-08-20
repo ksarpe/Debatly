@@ -30,14 +30,17 @@ void main() {
     inner = _FakeRepo();
   });
 
-  CachingQuestionRepository repo({bool premium = false, String? userId}) =>
-      CachingQuestionRepository(
-        inner: inner,
-        cache: cache,
-        locale: 'pl',
-        isPremium: premium,
-        userId: userId,
-      );
+  CachingQuestionRepository repo({
+    bool premium = false,
+    String? userId,
+    String locale = 'pl',
+  }) => CachingQuestionRepository(
+    inner: inner,
+    cache: cache,
+    locale: locale,
+    isPremium: premium,
+    userId: userId,
+  );
 
   Question q(String id) =>
       Question(id: id, category: id, questionText: 'Q $id?');
@@ -103,6 +106,26 @@ void main() {
       inner.error = const SocketException('offline');
       final result = await r.fetchDailyQuestion(DateTime(2026, 6, 24));
       expect(result?.id, 'd-mon');
+    },
+  );
+
+  test(
+    'daily crosses locales rather than leaving an offline reader with nothing',
+    () async {
+      inner.daily = q('d-tue');
+      await repo().fetchDailyQuestion(DateTime(2026, 6, 23)); // cached under pl
+
+      // The user switches the app to English on a train. Every cache key is
+      // locale-scoped, so nothing has ever been written under `en` — and the
+      // daily IS the whole free deck, so rethrowing here empties the app.
+      inner.error = const SocketException('offline');
+      final result = await repo(
+        locale: 'en',
+      ).fetchDailyQuestion(DateTime(2026, 6, 23));
+      expect(result?.id, 'd-tue');
+      // The Polish text is what we served — borrowed, not adopted: the English
+      // cache stays empty so the next successful fetch fills it properly.
+      expect(cache.readLatestDaily('en'), isNull);
     },
   );
 
