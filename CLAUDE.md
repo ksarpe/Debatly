@@ -27,11 +27,41 @@ surface.
 - **Scarcity is the product.** No rewarded ads, no reveal credits — a free
   user who wants more than the daily pays or comes back tomorrow. Do not
   reintroduce ad reveals.
+- **The daily is GLOBAL again (2026-08-20): `daily_picks`.** An owner-curated
+  calendar table — one question pinned per date (question UNIQUE — a question
+  is the daily at most once), written only via SQL editor/service_role.
+  Seeded 2026-08-21 → 2027-11-15 with 452 picks (every active question with
+  zero real votes + every one whose only votes were premium/tester accounts),
+  categories round-robined; the owner appends. **Deactivating a pick's
+  question is safe:** `compact_daily_picks()` (nightly pg_cron 02:47 UTC, or
+  run by hand) removes dead FUTURE picks and re-dates the survivors onto
+  consecutive days from tomorrow — past/today never move. **The pick outranks the caller's vote history**
+  (20260820170000): PRO always lands on it (voted = result bars; their feed
+  has the catalog anyway); FREE lands on it when unvoted OR inside the
+  **one-shot re-vote window** — the single sanctioned exception to
+  vote-finality: `_daily_pick_revote_ok` = free caller + the pick of the
+  current UTC±1 day + a vote OLDER than the pick day's earliest possible
+  start anywhere (publish_date UTC − 14h). Inside the window
+  `get_daily_vote_state` returns `my_choice` NULL (shipped clients show the
+  buttons on their own) and `cast_daily_vote` UPDATEs choice + voted_at —
+  which closes the window, so one flip per pick ever; the streak counts the
+  re-vote, the tally trigger handles the delta, a used smaczek gate is NOT
+  re-armed. A free caller with a FRESH vote on the pick (cast on its day)
+  gets the personal fallback draw — which since the same migration
+  **excludes future picks** (it used to burn the shared calendar one
+  user-day at a time). Gap date = personal draw for everyone; nothing
+  bricks. The winner still lands in `user_daily_questions`, so text gating,
+  peek/reveal exclusions and history are untouched. The daily card wears the
+  "PYTANIE DNIA" pill (`DailyQuestionBadge`, precedence over "NOWE"); PRO
+  away from index 0 gets a "Pytanie dnia" jump link beside "Wróć do
+  najnowszego" (`canJumpToDailyProvider` → `toDaily()`).
 - **The free deck is `[daily]`.** A forward swipe off it shows the day wall:
   blurred teaser of the next question (`peek_next_question` — a pure read,
-  first 4 words, consumes nothing), live countdown to LOCAL midnight and the
-  unlock CTA (the streak stays in the app-bar chip). Back swipe or system
-  back return to the daily — the wall intercepts back. Never a trap.
+  first 4 words, consumes nothing; since 2026-08-20 it teases TOMORROW'S
+  pick, falling back to a random unvoted question), live countdown to LOCAL
+  midnight and the unlock CTA (the streak stays in the app-bar chip). Back
+  swipe or system back return to the daily — the wall intercepts back. Never
+  a trap.
 - **Paywall-opening rules:** auto at most once per local day, on the first
   wall hit AFTER the daily vote; always on the wall/bridge unlock CTAs and on
   tapping a locked feature (star / the history screen's locked older-history
@@ -89,6 +119,17 @@ surface.
   flips its own internal flag *before* it restores the persisted session, so a
   second call returns instantly having restored nothing — and the app then
   mints a fresh anonymous UUID over the returning user's account.
+- **Force-update gate (v2.1.0+):** `app_update_gate` (platform → `min_version`,
+  '0.0.0' = off) + `get_min_supported_version` (granted to anon — runs at
+  launch, pre-session). HomeGate compares it against the pubspec version name
+  (SEMANTIC version, not the Codemagic build counter) and swaps the feed for
+  the blocking `UpdateRequiredScreen` (store button only). **FAIL-OPEN
+  everywhere** — no backend / RPC error / unparsable version = the app runs;
+  the gate is for retiring versions deliberately, never by accident. Raise the
+  bar only when the new build is live in BOTH stores:
+  `update app_update_gate set min_version='2.1.0', updated_at=now() where platform in ('android','ios');`
+  Builds older than v2.1.0 have no gate code and can never be forced — that is
+  why the daily/vote RPCs keep their old contracts working.
 - **Two clocks on purpose:** the daily rolls over at the user's *local*
   midnight (countdown + `DailyRolloverWatcher` handle it in-session); the
   streak counts *UTC* days. Don't "fix" one to match the other.
@@ -237,9 +278,9 @@ lib/
 supabase/
   schema.sql             Bootstrap only — the ORIGINAL base tables, not today's
                          shape (see the hard rule above)
-  migrations/schema/     71 files: tables, RPCs, views, RLS, grants (has DDL).
+  migrations/schema/     75 files: tables, RPCs, views, RLS, grants (has DDL).
                          The real schema; newest file wins per object
-  migrations/data/       32 files: question seeds + catalog edits (no DDL, 3× bigger)
+  migrations/data/       35 files: question seeds + catalog edits (no DDL, 3× bigger)
   functions/             Edge functions (Deno/TS): revenue-cat-webhook,
                          sync-entitlement, admob-ssv, send-auth-email,
                          delete-account

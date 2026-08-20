@@ -210,8 +210,10 @@ final questionIndexProvider = NotifierProvider<QuestionDeckNotifier, int>(
   QuestionDeckNotifier.new,
 );
 
-/// Today's PERSONAL daily question (drawn server-side for the user's local
-/// date from the questions they haven't voted on yet, stable for the day).
+/// Today's daily question: the SHARED `daily_picks` question for the user's
+/// local date — the one the whole community debates — with a personal unvoted
+/// draw as the server-side fallback (pick missing, inactive, or already voted
+/// by this user). Stable for the day and across devices.
 ///
 /// Captures "now" once when first read, so it does not refetch on every rebuild
 /// the way `dailyQuestionProvider(DateTime.now())` would (a fresh DateTime is a
@@ -462,7 +464,19 @@ final canJumpToLatestProvider = Provider<bool>((ref) {
   return index < furthest;
 });
 
-/// Whether the question currently on screen is today's free (personal) daily.
+/// True when the user is somewhere in the catalog away from the daily — i.e.
+/// a one-tap "question of the day" jump would land somewhere new. Only ever
+/// true for PRO: a free deck is `[daily]`, so its current question IS the
+/// daily whenever one resolved.
+final canJumpToDailyProvider = Provider<bool>((ref) {
+  final daily = ref.watch(todaysDailyQuestionProvider).asData?.value;
+  if (daily == null) return false;
+  if (ref.watch(questionDeckProvider).isEmpty) return false;
+  return !ref.watch(isShowingDailyProvider);
+});
+
+/// Whether the question currently on screen is today's daily (the shared
+/// `daily_picks` question, or the caller's personal fallback draw).
 ///
 /// True only when the visible question's id matches the served daily. The
 /// daily shares its id with its deck entry (both the mock list and the

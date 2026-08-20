@@ -1628,6 +1628,18 @@ abstract class AppLocalizations {
   /// **'Freshly added question — the community is just starting to vote.'**
   String get newQuestionTooltip;
 
+  /// Small pill badge shown above the shared daily question.
+  ///
+  /// In en, this message translates to:
+  /// **'Question of the day'**
+  String get dailyQuestionBadge;
+
+  /// No description provided for @dailyQuestionTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'The shared question of the day — the whole community is voting on it today.'**
+  String get dailyQuestionTooltip;
+
   /// No description provided for @voteYes.
   ///
   /// In en, this message translates to:
@@ -1657,6 +1669,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to the latest question'**
   String get backToLatestQuestion;
+
+  /// Bottom-of-feed link that jumps back to today's shared daily question (deck position 0).
+  ///
+  /// In en, this message translates to:
+  /// **'Question of the day'**
+  String get backToDailyQuestion;
+
+  /// Headline of the blocking force-update screen (build below app_update_gate.min_version).
+  ///
+  /// In en, this message translates to:
+  /// **'Time to update'**
+  String get updateRequiredTitle;
+
+  /// No description provided for @updateRequiredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This version of Debatly is too old to talk to the server. Grab the update and get back to voting.'**
+  String get updateRequiredBody;
+
+  /// No description provided for @updateRequiredCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get updateRequiredCta;
 
   /// No description provided for @proActiveTitle.
   ///

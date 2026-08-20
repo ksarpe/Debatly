@@ -944,6 +944,13 @@ class AppLocalizationsPl extends AppLocalizations {
       'Świeżo dodane pytanie — społeczność dopiero zaczyna głosować.';
 
   @override
+  String get dailyQuestionBadge => 'Pytanie dnia';
+
+  @override
+  String get dailyQuestionTooltip =>
+      'Wspólne pytanie dnia — dziś głosuje nad nim cała społeczność.';
+
+  @override
   String get voteYes => 'TAK';
 
   @override
@@ -957,6 +964,19 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get backToLatestQuestion => 'Wróć do najnowszego pytania';
+
+  @override
+  String get backToDailyQuestion => 'Pytanie dnia';
+
+  @override
+  String get updateRequiredTitle => 'Czas na aktualizację';
+
+  @override
+  String get updateRequiredBody =>
+      'Ta wersja Debatly jest już za stara, żeby rozmawiać z serwerem. Pobierz aktualizację i wracaj do głosowania.';
+
+  @override
+  String get updateRequiredCta => 'Zaktualizuj';
 
   @override
   String get proActiveTitle => 'PRO aktywne 🎉';

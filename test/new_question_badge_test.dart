@@ -19,18 +19,23 @@ import 'support/test_prefs.dart';
 ///   * an older question shows NO pill — the badge must stay meaningful;
 ///   * tapping the pill explains itself (the tooltip carries the "community is
 ///     just starting to vote" line — that explanation is the badge's job).
+///
+/// The fixture inspects a CATALOG question (deck index 1), not the daily: the
+/// daily wears its own "PYTANIE DNIA" identity pill, which takes precedence
+/// over "NOWE" (see QuestionBody).
 void main() {
   Future<void> pumpFeed(
     WidgetTester tester, {
     required Set<String> recentIds,
   }) async {
-    const daily = Question(id: 'd', category: 'X', questionText: 'Czy warto?');
+    const daily = Question(id: 'x', category: 'X', questionText: 'Czy tak?');
+    const fresh = Question(id: 'd', category: 'D', questionText: 'Czy warto?');
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(
           await mockSharedPreferences(),
         ),
-        questionsProvider.overrideWith((ref) async => [daily]),
+        questionsProvider.overrideWith((ref) async => [daily, fresh]),
         todaysDailyQuestionProvider.overrideWith((ref) async => daily),
         isPremiumProvider.overrideWithValue(true),
         deckShuffleSeedProvider.overrideWithValue(1),
@@ -48,6 +53,10 @@ void main() {
         child: const LocalizedTestApp(home: Scaffold(body: QuestionBody())),
       ),
     );
+    await tester.pumpAndSettle();
+
+    // Step off the daily onto the catalog question the assertions inspect.
+    container.read(questionIndexProvider.notifier).next();
     await tester.pumpAndSettle();
   }
 

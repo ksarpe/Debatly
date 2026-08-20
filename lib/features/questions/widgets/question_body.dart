@@ -16,6 +16,7 @@ import '../../monetization/widgets/day_wall_view.dart';
 import '../providers/challenge_providers.dart';
 import '../providers/question_providers.dart';
 import '../providers/swipe_hint_providers.dart';
+import 'daily_question_badge.dart';
 import 'daily_vote_panel.dart';
 import 'favorite_star_button.dart';
 import 'go_deeper_button.dart';
@@ -79,7 +80,7 @@ class QuestionBody extends ConsumerWidget {
     final isReadable = current != null && current.isLocked != true;
 
     // Whether the visible question is the served daily (deck position 0) —
-    // drives the analytics split in the vote panel.
+    // drives the "PYTANIE DNIA" pill and the analytics split in the vote panel.
     final isDaily = ref.watch(isShowingDailyProvider);
 
     // Whether the user has ever swiped forward. Until they have, a gentle
@@ -151,7 +152,11 @@ class QuestionBody extends ConsumerWidget {
     // link: a back swipe already steps backwards.)
     final showHintAndDeeper = hasRows;
     final showJumpToLatest = ref.watch(canJumpToLatestProvider);
-    final showOverlay = showHintAndDeeper || showJumpToLatest;
+    // The mirror jump: a PRO user somewhere in the catalog gets a one-tap way
+    // back to the shared question of the day (the deck keeps it at index 0).
+    final showJumpToDaily = ref.watch(canJumpToDailyProvider);
+    final showOverlay =
+        showHintAndDeeper || showJumpToLatest || showJumpToDaily;
 
     // The smaczki sheet is VOTE-GATED, for both tiers: a counter-argument read
     // before taking a side is just information without a target, and a vote
@@ -260,6 +265,7 @@ class QuestionBody extends ConsumerWidget {
                     _BottomOverlay(
                       showHintAndDeeper: showHintAndDeeper,
                       showJumpToLatest: showJumpToLatest,
+                      showJumpToDaily: showJumpToDaily,
                       questionId: hasRows ? questionId : null,
                       questionText: hasRows ? current.questionText : null,
                       goDeeperLabel: goDeeperLabel,
@@ -280,6 +286,8 @@ class QuestionBody extends ConsumerWidget {
                             },
                       onJumpToLatest: () =>
                           ref.read(questionIndexProvider.notifier).toLatest(),
+                      onJumpToDaily: () =>
+                          ref.read(questionIndexProvider.notifier).toDaily(),
                     )
                   else
                     SizedBox(height: bottomInset + 24),
@@ -345,14 +353,24 @@ class _CentredGroup extends StatelessWidget {
             // The question flexes against a bounded box (it shrinks its
             // font to fit), so the floor keeps that box bounded once the
             // viewport itself is too small.
-            minContentHeight: _minGroupHeight(context, withRows: hasRows),
+            minContentHeight: _minGroupHeight(
+              context,
+              withRows: hasRows,
+              withBadge: isDaily || showNewBadge,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // "NOWE" sits above the question, not inside the wind
-                // canvas, so the falling-words animation stays untouched
-                // — the pill just appears with the question it labels.
-                if (showNewBadge) ...[
+                // The pills sit above the question, not inside the wind
+                // canvas, so the falling-words animation stays untouched —
+                // they just appear with the question they label. The daily
+                // wears its identity pill; "NOWE" yields to it on the rare
+                // day the shared pick is also freshly added (two pills would
+                // shove the question down for no extra information).
+                if (isDaily) ...[
+                  const DailyQuestionBadge(),
+                  const SizedBox(height: 16),
+                ] else if (showNewBadge) ...[
                   const NewQuestionBadge(),
                   const SizedBox(height: 16),
                 ],
@@ -395,14 +413,23 @@ class _CentredGroup extends StatelessWidget {
 /// hands the group this much height anyway and scrolls (see [FitOrScroll]) —
 /// which is strictly better than letting the [Column] overflow, because
 /// overflowed children are painted where nothing hit-tests them.
-double _minGroupHeight(BuildContext context, {required bool withRows}) {
+double _minGroupHeight(
+  BuildContext context, {
+  required bool withRows,
+  required bool withBadge,
+}) {
   final question = _minQuestionHeight(context);
-  if (!withRows) return question;
+  // A pill above the question ("PYTANIE DNIA" / "NOWE") is group height too —
+  // the daily wears one on EVERY free session, so leaving it out of the floor
+  // would under-report on exactly the card most users see first.
+  final badge = withBadge ? questionBadgeMaxHeight(context) + 16 : 0;
+  if (!withRows) return question + badge;
   // Everything the panel can put UNDER the vote row counts too — the flip line
   // arrived in v2 below `voteRowMaxHeight` without either measurement being
   // told about it, which is exactly the kind of silent under-report this floor
   // exists to prevent.
   return question +
+      badge +
       28 +
       voteRowMaxHeight(context) +
       votePanelExtrasMaxHeight(context);
@@ -411,25 +438,28 @@ double _minGroupHeight(BuildContext context, {required bool withRows}) {
 /// The strip at the foot of the feed: on a readable question the swipe hint and
 /// the full-width action bar — the glowing "go deeper" CTA (4/6 of the row)
 /// flanked by the share pill on the left and the favorite star on the right
-/// (1/6 each, same corner radius) — plus the borderless "back to the latest →"
-/// link (BOTH tiers),
-/// whenever back swipes have left the user behind the furthest question
-/// reached this session — the one-tap undo for a run of back swipes. (The
-/// mirror direction needs no link: a back swipe already steps backwards.)
+/// (1/6 each, same corner radius) — plus the borderless feed jumps: "back to
+/// the latest →" (BOTH tiers) whenever back swipes have left the user behind
+/// the furthest question reached this session, and "← pytanie dnia" whenever
+/// the visible question is not the daily (in practice PRO mid-catalog — a
+/// free deck is just the daily).
 class _BottomOverlay extends StatelessWidget {
   const _BottomOverlay({
     required this.showHintAndDeeper,
     required this.showJumpToLatest,
+    required this.showJumpToDaily,
     required this.questionId,
     required this.questionText,
     required this.goDeeperLabel,
     required this.goDeeperProminent,
     required this.onGoDeeper,
     required this.onJumpToLatest,
+    required this.onJumpToDaily,
   });
 
   final bool showHintAndDeeper;
   final bool showJumpToLatest;
+  final bool showJumpToDaily;
 
   /// Non-null exactly when the visible question is readable — the share pill
   /// needs its text, the star its id.
@@ -442,6 +472,7 @@ class _BottomOverlay extends StatelessWidget {
   final bool goDeeperProminent;
   final VoidCallback? onGoDeeper;
   final VoidCallback onJumpToLatest;
+  final VoidCallback onJumpToDaily;
 
   @override
   Widget build(BuildContext context) {
@@ -516,13 +547,31 @@ class _BottomOverlay extends StatelessWidget {
                   ),
                 ),
               ],
-              if (showJumpToLatest) ...[
+              if (showJumpToDaily || showJumpToLatest) ...[
                 if (showHintAndDeeper) const SizedBox(height: 12),
-                _FeedLinkButton(
-                  label: context.l10n.backToLatestQuestion,
-                  icon: Icons.arrow_forward,
-                  iconAfterLabel: true,
-                  onTap: onJumpToLatest,
+                // The two feed jumps share a row when both apply (mid-deck,
+                // behind the furthest question) — a Wrap so narrow phones at
+                // large text scales stack them instead of overflowing. The
+                // daily jump points back (index 0), the latest jump forward.
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  children: [
+                    if (showJumpToDaily)
+                      _FeedLinkButton(
+                        label: context.l10n.backToDailyQuestion,
+                        icon: Icons.arrow_back,
+                        iconAfterLabel: false,
+                        onTap: onJumpToDaily,
+                      ),
+                    if (showJumpToLatest)
+                      _FeedLinkButton(
+                        label: context.l10n.backToLatestQuestion,
+                        icon: Icons.arrow_forward,
+                        iconAfterLabel: true,
+                        onTap: onJumpToLatest,
+                      ),
+                  ],
                 ),
               ],
             ],

@@ -71,9 +71,21 @@ LEFTHOOK_EXCLUDE=analyze git commit ...      # skip just the analyzer
 ## Integration smoke test
 
 `integration_test/app_smoke_test.dart` boots the real app widget tree against the
-in-memory mock data (no SDK keys) and walks the core daily loop: it passes the
-splash, asserts the daily question renders, casts a TAK/NIE vote, and opens
-Settings. It's a fast guard that the launch path is wired together end to end.
+in-memory mock data (no SDK keys), as a returning FREE account, and walks the
+paths a human otherwise re-clicks on a phone after every release:
+
+- the daily loop — splash → daily → vote → contra gate → split → Settings;
+- the smaczki sheet's vote gate — before the vote the pill answers with the
+  "Najpierw zagłosuj" hook, after it the sheet opens;
+- the day wall — a forward swipe lands on it, the back swipe and the system back
+  gesture both leave it;
+- the wall's paywall rules — never automatically before the daily vote,
+  automatically on the first wall hit after it, and only once that local day;
+- sign-out — the settings hub falls back to its guest shape.
+
+The manual counterparts (with ids the test's header maps to) live in
+[TESTY_MANUALNE.md](TESTY_MANUALNE.md). It's a fast guard that the launch path
+and the freemium rules are wired together end to end.
 
 `flutter test` only scans `test/`, so this is **not** part of the normal suite or
 CI — run it on demand. It touches no platform channels, so it runs on the desktop

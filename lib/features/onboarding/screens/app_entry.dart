@@ -12,6 +12,8 @@ import '../../account/widgets/pending_registration_watcher.dart';
 import '../../account/widgets/save_pro_prompt.dart';
 import '../../questions/screens/question_screen.dart';
 import '../../questions/widgets/load_error.dart';
+import '../../update/providers/update_gate_providers.dart';
+import '../../update/screens/update_required_screen.dart';
 import '../providers/onboarding_providers.dart';
 import 'onboarding_screen.dart';
 import 'splash_screen.dart';
@@ -213,6 +215,15 @@ class _HomeGateState extends ConsumerState<HomeGate> {
         ref.invalidate(sessionProvider);
       }
     });
+
+    // The force-update gate outranks everything else on this screen: once the
+    // server says this build is below the supported minimum, nothing it would
+    // render can be trusted to still match the backend's logic. FAIL-OPEN —
+    // while the check is loading (or failed, or there is no backend) the app
+    // runs normally; only a resolved "too old" swaps the feed out.
+    if (ref.watch(updateRequiredProvider).value ?? false) {
+      return const UpdateRequiredScreen();
+    }
 
     // A CONFIGURED backend that never came up is NOT mock mode. Left to the
     // branches below, the feed would render on invented mock questions with a

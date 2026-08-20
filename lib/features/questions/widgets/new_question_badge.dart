@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
+import 'daily_question_badge.dart' show kQuestionBadgeMaxTextScale;
 
 /// The small "NOWE" pill worn by a question added within the freshness window
 /// (see `newQuestionIdsProvider`).
@@ -21,24 +22,29 @@ class NewQuestionBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: context.l10n.newQuestionTooltip,
-      // The explanation is the point — surface it on a plain tap, not only the
-      // long-press nobody discovers.
-      triggerMode: TooltipTriggerMode.tap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppTheme.spark.withValues(alpha: 0.16),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppTheme.spark.withValues(alpha: 0.45)),
-        ),
-        child: Text(
-          context.l10n.newQuestionBadge.toUpperCase(),
-          style: AppTypography.eyebrow(
-            fontSize: 11,
-            tracking: 0.14,
-          ).copyWith(color: context.colors.sparkInk),
+    // Clamped like every question pill (see [kQuestionBadgeMaxTextScale]), so
+    // the group floor in QuestionBody can budget one known pill height.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: kQuestionBadgeMaxTextScale,
+      child: Tooltip(
+        message: context.l10n.newQuestionTooltip,
+        // The explanation is the point — surface it on a plain tap, not only
+        // the long-press nobody discovers.
+        triggerMode: TooltipTriggerMode.tap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppTheme.spark.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AppTheme.spark.withValues(alpha: 0.45)),
+          ),
+          child: Text(
+            context.l10n.newQuestionBadge.toUpperCase(),
+            style: AppTypography.eyebrow(
+              fontSize: 11,
+              tracking: 0.14,
+            ).copyWith(color: context.colors.sparkInk),
+          ),
         ),
       ),
     );

@@ -428,6 +428,11 @@
     "description": "Small pill badge shown above a question added to the catalog within the last two weeks."
   },
   "newQuestionTooltip": "Freshly added question — the community is just starting to vote.",
+  "dailyQuestionBadge": "Question of the day",
+  "@dailyQuestionBadge": {
+    "description": "Small pill badge shown above the shared daily question."
+  },
+  "dailyQuestionTooltip": "The shared question of the day — the whole community is voting on it today.",
   "@newQuestionTooltip": {
     "description": "Tooltip shown when tapping the 'New' badge, explaining why the vote count may still be low."
   },
@@ -436,6 +441,16 @@
   "voteFailed": "Could not record your vote.",
   "noConnection": "No connection — try again in a moment.",
   "backToLatestQuestion": "Back to the latest question",
+  "backToDailyQuestion": "Question of the day",
+  "@backToDailyQuestion": {
+    "description": "Bottom-of-feed link that jumps back to today's shared daily question (deck position 0)."
+  },
+  "updateRequiredTitle": "Time to update",
+  "@updateRequiredTitle": {
+    "description": "Headline of the blocking force-update screen (build below app_update_gate.min_version)."
+  },
+  "updateRequiredBody": "This version of Debatly is too old to talk to the server. Grab the update and get back to voting.",
+  "updateRequiredCta": "Update",
   "proActiveTitle": "PRO active 🎉",
   "savePromptBody": "Your PRO is currently tied to a guest account. Create an account (email or Google) so you don't lose access after reinstalling or on another device — your progress will be kept.",
   "createAccount": "Create account",

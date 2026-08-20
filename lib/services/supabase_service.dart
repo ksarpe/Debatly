@@ -759,6 +759,33 @@ class SupabaseService {
     }
   }
 
+  /// The minimum supported app version for [platform] ('android' / 'ios'),
+  /// from the `app_update_gate` table — the force-update bar the owner raises
+  /// after a release settles in both stores.
+  ///
+  /// Null on every failure path (not initialised, RPC error, empty value):
+  /// the update gate FAILS OPEN, because locking users out over a network
+  /// blip would be worse than any stale build. Runs on the publishable key —
+  /// no session needed, the check fires at launch before sign-in.
+  static Future<String?> fetchMinSupportedVersion(String platform) async {
+    if (!_initialised) return null;
+    try {
+      final data = await client
+          .rpc('get_min_supported_version', params: {'p_platform': platform})
+          .timeout(const Duration(seconds: 8));
+      final value = (data as Object?)?.toString().trim();
+      if (value == null || value.isEmpty) return null;
+      return value;
+    } catch (e) {
+      debugPrint('SupabaseService.fetchMinSupportedVersion failed: $e');
+      Monitoring.addBreadcrumb(
+        'Update-gate check failed; letting the build run',
+        category: 'startup',
+      );
+      return null;
+    }
+  }
+
   /// Reconciles the STORE side of premium against RevenueCat for the current
   /// identity and returns the resulting EFFECTIVE `is_premium` — the same flag
   /// the server gate enforces, merging store subscriptions with promotional /

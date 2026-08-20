@@ -930,6 +930,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Freshly added question — the community is just starting to vote.';
 
   @override
+  String get dailyQuestionBadge => 'Question of the day';
+
+  @override
+  String get dailyQuestionTooltip =>
+      'The shared question of the day — the whole community is voting on it today.';
+
+  @override
   String get voteYes => 'YES';
 
   @override
@@ -943,6 +950,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backToLatestQuestion => 'Back to the latest question';
+
+  @override
+  String get backToDailyQuestion => 'Question of the day';
+
+  @override
+  String get updateRequiredTitle => 'Time to update';
+
+  @override
+  String get updateRequiredBody =>
+      'This version of Debatly is too old to talk to the server. Grab the update and get back to voting.';
+
+  @override
+  String get updateRequiredCta => 'Update';
 
   @override
   String get proActiveTitle => 'PRO active 🎉';

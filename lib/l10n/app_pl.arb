@@ -351,12 +351,20 @@
   "newQuestionBadge": "Nowe",
   "newQuestionTooltip": "Świeżo dodane pytanie — społeczność dopiero zaczyna głosować.",
 
+  "dailyQuestionBadge": "Pytanie dnia",
+  "dailyQuestionTooltip": "Wspólne pytanie dnia — dziś głosuje nad nim cała społeczność.",
+
   "voteYes": "TAK",
   "voteNo": "NIE",
   "voteFailed": "Nie udało się zagłosować.",
 
   "noConnection": "Brak połączenia — spróbuj ponownie za chwilę.",
   "backToLatestQuestion": "Wróć do najnowszego pytania",
+  "backToDailyQuestion": "Pytanie dnia",
+
+  "updateRequiredTitle": "Czas na aktualizację",
+  "updateRequiredBody": "Ta wersja Debatly jest już za stara, żeby rozmawiać z serwerem. Pobierz aktualizację i wracaj do głosowania.",
+  "updateRequiredCta": "Zaktualizuj",
 
   "proActiveTitle": "PRO aktywne 🎉",
   "savePromptBody": "Twoje PRO jest na razie przypisane do konta-gościa. Załóż konto (e-mail lub Google), aby nie stracić dostępu po reinstalacji albo na innym urządzeniu — Twój postęp zostanie zachowany.",
