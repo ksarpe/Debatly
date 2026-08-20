@@ -48,6 +48,29 @@ void main() {
     expect(find.text('ODBLOKUJ WSZYSTKIE'), findsOneWidget);
   });
 
+  testWidgets('the free path carries the visual weight, the paywall the quiet '
+      'outline', (tester) async {
+    await pumpBridge(tester, onContinue: () {});
+
+    final free = find.text('ODBIERZ DZISIEJSZE PYTANIE');
+    final paywall = find.text('ODBLOKUJ WSZYSTKIE');
+
+    // The outlined treatment belongs to the paywall, not the free path. These
+    // two were swapped once — with the analytics event names left behind on the
+    // strings, so `bridge_cta_primary` was being logged by the quiet button and
+    // every funnel built on the pair read backwards.
+    expect(
+      find.ancestor(of: paywall, matching: find.byType(OutlinedButton)),
+      findsOneWidget,
+    );
+    expect(
+      find.ancestor(of: free, matching: find.byType(OutlinedButton)),
+      findsNothing,
+    );
+    // And it is the one on top.
+    expect(tester.getCenter(free).dy, lessThan(tester.getCenter(paywall).dy));
+  });
+
   testWidgets('the primary CTA continues for free — no paywall anywhere', (
     tester,
   ) async {

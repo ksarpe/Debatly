@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart'
@@ -292,16 +294,24 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
       // The monthly plan comes preselected so the CTA is armed on open; a
       // lifetime buyer makes one extra tap. `paywall_plan_selected` still only
       // fires on real taps, so the analytics keep telling picks from defaults.
-      Package? monthly;
+      //
+      // Falling back to the first package matters more than it looks: without
+      // it, an offering with no monthly in it — a lifetime-only storefront, a
+      // partially-approved one, a region where the sub product is still in
+      // review — opened the paywall with NOTHING selected, which means a
+      // dimmed CTA that does nothing on tap. The list arrives sorted, so the
+      // first entry is the sane default.
+      Package? preselected;
       for (final package in packages) {
         if (package.packageType == PackageType.monthly) {
-          monthly = package;
+          preselected = package;
           break;
         }
       }
+      preselected ??= packages.isEmpty ? null : packages.first;
       setState(() {
         _packages = packages;
-        _selected ??= monthly;
+        _selected ??= preselected;
       });
       return;
     }
@@ -343,6 +353,14 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
         // (wall_reached → paywall_shown → purchase_completed); the richer
         // paywall_purchased above stays for continuity with older data.
         Analytics.log('purchase_completed', {'plan': package.packageType.name});
+      // Not a failure and not an abandonment — the purchase exists already.
+      // Kept out of paywall_purchase_failed so that rate stays a measure of
+      // payments that actually broke.
+      case PurchaseOutcome.alreadyOwned:
+        Analytics.log('paywall_purchase_already_owned', {
+          'source': widget.source.name,
+          'plan': package.packageType.name,
+        });
       case PurchaseOutcome.cancelled:
         Analytics.log('paywall_purchase_abandoned', {
           'source': widget.source.name,
@@ -363,6 +381,13 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
       case PurchaseOutcome.entitled:
       case PurchaseOutcome.pending:
         await _settleEntitled();
+      // The store has already sold them this, so the recovery is a restore —
+      // run it for them instead of leaving them to find the link. Through
+      // [_restore], which asks a guest first: restoring onto a fresh
+      // anonymous identity would move PRO off the account that holds it.
+      case PurchaseOutcome.alreadyOwned:
+        _setBusy(false);
+        await _restore(afterAlreadyOwned: true);
       // Their own decision — no toast, just give the surface back.
       case PurchaseOutcome.cancelled:
         _setBusy(false);
@@ -374,6 +399,14 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
     }
   }
 
+  /// True while [ProPaywallContent.onEntitled] is being handed the
+  /// entitlement. The owner pops the route from inside that call, so a SECOND
+  /// hand-off would pop the screen underneath it — reachable now that both a
+  /// purchase and the sign-in listener in [build] can start one, the
+  /// purchase's own session refresh being exactly the free→premium flip that
+  /// listener watches for.
+  bool _settling = false;
+
   /// Hands over to the owner and makes sure this surface is never left locked.
   ///
   /// The sheet pops on entitlement (we unmount, so the unlock is a no-op) —
@@ -383,14 +416,24 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
   /// spinning CTA with restore, sign-in and the legal links all disabled,
   /// recoverable only by killing the app — so the surface always unlocks.
   Future<void> _settleEntitled() async {
+    if (_settling) return;
+    _settling = true;
     await widget.onEntitled();
-    if (mounted) _setBusy(false);
+    if (!mounted) return;
+    // Still mounted = the reconcile failed (see above). Unlock the surface,
+    // and let a later attempt settle it.
+    _settling = false;
+    _setBusy(false);
   }
 
   /// Store-required restore path. Guests are first steered towards signing in
   /// (see [confirmGuestRestore]) because a store restore would TRANSFER the
   /// entitlement onto their fresh anonymous identity.
-  Future<void> _restore() async {
+  ///
+  /// [afterAlreadyOwned] marks the restore the buy path chains into when the
+  /// store refuses with "already purchased" — it only changes what an empty
+  /// restore says (see below).
+  Future<void> _restore({bool afterAlreadyOwned = false}) async {
     if (_busy) return;
     if (!await confirmGuestRestore(context, ref)) return;
     if (!mounted) return;
@@ -407,7 +450,15 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
         AppToast.success(context, context.l10n.purchaseRestoredCelebrate);
         await _settleEntitled();
       case RestoreOutcome.none:
-        AppToast.info(context, context.l10n.noPreviousPurchase);
+        // After an already-owned refusal, "no previous purchase found" flatly
+        // contradicts what the store just said: the purchase exists, it just
+        // isn't on this app user. Name the remedy that is actually left.
+        AppToast.info(
+          context,
+          afterAlreadyOwned
+              ? context.l10n.purchaseAlreadyOwned
+              : context.l10n.noPreviousPurchase,
+        );
         _setBusy(false);
       // Never "no previous purchase" for a store we never reached — that
       // reads as "your purchase is gone" to the one user most likely to be
@@ -437,6 +488,25 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
 
   @override
   Widget build(BuildContext context) {
+    // The entitlement can also land from OUTSIDE this surface: the footer's
+    // "Already have PRO? Sign in" hands off to the auth sheet, and a
+    // returning buyer's account brings PRO back with it. Nothing here used to
+    // watch for that — the sheet closed and left the user on a live paywall
+    // with the plan cards still armed and the CTA one tap away from charging
+    // them for what they had just recovered.
+    //
+    // On a RESOLVED free→premium flip only, the same rule the home gate uses:
+    // the launch resolution (loading→premium for someone who was already
+    // entitled when this opened) is not an entitlement ARRIVING, and must not
+    // be reported to the owner as one.
+    ref.listen(sessionProvider, (prev, next) {
+      final wasResolvedFree =
+          prev?.hasValue == true && prev!.value!.isPremium == false;
+      if (wasResolvedFree && next.value?.isPremium == true) {
+        unawaited(_settleEntitled());
+      }
+    });
+
     final colors = context.colors;
     // Shown to everyone the wall stops, not just guests. It used to be hidden
     // from account holders as pointless — but the wall no longer has a profile

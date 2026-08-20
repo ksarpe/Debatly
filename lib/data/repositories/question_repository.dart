@@ -72,8 +72,9 @@ abstract class QuestionRepository {
   /// on their existing vote row — the vote itself is never modified.
   ///
   /// [position] identifies the shown smaczek within the question (the server
-  /// resolves the row id from it), [dwellMs] is the time from the argument
-  /// landing to the tap (null when dismissed before it landed). First write
+  /// resolves the row id from it), [dwellMs] is the time the argument spent on
+  /// screen — gate opened to tap, so the words falling in count as the reading
+  /// they are (null when dismissed before it landed). First write
   /// wins server-side, so a retry can never double-count. Returns the fresh
   /// split including [VoteResult.flipPct].
   Future<VoteResult> recordSmaczekChallenge({
@@ -689,6 +690,12 @@ class SupabaseQuestionRepository implements QuestionRepository {
     // returns the fresh community split. Pass the device's local date so the
     // streak's "is this the daily" check honours the user's timezone (clamped to
     // UTC ±1 server-side).
+    //
+    // FIRST WRITE WINS server-side: a second cast on a question already voted
+    // writes nothing and comes back with the STORED choice in `my_choice` (the
+    // vote also decides which argument is readable, so it must not stay
+    // rewritable). Callers must trust the returned `myChoice` over the one they
+    // sent — see 20260820120000_vote_is_final_in_the_rpc.sql.
     final data = await _db
         .rpc(
           'cast_daily_vote',

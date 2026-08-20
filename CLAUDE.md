@@ -65,14 +65,30 @@ surface.
   or a new phone — the purchase for PRO (pitched AFTER the buy,
   `promptSaveProAccount`), the streak for free players
   (`maybePromptSecureStreak`). The register tab is open to everyone;
-  registering upgrades the anonymous user in place (same UUID).
+  registering upgrades the anonymous user in place (same UUID). **Account
+  DELETION is open to everyone too** — a guest holds votes, a streak and a
+  profile, which is exactly the personal data App Review 5.1.1(v) and Play
+  require an in-app way to erase, and `delete-account` works off the JWT. Do
+  not put the row back behind `hasAccount`.
 - **The 2025 reveal tier stays gone from the client** — no daily credits, no
   rewarded-ad reveals, no `revealedFeedProvider`, no AdMob/UMP. The server
   RPCs (`reveal_free_question`, `reveal_ad_question`, `admob-ssv`) are
   **still live for old app versions** — do not revoke or repurpose them.
   (`peek_next_question` is live again — the day wall uses it.)
-- **Mock mode is premium.** With no Supabase/RevenueCat keys the session
-  resolves `isPremium: true` so keyless dev and widget tests see the feed.
+- **Mock mode is premium — and only ever means "no keys".** With no
+  Supabase/RevenueCat keys the session resolves `isPremium: true` so keyless
+  dev and widget tests see the feed. A build that DOES ship credentials whose
+  `Supabase.initialize` failed must never fall back to mock: that gave real
+  users a fake app (invented questions, fabricated split, votes discarded,
+  nothing in Sentry). **Anything deciding "should I serve mock data?" branches
+  on `SupabaseInitStatus` / `supabaseInitProvider`, never on
+  `SupabaseService.isInitialised`** (which stays a legitimate "is the client
+  usable yet" check — four call sites read it for exactly that). `failed` is an
+  error state `HomeGate` renders with a retry. That retry re-awaits the
+  ORIGINAL init future and never starts a second one: `Supabase.initialize`
+  flips its own internal flag *before* it restores the persisted session, so a
+  second call returns instantly having restored nothing — and the app then
+  mints a fresh anonymous UUID over the returning user's account.
 - **Two clocks on purpose:** the daily rolls over at the user's *local*
   midnight (countdown + `DailyRolloverWatcher` handle it in-session); the
   streak counts *UTC* days. Don't "fix" one to match the other.
@@ -84,12 +100,19 @@ surface.
   "TO MNIE RUSZYŁO". Neither answer re-casts the vote (that used to drag every
   split toward 50/50): the outcome (`held`/`moved`/`dismissed` = system back)
   + dwell is recorded on the vote row via `record_smaczek_challenge`, which
-  never touches `choice`. Only then do the bars appear, plus — at ≥30 answered
+  never touches `choice`. `cast_daily_vote` is **first-write-wins** since
+  2026-08-20 (it used to upsert `choice`, which left the vote — and with it
+  the free argument it unlocks — rewritable straight from the anon key): a
+  repeat cast writes nothing and returns the STORED choice as `my_choice`, and
+  only a real insert advances the streak. Trust the returned `myChoice` over
+  the one you sent. Only then do the bars appear, plus — at ≥30 answered
   gates on the question (server-enforced, `flip_pct` is NULL below) — the
   "Kontra przewróciła X%" line (`moved/(held+moved)`, `dismissed` excluded).
-  Max 3 gates per session (cold start, reset after 30 min backgrounded —
-  `challengeSessionProvider`); gates 2–3 are compact (text whole, tile-shake
-  stays). Post-gate the bar label and the free sheet change (no repeat of the
+  Max 10 gates per session (cold start, reset after 30 min backgrounded —
+  `challengeSessionProvider`; was 3 until 2026-08-20 — the arguments are the
+  reason to stay in the feed, so the valve sits well past a normal session);
+  every gate after the first is compact (text whole, tile-shake stays).
+  Post-gate the bar label and the free sheet change (no repeat of the
   read argument — see `challengeRecordsProvider`). `get_question_smaczki`
   orders by relevance to the caller's own vote and the FREE row is the
   top-ranked one, not position 1 — and it is readable ONLY once the caller's
@@ -103,7 +126,13 @@ surface.
   visible but a tap shows the "Najpierw zagłosuj" toast instead of opening it
   (arguments read pre-vote would pollute the reflex the split measures).
   Never a trap: system back = `dismissed`, and no readable argument means no
-  gate (skips logged as `smaczek_challenge_skipped`).
+  gate (skips logged as `smaczek_challenge_skipped`). **A `dismissed` gate is
+  recorded but never counts as READ** (`ChallengeRecord.wasRead`): a back press
+  inside the first second must not spend the free tier's one readable argument,
+  so the sheet keeps its free row and the bottom bar keeps its pre-gate promise.
+  (Server-side the dismissal still claims the vote row's challenge slot
+  permanently — no client path can re-offer that gate, so a dismissed daily
+  still costs a day of profile progress. Open.)
 - **The debate profile is an extension of the conformity axis, not a screen.**
   Under the axis panel sits a 2×2 grid (conformity × resilience): FILAR /
   PŁYNIE Z PRĄDEM / SAMOTNY WILK / POSZUKIWACZ — all four names equal in
@@ -112,6 +141,11 @@ surface.
   with dwell ≥ the server minimum (1500 ms default; a faster "held" is stored
   as `skipped_fast` and excluded — but still bumps the question's
   `challenge_held_count`, so the under-question flip line is untouched).
+  **The dwell is measured from the gate OPENING, not from the last word
+  landing** — the falling words are ~1 s of reading on a median argument, and
+  charging that second to nobody filed honest fast readers as `skipped_fast`
+  with no way to discover the rule. The answers stay inert until the argument
+  lands, so the head start cannot be gamed.
   Boundaries are **server-side config** (`profile_config`: conformity 0.65 —
   deliberately NOT 50%, expected random-voter conformity is ~65% — resilience
   0.15), re-derived as population medians by `recompute_profile_boundaries()`
@@ -203,16 +237,16 @@ lib/
 supabase/
   schema.sql             Bootstrap only — the ORIGINAL base tables, not today's
                          shape (see the hard rule above)
-  migrations/schema/     68 files: tables, RPCs, views, RLS, grants (has DDL).
+  migrations/schema/     71 files: tables, RPCs, views, RLS, grants (has DDL).
                          The real schema; newest file wins per object
-  migrations/data/       33 files: question seeds + catalog edits (no DDL, 3× bigger)
+  migrations/data/       32 files: question seeds + catalog edits (no DDL, 3× bigger)
   functions/             Edge functions (Deno/TS): revenue-cat-webhook,
                          sync-entitlement, admob-ssv, send-auth-email,
                          delete-account
   backups/               Pre-edit row snapshots for data/ migrations — data, not code
 admin/                   Next.js admin panel (own package.json, own node_modules)
 tool/                    Python helper scripts (splash gen, regional pricing)
-test/                    47 widget/unit test files — all green on master
+test/                    63 top-level test files (68 incl. golden/ + support/)
 ```
 
 ## Running

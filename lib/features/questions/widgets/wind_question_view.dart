@@ -91,6 +91,18 @@ class WindQuestionViewState extends ConsumerState<WindQuestionView>
     }
   }
 
+  /// The same two moves, reached by a SEMANTIC scroll action rather than a
+  /// finger — see the [Semantics] wrapper in [build].
+  ///
+  /// A [GestureDetector] does expose scrollLeft/scrollRight for a horizontal
+  /// drag, but the framework services them by synthesising an
+  /// `onHorizontalDragUpdate` and never an end — and the commit lives entirely
+  /// in [handleDragEnd]. The OS accepted the gesture and the feed never moved,
+  /// which left a screen-reader user with no way at all to change question.
+  void advanceForward() => _advance(-1);
+
+  void advanceBack() => _advance(1);
+
   /// [direction] is the sign of the swipe: -1 leftward, +1 rightward.
   Future<void> _advance(int direction) async {
     if (_animating) return;
@@ -136,6 +148,9 @@ class WindQuestionViewState extends ConsumerState<WindQuestionView>
       await _animateOut(direction);
       _animating = false;
       if (!mounted) return;
+      // The free deck just ended. Same soft bump as the other edge — the wall
+      // is a fork, not a punishment, and it opens its own paywall from here.
+      Haptics.nudge();
       ref.read(dayWallVisibleProvider.notifier).show();
       return;
     }
@@ -158,6 +173,9 @@ class WindQuestionViewState extends ConsumerState<WindQuestionView>
   /// but the feed ends here, without silently ignoring it or moving anywhere.
   Future<void> _bounce(int direction) async {
     _animating = true;
+    // A soft single bump, not the locked pattern: the daily is not a wall the
+    // user has to pay past, it is simply the first card in the deck.
+    Haptics.nudge();
     _offset = Tween(
       begin: Offset.zero,
       end: Offset(0.06 * direction, 0),
@@ -221,25 +239,36 @@ class WindQuestionViewState extends ConsumerState<WindQuestionView>
     // which forwards into the same handlers via [windQuestionViewKey]. Kept
     // here as well so a drag that starts on the text (and the widget tests
     // that fling this widget directly) work without the outer layer.
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onHorizontalDragStart: handleDragStart,
-      onHorizontalDragUpdate: handleDragUpdate,
-      onHorizontalDragEnd: handleDragEnd,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(_offset.value.dx * width, 0),
-            child: Opacity(
-              opacity: _opacity.value.clamp(0.0, 1.0),
-              child: child,
-            ),
-          );
-        },
-        child: FallingWordsText(
-          _displayed?.questionText ?? '',
-          onWordLanded: _onWordLanded,
+    // The explicit scroll actions replace the detector's own: GestureDetector
+    // maps a horizontal drag onto scrollLeft/scrollRight automatically, but
+    // drives it with a synthetic drag UPDATE and no end — a gesture the OS
+    // reports as accepted and that moves nothing. `excludeFromSemantics` drops
+    // that dead pair so the working ones below aren't shadowed by it.
+    return Semantics(
+      container: true,
+      onScrollLeft: advanceForward,
+      onScrollRight: advanceBack,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
+        onHorizontalDragStart: handleDragStart,
+        onHorizontalDragUpdate: handleDragUpdate,
+        onHorizontalDragEnd: handleDragEnd,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(_offset.value.dx * width, 0),
+              child: Opacity(
+                opacity: _opacity.value.clamp(0.0, 1.0),
+                child: child,
+              ),
+            );
+          },
+          child: FallingWordsText(
+            _displayed?.questionText ?? '',
+            onWordLanded: _onWordLanded,
+          ),
         ),
       ),
     );

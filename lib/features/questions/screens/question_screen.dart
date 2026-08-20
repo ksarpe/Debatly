@@ -1,8 +1,11 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/layout/content_width.dart';
 import '../../../core/locale/l10n_extension.dart';
+import '../../../core/monitoring/monitoring.dart';
 import '../../../core/network/connectivity_providers.dart';
 import '../../../services/question_cache.dart';
 import '../../account/providers/session_providers.dart';
@@ -38,6 +41,28 @@ class QuestionScreen extends ConsumerWidget {
     // refetch-per-open.
     ref.watch(conformityStatsProvider);
     ref.watch(debateProfileProvider);
+
+    // A failed `get_debate_profile` makes the flagship feature disappear with
+    // no error state, no toast and no exception — the first signal that it
+    // regressed would be a store review. It stays silent on SCREEN by design
+    // (the axis above it stands on its own, and a stat panel is not worth a
+    // dead end), so the failure has to be loud somewhere else.
+    //
+    // The listen belongs HERE rather than on the panel: `WidgetRef.listen` has
+    // no `fireImmediately`, so it only ever sees transitions that happen while
+    // it is registered. This is the site that triggers the first fetch, so it
+    // is the only one guaranteed to be listening when the first error lands.
+    ref.listen(debateProfileProvider, (_, next) {
+      final error = next.error;
+      if (error == null) return;
+      unawaited(
+        Monitoring.captureException(
+          error,
+          stackTrace: next.stackTrace,
+          feature: 'debate_profile',
+        ),
+      );
+    });
 
     // When the signed-in identity changes (log in / log out / account switch),
     // drop every per-user cache so the new user never inherits the previous
@@ -174,7 +199,13 @@ class QuestionScreen extends ConsumerWidget {
         // The offline strip rides in the app bar's `bottom` slot so it grows the
         // bar when offline and reserves no space when connected (rather than
         // overlaying the status chips).
-        bottom: isOnline ? null : const OfflineBanner(),
+        // The scale is handed in: `preferredSize` is read without a context,
+        // and it is what the app bar actually reserves for the strip.
+        bottom: isOnline
+            ? null
+            : OfflineBanner(
+                textScale: MediaQuery.textScalerOf(context).scale(1),
+              ),
         // Top-left: the conformity axis ("how often am I with the majority?").
         // Not tied to the visible question — it's a whole-history stat, so it
         // stays put while the deck swipes. (The favorites star moved down into

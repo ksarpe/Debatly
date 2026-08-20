@@ -164,6 +164,12 @@ abstract class AppLocalizations {
   /// **'Your purchase went through, but we couldn\'t confirm it yet. Try “Restore purchase” in a moment.'**
   String get purchaseSyncPending;
 
+  /// No description provided for @purchaseAlreadyOwned.
+  ///
+  /// In en, this message translates to:
+  /// **'This purchase already belongs to a store account. Tap “Restore purchase”, or sign in to the account that holds it.'**
+  String get purchaseAlreadyOwned;
+
   /// No description provided for @restoreSignInTitle.
   ///
   /// In en, this message translates to:
@@ -445,6 +451,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Too many attempts. Wait a moment and try again.'**
   String get authErrorTooManyRequests;
+
+  /// Fallback for an auth failure that is not a server-authored AuthException — a platform or SDK exception, whose toString is developer text.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get authErrorGeneric;
+
+  /// Title of the confirmation shown when a guest with progress is about to sign in to an existing account, which switches identity and leaves that progress behind.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to another account?'**
+  String get authSwitchAccountTitle;
+
+  /// Body of the guest sign-in confirmation — explains that signing in abandons the guest profile, and that registering does not.
+  ///
+  /// In en, this message translates to:
+  /// **'Signing in swaps this device over to that account. Your streak, votes and favourites live on this guest profile and won\'t come along. Want to keep them? Create an account instead — that keeps everything.'**
+  String get authSwitchAccountBody;
+
+  /// Action that proceeds with the identity-switching sign-in despite the warning.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in anyway'**
+  String get authSwitchAccountConfirm;
 
   /// No description provided for @settingsSectionApp.
   ///
@@ -799,6 +829,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Vote on a question and it will show up here.'**
   String get historyEmptyBody;
+
+  /// No description provided for @historyEmptyTodayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing today yet'**
+  String get historyEmptyTodayTitle;
+
+  /// No description provided for @historyEmptyTodayBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote on today\'s question and it will show up here.'**
+  String get historyEmptyTodayBody;
 
   /// No description provided for @historyLoadError.
   ///
@@ -1232,6 +1274,18 @@ abstract class AppLocalizations {
   /// **'Today\'s question didn\'t come through. Try again in a moment.'**
   String get loadErrorBodyEmpty;
 
+  /// No description provided for @backendUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach Debatly'**
+  String get backendUnavailableTitle;
+
+  /// No description provided for @backendUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t connect to the server, so nothing you do here would be saved. Try again.'**
+  String get backendUnavailableBody;
+
   /// No description provided for @offlineBannerLabel.
   ///
   /// In en, this message translates to:
@@ -1271,8 +1325,8 @@ abstract class AppLocalizations {
   /// No description provided for @smaczkiBarUntagged.
   ///
   /// In en, this message translates to:
-  /// **'TWO MORE ARGUMENTS'**
-  String get smaczkiBarUntagged;
+  /// **'{count, plural, =0{THAT WAS THE LAST ONE} =1{ONE MORE ARGUMENT} other{{count} MORE ARGUMENTS}}'**
+  String smaczkiBarUntagged(int count);
 
   /// No description provided for @shareLabel.
   ///
@@ -1448,10 +1502,10 @@ abstract class AppLocalizations {
   /// **'provisional'**
   String get profileProvisional;
 
-  /// No description provided for @profileProgress.
+  /// Pre-unlock line under the conformity axis. n = qualifying gate answers still missing, never votes — the line must name the counter, or a long-standing voter reads their zero as their history being discarded.
   ///
   /// In en, this message translates to:
-  /// **'{n, plural, =1{1 more answer and you\'ll know your type.} other{{n} more answers and you\'ll know your type.}}'**
+  /// **'{n, plural, =1{Answer 1 more counter after voting and you\'ll know your type.} other{Answer {n} more counters after voting and you\'ll know your type.}}'**
   String profileProgress(int n);
 
   /// No description provided for @profileStatCrowdLabel.

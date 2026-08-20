@@ -11,6 +11,7 @@
   "noPreviousPurchase": "No previous purchase found.",
   "storeUnreachable": "Couldn't reach the store. Check your connection and try again.",
   "purchaseSyncPending": "Your purchase went through, but we couldn't confirm it yet. Try “Restore purchase” in a moment.",
+  "purchaseAlreadyOwned": "This purchase already belongs to a store account. Tap “Restore purchase”, or sign in to the account that holds it.",
   "restoreSignInTitle": "Restore purchase?",
   "restoreSignInBody": "If you bought PRO while signed in to an account, sign in to it — PRO and all your data will come back automatically.",
   "restoreOnThisDevice": "Restore on this device",
@@ -67,6 +68,22 @@
   "authErrorSamePassword": "That's already your current password.",
   "authErrorWeakPassword": "That password is too weak. Try a longer one.",
   "authErrorTooManyRequests": "Too many attempts. Wait a moment and try again.",
+  "authErrorGeneric": "Something went wrong. Please try again.",
+  "@authErrorGeneric": {
+    "description": "Fallback for an auth failure that is not a server-authored AuthException — a platform or SDK exception, whose toString is developer text."
+  },
+  "authSwitchAccountTitle": "Sign in to another account?",
+  "@authSwitchAccountTitle": {
+    "description": "Title of the confirmation shown when a guest with progress is about to sign in to an existing account, which switches identity and leaves that progress behind."
+  },
+  "authSwitchAccountBody": "Signing in swaps this device over to that account. Your streak, votes and favourites live on this guest profile and won't come along. Want to keep them? Create an account instead — that keeps everything.",
+  "@authSwitchAccountBody": {
+    "description": "Body of the guest sign-in confirmation — explains that signing in abandons the guest profile, and that registering does not."
+  },
+  "authSwitchAccountConfirm": "Sign in anyway",
+  "@authSwitchAccountConfirm": {
+    "description": "Action that proceeds with the identity-switching sign-in despite the warning."
+  },
   "settingsSectionApp": "APP SETTINGS",
   "settingsSectionAccount": "ACCOUNT",
   "settingsReminders": "Reminders",
@@ -151,6 +168,8 @@
   "historyTooltip": "Question history",
   "historyEmptyTitle": "Nothing here yet",
   "historyEmptyBody": "Vote on a question and it will show up here.",
+  "historyEmptyTodayTitle": "Nothing today yet",
+  "historyEmptyTodayBody": "Vote on today's question and it will show up here.",
   "historyLoadError": "Couldn't load the history.",
   "historyYourVote": "YOU: {vote}",
   "@historyYourVote": {
@@ -260,13 +279,20 @@
   "loadErrorTitle": "Couldn't load questions",
   "loadErrorBody": "Check your internet connection and try again.",
   "loadErrorBodyEmpty": "Today's question didn't come through. Try again in a moment.",
+  "backendUnavailableTitle": "Can't reach Debatly",
+  "backendUnavailableBody": "We couldn't connect to the server, so nothing you do here would be saved. Try again.",
   "offlineBannerLabel": "You're offline",
   "offlineResultsHidden": "Results return when you're back online",
   "yourVote": "Your vote",
   "goDeeper": "AGAINST YOU",
   "smaczkiBarPro": "THE CASE AGAINST",
   "smaczkiBarFree": "THE CASE FOR YOU",
-  "smaczkiBarUntagged": "TWO MORE ARGUMENTS",
+  "smaczkiBarUntagged": "{count, plural, =0{THAT WAS THE LAST ONE} =1{ONE MORE ARGUMENT} other{{count} MORE ARGUMENTS}}",
+  "@smaczkiBarUntagged": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "shareLabel": "Share",
   "shareTooltip": "Share question",
   "shareSubject": "A question from Debatly",
@@ -342,8 +368,9 @@
   "profileDescWolf": "Your own mind, end of discussion.",
   "profileDescSeeker": "You don't buy others' opinions, but you look for better ones.",
   "profileProvisional": "provisional",
-  "profileProgress": "{n, plural, =1{1 more answer and you'll know your type.} other{{n} more answers and you'll know your type.}}",
+  "profileProgress": "{n, plural, =1{Answer 1 more counter after voting and you'll know your type.} other{Answer {n} more counters after voting and you'll know your type.}}",
   "@profileProgress": {
+    "description": "Pre-unlock line under the conformity axis. n = qualifying gate answers still missing, never votes — the line must name the counter, or a long-standing voter reads their zero as their history being discarded.",
     "placeholders": {
       "n": { "type": "int" }
     }

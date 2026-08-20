@@ -10,11 +10,13 @@ import '../../../core/feedback/app_toast.dart';
 import '../../../core/layout/content_width.dart';
 import '../../../core/locale/app_locale.dart';
 import '../../../core/locale/l10n_extension.dart';
+import '../../../core/network/network_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../services/purchases_service.dart';
 import '../../../services/supabase_service.dart';
 import '../providers/session_providers.dart';
+import '../providers/stats_providers.dart';
 import '../widgets/auth_brand_glyph.dart';
 import '../widgets/auth_circle_icon_button.dart';
 import '../widgets/auth_field.dart';
@@ -27,7 +29,20 @@ import '../widgets/auth_social_button.dart';
 
 /// Presents the sign-in / register form as a modal bottom sheet that slides up
 /// from the bottom of the screen.
-Future<void> showAuthSheet(BuildContext context) {
+///
+/// [initialMode] decides which tab opens. It matters more than it looks: the
+/// two prompts that ASK for an account — "save your PRO" and "secure your
+/// streak" — are pitched at guests whose progress rides on the anonymous UUID,
+/// and only REGISTERING keeps that UUID (it upgrades the user in place). Signing
+/// in replaces the session with another account's and leaves the guest's streak,
+/// votes and favourites behind, so opening those prompts on the sign-in tab
+/// pointed the user at the one action that destroys what they were told to
+/// protect. Entry points that genuinely mean "sign back in" (Settings, the
+/// restore chooser, the paywall footer) keep the default.
+Future<void> showAuthSheet(
+  BuildContext context, {
+  AuthMode initialMode = AuthMode.password,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     backgroundColor: context.colors.cardSurface,
@@ -41,26 +56,33 @@ Future<void> showAuthSheet(BuildContext context) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    builder: (_) => const _AuthCard(),
+    builder: (_) => _AuthCard(initialMode: initialMode),
   );
 }
 
 /// Full-screen fallback so the auth flow can still be pushed as a route (and
 /// rendered in isolation by tests). Reuses the exact same card.
 class AuthScreen extends StatelessWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({super.key, this.initialMode = AuthMode.password});
+
+  /// Which tab opens — see [showAuthSheet].
+  final AuthMode initialMode;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.background,
-      body: SafeArea(child: Center(child: const _AuthCard())),
+      body: SafeArea(
+        child: Center(child: _AuthCard(initialMode: initialMode)),
+      ),
     );
   }
 }
 
 class _AuthCard extends ConsumerStatefulWidget {
-  const _AuthCard();
+  const _AuthCard({this.initialMode = AuthMode.password});
+
+  final AuthMode initialMode;
 
   @override
   ConsumerState<_AuthCard> createState() => _AuthCardState();
@@ -72,7 +94,7 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  AuthMode _mode = AuthMode.password;
+  late AuthMode _mode = widget.initialMode;
   bool _isSubmitting = false;
   bool _obscurePassword = true;
 
@@ -490,6 +512,12 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
 
       switch (_mode) {
         case AuthMode.password:
+          // Signing in ABANDONS the guest profile this device is on. Say so
+          // first when there is something on it to lose — the streak nudge
+          // pitches "your streak lives only on this phone" and hands the user
+          // straight here, so without this the obvious next tap is the one
+          // that destroys what they were just told to protect.
+          if (!await _confirmAbandoningGuestProgress()) return;
           await SupabaseService.signInWithPassword(
             email: email,
             password: password,
@@ -554,20 +582,107 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
             return true;
           });
       }
-    } on AuthException catch (error) {
-      if (mounted) _showMessage(_authErrorText(error), type: ToastType.error);
     } catch (error) {
-      if (mounted) _showMessage(error.toString(), type: ToastType.error);
+      // One handler: a timed-out / disconnected call arrives as a
+      // TimeoutException or a transport-wrapped AuthException, and both have to
+      // read as "no connection" rather than as a raw dump.
+      if (mounted) _showMessage(_authErrorText(error), type: ToastType.error);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
-  /// Localises the GoTrue error codes this sheet can realistically hit.
-  /// An unrecognised code falls back to the server's English message — still
-  /// more actionable than a mute generic failure.
-  String _authErrorText(AuthException error) {
+  /// Confirms an identity-switching sign-in when this device carries a guest's
+  /// progress. Returns whether [_submit] should go ahead.
+  ///
+  /// REGISTERING upgrades the anonymous user in place — same UUID, streak,
+  /// votes and favourites all kept. Signing IN does the opposite: it replaces
+  /// the session with the target account's and leaves the guest profile (and
+  /// everything on it) behind, with no warning and no way back. Silent for an
+  /// account holder, who has already left any guest behind, and for a fresh
+  /// guest with nothing on the line.
+  Future<bool> _confirmAbandoningGuestProgress() async {
+    final session = ref.read(sessionProvider).value;
+    if (session == null || session.hasAccount) return true;
+    // The BEST streak, not the current one: the current streak decays back
+    // towards zero on missed days, so a returning guest with a month of votes
+    // behind them can read 0 — and they have the most to lose.
+    // Unresolved stats mean we do not KNOW what is at stake, and the cost of
+    // the two mistakes is not symmetric: a needless prompt for a brand-new
+    // guest costs one tap, a skipped one costs a month of votes. So only a
+    // loaded, genuinely empty history skips the warning.
+    final stats = ref.read(userStatsProvider);
+    if (stats.hasValue && stats.value!.longestStreak <= 0) return true;
+
+    // true = sign in anyway, false = register instead, null = dismissed.
+    final proceed = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.62),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: context.colors.cardSurface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          context.l10n.authSwitchAccountTitle.toUpperCase(),
+          style: AppTypography.title(
+            fontSize: 30,
+          ).copyWith(color: context.colors.ink),
+        ),
+        content: Text(
+          context.l10n.authSwitchAccountBody,
+          style: AppTypography.body(
+            height: 1.4,
+          ).copyWith(color: context.colors.subtle),
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: context.colors.subtle,
+              textStyle: AppTypography.action(),
+            ),
+            child: Text(context.l10n.authSwitchAccountConfirm.toUpperCase()),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.spark,
+              textStyle: AppTypography.action(),
+            ),
+            child: Text(context.l10n.createAccount.toUpperCase()),
+          ),
+        ],
+      ),
+    );
+
+    if (proceed == true) return true;
+    // Took the offer: land them on the tab that keeps the guest profile. Set
+    // directly rather than through [_changeMode], which refuses while a submit
+    // is in flight — and this one is.
+    if (proceed == false && mounted) {
+      // Deliberately NOT resetting the form: they typed an email to sign in
+      // with, the dialog just told them to register instead, and handing them
+      // an empty field for their trouble is the opposite of taking the offer.
+      setState(() => _mode = AuthMode.register);
+    }
+    return false;
+  }
+
+  /// Localises what this sheet can realistically get back from GoTrue.
+  ///
+  /// Offline is checked FIRST: gotrue wraps a dropped connection in an
+  /// `AuthException` subclass whose message is a raw `SocketException` /
+  /// "Failed host lookup" dump, so without this an airplane-mode tap showed a
+  /// Polish user an English stack-trace fragment. An unrecognised code still
+  /// falls back to the server's message — more actionable than a mute failure.
+  String _authErrorText(Object error) {
     final l10n = context.l10n;
+    if (isOfflineError(error)) return l10n.noConnection;
+    // Not from GoTrue at all — a GoogleSignInException, a
+    // SignInWithAppleAuthorizationException, a StateError from a build with no
+    // keys. Their `toString()` is developer text ("Bad state: ...") and used to
+    // go straight into a Polish user's toast.
+    if (error is! AuthException) return l10n.authErrorGeneric;
     return switch (error.code) {
       'invalid_credentials' => l10n.authErrorInvalidCredentials,
       'email_not_confirmed' => l10n.authErrorEmailNotConfirmed,
@@ -581,11 +696,21 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     };
   }
 
-  Future<void> _signInWithGoogle() =>
-      _socialSignIn(SupabaseService.signInWithGoogle);
+  // [_confirmAbandoningGuestProgress] is handed DOWN rather than run up front:
+  // a guest signing in socially normally keeps their UUID (the identity links
+  // in place), so asking before the picker would cry wolf at everyone. It only
+  // fires on the branch that actually switches accounts.
+  Future<void> _signInWithGoogle() => _socialSignIn(
+    () => SupabaseService.signInWithGoogle(
+      confirmSwitch: _confirmAbandoningGuestProgress,
+    ),
+  );
 
-  Future<void> _signInWithApple() =>
-      _socialSignIn(SupabaseService.signInWithApple);
+  Future<void> _signInWithApple() => _socialSignIn(
+    () => SupabaseService.signInWithApple(
+      confirmSwitch: _confirmAbandoningGuestProgress,
+    ),
+  );
 
   /// Shared body for both social buttons: run the native flow, carry a guest's
   /// entitlement over if the flow switched to a different identity, then
@@ -613,10 +738,11 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
       });
       if (!signedIn || !mounted) return;
       Navigator.of(context).maybePop();
-    } on AuthException catch (error) {
-      if (mounted) _showMessage(_authErrorText(error), type: ToastType.error);
     } catch (error) {
-      if (mounted) _showMessage(error.toString(), type: ToastType.error);
+      // One handler: a timed-out / disconnected call arrives as a
+      // TimeoutException or a transport-wrapped AuthException, and both have to
+      // read as "no connection" rather than as a raw dump.
+      if (mounted) _showMessage(_authErrorText(error), type: ToastType.error);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -675,10 +801,11 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
       await SupabaseService.resetPasswordForEmail(_emailController.text.trim());
       if (!mounted) return;
       _showMessage(context.l10n.authPasswordResetSent, type: ToastType.success);
-    } on AuthException catch (error) {
-      if (mounted) _showMessage(_authErrorText(error), type: ToastType.error);
     } catch (error) {
-      if (mounted) _showMessage(error.toString(), type: ToastType.error);
+      // One handler: a timed-out / disconnected call arrives as a
+      // TimeoutException or a transport-wrapped AuthException, and both have to
+      // read as "no connection" rather than as a raw dump.
+      if (mounted) _showMessage(_authErrorText(error), type: ToastType.error);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

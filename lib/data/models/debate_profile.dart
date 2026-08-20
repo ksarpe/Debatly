@@ -89,9 +89,20 @@ class DebateProfile {
 
   /// The limiting counter: BOTH thresholds are per-counter, so progress and
   /// stage follow whichever of the two is further behind.
+  ///
+  /// In practice that is ALWAYS [gateAnswered]: a gate answer is stored on a
+  /// vote row, so the server counts both off the same rows and the gate
+  /// counter can never run ahead of the vote counter. The min() stays as a
+  /// guard against a malformed payload — but the copy above the bar must
+  /// speak about gates, never about "answers" in general. Every user who
+  /// voted before the gate shipped (2026-08-19) carries a null outcome on
+  /// those rows and starts this counter at 0 with a full voting history
+  /// behind them; those old votes are deliberately NOT credited, because
+  /// crediting them would unlock a resilience percentage computed over zero
+  /// gate answers.
   int get limitingCounter => math.min(totalVotes, gateAnswered);
 
-  /// Answers still missing before the type unlocks (0 once unlocked).
+  /// Gate answers still missing before the type unlocks (0 once unlocked).
   int get answersToUnlock => math.max(0, unlockMin - limitingCounter);
 
   DebateProfileStage get stage {

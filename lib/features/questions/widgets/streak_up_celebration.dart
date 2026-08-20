@@ -3,6 +3,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/feedback/haptics.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/models/rank.dart';
 import '../../../data/models/user_stats.dart';
@@ -158,6 +159,14 @@ class _StreakBurstState extends State<_StreakBurst>
   static const double _bigSize = 96;
   static const double _smallSize = 22;
 
+  /// Timeline point where the flame reaches the chip: the landing flash starts
+  /// here, and so does the thump. Shared by the frame builder and the haptic
+  /// listener so the buzz can never drift off the pixels that cause it.
+  static const double _landAt = 0.80;
+
+  /// One-shot latch for that thump — the listener fires every frame.
+  bool _thumped = false;
+
   @override
   void initState() {
     super.initState();
@@ -168,6 +177,15 @@ class _StreakBurstState extends State<_StreakBurst>
         )..addStatusListener((s) {
           if (s == AnimationStatus.completed) widget.onDone();
         });
+    // The flame striking the streak chip is the one beat of this flourish the
+    // user is meant to *feel*: the number in the corner stops ticking up
+    // silently and lands. The listener owns it rather than the frame builder,
+    // so painting stays free of side effects.
+    _c.addListener(() {
+      if (_thumped || _c.value < _landAt) return;
+      _thumped = true;
+      Haptics.impact();
+    });
     _c.forward();
   }
 
@@ -217,7 +235,7 @@ class _StreakBurstState extends State<_StreakBurst>
     final haloOpacity = appear * (1 - travel) * 0.55;
 
     // The landing flash + the rising "+1", both keyed to arrival.
-    final landRaw = ((t - 0.80) / 0.20).clamp(0.0, 1.0);
+    final landRaw = ((t - _landAt) / (1 - _landAt)).clamp(0.0, 1.0);
     final flashScale = lerpDouble(0.4, 1.7, Curves.easeOut.transform(landRaw))!;
     final flashOpacity = (landRaw <= 0 ? 0.0 : (1 - landRaw)) * 0.9;
 

@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/feedback/haptics.dart';
 import '../../../core/locale/l10n_extension.dart';
+import '../../../core/monitoring/monitoring.dart';
 import '../../../core/share/widget_to_image.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -15,8 +17,8 @@ import '../../../data/models/vote_result.dart';
 import '../../../l10n/gen/app_localizations.dart';
 import '../../../services/analytics.dart';
 import '../../account/providers/session_providers.dart';
-import '../../account/widgets/save_pro_prompt.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
+import '../../monetization/widgets/purchase_settlement.dart';
 import '../providers/question_providers.dart';
 import 'profile_share_card.dart';
 
@@ -60,6 +62,10 @@ class DebateProfileSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // The failure of `get_debate_profile` is reported from QuestionScreen, not
+    // here. `WidgetRef.listen` has no `fireImmediately`, and the provider is
+    // prefetched at screen mount — so by the time this panel opens the error
+    // has long since settled and a listener registered here never fires.
     final profileAsync = ref.watch(debateProfileProvider);
     final profile = profileAsync.value;
     // Loading/error: render nothing — the axis above stands on its own, and
@@ -83,7 +89,10 @@ class DebateProfileSection extends ConsumerWidget {
 
 /// Pre-unlock retention hook: never an empty hole. Shows how close the type
 /// is, counting on whichever requirement (votes / answered gates) is further
-/// from the threshold.
+/// from the threshold — which is always the gates, see
+/// [DebateProfile.limitingCounter]. The line above the bar therefore names
+/// the kontra explicitly: a user with fifty pre-gate votes has to read "0 / 6"
+/// as "no gates yet", not as "your fifty votes were thrown away".
 class _LockedProfileView extends StatelessWidget {
   const _LockedProfileView({required this.profile});
 
@@ -232,8 +241,17 @@ class _UnlockedProfileViewState extends ConsumerState<_UnlockedProfileView> {
           ],
         );
       }
-    } catch (e) {
-      debugPrint('profile share card render failed, sharing text only: $e');
+    } catch (e, st) {
+      // The share falls back to plain text, so the user loses only the poster
+      // — but a card that stopped rendering (a font, a layout overflow, a
+      // clipped export) is invisible from the outside otherwise: `debugPrint`
+      // is nothing at all in release.
+      await Monitoring.captureException(
+        e,
+        stackTrace: st,
+        feature: 'share',
+        extra: {'card': 'profile'},
+      );
     }
     return ShareParams(
       text: message,
@@ -243,6 +261,8 @@ class _UnlockedProfileViewState extends ConsumerState<_UnlockedProfileView> {
   }
 
   Future<void> _getPremium() async {
+    // Opened from a locked portrait row — the vault refusal, felt.
+    Haptics.blocked();
     setState(() => _busy = true);
     // The one sanctioned per-entry paywall headline: opened from the locked
     // portrait rows, it sells the PORTRAIT ("{n} głosów. Zobacz, co mówią o
@@ -256,11 +276,13 @@ class _UnlockedProfileViewState extends ConsumerState<_UnlockedProfileView> {
     if (purchased) {
       // The session refresh flips isPremium, which rebuilds the repository —
       // the autoDispose profile providers refetch on their own and the PRO
-      // depth renders in place of the locked row.
-      await ref.read(sessionProvider.notifier).refresh();
+      // depth renders in place of the locked row. A pending purchase says so
+      // rather than leaving the row locked with no explanation.
+      await settleProPurchase(context, ref);
       if (!mounted) return;
       setState(() => _busy = false);
-      await promptSaveProAccount(context, ref);
+      // The "save your PRO to an account" nudge is HomeGate's (see above) —
+      // calling it here too showed the same dialog twice.
     } else {
       setState(() => _busy = false);
     }
@@ -591,10 +613,28 @@ class _ProDepth extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rarity = ref.watch(typeRarityProvider).value;
-    final trend = ref.watch(profileTrendProvider).value;
-    final moved = ref.watch(movedSmaczkiProvider).value;
-    final history = ref.watch(voteHistoryProvider).value;
+    // Watched as AsyncValues, not `.value`: "still loading" and "resolved to
+    // nothing" look identical through `.value`, and collapsing them is how a
+    // row a user had just PAID for disappeared instead of saying why. Rarity
+    // is NULL under the server's 20-profile population floor and the loneliest
+    // vote is null for anyone whose every vote sat with the majority — both
+    // are ordinary outcomes, and both were rows sold on the locked list one
+    // screen earlier. `hasValue` separates them from the spinner.
+    //
+    // An ERROR gets the same treatment as an empty answer. It is not an exotic
+    // case here: `resolveEffectivePremium` deliberately trusts the device
+    // receipt over a server that has not caught up, so a fresh buyer is
+    // client-premium for a while yet, during which all three premium-gated
+    // RPCs raise `premium required`. Rendering nothing then reproduces the
+    // exact "I paid and the rows vanished" moment, one door over.
+    final rarityAsync = ref.watch(typeRarityProvider);
+    final rarity = rarityAsync.value;
+    final trendAsync = ref.watch(profileTrendProvider);
+    final trend = trendAsync.value;
+    final movedAsync = ref.watch(movedSmaczkiProvider);
+    final moved = movedAsync.value;
+    final historyAsync = ref.watch(voteHistoryProvider);
+    final history = historyAsync.value;
     final loneliest = history == null ? null : loneliestVote(history);
     final locale = Localizations.localeOf(context).toString();
 
@@ -602,9 +642,15 @@ class _ProDepth extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Rarity: one spark-accented line, no title — the number IS the
-        // content. Hidden while the server withholds it (population floor /
-        // caller's own profile still locked server-side).
-        if (rarity != null) ...[
+        // content. When the server withholds it (population floor / caller's
+        // own profile still locked server-side) the row still appears, under
+        // its title, saying so: the free tier sold this row, so paying for it
+        // has to land somewhere.
+        if (rarity == null && !rarityAsync.isLoading) ...[
+          _DepthTitle(text: l10n.profileLockedRarity),
+          _NotEnoughData(l10n: l10n),
+          const SizedBox(height: 14),
+        ] else if (rarity != null) ...[
           Row(
             children: [
               const Icon(
@@ -625,7 +671,11 @@ class _ProDepth extends ConsumerWidget {
           ),
           const SizedBox(height: 14),
         ],
-        if (trend != null) ...[
+        if (trend == null && trendAsync.hasError) ...[
+          _DepthTitle(text: l10n.profileLockedTrend),
+          _NotEnoughData(l10n: l10n),
+          const SizedBox(height: 14),
+        ] else if (trend != null) ...[
           _DepthTitle(text: l10n.profileLockedTrend),
           if (trend.isEmpty)
             _NotEnoughData(l10n: l10n)
@@ -641,7 +691,11 @@ class _ProDepth extends ConsumerWidget {
               ),
           const SizedBox(height: 14),
         ],
-        if (moved != null) ...[
+        if (moved == null && movedAsync.hasError) ...[
+          _DepthTitle(text: l10n.profileLockedFlips),
+          _NotEnoughData(l10n: l10n),
+          const SizedBox(height: 14),
+        ] else if (moved != null) ...[
           _DepthTitle(text: l10n.profileLockedFlips),
           if (moved.isEmpty)
             _NotEnoughData(l10n: l10n)
@@ -649,7 +703,13 @@ class _ProDepth extends ConsumerWidget {
             for (final entry in moved.take(5)) _MovedQuote(entry: entry),
           const SizedBox(height: 14),
         ],
-        if (loneliest != null) ...[
+        // Same rule as rarity: a user every one of whose votes sat with the
+        // majority has no loneliest vote — which is a fact about them, not a
+        // reason for the row they bought to vanish.
+        if (loneliest == null && !historyAsync.isLoading) ...[
+          _DepthTitle(text: l10n.profileLockedLoneliest),
+          _NotEnoughData(l10n: l10n),
+        ] else if (loneliest != null) ...[
           _DepthTitle(text: l10n.profileLockedLoneliest),
           Container(
             width: double.infinity,

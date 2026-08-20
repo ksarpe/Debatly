@@ -12,6 +12,7 @@
   "noPreviousPurchase": "Nie znaleziono wcześniejszego zakupu.",
   "storeUnreachable": "Nie udało się połączyć ze sklepem. Sprawdź połączenie i spróbuj ponownie.",
   "purchaseSyncPending": "Zakup się powiódł, ale nie udało się go jeszcze potwierdzić. Spróbuj za chwilę „Przywróć zakup”.",
+  "purchaseAlreadyOwned": "Ten zakup jest już przypisany do konta w sklepie. Kliknij „Przywróć zakup” albo zaloguj się na konto, na którym jest.",
   "restoreSignInTitle": "Przywrócić zakup?",
   "restoreSignInBody": "Jeśli kupiłeś PRO będąc zalogowanym na konto, zaloguj się na nie — PRO i wszystkie Twoje dane wrócą automatycznie.",
   "restoreOnThisDevice": "Przywróć na tym urządzeniu",
@@ -63,6 +64,10 @@
   "authErrorSamePassword": "To hasło jest już ustawione na Twoim koncie.",
   "authErrorWeakPassword": "Hasło jest zbyt słabe. Użyj dłuższego.",
   "authErrorTooManyRequests": "Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.",
+  "authErrorGeneric": "Coś poszło nie tak. Spróbuj ponownie.",
+  "authSwitchAccountTitle": "Zalogować się na inne konto?",
+  "authSwitchAccountBody": "Logowanie przełączy to urządzenie na tamto konto. Twoja passa, głosy i ulubione są zapisane na profilu gościa i nie przeniosą się. Chcesz je zachować? Załóż konto — wtedy wszystko zostaje.",
+  "authSwitchAccountConfirm": "Zaloguj mimo to",
 
   "settingsSectionApp": "USTAWIENIA APLIKACJI",
   "settingsSectionAccount": "KONTO",
@@ -137,6 +142,8 @@
   "historyTooltip": "Historia pytań",
   "historyEmptyTitle": "Brak historii",
   "historyEmptyBody": "Zagłosuj na pytanie, a pojawi się ono tutaj.",
+  "historyEmptyTodayTitle": "Dziś jeszcze nic",
+  "historyEmptyTodayBody": "Zagłosuj na dzisiejsze pytanie, a pojawi się tutaj.",
   "historyLoadError": "Nie udało się wczytać historii.",
   "historyYourVote": "TY: {vote}",
   "historyVersus": "vs",
@@ -210,6 +217,8 @@
   "loadErrorTitle": "Nie udało się załadować pytań",
   "loadErrorBody": "Sprawdź połączenie z internetem i spróbuj ponownie.",
   "loadErrorBodyEmpty": "Nie udało się pobrać dzisiejszego pytania. Spróbuj ponownie za chwilę.",
+  "backendUnavailableTitle": "Brak połączenia z Debatly",
+  "backendUnavailableBody": "Nie udało się połączyć z serwerem, więc nic, co tu zrobisz, nie zostałoby zapisane. Spróbuj ponownie.",
   "offlineBannerLabel": "Jesteś offline",
   "offlineResultsHidden": "Wyniki wrócą po połączeniu",
   "yourVote": "Twój głos",
@@ -223,9 +232,12 @@
   "@smaczkiBarFree": {
     "description": "Bottom-bar label after a FREE user passed the post-vote gate on a tagged smaczek. The attack is behind them, so the pill sells what remains locked: the argument FOR their side — ammunition, not another hit."
   },
-  "smaczkiBarUntagged": "JESZCZE DWA ARGUMENTY",
+  "smaczkiBarUntagged": "{count, plural, =0{TO BYŁO WSZYSTKO} =1{JESZCZE JEDEN ARGUMENT} =2{JESZCZE DWA ARGUMENTY} few{JESZCZE {count} ARGUMENTY} other{JESZCZE {count} ARGUMENTÓW}}",
   "@smaczkiBarUntagged": {
-    "description": "Bottom-bar label after the gate served an UNTAGGED smaczek (side IS NULL) — no 'against you' promise can be kept, so the label only counts."
+    "description": "Bottom-bar label after the gate served an UNTAGGED smaczek (side IS NULL) — no 'against you' promise can be kept, so the label only counts. {count} is how many arguments the sheet still holds BEYOND the one the gate showed, i.e. the same number the sheet's own subtitle uses.",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
   },
 
   "shareLabel": "Udostępnij",
@@ -274,9 +286,9 @@
   "profileDescWolf": "Swoje zdanie i koniec dyskusji.",
   "profileDescSeeker": "Nie kupujesz cudzych opinii, ale szukasz lepszych.",
   "profileProvisional": "profil wstępny",
-  "profileProgress": "{n, plural, =1{Jeszcze 1 odpowiedź i poznasz swój typ.} few{Jeszcze {n} odpowiedzi i poznasz swój typ.} many{Jeszcze {n} odpowiedzi i poznasz swój typ.} other{Jeszcze {n} odpowiedzi i poznasz swój typ.}}",
+  "profileProgress": "{n, plural, =1{Jeszcze 1 kontra po głosowaniu i poznasz swój typ.} few{Jeszcze {n} kontry po głosowaniu i poznasz swój typ.} many{Jeszcze {n} kontr po głosowaniu i poznasz swój typ.} other{Jeszcze {n} kontry po głosowaniu i poznasz swój typ.}}",
   "@profileProgress": {
-    "description": "Pre-unlock retention line under the conformity axis. n = answers still missing on whichever unlock counter (votes / qualifying gate answers) is further behind.",
+    "description": "Pre-unlock retention line under the conformity axis. n = QUALIFYING GATE ANSWERS still missing — never votes: a gate answer lives on a vote row, so the gate counter can never run ahead of the vote counter. The line must name the kontra (the post-vote gate), because everyone who voted before the gate shipped 2026-08-19 sits at 0 no matter how long their history is, and \"jeszcze N odpowiedzi\" read to them as if their votes had been discarded.",
     "placeholders": {
       "n": { "type": "int" }
     }

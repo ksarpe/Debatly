@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/feedback/app_toast.dart';
+import '../../../core/feedback/haptics.dart';
 import '../../../core/layout/content_width.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
@@ -32,10 +35,31 @@ import 'wind_question_view.dart';
 /// sheets at 480, settings at 520, the vote row at 320).
 const double _kFeedMaxWidth = kReadingMaxWidth;
 
-/// Smallest height worth giving the question. Below this the text has stopped
-/// being the point of the screen, so the group stops shrinking and the feed
-/// scrolls instead — see [FitOrScroll].
+/// Smallest height worth giving the question at the DEFAULT text scale. Below
+/// this the text has stopped being the point of the screen, so the group stops
+/// shrinking and the feed scrolls instead — see [FitOrScroll].
 const double _kMinQuestionHeight = 56;
+
+/// How far the question's floor follows the system font before it stops. Same
+/// ceiling the vote tiles use ([voteRowMaxHeight] clamps identically): past it
+/// the floor would push a short screen into scrolling on the strength of a
+/// setting the text itself already answers by shrinking.
+const double _kMaxQuestionTextScale = 1.6;
+
+/// [_kMinQuestionHeight] grown for the system font.
+///
+/// It HAS to scale, because the other half of the floor does: the vote row
+/// under it grows with the text scaler, so a fixed question floor made
+/// [_minGroupHeight] under-report at large accessibility sizes. FitOrScroll
+/// then took the non-scrolling branch on a box too small to hold the group,
+/// and an overflowing Column still paints — so the question printed straight
+/// over the TAK/NIE row (~54pt of overflow at 360×640 / 2.0× on the catalog's
+/// longest question) instead of the feed scrolling.
+double _minQuestionHeight(BuildContext context) {
+  final scale = MediaQuery.textScalerOf(context).scale(1);
+  return _kMinQuestionHeight *
+      math.min(_kMaxQuestionTextScale, math.max(1, scale));
+}
 
 class QuestionBody extends ConsumerWidget {
   const QuestionBody({super.key});
@@ -142,18 +166,41 @@ class QuestionBody extends ConsumerWidget {
     // What the "go deeper" pill promises. Default is the standing "PRZECIWKO
     // TOBIE"; once the post-vote gate has run on THIS question the label must
     // match what the sheet can actually deliver: an untagged argument can't
-    // promise "against you" at all, a tagged one leaves PRO the short "KONTRA"
-    // (set larger) and free the "case FOR you" hook — the defense is exactly
+    // promise "against you" at all — for EITHER tier, which is why that arm
+    // sits above the premium one — a tagged one leaves PRO the short "KONTRA"
+    // (set larger) and free the "case FOR you" hook, the defense being exactly
     // what remains locked in the sheet.
-    final record = hasRows
+    // Only a gate the user ANSWERED rewrites the promise: one left through
+    // system back delivered no argument, so the pill goes on offering the
+    // standing "PRZECIWKO TOBIE" and the sheet keeps its free row (see
+    // [ChallengeRecord.wasRead]).
+    final gate = hasRows
         ? ref.watch(challengeRecordsProvider)[questionId]
         : null;
+    final record = gate != null && gate.wasRead ? gate : null;
+
+    // How many arguments the sheet still holds beyond the one the gate already
+    // showed. The catalog runs 2–4 smaczki per question, so a hard-coded "two"
+    // was simply wrong on both ends of that range — and the sheet counts for
+    // itself one tap later (smaczki_panel's _freeHeaderAfterGate), so the two
+    // surfaces have to do the same arithmetic or they contradict each other.
+    // Null only while the set is refetching (right after a purchase, say):
+    // no honest number, so the standing promise stands in rather than a zero.
+    final int? smaczkiLeft = record == null
+        ? null
+        : ref
+              .watch(smaczkiProvider(questionId!))
+              .value
+              ?.where((s) => s.position != record.smaczekPosition)
+              .length;
+
     final (goDeeperLabel, goDeeperProminent) = switch (record) {
       null => (context.l10n.goDeeper, false),
-      ChallengeRecord(smaczekTagged: false) => (
-        context.l10n.smaczkiBarUntagged,
+      ChallengeRecord(smaczekTagged: false) when smaczkiLeft != null => (
+        context.l10n.smaczkiBarUntagged(smaczkiLeft),
         false,
       ),
+      ChallengeRecord(smaczekTagged: false) => (context.l10n.goDeeper, false),
       _ when isPremium => (context.l10n.smaczkiBarPro, true),
       _ => (context.l10n.smaczkiBarFree, false),
     };
@@ -168,6 +215,13 @@ class QuestionBody extends ConsumerWidget {
     // only horizontal drags are claimed here.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      // A pure forwarding layer, and semantically invisible on purpose: the
+      // scrollLeft/scrollRight actions live on the question itself (see
+      // WindQuestionView), where a screen-reader user is focused. Left in,
+      // this detector's auto-generated pair would blanket the whole screen
+      // with a duplicate — and a non-working one, since the framework
+      // synthesises only a drag update and the commit needs a drag end.
+      excludeFromSemantics: true,
       onHorizontalDragStart: (details) =>
           windQuestionViewKey.currentState?.handleDragStart(details),
       onHorizontalDragUpdate: (details) =>
@@ -214,10 +268,16 @@ class QuestionBody extends ConsumerWidget {
                           ? null
                           : hasVoted
                           ? () => showSmaczkiSheet(context, questionId)
-                          : () => AppToast.info(
-                              context,
-                              context.l10n.smaczkiLockedBeforeVote,
-                            ),
+                          : () {
+                              // Same refusal as a locked card: the arguments
+                              // exist, they are just not readable until the
+                              // vote is in.
+                              Haptics.blocked();
+                              AppToast.info(
+                                context,
+                                context.l10n.smaczkiLockedBeforeVote,
+                              );
+                            },
                       onJumpToLatest: () =>
                           ref.read(questionIndexProvider.notifier).toLatest(),
                     )
@@ -336,8 +396,16 @@ class _CentredGroup extends StatelessWidget {
 /// which is strictly better than letting the [Column] overflow, because
 /// overflowed children are painted where nothing hit-tests them.
 double _minGroupHeight(BuildContext context, {required bool withRows}) {
-  if (!withRows) return _kMinQuestionHeight;
-  return _kMinQuestionHeight + 28 + voteRowMaxHeight(context);
+  final question = _minQuestionHeight(context);
+  if (!withRows) return question;
+  // Everything the panel can put UNDER the vote row counts too — the flip line
+  // arrived in v2 below `voteRowMaxHeight` without either measurement being
+  // told about it, which is exactly the kind of silent under-report this floor
+  // exists to prevent.
+  return question +
+      28 +
+      voteRowMaxHeight(context) +
+      votePanelExtrasMaxHeight(context);
 }
 
 /// The strip at the foot of the feed: on a readable question the swipe hint and
@@ -377,72 +445,88 @@ class _BottomOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showHintAndDeeper) ...[
-              // Subtle hint that questions are swipeable.
-              Text(
-                context.l10n.swipeHint,
-                textAlign: TextAlign.center,
-                style: AppTypography.support(
-                  fontSize: 13,
-                ).copyWith(color: context.colors.subtle),
-              ),
-              const SizedBox(height: 14),
-              // The action bar: "go deeper" carries the middle of the row
-              // (4/6), flanked by the share pill on the left and the favorites
-              // star on the right (1/6 each) in the same rounded-rectangle
-              // chrome — one full-width family of controls. Capped at the
-              // feed's width so it tracks the question column on tablets.
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: _kFeedMaxWidth),
-                child: Row(
-                  children: [
-                    if (questionText != null) ...[
-                      Expanded(
-                        child: ShareQuestionButton(
-                          questionText: questionText!,
-                          barStyle: true,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                    ],
-                    Expanded(
-                      flex: 4,
-                      child: GoDeeperButton(
-                        onTap: onGoDeeper ?? () {},
-                        label: goDeeperLabel,
-                        prominent: goDeeperProminent,
-                      ),
-                    ),
-                    if (questionId != null) ...[
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: FavoriteStarButton(
-                          questionId: questionId!,
-                          barStyle: true,
-                        ),
-                      ),
-                    ],
-                  ],
+    // The overlay is a SIBLING of the centred group and takes its height off
+    // the top of it, so it is the one part of the feed that cannot answer a
+    // huge system font by shrinking — it just pushes the question out and
+    // then runs off the bottom of the screen itself. At 3.0× on a 320pt
+    // phone the one-line swipe hint alone wrapped to 371pt, taller than half
+    // the viewport, and the action bar landed 120pt below the bottom edge:
+    // painted, and completely untouchable.
+    //
+    // So the strip follows the system font exactly as far as the vote tiles
+    // do and no further ([_kMaxQuestionTextScale] is the same 1.6). It is
+    // the smallest thing on screen that can give: the question above it
+    // still scales all the way, and a CTA the finger can reach beats a
+    // slightly larger label it cannot.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: _kMaxQuestionTextScale,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (showHintAndDeeper) ...[
+                // Subtle hint that questions are swipeable.
+                Text(
+                  context.l10n.swipeHint,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.support(
+                    fontSize: 13,
+                  ).copyWith(color: context.colors.subtle),
                 ),
-              ),
+                const SizedBox(height: 14),
+                // The action bar: "go deeper" carries the middle of the row
+                // (4/6), flanked by the share pill on the left and the favorites
+                // star on the right (1/6 each) in the same rounded-rectangle
+                // chrome — one full-width family of controls. Capped at the
+                // feed's width so it tracks the question column on tablets.
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: _kFeedMaxWidth),
+                  child: Row(
+                    children: [
+                      if (questionText != null) ...[
+                        Expanded(
+                          child: ShareQuestionButton(
+                            questionText: questionText!,
+                            barStyle: true,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      Expanded(
+                        flex: 4,
+                        child: GoDeeperButton(
+                          onTap: onGoDeeper ?? () {},
+                          label: goDeeperLabel,
+                          prominent: goDeeperProminent,
+                        ),
+                      ),
+                      if (questionId != null) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FavoriteStarButton(
+                            questionId: questionId!,
+                            barStyle: true,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+              if (showJumpToLatest) ...[
+                if (showHintAndDeeper) const SizedBox(height: 12),
+                _FeedLinkButton(
+                  label: context.l10n.backToLatestQuestion,
+                  icon: Icons.arrow_forward,
+                  iconAfterLabel: true,
+                  onTap: onJumpToLatest,
+                ),
+              ],
             ],
-            if (showJumpToLatest) ...[
-              if (showHintAndDeeper) const SizedBox(height: 12),
-              _FeedLinkButton(
-                label: context.l10n.backToLatestQuestion,
-                icon: Icons.arrow_forward,
-                iconAfterLabel: true,
-                onTap: onJumpToLatest,
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );

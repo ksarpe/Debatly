@@ -23,6 +23,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/feedback/haptics.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -235,7 +236,10 @@ class _LockedStack extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
-      onTap: () => showProPaywall(context, source: PaywallSource.history),
+      onTap: () {
+        Haptics.blocked();
+        showProPaywall(context, source: PaywallSource.history);
+      },
       child: Stack(
         alignment: Alignment.center,
         children: [

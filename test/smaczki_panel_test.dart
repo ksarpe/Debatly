@@ -124,6 +124,39 @@ void main() {
   );
 
   testWidgets(
+    'free user who BACKED OUT of the gate keeps their readable argument — a '
+    'dismissal is not a reading',
+    (tester) async {
+      // System back out of the gate, often inside the first second (a
+      // mis-tap, a notification, a change of mind). The outcome is recorded
+      // for the statistic, but nothing was delivered — so binding the sheet
+      // to the mere EXISTENCE of a record spent the free tier's headline
+      // promise on an accidental back press, and only an app restart undid
+      // it.
+      await pumpSheet(
+        tester,
+        premium: false,
+        gateRecord: const ChallengeRecord(
+          outcome: ChallengeOutcome.dismissed,
+          smaczekPosition: 1,
+          smaczekTagged: false,
+          choice: 1,
+        ),
+        smaczki: const [
+          Smaczek(position: 1, isLocked: false, text: 'Pierwszy argument.'),
+          Smaczek(position: 2, isLocked: true),
+          Smaczek(position: 3, isLocked: true),
+        ],
+      );
+
+      expect(find.text('Pierwszy argument.'), findsOneWidget);
+      expect(find.byIcon(Icons.lock_rounded), findsNWidgets(2));
+      // …and the sheet does not claim the first one is behind them.
+      expect(find.textContaining('Pierwszy masz za sobą'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'free user AFTER the gate on a fully tagged question: the header sells '
     'attack → defense (one card defends the answer, one complicates it)',
     (tester) async {

@@ -1,5 +1,6 @@
 import 'package:debatly/data/models/conformity_stats.dart';
 import 'package:debatly/data/models/debate_profile.dart';
+import 'package:debatly/data/models/vote_history_entry.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
 import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
@@ -24,12 +25,13 @@ void main() {
     WidgetTester tester, {
     required DebateProfile debateProfile,
     required bool premium,
+    bool withheldDepth = false,
   }) async {
     final container = ProviderContainer(
       retry: (retryCount, error) => null,
       overrides: [
         questionRepositoryProvider.overrideWithValue(
-          _ProfileRepo(debateProfile),
+          _ProfileRepo(debateProfile, withheldDepth: withheldDepth),
         ),
         isPremiumProvider.overrideWithValue(premium),
       ],
@@ -63,7 +65,7 @@ void main() {
     );
 
     expect(
-      find.text('Jeszcze 2 odpowiedzi i poznasz swój typ.'),
+      find.text('Jeszcze 2 kontry po głosowaniu i poznasz swój typ.'),
       findsOneWidget,
     );
     expect(find.text('4 / 6'), findsOneWidget);
@@ -71,6 +73,33 @@ void main() {
     expect(find.text('POSZUKIWACZ'), findsNothing);
     expect(find.text('FILAR'), findsNothing);
   });
+
+  testWidgets(
+    'locked: the pre-gate veteran (50 votes, 0 gates) is asked for kontry, '
+    'not for the answers they already gave',
+    (tester) async {
+      // The gate shipped 2026-08-19, so a long-standing account arrives with
+      // a null outcome on every old vote row and sits at 0 / 6. The bar is
+      // right; the sentence next to it is what has to carry the reason.
+      await pumpPanel(
+        tester,
+        premium: false,
+        debateProfile: const DebateProfile(
+          totalVotes: 50,
+          majorityVotes: 30,
+          minorityVotes: 20,
+          gateHeld: 0,
+          gateMoved: 0,
+        ),
+      );
+
+      expect(
+        find.text('Jeszcze 6 kontr po głosowaniu i poznasz swój typ.'),
+        findsOneWidget,
+      );
+      expect(find.text('0 / 6'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'provisional free profile: grid with the active type, the "wstępny" tag, '
@@ -216,15 +245,52 @@ void main() {
     // No locked rows for PRO.
     expect(find.byIcon(Icons.lock_rounded), findsNothing);
   });
+
+  testWidgets(
+    'PRO: a row whose value the server withholds says so instead of vanishing',
+    (tester) async {
+      // `get_type_rarity` returns NULL below the server's 20-unlocked-profile
+      // floor — which is where the live population actually is — and the
+      // loneliest vote is null for anyone whose every vote sat with the
+      // majority. Both rows were SOLD to the free user as locked rows one
+      // screen earlier, so a user who paid 19,99 zł for them and then found
+      // them simply gone had no way to read that as anything but a cheat.
+      await pumpPanel(
+        tester,
+        premium: true,
+        withheldDepth: true,
+        debateProfile: const DebateProfile(
+          totalVotes: 47,
+          majorityVotes: 47,
+          minorityVotes: 0,
+          gateHeld: 9,
+          gateMoved: 3,
+        ),
+      );
+
+      for (final title in const [
+        'TWÓJ TYP MA TYLKO …% UŻYTKOWNIKÓW',
+        'TWÓJ NAJBARDZIEJ SAMOTNY GŁOS',
+      ]) {
+        expect(find.text(title), findsOneWidget, reason: title);
+      }
+      expect(find.text('Jeszcze za mało danych.'), findsNWidgets(2));
+    },
+  );
 }
 
 /// Mock repo with a canned profile and instant conformity stats, so the panel
 /// settles in one pumpAndSettle. The PRO depth lists come from
 /// [MockQuestionRepository]'s canned values.
 class _ProfileRepo extends MockQuestionRepository {
-  _ProfileRepo(this.profile);
+  _ProfileRepo(this.profile, {this.withheldDepth = false});
 
   final DebateProfile profile;
+
+  /// Serves the "server has nothing for you" shape of the PRO depth: a null
+  /// rarity (population under the floor) and a history in which every vote
+  /// sat with the majority (no loneliest vote).
+  final bool withheldDepth;
 
   @override
   Future<ConformityStats> fetchConformityStats() async =>
@@ -232,4 +298,24 @@ class _ProfileRepo extends MockQuestionRepository {
 
   @override
   Future<DebateProfile> fetchDebateProfile() async => profile;
+
+  @override
+  Future<int?> fetchTypeRarity() async =>
+      withheldDepth ? null : super.fetchTypeRarity();
+
+  @override
+  Future<List<VoteHistoryEntry>> fetchVoteHistory() async {
+    if (!withheldDepth) return super.fetchVoteHistory();
+    return [
+      VoteHistoryEntry.fromJson({
+        'question_id': 'q-1',
+        'category': 'Ethics',
+        'question_text': 'Czy większość ma rację?',
+        'voted_at': '2026-07-10T18:42:07+00:00',
+        'yes_count': 90,
+        'no_count': 10,
+        'my_choice': 1,
+      }),
+    ];
+  }
 }

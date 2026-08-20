@@ -1,4 +1,5 @@
-import 'dart:async' show TimeoutException;
+import 'dart:async' show TimeoutException, unawaited;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/feedback/app_toast.dart';
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
+import '../../../core/monitoring/monitoring.dart';
 import '../../../core/network/network_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -25,6 +27,36 @@ import 'prototype_history_entry.dart';
 import 'smaczek_challenge_screen.dart';
 import 'suggest_question_nudge.dart';
 import 'vote_visuals.dart';
+
+/// The tallest the post-vote column can grow BELOW the vote row itself: the
+/// "Kontra przewróciła X%" line with its gap, plus the trailing gap the
+/// prototype history entry sits in.
+///
+/// Lives next to the widget that renders those rows so the two move together.
+/// The feed adds it to the floor it hands [FitOrScroll] — the flip line was
+/// added in v2 without that floor being updated, and a floor that under-reports
+/// is a Column that overflows onto the vote row instead of a feed that scrolls.
+/// Counted unconditionally: the flip line appears only past 30 answered gates,
+/// but over-reserving costs an earlier scroll while under-reserving costs an
+/// unreachable, painted-over button.
+///
+/// Reserves [kResultFlipLineMaxLines] of it, not one. The sentence fits a
+/// single line at the default font and wraps well before 2x, so reserving one
+/// was the same under-reporting bug one size down — it overflowed a 320x568
+/// phone at 2x by 54px, with the question crushed to nothing and the panel
+/// painted outside its box, where it stops being hit-testable. The cap on the
+/// [Text] is what turns this back into a real ceiling instead of a guess.
+double votePanelExtrasMaxHeight(BuildContext context) {
+  final scale = math.max(1.0, MediaQuery.textScalerOf(context).scale(1));
+  // 10px gap + the flip line (12px * 1.35 line height, rounded up) at up to
+  // [kResultFlipLineMaxLines], which follows the font, + the 14px tail.
+  return 10 + kResultFlipLineMaxLines * 17 * scale + 14;
+}
+
+/// How many lines the "Kontra przewróciła X%" line may take before it
+/// ellipsises. Pairs with [votePanelExtrasMaxHeight]: the reserve is only
+/// honest because the line cannot outgrow it.
+const int kResultFlipLineMaxLines = 2;
 
 /// The binary (TAK / NIE) vote shown under a question.
 ///
@@ -87,19 +119,48 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
     setState(() => _busy = true);
     // Captured before the await so we never read context across an async gap.
     final l10n = context.l10n;
+    // The container outlives this widget; `ref` dies with it. Swiping to the
+    // next question mid-gate unmounts the panel, and the post-vote state still
+    // has to reach the provider — see [persistVoted] below.
+    final container = ProviderScope.containerOf(context, listen: false);
     try {
       var result = await ref
           .read(questionRepositoryProvider)
           .castDailyVote(widget.questionId, choice);
-      if (!mounted) return;
-      final choiceLabel = choice == VoteResult.yes ? 'tak' : 'nie';
+
       // Persist the "already voted" state into the (non-autoDispose) provider, not
       // just this widget's `_local`. The panel unmounts when the user swipes off
       // the question, discarding `_local`; without this, returning to it would
       // re-read the provider's STALE pre-vote value and show the buttons again,
       // letting the user "vote" a second time. Invalidating forces a refetch of the
       // server's post-vote state (myChoice set → result bars on the next mount).
-      ref.invalidate(dailyVoteStateProvider(widget.questionId));
+      //
+      // It must NOT run before the reveal. This panel listens to that provider,
+      // so invalidating refetches immediately — and a PK lookup
+      // (`get_daily_vote_state`) routinely beats the gate's own smaczki round
+      // trip, which a free user always pays. `build` reads
+      // `_local ?? async.value`, so the post-vote state landing first fades the
+      // bars in while the argument is still being fetched, and the route under
+      // a transition keeps painting them as the gate arrives — exactly the
+      // reveal order the challenge exists to prevent.
+      void persistVoted() =>
+          container.invalidate(dailyVoteStateProvider(widget.questionId));
+
+      // Unmounted mid-vote there is no reveal left to race, and no `ref` to
+      // invalidate through — but the second-vote hole above is still real, so
+      // the write goes through the container instead.
+      if (!mounted) {
+        persistVoted();
+        return;
+      }
+      // The vote ON RECORD, which is not always the one just tapped: the RPC is
+      // first-write-wins, so a retry after a timed-out cast that actually
+      // landed comes back with the earlier choice. Everything downstream — the
+      // argument aimed at the user, the tile the words hit, the analytics —
+      // follows the server, not the tap, or the gate would attack a side the
+      // user never voted for.
+      final voted = result.myChoice ?? choice;
+      final choiceLabel = voted == VoteResult.yes ? 'tak' : 'nie';
 
       // Activation, the step the onboarding funnel drives toward, is a vote on
       // the served daily; feed votes get their own event.
@@ -112,10 +173,16 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       // still unset here — assigning it is what reveals the bars, so it waits
       // until the challenge is done with. The VOTE the user just cast is final:
       // the gate records its outcome on a separate axis and never re-casts.
-      final challenged = await _runChallenge(choice);
-      if (!mounted) return;
+      final challenged = await _runChallenge(voted);
+      if (!mounted) {
+        persistVoted();
+        return;
+      }
       if (challenged != null) result = challenged;
+      // The reveal and the provider write, in that order and in the same
+      // frame: nothing can paint the split ahead of `_local` now.
       setState(() => _local = result);
+      persistVoted();
       // EVERY vote may move the streak now (server: once per UTC day), so the
       // engagement upkeep runs for all of them: refresh the streak chip, flip
       // today's reminder to a post-vote message, maybe ask for a review.
@@ -156,9 +223,9 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
   /// voted for, and they must never wait on a smaczek.
   Future<VoteResult?> _runChallenge(int choice) async {
     final session = ref.read(challengeSessionProvider.notifier);
-    // The per-session valve for PRO: the fourth and later votes of a session
-    // go straight to the percentages. Free users never reach it — they have
-    // one question a day.
+    // The per-session valve for PRO: once [kChallengeSessionCap] gates have
+    // run, the rest of the session's votes go straight to the percentages.
+    // Free users never reach it — they have one question a day.
     if (session.capReached) {
       Analytics.log('smaczek_challenge_skipped', {
         'question_id': widget.questionId,
@@ -229,10 +296,48 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
             outcome: challenge.outcome,
             dwellMs: challenge.dwellMs,
           );
+      // No invalidate here: the caller writes the post-vote state through the
+      // provider itself, once — and deliberately not before the bars are on
+      // screen. A second site invalidating a line earlier is how the split
+      // ended up racing the gate in the first place.
       if (!mounted || !fresh.hasVoted) return null;
-      ref.invalidate(dailyVoteStateProvider(widget.questionId));
       return fresh;
-    } catch (_) {
+    } catch (e, st) {
+      // Best-effort for the USER (they keep their result either way) — but not
+      // best-effort for us: this write IS the resilience axis. If it started
+      // failing, gate answers would stop accumulating, nobody's debate profile
+      // would ever unlock, and absolutely nothing on screen would say so.
+      if (isOfflineError(e)) {
+        // [Monitoring] drops offline errors on purpose, so reporting this one
+        // the same way would leave the single most likely way to lose a gate
+        // answer — going offline mid-gate — with no trace whatsoever. A
+        // breadcrumb survives the filter and rides along with the next event.
+        Monitoring.addBreadcrumb(
+          'smaczek challenge outcome lost offline',
+          category: 'smaczek_challenge',
+          data: {
+            'question_id': widget.questionId,
+            'outcome': challenge.outcome.name,
+          },
+        );
+      } else {
+        // NOT awaited. This sits between the gate closing and the bars going
+        // up, and captureException goes to the network — the user would be
+        // waiting on a Sentry POST to see their own result, and the case that
+        // reaches here is the flaky one, where that POST is slowest.
+        unawaited(
+          Monitoring.captureException(
+            e,
+            stackTrace: st,
+            feature: 'smaczek_challenge',
+            extra: {
+              'question_id': widget.questionId,
+              'position': smaczek.position,
+              'outcome': challenge.outcome.name,
+            },
+          ),
+        );
+      }
       return null;
     }
   }
@@ -257,10 +362,22 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
   /// the share of votes that silently bypass the gate is measurable.
   Future<Smaczek?> _resolveChallenger(int choice) async {
     final id = widget.questionId;
-    void logSkip(String reason) => Analytics.log('smaczek_challenge_skipped', {
-      'question_id': id,
-      'reason': reason,
-    });
+    void logSkip(String reason) {
+      Analytics.log('smaczek_challenge_skipped', {
+        'question_id': id,
+        'reason': reason,
+      });
+      // A skipped gate is invisible on screen BY DESIGN — the percentages must
+      // never wait on a smaczek — so the reason has to ride along with
+      // whatever is captured next. It is the difference between "the arguments
+      // are slow" and "the arguments are gone".
+      Monitoring.addBreadcrumb(
+        'smaczek challenge skipped',
+        category: 'smaczki',
+        data: {'question_id': id, 'reason': reason},
+      );
+    }
+
     try {
       // `exists` guards the warm read: merely reading an un-instantiated
       // family entry would START a fetch the invalidate below immediately
@@ -416,7 +533,9 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       // this panel then rendered a blank 52px gap, so a user who opened the app
       // offline, or hit a 500 / expired JWT, saw the question with nothing to
       // tap and no explanation. As far as we know they haven't voted, so offer
-      // the buttons: the cast is an upsert, and it surfaces its own "no
+      // the buttons. Safe since `cast_daily_vote` became first-write-wins: a
+      // question they HAD voted on comes back with the stored choice and the
+      // bars, rather than being quietly re-cast. It surfaces its own "no
       // connection" / "vote failed" toast if the backend is still down.
       if (async.hasError) {
         return VoteButtonsRow(
@@ -454,6 +573,8 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
                   Text(
                     context.l10n.resultFlipLine(result.flipPct!),
                     textAlign: TextAlign.center,
+                    maxLines: kResultFlipLineMaxLines,
+                    overflow: TextOverflow.ellipsis,
                     style: AppTypography.support(
                       fontSize: 12,
                     ).copyWith(color: context.colors.subtle),

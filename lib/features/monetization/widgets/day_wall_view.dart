@@ -5,7 +5,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/feedback/app_toast.dart';
 import '../../../core/layout/content_width.dart';
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/locale/l10n_extension.dart';
@@ -14,7 +13,6 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/fit_or_scroll.dart';
 import '../../../data/repositories/question_repository.dart' show dateOnlyKey;
 import '../../../services/analytics.dart';
-import '../../account/providers/session_providers.dart';
 import '../../account/providers/stats_providers.dart';
 import '../../onboarding/providers/onboarding_providers.dart'
     show installDayNumber;
@@ -23,6 +21,7 @@ import '../../questions/widgets/vote_visuals.dart'
     show VoteButtonsRow, voteRowMaxHeight;
 import 'paywall_cta_button.dart';
 import 'pro_paywall_screen.dart';
+import 'purchase_settlement.dart';
 
 /// SharedPreferences key: the local `yyyy-MM-dd` date the wall last opened the
 /// paywall automatically — the "at most once a day" latch. Absent until
@@ -188,16 +187,10 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
         trigger: trigger,
       );
       if (!purchased || !mounted) return;
-      await ref.read(sessionProvider.notifier).refresh();
-      if (!mounted) return;
-      // Say which one it actually was. Claiming "Premium active" over a
+      // Says which one it actually was. Claiming "Premium active" over a
       // still-pending purchase would be a lie the wall itself contradicts —
       // it only hides once the entitlement really lands.
-      if (ref.read(isPremiumProvider)) {
-        AppToast.success(context, context.l10n.settingsPremiumActiveToast);
-      } else {
-        AppToast.info(context, context.l10n.purchaseSyncPending);
-      }
+      await settleProPurchase(context, ref);
     } finally {
       _sheetOpen = false;
     }
@@ -560,24 +553,38 @@ class _TeaserPreview extends StatelessWidget {
         // band. Scaling the assembled preview down covers that difference and
         // makes overflow impossible; at the sizes it actually gets, the scale
         // is 1 and nothing is scaled at all.
-        return FittedBox(
-          fit: BoxFit.scaleDown,
-          child: SizedBox(
-            // Fixed to the band's width, so the lines wrap where they would
-            // unscaled instead of stretching into one long line.
-            width: constraints.maxWidth,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                styled('$teaser…'),
-                Padding(
-                  padding: const EdgeInsets.only(top: _bleed, bottom: _bleed),
-                  child: ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
-                    child: styled(_placeholder),
-                  ),
+        // One node for the whole preview: the teaser, announced once and
+        // WITHOUT the placeholder. Every layer under it is silenced —
+        // "blablabla blabla blablabla" is scrambled art standing in for text
+        // nobody is allowed to read, and a screen reader was reading it out.
+        // The stroke/fill pairs would double the teaser on top of that.
+        return Semantics(
+          label: '$teaser…',
+          container: true,
+          child: ExcludeSemantics(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: SizedBox(
+                // Fixed to the band's width, so the lines wrap where they
+                // would unscaled instead of stretching into one long line.
+                width: constraints.maxWidth,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    styled('$teaser…'),
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: _bleed,
+                        bottom: _bleed,
+                      ),
+                      child: ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaX: 7, sigmaY: 7),
+                        child: styled(_placeholder),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );

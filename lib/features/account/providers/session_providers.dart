@@ -301,7 +301,24 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
     // hard paywall a free session would gate the whole app behind a purchase
     // that cannot happen, so mock sessions are premium — the full feed stays
     // browsable in keyless development. Any real backend key skips this.
-    if (!SupabaseService.isInitialised && !PurchasesService.isConfigured) {
+    //
+    // The test is CONFIGURED, not INITIALISED: a build that ships credentials
+    // whose init then failed must not be handed a fabricated premium session
+    // on top of fabricated questions. That case is an error state the gate
+    // renders (see [HomeGate]), not a development mode.
+    //
+    // And it is compiled OUT of release builds. Both conditions above are
+    // runtime facts about `--dart-define`s, so a release built without
+    // `--dart-define-from-file=env/prod.json` compiled and ran perfectly
+    // happily — as a free-for-all against the mock catalog, every user
+    // premium. That is a shipping accident away, and no amount of care in the
+    // branch itself prevents it; `kReleaseMode` is a constant, so the whole
+    // arm is gone from the release binary. A release build with no keys is
+    // then simply a broken build, which is what it is (see the startup
+    // credential check in `main`).
+    if (!kReleaseMode &&
+        SupabaseService.status == SupabaseInitStatus.notConfigured &&
+        !PurchasesService.isConfigured) {
       return const SessionState(isPremium: true);
     }
 

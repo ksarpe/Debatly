@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../core/feedback/haptics.dart';
 import '../../../core/locale/l10n_extension.dart';
+import '../../../core/monitoring/monitoring.dart';
 import '../../../core/share/widget_to_image.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -78,6 +80,10 @@ class _RankUpViewState extends State<_RankUpView>
       vsync: this,
       duration: const Duration(milliseconds: 1700),
     );
+    // The rarest moment in the app gets the only rising roll. Not gated on
+    // reduced motion: that setting calms the entrance, it doesn't cancel the
+    // promotion — the takeover still appears either way.
+    Haptics.celebrate();
   }
 
   @override
@@ -160,8 +166,15 @@ class _RankUpViewState extends State<_RankUpView>
           ],
         );
       }
-    } catch (e) {
-      debugPrint('rank share card render failed, sharing text only: $e');
+    } catch (e, st) {
+      // Falls back to a text-only share, so the user still shares — but a
+      // card that stopped rendering is invisible in release otherwise.
+      await Monitoring.captureException(
+        e,
+        stackTrace: st,
+        feature: 'share',
+        extra: {'card': 'rank'},
+      );
     }
     return ShareParams(
       text: message,

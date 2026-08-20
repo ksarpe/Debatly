@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -10,34 +11,165 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config/app_config.dart';
 import '../core/monitoring/monitoring.dart';
 import '../core/network/network_timeout.dart';
+import '../core/startup/guarded_init.dart';
+
+/// Where the last [SupabaseService.initialise] attempt left the client.
+///
+/// The distinction between the last two values is the whole point of this
+/// enum. "No credentials" is a deliberate development mode in which the app
+/// serves local mock data; "credentials that didn't come up" is a real user
+/// whose backend is missing. Collapsing them into a single `!isInitialised`
+/// check is what used to hand a live user a FAKE app — mock questions, a
+/// hard-coded daily, a fabricated split, a streak frozen at 0 and every vote
+/// silently discarded — with nothing on screen and nothing in Sentry to say
+/// so. Anything deciding "should I use mock data?" must branch on this, never
+/// on [SupabaseService.isInitialised].
+enum SupabaseInitStatus {
+  /// No `SUPABASE_URL` / `SUPABASE_ANON_KEY` in this build: mock mode, by
+  /// design (keyless `flutter run`, widget tests).
+  notConfigured,
+
+  /// The client is up; everything below talks to the real backend.
+  ready,
+
+  /// Credentials WERE configured and the init threw or outran its bound. The
+  /// app has a backend it cannot reach — an error state to surface, never
+  /// mock data to fall back on.
+  failed,
+}
 
 /// Thin wrapper around the Supabase client lifecycle.
 ///
 /// Initialised once from `main()` before `runApp`. If no credentials are
 /// supplied (see [AppConfig]) initialisation is skipped so the app still runs
-/// against mock data during early development.
+/// against mock data during early development — but a CONFIGURED init that
+/// fails is a different thing entirely; see [SupabaseInitStatus].
 class SupabaseService {
   SupabaseService._();
 
   static bool _initialised = false;
   static bool get isInitialised => _initialised;
 
-  static Future<void> initialise() async {
+  /// The live backend-availability signal. Read it through
+  /// `supabaseInitProvider` from anything that rebuilds.
+  static SupabaseInitStatus get status => statusFor(
+    configured: AppConfig.hasSupabaseCredentials,
+    initialised: _initialised,
+  );
+
+  /// The rule itself, on injectable inputs: [AppConfig]'s credentials are
+  /// compile-time constants, so this is the only way a test can pin the
+  /// "configured but not up ≠ mock mode" branch that the bug lived in.
+  @visibleForTesting
+  static SupabaseInitStatus statusFor({
+    required bool configured,
+    required bool initialised,
+  }) {
+    if (initialised) return SupabaseInitStatus.ready;
+    return configured
+        ? SupabaseInitStatus.failed
+        : SupabaseInitStatus.notConfigured;
+  }
+
+  /// Listeners notified when the client comes up LATE — after [initialise]
+  /// already gave up on it (see the `unawaited` hand-off there).
+  static final List<VoidCallback> _statusListeners = <VoidCallback>[];
+
+  /// Registers [listener] and returns it, so the caller can hand the same
+  /// value back to [removeStatusListener] (mirrors
+  /// `PurchasesService.addPremiumListener`).
+  static VoidCallback addStatusListener(VoidCallback listener) {
+    _statusListeners.add(listener);
+    return listener;
+  }
+
+  static void removeStatusListener(VoidCallback listener) =>
+      _statusListeners.remove(listener);
+
+  /// The ONE `Supabase.initialize` future of this process.
+  ///
+  /// Never start a second one. `Supabase.initialize` runs `_init(...)` — which
+  /// sets its own internal "already initialised" flag — to completion BEFORE it
+  /// awaits `supabaseAuth.initialize(...)`, and THAT is the step that restores
+  /// the persisted session from local storage. So a second call short-circuits
+  /// and returns instantly having restored nothing: [ensureSignedIn] then finds
+  /// no current user and mints a BRAND NEW anonymous UUID, stranding the
+  /// returning user's streak, votes, favourites and entitlement on the identity
+  /// it just walked away from. A retry has to wait on the ORIGINAL future.
+  static Future<Supabase>? _initFuture;
+
+  /// Whether the late-convergence hand-off is already attached to
+  /// [_initFuture]. One is enough — attaching a fresh one per retry would pile
+  /// up listeners on the same future for no gain ([_markReady] is idempotent).
+  static bool _convergenceArmed = false;
+
+  /// Brings the client up, bounded by [kInitTimeout], and returns the
+  /// resulting [status].
+  ///
+  /// Deliberately NOT wrapped in [guardedInit] by `main()`: it is its own
+  /// guard. It never throws, it bounds itself, and it reports a failure as a
+  /// distinct, error-level [SupabaseInitException] rather than the generic
+  /// startup warning — because a configured backend that never came up is not
+  /// a degraded feature, it is a broken app, and it has to be findable in
+  /// Sentry as its own issue.
+  ///
+  /// Safe to call again — that is what the error state's retry does — because
+  /// it re-awaits [_initFuture] instead of starting a second init. The retry
+  /// therefore helps in exactly the case it can help: the first attempt is
+  /// still running and merely overran [kInitTimeout]. An attempt that genuinely
+  /// FAILED cannot be redone (the SDK refuses to run it twice), so the retry
+  /// reports failure again rather than declaring a success that never happened.
+  static Future<SupabaseInitStatus> initialise() async {
+    if (_initialised) return SupabaseInitStatus.ready;
     if (!AppConfig.hasSupabaseCredentials) {
       debugPrint(
         'SupabaseService: no credentials provided — skipping init. '
         'Pass --dart-define=SUPABASE_URL/SUPABASE_ANON_KEY to enable.',
       );
-      return;
+      return SupabaseInitStatus.notConfigured;
     }
 
-    await Supabase.initialize(
+    final init = _initFuture ??= Supabase.initialize(
       url: AppConfig.supabaseUrl,
       // Supabase renamed the anon key to "publishable key"; the env var keeps
       // the familiar SUPABASE_ANON_KEY name.
       publishableKey: AppConfig.supabaseAnonKey,
     );
-    _initialised = true;
+
+    try {
+      await init.timeout(kInitTimeout);
+      return _markReady();
+    } catch (e, st) {
+      debugPrint('SupabaseService.initialise failed: $e');
+      // `timeout` bounds the WAIT, not the work — a slow init keeps running
+      // and often lands seconds later. Converging on it then un-breaks the app
+      // on its own instead of leaving the user on a retry button, and closes
+      // the window where the identity was real but the questions were mock.
+      if (!_convergenceArmed) {
+        _convergenceArmed = true;
+        unawaited(
+          init.then<void>((_) => _markReady()).catchError((Object _) {}),
+        );
+      }
+      await Monitoring.captureException(
+        SupabaseInitException(e),
+        stackTrace: st,
+        feature: 'startup',
+        extra: {'cause': '$e'},
+      );
+      return SupabaseInitStatus.failed;
+    }
+  }
+
+  static SupabaseInitStatus _markReady() {
+    if (!_initialised) {
+      _initialised = true;
+      // Copy first: a listener is free to unregister itself as it runs.
+      for (final listener in List<VoidCallback>.of(_statusListeners)) {
+        listener();
+      }
+    }
+    return SupabaseInitStatus.ready;
   }
 
   /// Convenience accessor; throws if used before [initialise] succeeded.
@@ -90,10 +222,19 @@ class SupabaseService {
   /// The fallback rule itself, on an injectable auth client so the offline
   /// contract ("Sign out never throws, the device session is always cleared")
   /// is pinned by a unit test.
+  ///
+  /// BOTH calls are bounded. gotrue revokes the token server-side for the local
+  /// scope too, so neither path is offline-safe on its own: with no HTTP
+  /// response timeout under it, a captive-portal Wi-Fi leaves the future hanging
+  /// forever and the button spins for the rest of the session — and the
+  /// fallback below, which is only reachable through the `catch`, never runs.
+  /// The fallback's own failure is swallowed rather than rethrown: gotrue
+  /// clears the on-device session BEFORE it goes to the network, so by then the
+  /// user is already signed out and the contract above holds.
   @visibleForTesting
   static Future<void> signOutOn(GoTrueClient auth) async {
     try {
-      await auth.signOut();
+      await auth.signOut().withNetworkTimeout();
     } catch (e) {
       debugPrint(
         'SupabaseService.signOut: global sign-out failed ($e); '
@@ -105,7 +246,11 @@ class SupabaseService {
         'Global sign-out failed; fell back to local',
         category: 'auth',
       );
-      await auth.signOut(scope: SignOutScope.local);
+      try {
+        await auth.signOut(scope: SignOutScope.local).withNetworkTimeout();
+      } catch (e) {
+        debugPrint('SupabaseService.signOut: local fallback failed too ($e)');
+      }
     }
   }
 
@@ -117,10 +262,9 @@ class SupabaseService {
       throw StateError('Supabase is not configured.');
     }
 
-    await client.auth.signInWithPassword(
-      email: email.trim(),
-      password: password,
-    );
+    await client.auth
+        .signInWithPassword(email: email.trim(), password: password)
+        .withNetworkTimeout();
   }
 
   /// Signs in with Google via the native account picker, then exchanges the
@@ -135,7 +279,9 @@ class SupabaseService {
   /// then [GoogleSignIn.authenticate] for the native picker. Supabase only needs
   /// the ID token; the access token is fetched best-effort and passed when
   /// available.
-  static Future<User?> signInWithGoogle() async {
+  static Future<User?> signInWithGoogle({
+    Future<bool> Function()? confirmSwitch,
+  }) async {
     if (!_initialised) {
       throw StateError('Supabase is not configured.');
     }
@@ -184,6 +330,7 @@ class SupabaseService {
 
     return signInWithIdTokenOn(
       client.auth,
+      confirmSwitch: confirmSwitch,
       provider: OAuthProvider.google,
       idToken: idToken,
       accessToken: authorization?.accessToken,
@@ -202,7 +349,9 @@ class SupabaseService {
   ///
   /// Only offered on Apple platforms (the UI hides it elsewhere); on Android it
   /// would need a web redirect + Service ID we deliberately don't set up.
-  static Future<User?> signInWithApple() async {
+  static Future<User?> signInWithApple({
+    Future<bool> Function()? confirmSwitch,
+  }) async {
     if (!_initialised) {
       throw StateError('Supabase is not configured.');
     }
@@ -232,6 +381,7 @@ class SupabaseService {
 
     return signInWithIdTokenOn(
       client.auth,
+      confirmSwitch: confirmSwitch,
       provider: OAuthProvider.apple,
       idToken: idToken,
       nonce: rawNonce,
@@ -265,15 +415,21 @@ class SupabaseService {
     required String idToken,
     String? accessToken,
     String? nonce,
+    Future<bool> Function()? confirmSwitch,
   }) async {
+    // Set only when the in-place link was attempted and refused, i.e. when
+    // what follows stops being an upgrade and becomes an account SWITCH.
+    var leavingGuestBehind = false;
     if (auth.currentUser?.isAnonymous == true) {
       try {
-        final response = await auth.linkIdentityWithIdToken(
-          provider: provider,
-          idToken: idToken,
-          accessToken: accessToken,
-          nonce: nonce,
-        );
+        final response = await auth
+            .linkIdentityWithIdToken(
+              provider: provider,
+              idToken: idToken,
+              accessToken: accessToken,
+              nonce: nonce,
+            )
+            .withNetworkTimeout();
         return response.user;
       } on AuthException catch (e, st) {
         if (e.code == _kIdentityAlreadyExists) {
@@ -285,15 +441,26 @@ class SupabaseService {
         } else {
           await Monitoring.captureException(e, stackTrace: st, feature: 'auth');
         }
+        leavingGuestBehind = true;
       }
     }
 
-    final response = await auth.signInWithIdToken(
-      provider: provider,
-      idToken: idToken,
-      accessToken: accessToken,
-      nonce: nonce,
-    );
+    // The link was refused, so signing in now REPLACES the session: the guest's
+    // streak, votes, favourites and debate profile stay on a UUID that has no
+    // credentials and can never be reached again. The email/password sheet has
+    // always asked first; this path used to do it silently.
+    if (leavingGuestBehind && confirmSwitch != null && !await confirmSwitch()) {
+      return null; // reads as "cancelled" to the caller, like a dismissed picker
+    }
+
+    final response = await auth
+        .signInWithIdToken(
+          provider: provider,
+          idToken: idToken,
+          accessToken: accessToken,
+          nonce: nonce,
+        )
+        .withNetworkTimeout();
     return response.user;
   }
 
@@ -325,10 +492,12 @@ class SupabaseService {
     if (!_initialised) {
       throw StateError('Supabase is not configured.');
     }
-    await client.auth.resetPasswordForEmail(
-      email.trim(),
-      redirectTo: AppConfig.passwordResetRedirectUrl,
-    );
+    await client.auth
+        .resetPasswordForEmail(
+          email.trim(),
+          redirectTo: AppConfig.passwordResetRedirectUrl,
+        )
+        .withNetworkTimeout();
   }
 
   /// Sets a new password on the CURRENT session.
@@ -340,7 +509,9 @@ class SupabaseService {
     if (!_initialised) {
       throw StateError('Supabase is not configured.');
     }
-    await client.auth.updateUser(UserAttributes(password: password));
+    await client.auth
+        .updateUser(UserAttributes(password: password))
+        .withNetworkTimeout();
   }
 
   /// Decides what submitting the register form would actually DO to the
@@ -415,10 +586,16 @@ class SupabaseService {
       // field — it steers the confirmation link to the "email confirmed" page
       // instead of the project's bare Site URL.
       try {
-        final response = await auth.updateUser(
-          UserAttributes(email: email.trim(), password: password, data: data),
-          emailRedirectTo: AppConfig.emailConfirmedUrl,
-        );
+        final response = await auth
+            .updateUser(
+              UserAttributes(
+                email: email.trim(),
+                password: password,
+                data: data,
+              ),
+              emailRedirectTo: AppConfig.emailConfirmedUrl,
+            )
+            .withNetworkTimeout();
         return response.user;
       } on AuthException catch (error) {
         // A registration retry: the upgrade already succeeded earlier in this
@@ -428,21 +605,73 @@ class SupabaseService {
         // confirmation) instead of dying on an error about a password the
         // user never asked to change.
         if (error.code != 'same_password') rethrow;
-        final response = await auth.updateUser(
-          UserAttributes(email: email.trim(), data: data),
-          emailRedirectTo: AppConfig.emailConfirmedUrl,
-        );
+        final response = await auth
+            .updateUser(
+              UserAttributes(email: email.trim(), data: data),
+              emailRedirectTo: AppConfig.emailConfirmedUrl,
+            )
+            .withNetworkTimeout();
         return response.user;
       }
     }
 
-    final response = await auth.signUp(
-      email: email.trim(),
-      password: password,
-      data: data,
-      emailRedirectTo: AppConfig.emailConfirmedUrl,
-    );
+    final response = await auth
+        .signUp(
+          email: email.trim(),
+          password: password,
+          data: data,
+          emailRedirectTo: AppConfig.emailConfirmedUrl,
+        )
+        .withNetworkTimeout();
     return response.user;
+  }
+
+  /// Whether the current user is a guest whose registration is still waiting on
+  /// the confirmation link.
+  ///
+  /// Registering upgrades the anonymous user IN PLACE, and GoTrue routes that
+  /// through its `email_change` path: the address is recorded on the user the
+  /// moment the call returns, but `is_anonymous` only flips when the link in
+  /// the mail is clicked — in a browser, outside the app, with no deep link
+  /// back. So this is exactly the window in which the identity can change
+  /// behind the running app's back, and the only one worth spending a network
+  /// call on at every resume (see [reloadIdentity]).
+  static bool get hasPendingRegistration =>
+      hasPendingRegistrationFor(currentUser);
+
+  /// The rule itself, on an injectable user so it is pinned by a unit test.
+  @visibleForTesting
+  static bool hasPendingRegistrationFor(User? user) {
+    if (user == null || !user.isAnonymous) return false;
+    final pending = user.newEmail?.trim() ?? user.email?.trim() ?? '';
+    return pending.isNotEmpty;
+  }
+
+  /// Re-reads WHO this session belongs to from the server and returns the
+  /// refreshed user (null when there is nothing to refresh or the call failed).
+  ///
+  /// `getUser()` would answer the question but leave the client's own session
+  /// untouched, so `currentUser.isAnonymous` would keep reading the stale claim;
+  /// `refreshSession` mints a new access token from the current database row,
+  /// which is what actually makes the flip visible to everything downstream. It
+  /// emits `tokenRefreshed`, deliberately NOT an identity-changing event (see
+  /// `isIdentityChangingAuthEvent`) — the caller owns the reload.
+  ///
+  /// Best-effort and silent: a failure here just means the app keeps rendering
+  /// the identity it already had, which is the state it was in anyway.
+  static Future<User?> reloadIdentity() async {
+    if (!_initialised || client.auth.currentSession == null) return null;
+    try {
+      final response = await client.auth.refreshSession().withNetworkTimeout();
+      return response.user;
+    } catch (e) {
+      debugPrint('SupabaseService.reloadIdentity failed: $e');
+      Monitoring.addBreadcrumb(
+        'Identity reload failed; the app keeps the identity it had',
+        category: 'auth',
+      );
+      return null;
+    }
   }
 
   /// Records the app's language on the user's profile so the auth emails
@@ -590,10 +819,43 @@ class SupabaseService {
   /// `auth.users` row). Deleting the auth user cascades across every user-owned
   /// table, so this removes/anonymizes all personal data server-side.
   ///
-  /// On success the local session is torn down so the app falls back to a fresh
-  /// anonymous guest on the next [ensureSignedIn]. Throws when there is no
-  /// backend / no signed-in user, or the function fails, so the caller can
+  /// The local session is torn down whatever happens, so the app falls back to
+  /// a fresh anonymous guest on the next [ensureSignedIn]. Throws when there is
+  /// no backend / no signed-in user, or the function fails, so the caller can
   /// surface an error instead of a silent no-op.
+  ///
+  /// Whether a failed [deleteAccount] leaves the account's fate UNKNOWN.
+  ///
+  /// The rule, on an injectable input, because the two branches differ by
+  /// whether a guest keeps or loses their only identity and that is not a
+  /// thing to leave un-pinned. A [FunctionException] means the function ran
+  /// and answered — the account is definitively still there. Anything else
+  /// (a timeout, a dropped connection, a 2xx we can't read as a confirmation)
+  /// may have committed the delete before we stopped listening.
+  @visibleForTesting
+  static bool deleteOutcomeIsAmbiguous(Object error) =>
+      error is! FunctionException;
+
+  /// The session is cleared on success and on an AMBIGUOUS failure, never on a
+  /// refusal the server actually spoke.
+  ///
+  /// Ambiguous means the delete may well have committed and we simply never
+  /// heard back: a timeout, a connection dropped mid-flight, a 2xx whose body
+  /// isn't the confirmation. Keeping the session there leaves a valid,
+  /// self-signed JWT for a user that no longer exists — every read empty, every
+  /// write a foreign-key violation, and a restart no help until the token
+  /// expires — so we take the recoverable side and sign out.
+  ///
+  /// A [FunctionException] is the opposite case: the function ANSWERED and
+  /// refused (`500 delete_failed`, `401 unauthorized`), so the account is
+  /// definitively still there. Signing out then destroys nothing on the server
+  /// and everything on the device — a GUEST has no credentials to sign back in
+  /// with, and deletion is offered to guests, who are most of the install base.
+  /// Their streak, votes, favourites and profile would be orphaned on a UUID
+  /// nothing can reach again. So a spoken refusal keeps the session.
+  ///
+  /// The bound on the invoke is what makes any of this reachable —
+  /// `functions.invoke` has no response timeout of its own.
   ///
   /// Note: this does NOT cancel an active store subscription — the UI tells the
   /// user to do that in the App Store / Play Store.
@@ -605,20 +867,46 @@ class SupabaseService {
       throw StateError('No signed-in user to delete.');
     }
 
-    // Throws FunctionException on a non-2xx response; let it propagate.
-    final res = await client.functions.invoke('delete-account');
-    final data = res.data;
-    if (!(data is Map && data['deleted'] == true)) {
-      throw Exception('Account deletion did not complete.');
-    }
-
-    // The server-side user is gone, so its JWT is now invalid — a global
-    // sign-out would try to revoke it and fail. Clear the session locally only.
+    var serverRefused = false;
     try {
-      await client.auth.signOut(scope: SignOutScope.local);
-    } catch (_) {
-      // Best-effort: the account is already deleted; a stale local token is
-      // harmless and gets replaced by a fresh guest on next launch.
+      final res = await client.functions
+          .invoke('delete-account')
+          .withNetworkTimeout();
+      final data = res.data;
+      if (!(data is Map && data['deleted'] == true)) {
+        // A 2xx we can't read as a confirmation: we don't know what ran.
+        throw Exception('Account deletion did not complete.');
+      }
+    } catch (e) {
+      serverRefused = !deleteOutcomeIsAmbiguous(e);
+      if (serverRefused) {
+        // The server spoke. The account is still there — keep the way back.
+        Monitoring.addBreadcrumb(
+          'deleteAccount refused by the server; session kept',
+          category: 'account',
+          data: {'status': (e as FunctionException).status},
+        );
+      }
+      rethrow;
+    } finally {
+      if (!serverRefused) {
+        // A deleted user's JWT is invalid, so a global sign-out would try to
+        // revoke it and fail. Clear the session locally only.
+        try {
+          await client.auth
+              .signOut(scope: SignOutScope.local)
+              .withNetworkTimeout();
+        } catch (e) {
+          // gotrue drops the on-device session before it goes to the network,
+          // so the user is signed out either way — but "either way" is the
+          // assumption the zombie session rode in on, so leave a trail.
+          Monitoring.addBreadcrumb(
+            'deleteAccount: local sign-out failed',
+            category: 'account',
+            data: {'error': '$e'},
+          );
+        }
+      }
     }
   }
 
@@ -642,4 +930,40 @@ enum RegisterPrecheck {
   /// The current guest already registered with a DIFFERENT address (still
   /// awaiting confirmation); proceeding would re-point that registration.
   pendingOtherEmail,
+}
+
+/// A configured Supabase client that never came up.
+///
+/// Bespoke, and deliberately worded WITHOUT transport keywords ("timeout",
+/// "socket", "connection") because [Monitoring]'s offline filter reads the
+/// throwable's text and would otherwise drop it as a connectivity blip. Unlike
+/// a failed request — which the app absorbs into cache and an offline banner —
+/// this leaves the app with no backend at all, so it is worth an issue even
+/// for a user on a bad network. The raw [cause] rides along in the report's
+/// `details` context instead of in the message, which also keeps every
+/// occurrence grouped into one Sentry issue.
+class SupabaseInitException implements Exception {
+  SupabaseInitException(this.cause);
+
+  /// What `Supabase.initialize` actually threw (or the bound that expired).
+  final Object cause;
+
+  @override
+  String toString() =>
+      'SupabaseInitException: the Supabase client did not come up';
+}
+
+/// Thrown when something asks for the backend while it is
+/// [SupabaseInitStatus.failed].
+///
+/// The alternative — quietly handing back mock data — is the bug this type
+/// exists to make impossible: it turns "we have no backend" into a loud,
+/// reportable failure instead of a fake app the user cannot tell apart from
+/// the real one.
+class SupabaseUnavailableException implements Exception {
+  const SupabaseUnavailableException();
+
+  @override
+  String toString() =>
+      'SupabaseUnavailableException: the backend is configured but not up';
 }

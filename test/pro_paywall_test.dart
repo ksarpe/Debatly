@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:debatly/data/models/user_stats.dart';
+import 'package:debatly/features/account/providers/session_providers.dart';
 import 'package:debatly/features/account/providers/stats_providers.dart';
 import 'package:debatly/features/monetization/widgets/paywall_content.dart';
 import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
@@ -10,7 +12,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
+import 'support/fakes.dart';
 import 'support/localized_test_app.dart';
+
+/// A session the test can flip to premium mid-scene — what the auth sheet does
+/// when a returning buyer signs in to the account their PRO sits on.
+class _FlippableSession extends SessionNotifier {
+  _FlippableSession(this._state);
+
+  SessionState _state;
+
+  @override
+  Future<SessionState> build() async => _state;
+
+  void grantPremium() {
+    _state = accountSession(isPremium: true);
+    state = AsyncData(_state);
+  }
+}
 
 /// The in-app fullscreen PRO paywall. Packages come from the current
 /// RevenueCat offering in production; here they're injected via
@@ -49,10 +68,13 @@ void main() {
     PaywallSource source = PaywallSource.general,
     String? headline,
     int streak = 0,
+    SessionState? session,
   }) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          if (session != null)
+            sessionProvider.overrideWith(() => FakeSession(session)),
           // The streak feeds the paywall_shown analytics event.
           userStatsProvider.overrideWith(
             (ref) async => UserStats(
@@ -233,9 +255,32 @@ void main() {
 
     expect(find.textContaining('Taniej niż'), findsNothing);
 
-    // And with no monthly package there is nothing to preselect: no filled
-    // radio, CTA visible but disarmed until the user taps a plan.
-    expect(find.byIcon(Icons.radio_button_checked), findsNothing);
+    // With no monthly package the FIRST plan is preselected instead, so the
+    // CTA is still armed. It used to preselect nothing at all, which on a
+    // lifetime-only or partially-approved storefront meant a paywall whose
+    // only button was dimmed and did nothing — the user could not buy even
+    // though there was a plan on screen.
+    expect(find.byIcon(Icons.radio_button_checked), findsOneWidget);
+  });
+
+  testWidgets('a lifetime-only offering still buys on a straight CTA tap', (
+    tester,
+  ) async {
+    Package? bought;
+    await pumpSheet(
+      tester,
+      loadPackages: () async => [lifetime],
+      buy: (package) async {
+        bought = package;
+        return PurchaseOutcome.cancelled;
+      },
+    );
+
+    await tester.ensureVisible(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
+    await tester.tap(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
+    await tester.pumpAndSettle();
+
+    expect(bought, lifetime);
   });
 
   testWidgets('comparison line is omitted when currencies differ', (
@@ -499,6 +544,100 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
+  testWidgets(
+    'an already-owned purchase points at restore, not the connection',
+    (tester) async {
+      // PRODUCT_ALREADY_PURCHASED / RECEIPT_ALREADY_IN_USE: a reinstalled
+      // lifetime buyer, or a receipt attached to another app user — the
+      // number-one cause of "I paid and I'm still free". This used to land in
+      // the same bucket as a dead connection, so the one person who had already
+      // paid was told to check their wifi, feet away from the restore link and
+      // the sign-in link that actually recover it.
+      // An account holder, so the buy path's chained restore runs straight
+      // through — a guest would be asked first (restoring onto a fresh
+      // anonymous identity moves PRO off the account that holds it).
+      await pumpSheet(
+        tester,
+        loadPackages: () async => [lifetime, monthly],
+        buy: (_) async => PurchaseOutcome.alreadyOwned,
+        session: accountSession(),
+      );
+
+      await tester.ensureVisible(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
+      await tester.tap(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
+      await tester.pumpAndSettle(); // buy(), then the chained restore
+
+      expect(
+        find.text(
+          'Ten zakup jest już przypisany do konta w sklepie. Kliknij '
+          '„Przywróć zakup” albo zaloguj się na konto, na którym jest.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Sprawdź połączenie'), findsNothing);
+      // And never "no previous purchase found" — the chained restore comes up
+      // empty when the receipt sits on ANOTHER app user, which is the case
+      // this outcome exists for. Denying the purchase there is how a paying
+      // user concludes their PRO is gone.
+      expect(find.textContaining('Nie znaleziono'), findsNothing);
+      // The paywall stays usable — restore and sign-in are both still on it.
+      expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'an entitlement arriving from the sign-in link closes the paywall',
+    (tester) async {
+      // The footer's "Already have PRO? Sign in" is the returning buyer's path
+      // and it resolves the entitlement with no purchase call at all. Nothing
+      // here watched for that: the auth sheet closed, PRO landed, and the user
+      // was left on a live paywall with the plan cards still armed — the most
+      // likely next tap being "buy".
+      final session = _FlippableSession(guestSession());
+      final results = <bool?>[];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sessionProvider.overrideWith(() => session)],
+          child: LocalizedTestApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => Center(
+                  child: ElevatedButton(
+                    onPressed: () async => results.add(
+                      await showModalBottomSheet<bool>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (_) => ProPaywallScreen(
+                          loadPackages: () async => [lifetime, monthly],
+                          buy: (_) async =>
+                              fail('nothing may be purchased here'),
+                        ),
+                      ),
+                    ),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
+
+      // What signing in does: reload the session, which resolves premium.
+      session.grantPremium();
+      await tester.pumpAndSettle();
+
+      expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsNothing);
+      expect(results, [true]);
+    },
+  );
+
   testWidgets('a transient store failure is retried before the user sees it', (
     tester,
   ) async {
@@ -680,5 +819,46 @@ void main() {
 
     expect(find.text(r'$22.99'), findsOneWidget);
     expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
+  });
+  testWidgets('a purchase that never returns still lets the user out', (
+    tester,
+  ) async {
+    // The paywall is a fullscreen dialog: no iOS edge-swipe back, and the close
+    // button is deliberately locked while a purchase is in flight so a stray
+    // tap cannot orphan a transaction. That leaves a store call which simply
+    // never answers — the exact reason `kOfferFetchTimeout` exists — with no
+    // exit at all, on the one screen App Review exercises hardest.
+    final never = Completer<PurchaseOutcome>();
+    addTearDown(() => never.complete(PurchaseOutcome.cancelled));
+
+    await pumpSheet(
+      tester,
+      loadPackages: () async => [lifetime, monthly],
+      buy: (_) => never.future,
+    );
+
+    await tester.tap(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
+    await tester.pump();
+
+    IconButton closeButton() => tester.widget<IconButton>(
+      find.ancestor(
+        of: find.byIcon(Icons.close_rounded),
+        matching: find.byType(IconButton),
+      ),
+    );
+
+    expect(
+      closeButton().onPressed,
+      isNull,
+      reason: 'locked while the purchase might still be live',
+    );
+
+    await tester.pump(const Duration(seconds: 21));
+
+    expect(
+      closeButton().onPressed,
+      isNotNull,
+      reason: 'past the grace period there is always a way out',
+    );
   });
 }

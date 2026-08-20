@@ -224,6 +224,27 @@ void main() {
       expect(PurchasesService.isRetryableFailure(notAllowed), isFalse);
     });
 
+    test(
+      'an already-owned or still-pending purchase is not our bug either',
+      () {
+        // PRODUCT_ALREADY_PURCHASED / RECEIPT_ALREADY_IN_USE (a reinstall, a
+        // second device, a receipt sitting on another app user) and
+        // PAYMENT_PENDING (cash at a kiosk, a card awaiting SCA, a child's
+        // purchase awaiting a parent) are ANSWERS, not failures: [purchase]
+        // turns them into the alreadyOwned / pending outcomes. One Sentry issue
+        // per occurrence buries the failures that are real, and retrying the
+        // same buy resolves none of the three.
+        for (final code in const [
+          PurchasesErrorCode.productAlreadyPurchasedError,
+          PurchasesErrorCode.receiptAlreadyInUseError,
+          PurchasesErrorCode.paymentPendingError,
+        ]) {
+          expect(PurchasesService.isEnvironmentFailure(rcError(code)), isTrue);
+          expect(PurchasesService.isRetryableFailure(rcError(code)), isFalse);
+        }
+      },
+    );
+
     test('a broken configuration is reported and never retried', () {
       // These fail identically forever — retrying just delays the error state,
       // and they are exactly the ones that must reach Sentry.
@@ -250,7 +271,7 @@ void main() {
     test('a dropped connection counts even without a RevenueCat code', () {
       // The bounded fetch in [paywallPackages] surfaces a hung request as a
       // TimeoutException, which carries no RevenueCat code at all.
-      final timeout = TimeoutException('getOfferings', kOfferFetchTimeout);
+      final timeout = TimeoutException('getOfferings', kStoreCallTimeout);
       expect(PurchasesService.isRetryableFailure(timeout), isTrue);
       expect(PurchasesService.isEnvironmentFailure(timeout), isTrue);
       // An ordinary bug is neither.

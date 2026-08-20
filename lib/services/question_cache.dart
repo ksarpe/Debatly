@@ -118,8 +118,12 @@ class QuestionCache {
   // ---- Daily vote state ------------------------------------------------------
   // Not locale-keyed: a vote is on the canonical question id and the community
   // tally aggregates across every language. Stamped with the voter's id so a
-  // different identity never reads someone else's cached vote. Only the daily is
-  // ever written (one question at a time), so this stays a single small entry.
+  // different identity never reads someone else's cached vote.
+  //
+  // One entry per question the user votes on or opens — NOT just the daily, as
+  // this comment used to claim. A PRO reader who works through the catalog
+  // accumulates one `qcache_vote_<uuid>` key per question, and nothing prunes
+  // them short of [clearContent]. Worth capping if the count ever matters.
 
   /// The last-known vote state for [questionId] IFF it was cached for [userId].
   /// Returns null when nothing is cached, the blob is malformed, or it belongs

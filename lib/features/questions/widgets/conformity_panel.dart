@@ -63,9 +63,16 @@ Future<void> showConformityPanel(BuildContext context) {
   // The provider is kept alive (and refreshed) by QuestionScreen, so a failed
   // fetch would otherwise stick as "try again in a moment" for the whole
   // session — opening the panel is the user's retry gesture.
+  // Both of them: the panel renders the axis AND the debate profile below it,
+  // and a profile that errored renders as nothing at all, so leaving it out
+  // made the retry gesture fix half the panel and silently skip the half the
+  // user came for.
   final container = ProviderScope.containerOf(context, listen: false);
   if (container.read(conformityStatsProvider).hasError) {
     container.invalidate(conformityStatsProvider);
+  }
+  if (container.read(debateProfileProvider).hasError) {
+    container.invalidate(debateProfileProvider);
   }
   final reduceMotion = MediaQuery.of(context).disableAnimations;
   return showGeneralDialog<void>(

@@ -44,6 +44,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your purchase went through, but we couldn\'t confirm it yet. Try “Restore purchase” in a moment.';
 
   @override
+  String get purchaseAlreadyOwned =>
+      'This purchase already belongs to a store account. Tap “Restore purchase”, or sign in to the account that holds it.';
+
+  @override
   String get restoreSignInTitle => 'Restore purchase?';
 
   @override
@@ -199,6 +203,19 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authErrorTooManyRequests =>
       'Too many attempts. Wait a moment and try again.';
+
+  @override
+  String get authErrorGeneric => 'Something went wrong. Please try again.';
+
+  @override
+  String get authSwitchAccountTitle => 'Sign in to another account?';
+
+  @override
+  String get authSwitchAccountBody =>
+      'Signing in swaps this device over to that account. Your streak, votes and favourites live on this guest profile and won\'t come along. Want to keep them? Create an account instead — that keeps everything.';
+
+  @override
+  String get authSwitchAccountConfirm => 'Sign in anyway';
 
   @override
   String get settingsSectionApp => 'APP SETTINGS';
@@ -402,6 +419,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get historyEmptyBody => 'Vote on a question and it will show up here.';
+
+  @override
+  String get historyEmptyTodayTitle => 'Nothing today yet';
+
+  @override
+  String get historyEmptyTodayBody =>
+      'Vote on today\'s question and it will show up here.';
 
   @override
   String get historyLoadError => 'Couldn\'t load the history.';
@@ -662,6 +686,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Today\'s question didn\'t come through. Try again in a moment.';
 
   @override
+  String get backendUnavailableTitle => 'Can\'t reach Debatly';
+
+  @override
+  String get backendUnavailableBody =>
+      'We couldn\'t connect to the server, so nothing you do here would be saved. Try again.';
+
+  @override
   String get offlineBannerLabel => 'You\'re offline';
 
   @override
@@ -680,7 +711,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smaczkiBarFree => 'THE CASE FOR YOU';
 
   @override
-  String get smaczkiBarUntagged => 'TWO MORE ARGUMENTS';
+  String smaczkiBarUntagged(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count MORE ARGUMENTS',
+      one: 'ONE MORE ARGUMENT',
+      zero: 'THAT WAS THE LAST ONE',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get shareLabel => 'Share';
@@ -793,8 +833,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       n,
       locale: localeName,
-      other: '$n more answers and you\'ll know your type.',
-      one: '1 more answer and you\'ll know your type.',
+      other: 'Answer $n more counters after voting and you\'ll know your type.',
+      one: 'Answer 1 more counter after voting and you\'ll know your type.',
     );
     return '$_temp0';
   }

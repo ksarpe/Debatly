@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:debatly/services/supabase_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -329,6 +331,46 @@ void main() {
     });
   });
 
+  group('hasPendingRegistration', () {
+    User user({String? email, required bool anonymous}) =>
+        User.fromJson(userJson(id: 'u-1', email: email, anonymous: anonymous))!;
+
+    test('an anonymous user carrying an address is mid-registration', () {
+      // GoTrue's email_change path: the address lands on the user straight
+      // away, `is_anonymous` only flips when the mailed link is clicked — in a
+      // browser, with no way back into the app. This is the window the resume
+      // check exists for.
+      expect(
+        SupabaseService.hasPendingRegistrationFor(
+          user(email: 'user@example.com', anonymous: true),
+        ),
+        isTrue,
+      );
+    });
+
+    test('a fresh guest, a finished account and no session are not', () {
+      expect(
+        SupabaseService.hasPendingRegistrationFor(user(anonymous: true)),
+        isFalse,
+      );
+      expect(
+        SupabaseService.hasPendingRegistrationFor(
+          user(email: '  ', anonymous: true),
+        ),
+        isFalse,
+      );
+      // Already confirmed — there is nothing left to converge on, and every
+      // resume would otherwise spend a token refresh on it.
+      expect(
+        SupabaseService.hasPendingRegistrationFor(
+          user(email: 'user@example.com', anonymous: false),
+        ),
+        isFalse,
+      );
+      expect(SupabaseService.hasPendingRegistrationFor(null), isFalse);
+    });
+  });
+
   group('signInWithIdToken (social)', () {
     /// Requests to the id-token grant endpoint, split by intent: linking
     /// carries `link_identity: true` in the body, a plain sign-in doesn't.
@@ -551,5 +593,46 @@ void main() {
         1,
       );
     });
+  });
+
+  group('deleteAccount', () {
+    // Which failures may clear the on-device session. A guest's anonymous UUID
+    // is their ONLY identity — there are no credentials to sign back in with —
+    // so clearing it after a delete that did NOT happen orphans their streak,
+    // votes, favourites and profile for good. Deletion is offered to guests,
+    // who are most of the install base, which is what makes this rule load-
+    // bearing rather than tidy.
+    test(
+      'a refusal the server SPOKE is unambiguous — the account still lives',
+      () {
+        for (final status in [400, 401, 403, 500]) {
+          expect(
+            SupabaseService.deleteOutcomeIsAmbiguous(
+              FunctionException(status: status),
+            ),
+            isFalse,
+            reason: 'HTTP $status is an answer, not a lost response',
+          );
+        }
+      },
+    );
+
+    test(
+      'a lost or unreadable response is ambiguous — the delete may have run',
+      () {
+        final unknown = <Object>[
+          TimeoutException('no response'),
+          const SocketException('connection closed'),
+          Exception('Account deletion did not complete.'),
+        ];
+        for (final error in unknown) {
+          expect(
+            SupabaseService.deleteOutcomeIsAmbiguous(error),
+            isTrue,
+            reason: '$error leaves the fate of the account unknown',
+          );
+        }
+      },
+    );
   });
 }

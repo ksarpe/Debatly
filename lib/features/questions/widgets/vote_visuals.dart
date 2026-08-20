@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/feedback/haptics.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -56,9 +57,23 @@ Widget _scaledTile({required Widget child}) =>
 /// the two are kept from being laid out on top of each other on a short screen.
 double voteRowMaxHeight(BuildContext context) {
   final scale = MediaQuery.textScalerOf(context).scale(1);
-  // panels + the 6px gap + the 11.5px caption line, which follows the font.
-  return _voteHeight(context) + 6 + 16 * math.max(1, scale);
+  // panels + the 6px gap + the caption, which follows the font and sits in a
+  // half-width column: 10.5px eyebrow at 1.2 line height, rounded up to 13,
+  // times [kMyVoteCaptionMaxLines].
+  return _voteHeight(context) +
+      6 +
+      kMyVoteCaptionMaxLines * 13 * math.max(1, scale);
 }
+
+/// How many lines the "TWÓJ GŁOS" caption may take before it ellipsises.
+///
+/// It is not one. The caption sits in an [Expanded] half of the row, so on a
+/// 320pt phone it wraps at 2x and stays wrapped — and budgeting a single line
+/// made [voteRowMaxHeight] under-report by 18px at 2x and 28px at 3x. The feed
+/// sizes the question against that number, so an under-reporting row is a
+/// question painted straight over the TAK/NIE buttons. Capping the lines is
+/// what makes the budget a ceiling rather than a hope.
+const int kMyVoteCaptionMaxLines = 2;
 
 /// Gap between the two slanted tiles in the post-vote layouts, wide enough for
 /// the "VS" badge to sit over the seam. Public so the smaczek challenge can lay
@@ -88,13 +103,17 @@ class VoteSideTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isYes ? AppTheme.yes : AppTheme.no;
+    final colors = context.colors;
+    // The tint is the side's fill hue; the label and the check read from the
+    // canvas-resolved ink, which is the same hue only on the dark canvas.
+    final fill = isYes ? AppTheme.yes : AppTheme.no;
+    final ink = colors.voteInk(isYes);
     return ClipPath(
       clipper: _SkewClipper(isYes ? _Slant.left : _Slant.right),
       child: SizedBox(
         height: _voteHeight(context),
         child: ColoredBox(
-          color: color.withValues(alpha: lit ? 0.42 : 0.10),
+          color: fill.withValues(alpha: lit ? 0.42 : 0.10),
           child: Center(
             child: _scaledTile(
               child: Row(
@@ -106,13 +125,13 @@ class VoteSideTile extends StatelessWidget {
                           .toUpperCase(),
                       maxLines: 1,
                       style: AppTypography.action(fontSize: 16).copyWith(
-                        color: color.withValues(alpha: lit ? 1 : 0.45),
+                        color: lit ? ink : colors.voteInkMuted(isYes, 0.45),
                       ),
                     ),
                   ),
                   if (lit) ...[
                     const SizedBox(width: 6),
-                    Icon(Icons.check_rounded, color: color, size: 16),
+                    Icon(Icons.check_rounded, color: ink, size: 16),
                   ],
                 ],
               ),
@@ -133,6 +152,17 @@ class VoteButtonsRow extends StatelessWidget {
   final bool busy;
   final void Function(int choice) onVote;
 
+  /// The vote is the one irreversible act in the app — and the argument that
+  /// follows it lands with its own [Haptics.impact], so the choice itself has
+  /// to be felt first or the gate hits out of nowhere. Fired here rather than
+  /// in the caller so the onboarding taste vote gets exactly the same feel as
+  /// the real cast; the day wall's copy is inert ([IgnorePointer]) and never
+  /// reaches this.
+  void _cast(int choice) {
+    Haptics.confirm();
+    onVote(choice);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Opacity(
@@ -146,7 +176,7 @@ class VoteButtonsRow extends StatelessWidget {
                 label: context.l10n.voteYes,
                 hint: AppTheme.yes,
                 slant: _Slant.left,
-                onTap: busy ? null : () => onVote(VoteResult.yes),
+                onTap: busy ? null : () => _cast(VoteResult.yes),
               ),
             ),
             const SizedBox(width: 10),
@@ -155,7 +185,7 @@ class VoteButtonsRow extends StatelessWidget {
                 label: context.l10n.voteNo,
                 hint: AppTheme.no,
                 slant: _Slant.right,
-                onTap: busy ? null : () => onVote(VoteResult.no),
+                onTap: busy ? null : () => _cast(VoteResult.no),
               ),
             ),
           ],
@@ -208,7 +238,7 @@ class VoteResultsRow extends StatelessWidget {
                 child: _ResultPanel(
                   label: context.l10n.voteYes,
                   pct: result.yesPct,
-                  color: AppTheme.yes,
+                  isYes: true,
                   slant: _Slant.left,
                   mine: result.myChoice == VoteResult.yes,
                   showPct: !communityHidden,
@@ -219,7 +249,7 @@ class VoteResultsRow extends StatelessWidget {
                 child: _ResultPanel(
                   label: context.l10n.voteNo,
                   pct: result.noPct,
-                  color: AppTheme.no,
+                  isYes: false,
                   slant: _Slant.right,
                   mine: result.myChoice == VoteResult.no,
                   showPct: !communityHidden,
@@ -280,6 +310,9 @@ class _MyVoteCaption extends StatelessWidget {
     final label = Center(
       child: Text(
         context.l10n.yourVote.toUpperCase(),
+        textAlign: TextAlign.center,
+        maxLines: kMyVoteCaptionMaxLines,
+        overflow: TextOverflow.ellipsis,
         style: AppTypography.eyebrow().copyWith(color: context.colors.subtle),
       ),
     );
@@ -351,7 +384,7 @@ class _ResultPanel extends StatelessWidget {
   const _ResultPanel({
     required this.label,
     required this.pct,
-    required this.color,
+    required this.isYes,
     required this.slant,
     required this.mine,
     this.showPct = true,
@@ -359,7 +392,9 @@ class _ResultPanel extends StatelessWidget {
 
   final String label;
   final int pct;
-  final Color color;
+
+  /// Which side this panel is — it picks both the fill hue and the ink.
+  final bool isYes;
   final _Slant slant;
   final bool mine;
 
@@ -369,17 +404,24 @@ class _ResultPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final fill = isYes ? AppTheme.yes : AppTheme.no;
+    // The percentage is the payoff of the vote, so it is painted in the ink,
+    // not in the fill hue it sits on: on the light canvas that pairing was
+    // #22C55E on #9DE1B8, a 1.5:1 non-contrast.
+    final ink = colors.voteInk(isYes);
     // Push the two sides apart so the picked one clearly "wins": the chosen
-    // panel gets a stronger fill and full-strength text, the other fades back.
+    // panel gets a stronger fill and full-strength text, the other fades back
+    // — where the canvas can afford the fade (see AppColors.voteInkMuted).
     final pctColor = !showPct
-        ? color.withValues(alpha: 0.55)
-        : (mine ? color : color.withValues(alpha: 0.62));
+        ? colors.voteInkMuted(isYes, 0.55)
+        : (mine ? ink : colors.voteInkMuted(isYes, 0.62));
     return ClipPath(
       clipper: _SkewClipper(slant),
       child: SizedBox(
         height: _voteHeight(context),
         child: ColoredBox(
-          color: color.withValues(alpha: mine ? 0.42 : 0.12),
+          color: fill.withValues(alpha: mine ? 0.42 : 0.12),
           child: Center(
             child: _scaledTile(
               child: Column(
@@ -393,13 +435,13 @@ class _ResultPanel extends StatelessWidget {
                           label.toUpperCase(),
                           maxLines: 1,
                           style: AppTypography.eyebrow(fontSize: 11).copyWith(
-                            color: color.withValues(alpha: mine ? 1 : 0.6),
+                            color: mine ? ink : colors.voteInkMuted(isYes, 0.6),
                           ),
                         ),
                       ),
                       if (mine) ...[
                         const SizedBox(width: 4),
-                        Icon(Icons.check_rounded, color: color, size: 14),
+                        Icon(Icons.check_rounded, color: ink, size: 14),
                       ],
                     ],
                   ),

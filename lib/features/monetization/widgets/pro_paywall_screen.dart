@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart' show Package;
 
+import '../../../core/feedback/haptics.dart';
 import '../../../core/layout/content_width.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/analytics.dart';
 import '../../../services/purchases_service.dart' show PurchaseOutcome;
+import '../../account/providers/session_providers.dart';
 import 'paywall_content.dart';
 
 export 'paywall_content.dart' show PaywallSource;
@@ -38,6 +42,10 @@ Future<bool> showProPaywall(
   String? headline,
 }) async {
   final openedAt = DateTime.now();
+  // Captured BEFORE the push: the caller's context can be gone by the time the
+  // route pops (the smaczki sheet closes behind it), and the container is what
+  // tells a confirmed purchase apart from a pending one afterwards.
+  final container = ProviderScope.containerOf(context, listen: false);
   final result = await Navigator.of(context).push<bool>(
     MaterialPageRoute<bool>(
       fullscreenDialog: true,
@@ -49,6 +57,16 @@ Future<bool> showProPaywall(
     ),
   );
   final purchased = result ?? false;
+  // One place for every entry point: the moment the money actually landed (or
+  // an old purchase was restored) is the other rising roll in the app.
+  //
+  // Gated on the entitlement being VISIBLE, not merely on `purchased`, which is
+  // also true for [PurchaseOutcome.pending]. A Play-pending buyer used to get
+  // the full celebratory roll and then a toast telling them the purchase could
+  // not be confirmed yet — the haptic promising what the words took back.
+  if (purchased && container.read(isPremiumProvider)) {
+    Haptics.celebrate();
+  }
   // The funnel exit: closed without ending up entitled (close button, system
   // back, or gave up after a cancelled purchase). Purchases and restores log
   // their own events inside the content. seconds_visible separates a bounce
@@ -89,10 +107,48 @@ class ProPaywallScreen extends ConsumerStatefulWidget {
   ConsumerState<ProPaywallScreen> createState() => _ProPaywallScreenState();
 }
 
+/// How long the close button may stay locked behind an in-flight purchase or
+/// restore before it unlocks anyway.
+///
+/// Long enough to cover a normal store round trip (the sheet, Face ID, the
+/// receipt) so nobody dismisses a purchase that was about to land, and short
+/// enough that the screen can never become a room with no door. Neither
+/// `Purchases.purchase` nor `restorePurchases` has a deadline of its own — a
+/// store SDK that never calls back would otherwise leave the user with a
+/// disabled X on a fullscreen route that has no edge-swipe back, i.e. the
+/// "never a trap" rule broken on the exact screen App Review exercises
+/// hardest, with the app kill as the only way out.
+const Duration _kBusyExitGrace = Duration(seconds: 20);
+
 class _ProPaywallScreenState extends ConsumerState<ProPaywallScreen> {
   /// Mirrors the content's in-flight purchase/restore state so the close
   /// button locks alongside the CTA — dismissing mid-purchase is confusing.
   bool _busy = false;
+
+  /// Set once [_kBusyExitGrace] has passed with [_busy] still true: the exit
+  /// comes back even though the purchase is nominally still running.
+  bool _exitUnlocked = false;
+  Timer? _graceTimer;
+
+  void _onBusyChanged(bool busy) {
+    _graceTimer?.cancel();
+    if (busy) {
+      _graceTimer = Timer(_kBusyExitGrace, () {
+        if (mounted) setState(() => _exitUnlocked = true);
+      });
+    }
+    setState(() {
+      _busy = busy;
+      // A finished attempt re-arms the full grace period for the next one.
+      if (!busy) _exitUnlocked = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _graceTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,10 +196,21 @@ class _ProPaywallScreenState extends ConsumerState<ProPaywallScreen> {
                   // This link is how a returning buyer reaches the account their
                   // PRO actually sits on, instead of buying again.
                   showSignInLink: true,
-                  onBusyChanged: (busy) => setState(() => _busy = busy),
-                  // Nothing to await: the pop unmounts the content, which is
-                  // exactly the "the owner handled it" signal it looks for.
-                  onEntitled: () async => Navigator.of(context).pop(true),
+                  onBusyChanged: _onBusyChanged,
+                  // Pop only while this route is genuinely on top. `pop()`
+                  // targets the topmost PRESENT route, and a route already
+                  // animating out no longer counts as present — so a second
+                  // hand-off during the exit transition (the entitlement can
+                  // arrive from RevenueCat's own listener while `buy` is still
+                  // returning) used to dismiss the smaczki sheet, the history
+                  // screen or the feed sitting underneath. The same guard keeps
+                  // it from swallowing the "save your PRO" dialog when that
+                  // lands over the paywall first.
+                  onEntitled: () async {
+                    if (ModalRoute.of(context)?.isCurrent ?? false) {
+                      Navigator.of(context).pop(true);
+                    }
+                  },
                 ),
               ),
             ),
@@ -153,7 +220,11 @@ class _ProPaywallScreenState extends ConsumerState<ProPaywallScreen> {
             top: MediaQuery.paddingOf(context).top + 4,
             right: 8,
             child: IconButton(
-              onPressed: _busy ? null : () => Navigator.of(context).pop(false),
+              // Locked while a purchase is genuinely in flight, but never for
+              // longer than [_kBusyExitGrace] — there is always a way out.
+              onPressed: _busy && !_exitUnlocked
+                  ? null
+                  : () => Navigator.of(context).pop(false),
               icon: Icon(Icons.close_rounded, color: context.colors.subtle),
               tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
             ),

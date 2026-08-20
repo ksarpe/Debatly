@@ -51,11 +51,24 @@ Future<Uint8List?> renderWidgetToPng({
   // The card draws its own opaque background and reads no app theme, but it does
   // need a Directionality, and a MediaQuery keeps any descendant that probes it
   // (text scaling, reduced motion) from throwing.
+  //
+  // Text scaling is pinned OFF. [logicalSize] is fixed brand art, not a
+  // responsive layout: inheriting the device's accessibility text scale from
+  // the view grew the type inside a canvas that cannot grow with it, so a user
+  // at 1.6× exported a poster with its rank and profile lines clipped — and an
+  // off-screen render has no overflow banner to warn anyone. The share is a
+  // picture for other people's screens; the reader's own font setting is not
+  // part of it.
   RenderObjectToWidgetAdapter<RenderBox>(
     container: boundary,
     child: Directionality(
       textDirection: TextDirection.ltr,
-      child: MediaQuery(data: MediaQueryData.fromView(view), child: child),
+      child: MediaQuery(
+        data: MediaQueryData.fromView(
+          view,
+        ).copyWith(textScaler: TextScaler.noScaling),
+        child: child,
+      ),
     ),
   ).attachToRenderTree(buildOwner);
 

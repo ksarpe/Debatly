@@ -22,6 +22,10 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.accent,
     required this.cardSurface,
     required this.hairline,
+    required this.voteYesInk,
+    required this.voteNoInk,
+    required this.sparkInk,
+    required this.voteInkFades,
   });
 
   /// App canvas / scaffold background.
@@ -43,6 +47,42 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Hairline borders/dividers separating rows inside a card.
   final Color hairline;
 
+  /// The TAK green as *foreground* — the colour a label, percentage or check
+  /// mark is painted in on top of a green-tinted tile.
+  ///
+  /// Not the same value as [AppTheme.yes], which is the FILL hue and was picked
+  /// against the black canvas. Painting that hue as text over its own light
+  /// tint left the community split at 1.5:1 on the light canvas — pale green on
+  /// pale green. The fill still carries the side; the ink only has to be
+  /// readable.
+  final Color voteYesInk;
+
+  /// The NIE red as foreground — see [voteYesInk].
+  final Color voteNoInk;
+
+  /// The spark accent as foreground, for small labels sitting on a
+  /// spark-tinted surface (the "NOWE" pill).
+  final Color sparkInk;
+
+  /// Whether a vote-side ink may be faded with alpha to de-emphasise the side
+  /// the user did *not* pick.
+  ///
+  /// True on the dark canvas, where fading a bright ink toward a near-black
+  /// tile reads as "quieter" and stays legible. False on the light canvas: the
+  /// ink there is a dark green/red and fading it toward the pale tile is
+  /// exactly what made the unpicked side unreadable, so the weaker fill carries
+  /// the de-emphasis on its own. See [voteInkMuted].
+  final bool voteInkFades;
+
+  /// The ink the TAK/NIE label and percentage are painted in.
+  Color voteInk(bool isYes) => isYes ? voteYesInk : voteNoInk;
+
+  /// [voteInk] de-emphasised for the side the user did not pick — faded to
+  /// [alpha] where the canvas allows it ([voteInkFades]), solid where it does
+  /// not.
+  Color voteInkMuted(bool isYes, double alpha) =>
+      voteInkFades ? voteInk(isYes).withValues(alpha: alpha) : voteInk(isYes);
+
   /// Dark theme — the original "pure black canvas", high-contrast and
   /// distraction-free. Ink is a warm cream (#FFE9DC), not pure white — the
   /// brand text-on-dark colour.
@@ -54,6 +94,12 @@ class AppColors extends ThemeExtension<AppColors> {
     accent: Color(0xFF2A2A2A),
     cardSurface: Color(0xFF131318),
     hairline: Color(0xFF26262E),
+    // On black the fill hues are already the high-contrast choice: the TAK
+    // percentage on its own tile measures 4.0:1, so ink == fill here.
+    voteYesInk: AppTheme.yes,
+    voteNoInk: AppTheme.no,
+    sparkInk: AppTheme.spark,
+    voteInkFades: true,
   );
 
   /// Light theme — a soft off-white canvas with white cards floating above it,
@@ -67,6 +113,14 @@ class AppColors extends ThemeExtension<AppColors> {
     accent: Color(0xFFE7E7EE),
     cardSurface: Color(0xFFFFFFFF),
     hairline: Color(0xFFE2E2EA),
+    // Darkened to clear 4.5:1 against the side's OWN tint, which is the worst
+    // case (the picked side fills at 42% alpha): green-800 measures 4.7:1 on
+    // #9DE1B8, red-800 4.9:1 on #F6B7B7, and the burnt spark 5.1:1 on #F4E0D4.
+    // The bright fill hues sat at 1.5-2.5:1 there.
+    voteYesInk: Color(0xFF166534),
+    voteNoInk: Color(0xFF991B1B),
+    sparkInk: Color(0xFF9A4409),
+    voteInkFades: false,
   );
 
   @override
@@ -77,6 +131,10 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? accent,
     Color? cardSurface,
     Color? hairline,
+    Color? voteYesInk,
+    Color? voteNoInk,
+    Color? sparkInk,
+    bool? voteInkFades,
   }) {
     return AppColors(
       background: background ?? this.background,
@@ -85,6 +143,10 @@ class AppColors extends ThemeExtension<AppColors> {
       accent: accent ?? this.accent,
       cardSurface: cardSurface ?? this.cardSurface,
       hairline: hairline ?? this.hairline,
+      voteYesInk: voteYesInk ?? this.voteYesInk,
+      voteNoInk: voteNoInk ?? this.voteNoInk,
+      sparkInk: sparkInk ?? this.sparkInk,
+      voteInkFades: voteInkFades ?? this.voteInkFades,
     );
   }
 
@@ -98,6 +160,11 @@ class AppColors extends ThemeExtension<AppColors> {
       accent: Color.lerp(accent, other.accent, t)!,
       cardSurface: Color.lerp(cardSurface, other.cardSurface, t)!,
       hairline: Color.lerp(hairline, other.hairline, t)!,
+      voteYesInk: Color.lerp(voteYesInk, other.voteYesInk, t)!,
+      voteNoInk: Color.lerp(voteNoInk, other.voteNoInk, t)!,
+      sparkInk: Color.lerp(sparkInk, other.sparkInk, t)!,
+      // A bool has no midpoint: it snaps with the rest of the palette.
+      voteInkFades: t < 0.5 ? voteInkFades : other.voteInkFades,
     );
   }
 }
@@ -142,10 +209,22 @@ class AppTheme {
   /// Semantic vote colours: green for TAK, red for NIE. Used by the daily
   /// vote panel for the buttons' side hints and the post-vote split. Shared by
   /// both themes.
+  ///
+  /// These are FILL hues, picked against the black canvas. Anything painting
+  /// text or an icon on top of one of these tints reads its foreground from
+  /// [AppColors.voteInk] instead — on the light canvas the fill hue is far too
+  /// pale to be its own label.
   static const Color yes = Color(0xFF22C55E);
   // Lifted from the tailwind red-500 (#EF4444): at the low fill alphas the
   // result panels use, that shade sank into the dark background.
   static const Color no = Color(0xFFF7615C);
+
+  /// [no] darkened until WHITE text on it clears WCAG AA (4.6:1, against the
+  /// 2.9:1 the plain fill hue managed). For the few surfaces that use the
+  /// "no" red as a SOLID background carrying white type — the offline banner
+  /// — rather than as a low-alpha tint behind [AppColors.voteInk]. Same hue
+  /// family, so the two read as the same red.
+  static const Color noOnWhiteText = Color(0xFFD2403A);
 
   /// The dark theme — the app's original look.
   static ThemeData get dark => _build(Brightness.dark, AppColors.dark);

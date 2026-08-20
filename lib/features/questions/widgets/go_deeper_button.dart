@@ -113,10 +113,26 @@ class _GoDeeperButtonState extends State<GoDeeperButton>
               gradient: AppTheme.ctaGradient,
               boxShadow: AppTheme.ctaGlow,
             ),
-            child: SizedBox(
-              height: kMinTouchTarget,
-              child: Center(
-                child: _Label(text: widget.label, prominent: widget.prominent),
+            // A MINIMUM, not a fixed height. The label follows the system
+            // font, so at a large accessibility size a tight box left it
+            // painted outside the pill it belongs to — and an overflowed
+            // child is painted where nothing hit-tests it, which on the
+            // feed's main CTA means a button that looks fine and does
+            // nothing. The row's other pills stay their own height; this one
+            // grows and the bar grows with it.
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: kMinTouchTarget),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                child: Center(
+                  child: _Label(
+                    text: widget.label,
+                    prominent: widget.prominent,
+                  ),
+                ),
               ),
             ),
           ),

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/feedback/haptics.dart';
@@ -13,7 +14,7 @@ import 'falling_words_text.dart';
 import 'vote_visuals.dart';
 
 /// What the gate reports back: how the user answered and how long they sat
-/// with the argument before tapping (null when they left before it landed).
+/// with the argument on screen (null when they left before it landed).
 typedef SmaczekChallengeResult = ({ChallengeOutcome outcome, int? dwellMs});
 
 /// Drops one smaczek between the vote and the result.
@@ -27,7 +28,7 @@ typedef SmaczekChallengeResult = ({ChallengeOutcome outcome, int? dwellMs});
 /// it does not re-cast anything. It is never a trap: system back resolves as
 /// [ChallengeOutcome.dismissed] and the result appears regardless.
 ///
-/// [compact] is the shortened beat for the second and third gate of a session:
+/// [compact] is the shortened beat for every gate after the first in a session:
 /// the argument appears whole (no word-by-word fall, no per-word haptics), the
 /// entry is faster and the buttons are up the moment the hit lands. The impact
 /// shake itself stays — it is the entire message.
@@ -73,7 +74,7 @@ class SmaczekChallengeScreen extends StatefulWidget {
   /// The side the user just voted ([VoteResult.yes] / [VoteResult.no]).
   final int choice;
 
-  /// The shortened second-and-third-gate-of-a-session beat: text appears
+  /// The shortened every-gate-after-the-first beat: text appears
   /// whole, buttons right after the hit. See [showSmaczekChallenge].
   final bool compact;
 
@@ -102,10 +103,20 @@ class _SmaczekChallengeScreenState extends State<SmaczekChallengeScreen>
   /// argument has actually hit.
   bool _landed = false;
 
-  /// When the argument finished landing (i.e. the buttons became available).
-  /// The dwell measurement starts here: answers faster than reading is
-  /// physically possible are how we find out the mechanic is theatre.
-  DateTime? _landedAt;
+  /// When the gate opened. The dwell clock starts HERE, not at the landing:
+  /// the words falling in ARE the reading — roughly a second of it on a median
+  /// argument — and a reader who follows the fall and answers promptly must not
+  /// be scored as if they never read a word. Starting the clock at the landing
+  /// measured hesitation AFTER the sentence was assembled, which quietly filed
+  /// honest fast readers as `skipped_fast` and kept their profile locked
+  /// forever, with nothing on screen to tell them why.
+  ///
+  /// The head start can't be gamed the other way: the answers are inert until
+  /// the last word lands, so nobody banks fall time without sitting through it.
+  ///
+  /// [clock] rather than [DateTime.now] so widget tests, which run on fake
+  /// time, can assert the measurement instead of just its sign.
+  final DateTime _openedAt = clock.now();
 
   /// Set once the user answers; drives which way [_verdict] plays and stops a
   /// second tap from resolving the route twice.
@@ -125,7 +136,6 @@ class _SmaczekChallengeScreenState extends State<SmaczekChallengeScreen>
   void _onArgumentLanded() {
     if (!mounted || _landed) return;
     setState(() => _landed = true);
-    _landedAt = DateTime.now();
     if (MediaQuery.disableAnimationsOf(context)) return;
     Haptics.impact();
     _impact.forward(from: 0);
@@ -133,9 +143,10 @@ class _SmaczekChallengeScreenState extends State<SmaczekChallengeScreen>
 
   Future<void> _resolve(ChallengeOutcome outcome) async {
     if (_outcome != null) return;
-    final dwellMs = _landedAt == null
-        ? null
-        : DateTime.now().difference(_landedAt!).inMilliseconds;
+    // No landing, no measurement: leaving mid-fall is an exit, not a reading.
+    final dwellMs = _landed
+        ? clock.now().difference(_openedAt).inMilliseconds
+        : null;
     setState(() => _outcome = outcome);
     Haptics.confirm();
     if (outcome != ChallengeOutcome.dismissed &&

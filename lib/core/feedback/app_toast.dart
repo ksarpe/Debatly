@@ -367,6 +367,10 @@ class _ToastSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final accent = _accentFor(data.type);
+    // The tinted disc keeps the hue; the glyph and the action label take the
+    // ink. On the light card the fill hues measure 2.0-2.7:1 against their own
+    // 16% tint, i.e. under the 3:1 a non-text indicator needs.
+    final accentInk = _accentInkFor(context, data.type);
     final icon = data.icon ?? _iconFor(data.type);
 
     return Material(
@@ -390,7 +394,7 @@ class _ToastSurface extends StatelessWidget {
                 color: accent.withValues(alpha: 0.16),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: accent, size: 18),
+              child: Icon(icon, color: accentInk, size: 18),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -407,7 +411,7 @@ class _ToastSurface extends StatelessWidget {
               TextButton(
                 onPressed: onAction,
                 style: TextButton.styleFrom(
-                  foregroundColor: accent,
+                  foregroundColor: accentInk,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   minimumSize: const Size(0, 36),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -423,6 +427,15 @@ class _ToastSurface extends StatelessWidget {
       ),
     );
   }
+
+  /// The readable counterpart of [_accentFor], for anything that is a glyph or
+  /// a label rather than a tint. Identical on the dark canvas, where the fill
+  /// hues already carry their own contrast.
+  Color _accentInkFor(BuildContext context, ToastType type) => switch (type) {
+    ToastType.success => context.colors.voteInk(true),
+    ToastType.error => context.colors.voteInk(false),
+    ToastType.info => context.colors.sparkInk,
+  };
 
   Color _accentFor(ToastType type) => switch (type) {
     ToastType.success => AppTheme.yes,

@@ -44,6 +44,10 @@ class AppLocalizationsPl extends AppLocalizations {
       'Zakup się powiódł, ale nie udało się go jeszcze potwierdzić. Spróbuj za chwilę „Przywróć zakup”.';
 
   @override
+  String get purchaseAlreadyOwned =>
+      'Ten zakup jest już przypisany do konta w sklepie. Kliknij „Przywróć zakup” albo zaloguj się na konto, na którym jest.';
+
+  @override
   String get restoreSignInTitle => 'Przywrócić zakup?';
 
   @override
@@ -199,6 +203,19 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get authErrorTooManyRequests =>
       'Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.';
+
+  @override
+  String get authErrorGeneric => 'Coś poszło nie tak. Spróbuj ponownie.';
+
+  @override
+  String get authSwitchAccountTitle => 'Zalogować się na inne konto?';
+
+  @override
+  String get authSwitchAccountBody =>
+      'Logowanie przełączy to urządzenie na tamto konto. Twoja passa, głosy i ulubione są zapisane na profilu gościa i nie przeniosą się. Chcesz je zachować? Załóż konto — wtedy wszystko zostaje.';
+
+  @override
+  String get authSwitchAccountConfirm => 'Zaloguj mimo to';
 
   @override
   String get settingsSectionApp => 'USTAWIENIA APLIKACJI';
@@ -403,6 +420,13 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get historyEmptyBody => 'Zagłosuj na pytanie, a pojawi się ono tutaj.';
+
+  @override
+  String get historyEmptyTodayTitle => 'Dziś jeszcze nic';
+
+  @override
+  String get historyEmptyTodayBody =>
+      'Zagłosuj na dzisiejsze pytanie, a pojawi się tutaj.';
 
   @override
   String get historyLoadError => 'Nie udało się wczytać historii.';
@@ -667,6 +691,13 @@ class AppLocalizationsPl extends AppLocalizations {
       'Nie udało się pobrać dzisiejszego pytania. Spróbuj ponownie za chwilę.';
 
   @override
+  String get backendUnavailableTitle => 'Brak połączenia z Debatly';
+
+  @override
+  String get backendUnavailableBody =>
+      'Nie udało się połączyć z serwerem, więc nic, co tu zrobisz, nie zostałoby zapisane. Spróbuj ponownie.';
+
+  @override
   String get offlineBannerLabel => 'Jesteś offline';
 
   @override
@@ -685,7 +716,18 @@ class AppLocalizationsPl extends AppLocalizations {
   String get smaczkiBarFree => 'ARGUMENT ZA TOBĄ';
 
   @override
-  String get smaczkiBarUntagged => 'JESZCZE DWA ARGUMENTY';
+  String smaczkiBarUntagged(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'JESZCZE $count ARGUMENTÓW',
+      few: 'JESZCZE $count ARGUMENTY',
+      two: 'JESZCZE DWA ARGUMENTY',
+      one: 'JESZCZE JEDEN ARGUMENT',
+      zero: 'TO BYŁO WSZYSTKO',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get shareLabel => 'Udostępnij';
@@ -799,10 +841,10 @@ class AppLocalizationsPl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       n,
       locale: localeName,
-      other: 'Jeszcze $n odpowiedzi i poznasz swój typ.',
-      many: 'Jeszcze $n odpowiedzi i poznasz swój typ.',
-      few: 'Jeszcze $n odpowiedzi i poznasz swój typ.',
-      one: 'Jeszcze 1 odpowiedź i poznasz swój typ.',
+      other: 'Jeszcze $n kontry po głosowaniu i poznasz swój typ.',
+      many: 'Jeszcze $n kontr po głosowaniu i poznasz swój typ.',
+      few: 'Jeszcze $n kontry po głosowaniu i poznasz swój typ.',
+      one: 'Jeszcze 1 kontra po głosowaniu i poznasz swój typ.',
     );
     return '$_temp0';
   }

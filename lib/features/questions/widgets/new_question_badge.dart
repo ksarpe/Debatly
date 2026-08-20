@@ -13,7 +13,9 @@ import '../../../core/theme/app_typography.dart';
 /// spells that out in a tooltip.
 ///
 /// Painted in the spark orange so it reads as a highlight, not a warning, on
-/// both the black and the light canvas.
+/// both the black and the light canvas — the tint from the shared accent, the
+/// label from the canvas-resolved [AppColors.sparkInk] (the accent itself on a
+/// 16%-spark tint measured 2.5:1 on the light canvas).
 class NewQuestionBadge extends StatelessWidget {
   const NewQuestionBadge({super.key});
 
@@ -36,7 +38,7 @@ class NewQuestionBadge extends StatelessWidget {
           style: AppTypography.eyebrow(
             fontSize: 11,
             tracking: 0.14,
-          ).copyWith(color: AppTheme.spark),
+          ).copyWith(color: context.colors.sparkInk),
         ),
       ),
     );

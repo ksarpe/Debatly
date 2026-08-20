@@ -1,6 +1,8 @@
+import 'package:debatly/data/models/smaczek.dart';
 import 'package:debatly/data/models/vote_result.dart';
 import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
+import 'package:debatly/features/questions/providers/challenge_providers.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/widgets/daily_vote_panel.dart';
 import 'package:flutter/material.dart';
@@ -272,7 +274,7 @@ void main() {
   );
 
   testWidgets(
-    'the fourth vote of a session skips the gate — percentages straight away',
+    'the vote past the session cap skips the gate — percentages straight away',
     (tester) async {
       final repo = _VotePanelRepo(initial: VoteResult.empty);
       final container = ProviderContainer(
@@ -283,8 +285,12 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      // Four questions voted back-to-back in ONE session (same container).
-      for (var i = 1; i <= 4; i++) {
+      // One question past the cap, all voted back-to-back in ONE session
+      // (same container). Written against the constant rather than a literal:
+      // the cap is a product dial (3 → 10 on 2026-08-20) and moving it must
+      // not mean rewriting the test that guards it.
+      const votes = kChallengeSessionCap + 1;
+      for (var i = 1; i <= votes; i++) {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
@@ -307,7 +313,7 @@ void main() {
         await tester.tap(find.text('TAK'));
         await tester.pumpAndSettle();
 
-        if (i <= 3) {
+        if (i <= kChallengeSessionCap) {
           expect(
             find.text('ZANIM POKAŻĘ WYNIK'),
             findsOneWidget,
@@ -316,16 +322,17 @@ void main() {
           await tester.tap(find.text('TRZYMAM SIĘ'));
           await tester.pumpAndSettle();
         } else {
-          // The valve for PRO: the fourth vote goes straight to the split.
+          // The valve for PRO: the first vote past the cap goes straight to
+          // the split.
           expect(
             find.text('ZANIM POKAŻĘ WYNIK'),
             findsNothing,
-            reason: 'the session cap is 3 gates',
+            reason: 'the session cap is $kChallengeSessionCap gates',
           );
           expect(find.byKey(const ValueKey('results')), findsOneWidget);
         }
       }
-      expect(repo.castCalls, 4);
+      expect(repo.castCalls, votes);
     },
   );
 
@@ -363,6 +370,113 @@ void main() {
 
     container.dispose();
   });
+
+  // REGRESSION: the split used to be able to paint BEFORE the gate. The panel
+  // invalidated the vote state straight after the cast, which — this widget
+  // being a listener — refetches at once; that PK read beats the smaczki round
+  // trip a free user always pays, and `_local ?? async.value` then faded the
+  // bars in under the argument. The panel's other repo returns the SAME
+  // pre-vote state forever, which is exactly why no test saw it: the reveal
+  // order only breaks when the server answers "voted".
+  testWidgets('the split waits for the gate, not for the vote-state refetch', (
+    tester,
+  ) async {
+    final repo = _SlowSmaczkiRepo();
+    final container = ProviderContainer(
+      overrides: [
+        sessionProvider.overrideWith(() => _FakeSession(guest())),
+        questionRepositoryProvider.overrideWithValue(repo),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const LocalizedTestApp(
+          home: Scaffold(
+            body: Center(child: DailyVotePanel(questionId: 'q1')),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('TAK'));
+    // Long enough for the cast and any refetch of the now-"voted" state to
+    // resolve, well short of the argument's fetch.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(
+      find.textContaining('%'),
+      findsNothing,
+      reason: 'the server knows the vote — the user must not, not yet',
+    );
+    expect(find.byKey(const ValueKey('results')), findsNothing);
+
+    // The gate arrives. The route below a transition is still painted, so the
+    // bars must not be sitting behind it either.
+    await tester.pumpAndSettle();
+    expect(find.text('ZANIM POKAŻĘ WYNIK'), findsOneWidget);
+    expect(
+      find.textContaining('%'),
+      findsNothing,
+      reason: 'the split must not be revealed under the opening gate',
+    );
+
+    // Answering it is what releases the percentages.
+    await tester.tap(find.text('TRZYMAM SIĘ'));
+    await tester.pumpAndSettle();
+    expect(find.text('60%'), findsOneWidget);
+    expect(find.text('40%'), findsOneWidget);
+    expect(repo.castCalls, 1, reason: 'the gate never re-casts the vote');
+  });
+
+  // cast_daily_vote is first-write-wins server-side (20260820120000): a cast on
+  // a question already voted writes nothing and answers with the STORED choice.
+  // That happens for real when a cast times out at 15 s but committed — the
+  // panel keeps the buttons live on a failed vote-state read, so the next tap
+  // can be the other side. Whatever the finger did, the argument must be the
+  // one aimed at the vote ON RECORD, or the gate attacks a side the user never
+  // voted for.
+  testWidgets('a cast the server refuses to overwrite challenges the stored '
+      'side, not the tapped one', (tester) async {
+    final repo = _StoredChoiceRepo();
+    final container = ProviderContainer(
+      overrides: [
+        sessionProvider.overrideWith(() => _FakeSession(account())),
+        questionRepositoryProvider.overrideWithValue(repo),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const LocalizedTestApp(
+          home: Scaffold(
+            body: Center(child: DailyVotePanel(questionId: 'q1')),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The tap says NIE; the server says "you already voted TAK".
+    await tester.tap(find.text('NIE'));
+    await holdGround(tester);
+
+    expect(repo.lastChoice, VoteResult.no, reason: 'the tap is sent as-is');
+    expect(
+      repo.challengedPosition,
+      1,
+      reason: 'position 1 attacks TAK — the side actually on record',
+    );
+    // And the bars mark the stored side, not the tapped one.
+    expect(find.byKey(const ValueKey('results')), findsOneWidget);
+    expect(find.text('80%'), findsOneWidget);
+  });
 }
 
 /// A repo whose vote-state read always fails — the offline / 500 / expired-JWT
@@ -392,6 +506,76 @@ class _PersistingVoteRepo extends MockQuestionRepository {
       noCount: choice == VoteResult.no ? 60 : 40,
       myChoice: choice,
     );
+  }
+}
+
+/// A persisting repo whose ARGUMENT is slow while its vote state is instant —
+/// the free tier's real shape (the smaczek text is only unlocked server-side
+/// once the vote exists, so their gate always costs a round trip).
+class _SlowSmaczkiRepo extends _PersistingVoteRepo {
+  @override
+  Future<List<Smaczek>> fetchSmaczki(String questionId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    return const [
+      Smaczek(
+        position: 1,
+        isLocked: false,
+        side: SmaczekSide.neutral,
+        text: 'Odpowiedziałeś od razu. Ile z tego było decyzją?',
+      ),
+    ];
+  }
+}
+
+/// The first-write-wins server: whatever side is cast, the vote already on
+/// record is TAK, and the RPC answers with THAT in `my_choice`. Its two
+/// arguments are tagged one per side, so which one the gate throws says
+/// exactly which choice the panel believed.
+class _StoredChoiceRepo extends MockQuestionRepository {
+  int? lastChoice;
+  int? challengedPosition;
+
+  static const _stored = VoteResult(
+    yesCount: 80,
+    noCount: 20,
+    myChoice: VoteResult.yes,
+  );
+
+  @override
+  Future<VoteResult> getDailyVoteState(String questionId) async =>
+      VoteResult.empty;
+
+  @override
+  Future<VoteResult> castDailyVote(String questionId, int choice) async {
+    lastChoice = choice;
+    return _stored;
+  }
+
+  @override
+  Future<List<Smaczek>> fetchSmaczki(String questionId) async => const [
+    Smaczek(
+      position: 1,
+      isLocked: false,
+      side: SmaczekSide.attacksYes,
+      text: 'Powiedziałeś tak. Komu to było wygodne?',
+    ),
+    Smaczek(
+      position: 2,
+      isLocked: false,
+      side: SmaczekSide.attacksNo,
+      text: 'Powiedziałeś nie. Co takiego chronisz?',
+    ),
+  ];
+
+  @override
+  Future<VoteResult> recordSmaczekChallenge({
+    required String questionId,
+    required int position,
+    required ChallengeOutcome outcome,
+    int? dwellMs,
+  }) async {
+    challengedPosition = position;
+    return _stored;
   }
 }
 

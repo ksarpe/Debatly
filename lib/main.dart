@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/config/app_config.dart';
 import 'core/locale/app_locale.dart';
 import 'core/monitoring/monitoring.dart';
 import 'core/startup/guarded_init.dart';
@@ -31,9 +33,11 @@ Future<void> main() async {
 /// modes have bitten release/R8 builds specifically — an unguarded exception
 /// (which aborts the async chain before `runApp`) and, worse, a platform-channel
 /// call whose native handler R8 stripped, so the `await` never returns at all.
-/// A plain `try/catch` catches the first but NOT the second. So every init runs
-/// through [guardedInit] (timeout + guard + Sentry report), and everything not
-/// needed for the first frame is kicked off in the background after `runApp`.
+/// A plain `try/catch` catches the first but NOT the second. So every init is
+/// bounded and guarded — through [guardedInit], or through its own equivalent
+/// where the outcome has to survive the call ([SupabaseService.initialise]) —
+/// and everything not needed for the first frame is kicked off in the
+/// background after `runApp`.
 Future<void> _startApp() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -59,8 +63,33 @@ Future<void> _startApp() async {
   // Initialise the SDKs the first screens actually read: Supabase backs the
   // question repository, RevenueCat gates premium. Guarded + bounded so a hang
   // or throw in either degrades that feature instead of walling the splash.
-  await guardedInit('supabase', SupabaseService.initialise);
+  //
+  // Supabase is the one that does NOT go through [guardedInit] — it is its own
+  // guard (bounded, never throws) because it needs to REMEMBER that it failed.
+  // guardedInit swallows the outcome, and a swallowed Supabase failure is
+  // indistinguishable from "no credentials in this build", which is the app's
+  // mock-data mode: that is how a real user ended up in a fake app. See
+  // [SupabaseService.initialise] and [SupabaseInitStatus].
+  await SupabaseService.initialise();
   await guardedInit('purchases', PurchasesService.initialise);
+
+  // A release binary that carries no credentials is a BUILD accident — someone
+  // ran `flutter build` without `--dart-define-from-file=env/prod.json`. It
+  // compiles, it launches, and every screen quietly serves mock data. The
+  // keyless-premium shortcut is already compiled out of release (see
+  // `session_providers`), so such a build is merely broken rather than free —
+  // but it must not be broken SILENTLY, and there is no other signal: no crash,
+  // no failed request, nothing. Deliberately not a `throw`: refusing to start
+  // would turn a bad build into a dead app for users who already installed it.
+  if (kReleaseMode && !AppConfig.hasSupabaseCredentials) {
+    unawaited(
+      Monitoring.captureException(
+        StateError('Release build started without Supabase credentials.'),
+        feature: 'startup',
+        level: SentryLevel.fatal,
+      ),
+    );
+  }
 
   // SentryWidget enables view-hierarchy/screenshot context and binds the app to
   // the SDK; it's a transparent passthrough when Sentry is disabled.

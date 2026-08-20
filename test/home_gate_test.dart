@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:debatly/core/locale/app_locale.dart';
 import 'package:debatly/data/models/question.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
 import 'package:debatly/features/onboarding/screens/app_entry.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/screens/question_screen.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -118,6 +121,48 @@ void main() {
     expect(find.text('SPRÓBUJ PONOWNIE'), findsOneWidget);
   });
 
+  testWidgets('a session that never resolves offers a retry once the '
+      'watchdog fires — a hang is not an error, so nothing else would', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(
+          await mockSharedPreferences(),
+        ),
+        sessionProvider.overrideWith(_HangingSession.new),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const LocalizedTestApp(home: HomeGate()),
+      ),
+    );
+    await tester.pump();
+
+    // Until the watchdog fires this is an ordinary (if slow) launch.
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('SPRÓBUJ PONOWNIE'), findsNothing);
+
+    await tester.pump(kSessionWatchdogTimeout);
+    await tester.pump();
+
+    expect(find.text('SPRÓBUJ PONOWNIE'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    // The retry re-runs the load and goes back to waiting on it, so a launch
+    // that fails twice still ends up somewhere the user can act.
+    await tester.tap(find.text('SPRÓBUJ PONOWNIE'));
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    await tester.pump(kSessionWatchdogTimeout);
+    await tester.pump();
+    expect(find.text('SPRÓBUJ PONOWNIE'), findsOneWidget);
+  });
+
   testWidgets('an entitlement lapse keeps the user on the feed '
       '(the deck reshapes; no wall screen appears)', (tester) async {
     final (container, session) = await pumpGate(
@@ -140,6 +185,13 @@ void main() {
 class _FailingSession extends SessionNotifier {
   @override
   Future<SessionState> build() async => throw StateError('no session');
+}
+
+/// A [SessionNotifier] whose load neither resolves NOR throws — the hung store
+/// / captive-portal launch that the `hasError` retry branch can never catch.
+class _HangingSession extends SessionNotifier {
+  @override
+  Future<SessionState> build() => Completer<SessionState>().future;
 }
 
 /// A [SessionNotifier] whose state the test drives directly.

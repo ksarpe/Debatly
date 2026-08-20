@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/feedback/app_toast.dart';
+import '../../../core/feedback/haptics.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -11,6 +11,7 @@ import '../../../data/models/vote_history_entry.dart';
 import '../../../data/models/vote_result.dart';
 import '../../account/providers/session_providers.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
+import '../../monetization/widgets/purchase_settlement.dart';
 import '../providers/question_providers.dart';
 
 /// Opens the "question history": every question the user voted on, laid out as
@@ -236,10 +237,21 @@ class _HistoryBodyState extends ConsumerState<_HistoryBody> {
               const SizedBox(height: 12),
             ],
             if (visible.isEmpty)
+              // A free list is trimmed to the local day, so an empty one on a
+              // morning before the daily vote means "nothing TODAY" — never
+              // "no history". The lifetime count sits directly above this, and
+              // "ODPOWIEDZIANO NA 148 PYTAŃ" over "BRAK HISTORII" reads as a
+              // broken screen on the tier's second-best conversion surface.
+              // PRO is excluded on purpose: their list is the whole record, so
+              // an empty one really does mean "no history".
               _HistoryMessage(
                 icon: Icons.history_toggle_off_rounded,
-                title: context.l10n.historyEmptyTitle,
-                subtitle: context.l10n.historyEmptyBody,
+                title: !isPremium && answered > 0
+                    ? context.l10n.historyEmptyTodayTitle
+                    : context.l10n.historyEmptyTitle,
+                subtitle: !isPremium && answered > 0
+                    ? context.l10n.historyEmptyTodayBody
+                    : context.l10n.historyEmptyBody,
               )
             else if (matching.isEmpty)
               _HistoryMessage(
@@ -441,10 +453,16 @@ class _HistoryCard extends StatelessWidget {
     final votes = entry.votes;
     final mineYes = votes.myChoice == VoteResult.yes;
     final mineNo = votes.myChoice == VoteResult.no;
+    // The hue tints the card — that is what makes it read green-vs-red at a
+    // glance — but it is not a text colour. On the light canvas the fill hue
+    // on its own 10% tint measures 1.95:1, so the LABEL takes the ink instead.
     final side = mineYes
         ? AppTheme.yes
         : mineNo
         ? AppTheme.no
+        : context.colors.subtle;
+    final sideInk = mineYes || mineNo
+        ? context.colors.voteInk(mineYes)
         : context.colors.subtle;
     final voteLabel = mineYes
         ? context.l10n.voteYes
@@ -475,7 +493,7 @@ class _HistoryCard extends StatelessWidget {
                           style: AppTypography.eyebrow(
                             fontSize: 10.5,
                             tracking: 0.14,
-                          ).copyWith(color: side),
+                          ).copyWith(color: sideInk),
                         ),
                       ),
               ),
@@ -521,8 +539,10 @@ class _CornerSplit extends StatelessWidget {
     final mineNo = votes.myChoice == VoteResult.no;
     final firstPct = mineNo ? votes.noPct : votes.yesPct;
     final secondPct = mineNo ? votes.yesPct : votes.noPct;
-    final firstColor = mineNo ? AppTheme.no : AppTheme.yes;
-    final secondColor = mineNo ? AppTheme.yes : AppTheme.no;
+    // Ink, not the fill hue: these are numerals on the card surface, where the
+    // bright hues sit at 2.6:1 on the light canvas.
+    final firstColor = context.colors.voteInk(!mineNo);
+    final secondColor = context.colors.voteInk(mineNo);
 
     TextStyle pct(Color color) =>
         AppTypography.numeric(16).copyWith(color: color);
@@ -612,6 +632,7 @@ class _LockedHistoryPanelState extends ConsumerState<_LockedHistoryPanel> {
 
   Future<void> _unlock() async {
     if (_opening) return;
+    Haptics.blocked();
     setState(() => _opening = true);
     try {
       final purchased = await showProPaywall(
@@ -620,11 +641,10 @@ class _LockedHistoryPanelState extends ConsumerState<_LockedHistoryPanel> {
       );
       if (!mounted) return;
       if (purchased) {
-        await ref.read(sessionProvider.notifier).refresh();
+        await settleProPurchase(context, ref);
         if (!mounted) return;
         // The RPC returns more rows for premium — refetch, don't just rebuild.
         ref.invalidate(voteHistoryProvider);
-        AppToast.success(context, context.l10n.settingsPremiumActiveToast);
       }
     } finally {
       if (mounted) setState(() => _opening = false);

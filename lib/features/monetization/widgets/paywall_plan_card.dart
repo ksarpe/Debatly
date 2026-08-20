@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart'
     show Package, PackageType;
 
+import '../../../core/feedback/haptics.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -126,7 +127,13 @@ class PaywallPlanCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
+        onTap: onTap == null
+            ? null
+            : () {
+                // A selection changing — the lightest tick there is.
+                Haptics.tick();
+                onTap!();
+              },
         child: card,
       ),
     );

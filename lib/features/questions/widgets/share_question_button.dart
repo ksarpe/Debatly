@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/locale/l10n_extension.dart';
+import '../../../core/monitoring/monitoring.dart';
 import '../../../core/share/widget_to_image.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../l10n/gen/app_localizations.dart';
@@ -119,8 +120,15 @@ class _ShareQuestionButtonState extends State<ShareQuestionButton> {
           ],
         );
       }
-    } catch (e) {
-      debugPrint('share card render failed, sharing text only: $e');
+    } catch (e, st) {
+      // Falls back to a text-only share, so the user still shares — but a
+      // card that stopped rendering is invisible in release otherwise.
+      await Monitoring.captureException(
+        e,
+        stackTrace: st,
+        feature: 'share',
+        extra: {'card': 'question'},
+      );
     }
     // Fallback: text-only share (the original behaviour).
     return ShareParams(

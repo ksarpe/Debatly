@@ -157,6 +157,30 @@ void main() {
     expect(find.text('BRAK HISTORII'), findsOneWidget);
   });
 
+  testWidgets('a free user who has not voted today reads "nothing TODAY", not '
+      '"no history" — the lifetime count sits right above it', (tester) async {
+    // Yesterday's vote only: the free view trims to the local day, so the
+    // list is empty while the lifetime total (47, from the mock stats) is
+    // not. Rendering "ODPOWIEDZIANO NA 47 PYTAŃ" over "BRAK HISTORII" is
+    // what every returning free user met before their morning vote.
+    await pumpHistory(
+      tester,
+      premium: false,
+      entries: [
+        entry(
+          votedAt: DateTime.now()
+              .toUtc()
+              .subtract(const Duration(days: 1))
+              .toIso8601String(),
+        ),
+      ],
+    );
+
+    expect(find.text('ODPOWIEDZIANO NA 47 PYTAŃ'), findsOneWidget);
+    expect(find.text('DZIŚ JESZCZE NIC'), findsOneWidget);
+    expect(find.text('BRAK HISTORII'), findsNothing);
+  });
+
   testWidgets(
     'a long history grows a magnifier that expands into the filter field',
     (tester) async {

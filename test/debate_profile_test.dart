@@ -1,4 +1,6 @@
 import 'package:debatly/data/models/debate_profile.dart';
+import 'package:debatly/l10n/gen/app_localizations_en.dart';
+import 'package:debatly/l10n/gen/app_localizations_pl.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// The 2×2 profile's arithmetic — the release guarantees:
@@ -110,6 +112,43 @@ void main() {
     test('against the crowd + movable = seeker', () {
       final p = profile(maj: 6, min: 14, held: 9, moved: 3); // 30%, 25%
       expect(p.type, DebateProfileType.seeker);
+    });
+  });
+
+  group('the pre-gate veteran', () {
+    // The gate shipped 2026-08-19; every vote cast before it carries a null
+    // outcome. A 50-vote account therefore opens the panel at 0 qualifying
+    // gates — the state that made the old "jeszcze N odpowiedzi" copy read as
+    // "your fifty votes were discarded".
+    final veteran = profile(votes: 50, maj: 30, min: 20, held: 0, moved: 0);
+
+    test('is locked at the full 6 to go despite a long voting history', () {
+      expect(veteran.stage, DebateProfileStage.locked);
+      expect(veteran.limitingCounter, 0);
+      expect(veteran.answersToUnlock, 6);
+    });
+
+    test('the progress copy names the gate, never bare "answers"', () {
+      // The number and the ask have to agree: the counter measures kontry,
+      // so the line must say kontry. Without this the veteran reads a 0 next
+      // to a word that describes something they have done fifty times.
+      final pl = AppLocalizationsPl().profileProgress(veteran.answersToUnlock);
+      expect(pl, contains('kontr'));
+      expect(pl, isNot(contains('odpowiedzi')));
+
+      final en = AppLocalizationsEn().profileProgress(veteran.answersToUnlock);
+      expect(en, contains('counters'));
+      expect(en, isNot(contains('answers')));
+    });
+
+    test('votes can never be the limiting counter — gates live on votes', () {
+      // Every qualifying gate is stored on a vote row, so gateAnswered <=
+      // totalVotes holds server-side by construction. Progress is the gate
+      // count; the min() is only a guard against a malformed payload.
+      for (final gates in [0, 3, 6, 12]) {
+        final p = profile(votes: 50, maj: 30, min: 20, held: gates, moved: 0);
+        expect(p.limitingCounter, gates);
+      }
     });
   });
 

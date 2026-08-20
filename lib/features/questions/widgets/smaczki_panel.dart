@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/feedback/app_toast.dart';
+import '../../../core/feedback/haptics.dart';
 import '../../../core/layout/content_width.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/network_error.dart';
@@ -12,8 +13,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/models/smaczek.dart';
 import '../../account/providers/session_providers.dart';
-import '../../account/widgets/save_pro_prompt.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
+import '../../monetization/widgets/purchase_settlement.dart';
 import '../providers/challenge_providers.dart';
 import '../providers/question_providers.dart';
 
@@ -69,6 +70,10 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
   bool _composing = false;
 
   Future<void> _getPremium() async {
+    // The tap that got here landed on a locked card: say "not yours yet" in the
+    // hand before the paywall slides up, so the lock is felt at the moment of
+    // the touch rather than only read a beat later.
+    Haptics.blocked();
     setState(() => _busy = true);
 
     final purchased = await showProPaywall(
@@ -80,14 +85,15 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
     if (purchased) {
       // The entitlement is the source of truth: refresh the session so the gate
       // sees the upgrade, then drop the cached smaczki so they re-fetch — this
-      // time the RPC returns the now-unlocked text.
-      await ref.read(sessionProvider.notifier).refresh();
+      // time the RPC returns the now-unlocked text. A purchase the store hasn't
+      // confirmed yet says so, instead of leaving the cards locked in silence.
+      await settleProPurchase(context, ref);
       if (!mounted) return;
       ref.invalidate(smaczkiProvider(widget.questionId));
       setState(() => _busy = false);
-      // A guest's PRO rides on the anonymous identity — nudge them to save it to
-      // a real account. No-ops for a user who already has an account.
-      await promptSaveProAccount(context, ref);
+      // The "save your PRO to an account" nudge is HomeGate's — it fires on the
+      // free→premium flip the refresh above produces, for every entry point.
+      // Calling it here too showed the same dialog twice.
     } else {
       AppToast.info(context, context.l10n.purchaseNotCompleted);
       setState(() => _busy = false);
@@ -138,8 +144,17 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
     // moment of the paywall. The sheet then opens straight on the locked
     // state: the gate's card is hidden and the remaining ones render locked
     // (the server sends free users one readable row — the gate's — anyway).
+    //
+    // Only a gate the user ANSWERED counts (see [ChallengeRecord.wasRead]).
+    // A back press out of the gate reads as "not now", not as "read": binding
+    // this to the bare existence of a record burned the free tier's headline
+    // promise on an accidental swipe, leaving the sheet claiming "Pierwszy
+    // masz za sobą" over nothing but locked cards until the app restarted.
     final record = ref.watch(challengeRecordsProvider)[widget.questionId];
-    final gatePassed = !ref.watch(isPremiumProvider) && record != null;
+    final ChallengeRecord? gateRead =
+        !ref.watch(isPremiumProvider) && record != null && record.wasRead
+        ? record
+        : null;
 
     return Padding(
       // Rides above the keyboard when the smaczek composer has focus.
@@ -206,10 +221,10 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
                 // (see [_freeHeaderAfterGate]); otherwise it falls back to the
                 // flat line until the list has loaded.
                 Text(
-                  gatePassed
+                  gateRead != null
                       ? _freeHeaderAfterGate(
                           context,
-                          record,
+                          gateRead,
                           smaczkiAsync.value,
                         )
                       : switch ((smaczkiAsync.value?.length ?? 0) - 1) {
@@ -251,10 +266,8 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
                       // Post-gate free view: hide the argument the gate already
                       // served and render everything else locked — never a
                       // repeat, never a second free smaczek.
-                      hiddenPosition: gatePassed
-                          ? record.smaczekPosition
-                          : null,
-                      lockAll: gatePassed,
+                      hiddenPosition: gateRead?.smaczekPosition,
+                      lockAll: gateRead != null,
                       onGetPremium: _busy ? null : _getPremium,
                     ),
                   ),

@@ -13,13 +13,14 @@ import 'support/localized_test_app.dart';
 ///     has finished landing — answering before the hit lands is the one way to
 ///     make the whole beat pointless;
 ///   * "trzymam się" and "to mnie ruszyło" report distinct outcomes, and the
-///     dwell (argument landed → tap) rides along, because without it every
-///     future decision about this mechanic is guesswork;
+///     dwell (gate opened → tap) rides along, because without it every future
+///     decision about this mechanic is guesswork — and it counts the fall,
+///     which is the second the user spends reading;
 ///   * the vote is FINAL: no outcome re-casts anything (the caller merely
 ///     records the answer on a separate axis);
 ///   * system back is never a trap: it resolves as "dismissed" — an exit, not
 ///     an answer — and the result appears anyway;
-///   * the compact beat (gates 2 and 3 of a session) shows the text whole and
+///   * the compact beat (every gate after the first) shows the text whole and
 ///     the buttons straight away, so the ~1s of falling words is cut while the
 ///     hit itself stays.
 void main() {
@@ -101,9 +102,29 @@ void main() {
     expect(
       reported.single.dwellMs,
       isNotNull,
-      reason: 'the dwell clock starts when the argument lands',
+      reason: 'an answered gate always carries its dwell',
     );
     expect(reported.single.dwellMs, isNonNegative);
+  });
+
+  testWidgets('the dwell counts the fall, not just the pause after it', (
+    tester,
+  ) async {
+    // The falling words ARE the reading: ~1.1s of it on this 9-word argument.
+    // Measuring only the hesitation after the last word landed filed honest
+    // readers as `skipped_fast` (server minimum 1500 ms) and locked their
+    // debate profile with no way to find out why.
+    await open(tester);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('TRZYMAM SIĘ'));
+    await tester.pumpAndSettle();
+
+    // 9 words: 90 ms of stagger each past the first, plus one 380 ms fall.
+    expect(
+      reported.single.dwellMs,
+      greaterThanOrEqualTo(90 * 8 + 380),
+      reason: 'the clock starts when the gate opens, not when the words land',
+    );
   });
 
   testWidgets('"to mnie ruszyło" reports "moved" — nothing more', (

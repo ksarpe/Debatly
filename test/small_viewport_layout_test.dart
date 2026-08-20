@@ -9,10 +9,12 @@ import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
 import 'package:debatly/features/onboarding/screens/onboarding_screen.dart';
 import 'package:debatly/features/onboarding/widgets/onboarding_bridge_card.dart';
 import 'package:debatly/features/questions/providers/question_providers.dart';
+import 'package:debatly/features/questions/widgets/daily_vote_panel.dart';
 import 'package:debatly/features/questions/widgets/favorite_star_button.dart';
 import 'package:debatly/features/questions/widgets/go_deeper_button.dart';
 import 'package:debatly/features/questions/widgets/question_body.dart';
 import 'package:debatly/features/questions/widgets/share_question_button.dart';
+import 'package:debatly/features/questions/widgets/wind_question_view.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,12 +70,13 @@ void main() {
     bool premium = true,
     QuestionRepository? repo,
     List<Question> pool = const [],
+    String? dailyText,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    final daily = q('daily');
+    final daily = q('daily', dailyText);
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(
@@ -148,6 +151,66 @@ void main() {
           );
           expect(isTappable(tester, pill), isTrue);
         }
+      });
+    });
+  });
+
+  group('the question never paints over the vote row', () {
+    // The catalog's longest question (109 chars) is the one that finds the
+    // floor: [FitOrScroll] is handed a minimum group height, and if that
+    // minimum under-reports, the non-scrolling branch is taken on a box the
+    // group cannot fit — and an overflowing Column is still PAINTED, straight
+    // over the TAK/NIE row it was supposed to sit above.
+    //
+    // It under-reported in exactly two ways: the question's own floor was a
+    // fixed 56 while the vote row under it scaled with the system font, and
+    // the v2 flip line was added below the vote row without either
+    // measurement hearing about it.
+    const longest =
+        'Czy osoby, które świadomie nie szczepią swoich dzieci, powinny '
+        'ponosić odpowiedzialność karną za skutki tej decyzji?';
+
+    const viewports = <String, (Size, double)>{
+      'small phone at 2.0x text': (Size(360, 640), 2.0),
+      'small phone at 1.6x text': (Size(360, 640), 1.6),
+      'short window at 1.6x text': (Size(812, 375), 1.6),
+      'smallest phone at 2.0x text': (Size(320, 568), 2.0),
+      // iOS accessibility text goes past 3x, and the feed's bottom overlay
+      // is the part that cannot answer by shrinking — it takes its height
+      // off the top of the question group. At 3x on a 320pt phone the
+      // one-line swipe hint wrapped to 371pt and the action bar landed 120pt
+      // BELOW the bottom edge: painted, and untouchable.
+      'small phone at 3.0x text': (Size(360, 640), 3.0),
+      'smallest phone at 3.0x text': (Size(320, 568), 3.0),
+    };
+
+    viewports.forEach((name, spec) {
+      testWidgets('the longest question fits or scrolls — $name', (
+        tester,
+      ) async {
+        final (size, scale) = spec;
+        await pumpFeed(
+          tester,
+          size: size,
+          textScale: scale,
+          dailyText: longest,
+        );
+
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: 'the group must scroll, never overflow its box',
+        );
+
+        // The real symptom: text on top of the buttons. The question's box
+        // has to end above the vote panel's, not run into it.
+        final question = tester.getRect(find.byType(WindQuestionView));
+        final votePanel = tester.getRect(find.byType(DailyVotePanel));
+        expect(
+          question.bottom,
+          lessThanOrEqualTo(votePanel.top + 0.5),
+          reason: 'the question ran into the TAK/NIE row',
+        );
       });
     });
   });
@@ -420,9 +483,20 @@ class _FakeSession extends SessionNotifier {
 }
 
 /// Serves a question the user has already voted on, so the vote panel renders
-/// its tallest state (the split bars plus the "Twój głos" caption).
+/// its tallest state: the split bars, the "Twój głos" caption AND the
+/// "Kontra przewróciła X%" line.
+///
+/// The flip line is the point. It renders only when `flipPct != null`, so a
+/// fixture without one never exercises the tallest panel — which is how the
+/// under-reserved `votePanelExtrasMaxHeight` slipped past this very suite and
+/// overflowed a 320x568 phone at 2x by 54px.
 class _VotedRepo extends MockQuestionRepository {
   @override
   Future<VoteResult> getDailyVoteState(String questionId) async =>
-      const VoteResult(yesCount: 61, noCount: 39, myChoice: VoteResult.yes);
+      const VoteResult(
+        yesCount: 61,
+        noCount: 39,
+        myChoice: VoteResult.yes,
+        flipPct: 41,
+      );
 }

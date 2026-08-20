@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/app_locale.dart';
+import '../../../core/startup/supabase_init_provider.dart';
 import '../../../data/models/conformity_stats.dart';
 import '../../../data/models/debate_profile.dart';
 import '../../../data/models/question.dart';
@@ -21,6 +22,15 @@ import '../../account/providers/session_providers.dart';
 /// app read questions from Supabase. Without credentials, local mock data keeps
 /// development and tests simple.
 ///
+/// The branch is on [SupabaseInitStatus], NOT on `SupabaseService.isInitialised`.
+/// Those look interchangeable and are not: a build WITH credentials whose init
+/// failed also reads as "not initialised", and answering that with mock data
+/// gave real users a fake app — invented questions, a fabricated split, a
+/// frozen streak, and every vote thrown away without a word. Mock data is only
+/// ever correct when there is no backend configured at all; a backend that is
+/// configured but down is an error to surface (see [HomeGate]), so this throws
+/// rather than substituting fiction for it.
+///
 /// The Supabase source is built with the active app language (see
 /// [localeControllerProvider]) so its `p_locale` matches the UI. Watching the
 /// locale means switching language rebuilds this provider, which in turn
@@ -35,7 +45,13 @@ import '../../account/providers/session_providers.dart';
 /// premium cache on a lapse. The mock source stays unwrapped — it's already
 /// fully offline.
 final questionRepositoryProvider = Provider<QuestionRepository>((ref) {
-  if (!SupabaseService.isInitialised) return MockQuestionRepository();
+  final status = ref.watch(supabaseInitProvider);
+  if (status == SupabaseInitStatus.notConfigured) {
+    return MockQuestionRepository();
+  }
+  if (status == SupabaseInitStatus.failed) {
+    throw const SupabaseUnavailableException();
+  }
   final locale = ref.watch(localeControllerProvider).languageCode;
   return CachingQuestionRepository(
     inner: SupabaseQuestionRepository(locale: locale),

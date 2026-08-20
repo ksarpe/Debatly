@@ -18,6 +18,7 @@ import '../../account/providers/session_providers.dart';
 import '../../account/screens/auth_screen.dart';
 import '../../account/widgets/restore_sign_in_prompt.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
+import '../../monetization/widgets/purchase_settlement.dart';
 import '../../questions/providers/favorites_providers.dart';
 import '../../questions/widgets/suggest_question_sheet.dart';
 import '../providers/app_info_provider.dart';
@@ -201,8 +202,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                         ),
                       ],
 
+                      // Guests included — see [SettingsSessionActions]: the
+                      // data that has to be erasable is the votes, the streak
+                      // and the profile, and an anonymous user has all three.
                       SettingsSessionActions(
-                        hasAccount: hasAccount,
                         appInfo: appInfo,
                         onDeleteAccount: _confirmDeleteAccount,
                       ),
@@ -225,12 +228,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     final purchased = await showProPaywall(context);
     if (!mounted) return;
     if (purchased) {
-      await ref.read(sessionProvider.notifier).refresh();
-      if (!mounted) return;
-      _showMessage(
-        context.l10n.settingsPremiumActiveToast,
-        type: ToastType.success,
-      );
+      // Premium is claimed only once the entitlement is really there — a
+      // pending purchase gets the "couldn't confirm it yet" line instead.
+      await settleProPurchase(context, ref);
     }
   }
 

@@ -6,8 +6,17 @@ import '../../account/providers/session_providers.dart';
 /// How many post-vote gates a single session may show. The gate solves the
 /// FREE user's problem (one question a day — the argument IS the product); a
 /// PRO user bought the unlimited catalog, i.e. speed, and must not pay for it
-/// with ten full-screen interruptions. Free users never feel this cap.
-const int kChallengeSessionCap = 3;
+/// with an endless run of full-screen interruptions. Free users never feel
+/// this cap.
+///
+/// Raised 3 → 10 on 2026-08-20: the arguments ARE the reason to sit in the
+/// feed, and cutting them off at the third vote was throttling the one thing
+/// a PRO session is worth reading. Gates 2+ are already compact (the
+/// word-by-word fall is dropped), so ten of them cost far less attention than
+/// ten of the first one. The cap stays a cap — a valve against the
+/// hundred-vote binge, not a per-session budget the normal user should ever
+/// meet.
+const int kChallengeSessionCap = 10;
 
 /// How long the app must sit in the background before the next resume starts
 /// a fresh session (and re-arms the gate cap).
@@ -79,6 +88,18 @@ class ChallengeRecord {
   /// answer — its header sells "attack → defense", and may only do so when a
   /// defense really waits behind the paywall.
   final int choice;
+
+  /// Whether the argument was actually READ, i.e. the user answered the gate
+  /// instead of leaving through system back.
+  ///
+  /// A [ChallengeOutcome.dismissed] gate is recorded like any other (the
+  /// statistic wants to know), but nothing was delivered: a back press inside
+  /// the first second — a mis-tap, a notification, a change of mind — must not
+  /// spend the FREE tier's one readable argument on this question. Every
+  /// surface that speaks in the past tense about the gate ("Pierwszy masz za
+  /// sobą", the bottom bar's post-gate label, the sheet's hidden card) checks
+  /// this first and otherwise keeps its pre-gate promise.
+  bool get wasRead => outcome != ChallengeOutcome.dismissed;
 }
 
 /// The gates run this session, keyed by question id. In-memory on purpose:

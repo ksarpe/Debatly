@@ -67,11 +67,17 @@ class PremiumStatus {
   bool get isCancelled => isActive && !willRenew && expirationDate != null;
 }
 
-/// How long a single offering fetch is allowed to take before it counts as a
-/// failure the paywall can retry. Bounded because the paywall can only retry
-/// an attempt that actually ends — behind a hung request it would otherwise
-/// spin forever, which on a hard-walled app is the whole product hanging.
-const Duration kOfferFetchTimeout = Duration(seconds: 10);
+/// How long a single call into the store SDK is allowed to take before it
+/// counts as a failure the caller can act on. Bounded because every guard we
+/// have — the paywall's retry, the entitlement fallback chain, the "offline"
+/// copy — is reached by an EXCEPTION, and a call that simply never answers
+/// reaches none of them: the paywall can only retry an attempt that actually
+/// ends, and the launch gate can only leave a spinner that stops.
+///
+/// This is not a latency budget. RevenueCat calls have been observed at 30–40 s
+/// on a bad connection, which reads as a frozen app; 10 s is the line past
+/// which we stop waiting and answer from what we already know.
+const Duration kStoreCallTimeout = Duration(seconds: 10);
 
 /// How a purchase attempt ended.
 ///
@@ -88,6 +94,16 @@ enum PurchaseOutcome {
   /// must never be reported to the user as a failure; the session reconcile
   /// decides, and the surfaces already say "couldn't confirm it yet".
   pending,
+
+  /// The store refused because this product is ALREADY owned — a reinstalled
+  /// lifetime buyer, or a store account whose receipt is attached to a
+  /// different app user (`RECEIPT_ALREADY_IN_USE`, the number-one cause of "I
+  /// paid and I'm still free"). Nothing failed and nothing is in flight: the
+  /// purchase exists and has to be RESTORED, or reached by signing in to the
+  /// account holding it. The paywall answers this by running its own restore
+  /// — that path asks a guest first, because restoring onto a fresh anonymous
+  /// identity would move PRO off the account that actually holds it.
+  alreadyOwned,
 
   /// The user backed out of the store sheet. Their choice — say nothing.
   cancelled,
@@ -201,9 +217,10 @@ class PurchasesService {
     }
   }
 
-  /// Whether [error] describes the user's ENVIRONMENT rather than a defect in
-  /// the app: the store client can't reach its backend, the device is offline,
-  /// DNS is blocking RevenueCat, the store itself is having a bad day.
+  /// Whether [error] describes the user's ENVIRONMENT or account state rather
+  /// than a defect in the app: the store client can't reach its backend, the
+  /// device is offline, DNS is blocking RevenueCat, the store itself is having
+  /// a bad day, or the purchase already exists / hasn't cleared yet.
   ///
   /// These are not actionable as Sentry issues — nothing in this repo fixes
   /// them — and on a hard-paywalled app they arrive in bulk: every retry of
@@ -224,6 +241,14 @@ class PurchasesService {
       // the account is barred from buying (parental controls, work profile,
       // unsupported country). The store answered — with "not you, not here".
       case PurchasesErrorCode.purchaseNotAllowedError:
+      // Neither a defect nor a failure: the purchase already exists
+      // (reinstall, second device, receipt on another app user) or is still
+      // in flight (cash payment, SCA, parental approval). [purchase] answers
+      // all three with a real outcome, so a Sentry issue per occurrence only
+      // buries the ones that ARE bugs.
+      case PurchasesErrorCode.productAlreadyPurchasedError:
+      case PurchasesErrorCode.receiptAlreadyInUseError:
+      case PurchasesErrorCode.paymentPendingError:
         return true;
       case null:
         // Not a RevenueCat error — fall back to the app-wide "is this just a
@@ -286,7 +311,13 @@ class PurchasesService {
   static Future<void> identify(String appUserId) async {
     if (!_configured) return;
     try {
-      await Purchases.logIn(appUserId);
+      // Bounded (see [kStoreCallTimeout]): this sits on the LAUNCH path — the
+      // session load awaits it, the gate awaits the session, the feed awaits
+      // the gate — so an SDK call that never answers is a spinner with no
+      // exit. A timeout costs an unlinked identity for this session (the
+      // entitlement still resolves off the server, and the next launch links
+      // again); a hang costs the whole app.
+      await Purchases.logIn(appUserId).timeout(kStoreCallTimeout);
     } catch (e, st) {
       // Entitlements may not follow the right identity if this fails — worth
       // knowing about, but the app keeps working off the anonymous RC user.
@@ -321,7 +352,12 @@ class PurchasesService {
   static Future<bool> isPremium() async {
     if (!_configured) return false;
     try {
-      final info = await Purchases.getCustomerInfo();
+      // Bounded (see [kStoreCallTimeout]): the last link in the launch-path
+      // entitlement chain, and the only one that used to have no ceiling. A
+      // timeout answers "not premium" — the same as any other failure here,
+      // and the same answer the fallback chain already copes with — instead
+      // of leaving the session future pending forever.
+      final info = await Purchases.getCustomerInfo().timeout(kStoreCallTimeout);
       return info.entitlements.active.containsKey(_premiumEntitlementId);
     } catch (e) {
       debugPrint('PurchasesService.isPremium failed: $e');
@@ -336,7 +372,9 @@ class PurchasesService {
   static Future<PremiumStatus?> premiumStatus() async {
     if (!_configured) return null;
     try {
-      final info = await Purchases.getCustomerInfo();
+      // Bounded for the same reason as [isPremium]: the manage sheet spins on
+      // this provider, and a hung read leaves that spinner with no way out.
+      final info = await Purchases.getCustomerInfo().timeout(kStoreCallTimeout);
       final entitlement = info.entitlements.active[_premiumEntitlementId];
       if (entitlement == null) return null;
       final expiry = entitlement.expirationDate;
@@ -404,11 +442,9 @@ class PurchasesService {
       debugPrint('PurchasesService: not configured — no paywall packages.');
       return const <Package>[];
     }
-    // Bounded (see [kOfferFetchTimeout]); a TimeoutException reads as
+    // Bounded (see [kStoreCallTimeout]); a TimeoutException reads as
     // retryable, so the caller tries again rather than giving up.
-    final offerings = await Purchases.getOfferings().timeout(
-      kOfferFetchTimeout,
-    );
+    final offerings = await Purchases.getOfferings().timeout(kStoreCallTimeout);
     final packages = offerings.current?.availablePackages ?? const <Package>[];
     return [...packages]
       ..sort((a, b) => packageRank(a.packageType) - packageRank(b.packageType));
@@ -438,7 +474,7 @@ class PurchasesService {
     const backoff = [Duration(seconds: 2), Duration(seconds: 8)];
     for (var attempt = 0; ; attempt++) {
       try {
-        await Purchases.getOfferings().timeout(kOfferFetchTimeout);
+        await Purchases.getOfferings().timeout(kStoreCallTimeout);
         return;
       } catch (e) {
         final code = errorCodeOf(e)?.name ?? e.runtimeType.toString();
@@ -518,7 +554,8 @@ class PurchasesService {
       );
       return PurchaseOutcome.pending;
     } catch (e, st) {
-      if (errorCodeOf(e) == PurchasesErrorCode.purchaseCancelledError) {
+      final code = errorCodeOf(e);
+      if (code == PurchasesErrorCode.purchaseCancelledError) {
         Monitoring.addBreadcrumb(
           'Paywall purchase cancelled',
           category: 'purchases',
@@ -531,9 +568,39 @@ class PurchasesService {
         operation: 'purchase',
         extra: {'package': package.identifier},
       );
-      return PurchaseOutcome.failed;
+      switch (code) {
+        // "You already bought this" — a reinstall, a second device, or a
+        // receipt attached to another app user. The opposite of a failure,
+        // and answering it with "check your connection" is how a paying user
+        // ends up buying twice or asking for a refund instead. The remedy is
+        // a restore, which the caller owns: a guest has to be asked before
+        // one runs (see the outcome's own doc), and this layer knows nothing
+        // about who is signed in.
+        case PurchasesErrorCode.productAlreadyPurchasedError:
+        case PurchasesErrorCode.receiptAlreadyInUseError:
+          return PurchaseOutcome.alreadyOwned;
+        // PAYMENT_PENDING: the charge is in flight (cash or bank transfer at
+        // a kiosk, a card awaiting SCA, a child's purchase awaiting a
+        // parent). The payment has not bounced — it just hasn't landed yet,
+        // which is exactly what [PurchaseOutcome.pending] already means.
+        case PurchasesErrorCode.paymentPendingError:
+          return PurchaseOutcome.pending;
+        default:
+          return PurchaseOutcome.failed;
+      }
     }
   }
+
+  /// How long a restore may run before it is called a failure.
+  ///
+  /// Unlike a purchase, a restore has no step the user drives — it is a store
+  /// round trip and nothing else, so it has a deadline. Without one, a store
+  /// SDK that never calls back left the paywall spinning with its CTA, its
+  /// links and (until the exit grace) its close button all disabled.
+  /// Deliberately generous: a slow store is still worth waiting for, and
+  /// [RestoreOutcome.failed] says "couldn't reach the store", never "you own
+  /// nothing".
+  static const Duration _kRestoreTimeout = Duration(seconds: 45);
 
   /// Restores a previous purchase (e.g. after reinstalling or switching device)
   /// and reports how it ended. Required by the App Store review guidelines for
@@ -545,7 +612,7 @@ class PurchasesService {
   static Future<RestoreOutcome> restorePurchases() async {
     if (!_configured) return RestoreOutcome.none;
     try {
-      await Purchases.restorePurchases();
+      await Purchases.restorePurchases().timeout(_kRestoreTimeout);
       return await isPremium() ? RestoreOutcome.restored : RestoreOutcome.none;
     } catch (e, st) {
       // A failed restore strands a paying user on the free tier — report it

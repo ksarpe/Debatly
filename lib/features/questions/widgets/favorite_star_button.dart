@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/feedback/app_toast.dart';
+import '../../../core/feedback/haptics.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/network/network_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../account/providers/session_providers.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
+import '../../monetization/widgets/purchase_settlement.dart';
 import '../providers/favorites_providers.dart';
 
 /// Gold accent for the favorite star, matching the "go Premium" upsell elsewhere.
@@ -84,6 +86,9 @@ class _FavoriteStarButtonState extends ConsumerState<FavoriteStarButton>
   Future<void> _onTap() async {
     final isPremium = ref.read(isPremiumProvider);
     if (!isPremium) {
+      // The star is an upsell hook on a free account — the refusal pattern
+      // says so in the hand, the same as a locked smaczek does.
+      Haptics.blocked();
       await _openPaywall();
       return;
     }
@@ -97,6 +102,11 @@ class _FavoriteStarButtonState extends ConsumerState<FavoriteStarButton>
     // provider rolls the star back and the toast is retracted below.
     final adding = !notifier.isFavorite(widget.questionId);
     if (adding && !_reduceMotion) _pop.forward(from: 0);
+    // Saving is the deliberate act; un-saving is a smaller correction, so it
+    // only gets the tick. Both fire off the optimistic flip and are NOT gated
+    // on reduced motion: the state really changed, whether or not it is
+    // allowed to sparkle about it.
+    adding ? Haptics.confirm() : Haptics.tick();
     final toastId = adding
         ? AppToast.success(
             context,
@@ -143,9 +153,9 @@ class _FavoriteStarButtonState extends ConsumerState<FavoriteStarButton>
       );
       if (!mounted) return;
       if (purchased) {
-        await ref.read(sessionProvider.notifier).refresh();
-        if (!mounted) return;
-        AppToast.success(context, context.l10n.settingsPremiumActiveToast);
+        // Not an unconditional "Premium active": the purchase can still be
+        // pending, and the star the user is looking at would stay grey.
+        await settleProPurchase(context, ref);
       } else {
         AppToast.info(context, context.l10n.favoritesPremiumOnly);
       }

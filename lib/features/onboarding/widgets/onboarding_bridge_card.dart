@@ -1,18 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/fit_or_scroll.dart';
 import '../../../services/analytics.dart';
+import '../../account/widgets/save_pro_prompt.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
+import '../../monetization/widgets/purchase_settlement.dart';
 
 /// The bridge card right after the taste votes — the screen that replaced the
 /// hard paywall. It explains the freemium model ("one free question a day,
-/// forever") and hands the user FORWARD: the loud orange CTA opens the paywall
-/// sheet, the quiet outline continues for free to today's question — and the
-/// sheet is always dismissible back here, so the free path stays one tap away.
-class OnboardingBridgeCard extends StatelessWidget {
+/// forever") and hands the user FORWARD.
+///
+/// The FREE path is the dominant CTA: gradient, glow, top of the stack. That is
+/// the product's own rule (one free question a day is the whole growth engine,
+/// and this is the last screen before a first-run user ever reaches the feed),
+/// and it is also what the strings say — `bridgeCtaPrimary` is the free path,
+/// `bridgeCtaSecondary` opens the paywall. The visuals used to be the other way
+/// round while the analytics kept the string names, so `bridge_cta_primary` was
+/// logged by the quiet outlined button and `bridge_cta_secondary` by the loud
+/// one — every funnel built on those two events read backwards. Spec, strings,
+/// visuals and event names now all agree; keep them that way.
+///
+/// The paywall sheet is always dismissible back here, so neither path is a trap.
+class OnboardingBridgeCard extends ConsumerWidget {
   const OnboardingBridgeCard({super.key, required this.onContinue});
 
   /// Moves the deck along (to the notifications ask). Both the free path and
@@ -24,18 +37,31 @@ class OnboardingBridgeCard extends StatelessWidget {
     onContinue();
   }
 
-  Future<void> _unlockAll(BuildContext context) async {
+  Future<void> _unlockAll(BuildContext context, WidgetRef ref) async {
     Analytics.log('bridge_cta_secondary');
     final purchased = await showProPaywall(
       context,
       source: PaywallSource.bridge,
     );
     // Dismissed → stay on the bridge, with the free path still one tap away.
-    if (purchased) onContinue();
+    if (!purchased || !context.mounted) return;
+
+    // Settle and pitch the account HERE, which every other purchase site gets
+    // for free from `HomeGate`. It cannot cover this one: during the bridge the
+    // app is still in the onboarding phase, so the gate isn't mounted and its
+    // `ref.listen` never registers — by the time it does mount, the free→premium
+    // flip has already happened and nothing fires. Left alone, the highest-intent
+    // cohort there is — people who pay before they have even seen the feed —
+    // ended up holding PRO on an anonymous UUID with no prompt to save it, and
+    // lost it on the next reinstall.
+    await settleProPurchase(context, ref);
+    if (!context.mounted) return;
+    await promptSaveProAccount(context, ref);
+    onContinue();
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     return FitOrScroll(
       child: Padding(
@@ -62,6 +88,7 @@ class OnboardingBridgeCard extends StatelessWidget {
               ).copyWith(color: context.colors.subtle),
             ),
             const SizedBox(height: 36),
+            // The free path: gradient, glow, first in the stack.
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: AppTheme.ctaGradient,
@@ -71,35 +98,21 @@ class OnboardingBridgeCard extends StatelessWidget {
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: () => _unlockAll(context),
+                  onTap: _getToday,
                   borderRadius: AppTheme.ctaRadius,
                   child: SizedBox(
                     width: double.infinity,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 12,
+                        vertical: 16,
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            l10n.bridgeCtaSecondary.toUpperCase(),
-                            style: AppTypography.action(
-                              fontSize: 14,
-                            ).copyWith(color: AppTheme.ctaForeground),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            l10n.bridgeCtaSecondaryHint,
-                            style: AppTypography.support(fontSize: 12.5)
-                                .copyWith(
-                                  color: AppTheme.ctaForeground.withValues(
-                                    alpha: 0.75,
-                                  ),
-                                ),
-                          ),
-                        ],
+                      child: Text(
+                        l10n.bridgeCtaPrimary.toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: AppTypography.action(
+                          fontSize: 14,
+                        ).copyWith(color: AppTheme.ctaForeground),
                       ),
                     ),
                   ),
@@ -107,10 +120,12 @@ class OnboardingBridgeCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
+            // The paywall, kept plainly available underneath — the label and its
+            // hint line are unchanged, only the weight is.
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: _getToday,
+                onPressed: () => _unlockAll(context, ref),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: context.colors.ink,
                   side: BorderSide(
@@ -121,12 +136,24 @@ class OnboardingBridgeCard extends StatelessWidget {
                   ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 16,
+                    vertical: 12,
                   ),
                 ),
-                child: Text(
-                  l10n.bridgeCtaPrimary.toUpperCase(),
-                  style: AppTypography.action(fontSize: 14),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.bridgeCtaSecondary.toUpperCase(),
+                      style: AppTypography.action(fontSize: 14),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.bridgeCtaSecondaryHint,
+                      style: AppTypography.support(
+                        fontSize: 12.5,
+                      ).copyWith(color: context.colors.subtle),
+                    ),
+                  ],
                 ),
               ),
             ),

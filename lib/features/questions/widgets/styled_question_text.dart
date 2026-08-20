@@ -16,20 +16,32 @@ class StyledQuestionText extends StatelessWidget {
   Widget build(BuildContext context) {
     final upper = text.toUpperCase();
     final size = QuestionTextStyles.fontSizeFor(text);
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Text(
-          upper,
-          textAlign: TextAlign.center,
-          style: QuestionTextStyles.strokeFor(size),
+    // ONE node carrying the sentence, over a stack that carries none. The
+    // fill and the stroke are the same words drawn twice — left to speak for
+    // themselves a screen reader announced every question in duplicate
+    // ("CZY… CZY… OSOBY… OSOBY…"). The label is the original text, not the
+    // uppercased one: the caps are a typographic choice, and some engines read
+    // an all-caps string letter by letter.
+    return Semantics(
+      label: text,
+      container: true,
+      child: ExcludeSemantics(
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(
+              upper,
+              textAlign: TextAlign.center,
+              style: QuestionTextStyles.strokeFor(size),
+            ),
+            Text(
+              upper,
+              textAlign: TextAlign.center,
+              style: QuestionTextStyles.fillFor(size),
+            ),
+          ],
         ),
-        Text(
-          upper,
-          textAlign: TextAlign.center,
-          style: QuestionTextStyles.fillFor(size),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -49,12 +61,18 @@ class StyledWord extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final upper = word.toUpperCase();
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Text(upper, style: QuestionTextStyles.strokeFor(fontSize)),
-        Text(upper, style: QuestionTextStyles.fillFor(fontSize)),
-      ],
+    // Semantically silent: a question laid out as one widget per word is a
+    // stream of fragments to a screen reader — doubled, because each word is
+    // drawn twice (stroke + fill). The whole sentence is announced once, by
+    // the [FallingWordsText] that owns the wrap.
+    return ExcludeSemantics(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Text(upper, style: QuestionTextStyles.strokeFor(fontSize)),
+          Text(upper, style: QuestionTextStyles.fillFor(fontSize)),
+        ],
+      ),
     );
   }
 }

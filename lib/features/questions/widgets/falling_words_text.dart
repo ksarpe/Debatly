@@ -153,22 +153,32 @@ class _FallingWordsTextState extends State<FallingWordsText>
           maxHeight: constraints.maxHeight,
           textScaler: textScaler,
         );
-        return Wrap(
-          alignment: WrapAlignment.center,
-          runAlignment: WrapAlignment.center,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: QuestionTextStyles.wordSpacingFor(fontSize),
-          runSpacing: QuestionTextStyles.lineSpacing,
-          children: [
-            for (var i = 0; i < _words.length; i++)
-              _FallingWord(
-                word: _words[i],
-                fontSize: fontSize,
-                controller: _controller,
-                window: _window(i),
-                dropDistance: _dropDistance,
-              ),
-          ],
+        // The wrap is a layout device — one widget per word so each can be
+        // animated on its own — and must never be read as one. A screen
+        // reader walking these children announced a 12-word question as 24
+        // fragments (every word is a stroke Text under a fill Text). The
+        // words are silenced in [StyledWord]; the sentence is announced once,
+        // here, from the source text.
+        return Semantics(
+          label: widget.text,
+          container: true,
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            runAlignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: QuestionTextStyles.wordSpacingFor(fontSize),
+            runSpacing: QuestionTextStyles.lineSpacing,
+            children: [
+              for (var i = 0; i < _words.length; i++)
+                _FallingWord(
+                  word: _words[i],
+                  fontSize: fontSize,
+                  controller: _controller,
+                  window: _window(i),
+                  dropDistance: _dropDistance,
+                ),
+            ],
+          ),
         );
       },
     );

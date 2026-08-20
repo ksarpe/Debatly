@@ -8,9 +8,15 @@ import '../../../core/theme/app_typography.dart';
 /// to render. Replaces the old endless spinner with a friendly message and a
 /// retry that re-runs sign-in + the question/daily/stats fetches.
 class LoadError extends StatelessWidget {
-  const LoadError({super.key, required this.onRetry, this.body});
+  const LoadError({super.key, required this.onRetry, this.title, this.body});
 
   final VoidCallback onRetry;
+
+  /// Overrides the headline. The default names the questions, which is right
+  /// for a failed fetch; a backend that never came up isn't about questions at
+  /// all, and saying so is the difference between "try again later" and
+  /// "nothing you do right now is being saved".
+  final String? title;
 
   /// Overrides the explanation under the title. The default blames the network,
   /// which is right for a thrown fetch — but the feed also lands here when every
@@ -30,7 +36,7 @@ class LoadError extends StatelessWidget {
             Icon(Icons.cloud_off, color: context.colors.subtle, size: 40),
             const SizedBox(height: 16),
             Text(
-              context.l10n.loadErrorTitle.toUpperCase(),
+              (title ?? context.l10n.loadErrorTitle).toUpperCase(),
               textAlign: TextAlign.center,
               style: AppTypography.title(
                 fontSize: 30,
