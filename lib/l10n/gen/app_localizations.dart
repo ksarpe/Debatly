@@ -704,6 +704,24 @@ abstract class AppLocalizations {
   /// **'New questions are waiting. See if you\'re still in the minority.'**
   String get notifAwayBody2;
 
+  /// No description provided for @notifTeaserTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{teaser}…'**
+  String notifTeaserTitle(String teaser);
+
+  /// No description provided for @notifTeaserBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s question of the day. Which side are you on?'**
+  String get notifTeaserBody;
+
+  /// No description provided for @notifTeaserBodyAway.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s question of the day. People are already arguing — without you.'**
+  String get notifTeaserBodyAway;
+
   /// No description provided for @notifChannelDailyName.
   ///
   /// In en, this message translates to:

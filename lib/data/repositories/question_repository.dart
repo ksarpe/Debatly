@@ -15,6 +15,12 @@ import '../models/user_stats.dart';
 import '../models/vote_history_entry.dart';
 import '../models/vote_result.dart';
 
+/// How far ahead [QuestionRepository.fetchUpcomingDailyTeasers] reads the
+/// calendar. Covers the reminder cadence's furthest slot (day 30) with a day to
+/// spare, and matches the server's own cap — asking for more is silently
+/// clamped there rather than handing out the whole content roadmap.
+const int kUpcomingTeaserDays = 31;
+
 /// Abstraction over the source of questions.
 ///
 /// The app talks to this interface only, so the underlying source can move from
@@ -34,6 +40,16 @@ abstract class QuestionRepository {
   /// wall may peek every day for free). [excludeIds] keeps the served daily
   /// out of the pick. Null when there is nothing left to tease.
   Future<String?> peekNextQuestion({List<String> excludeIds = const []});
+
+  /// The first words of each upcoming daily, keyed by `yyyy-mm-dd` publish date.
+  ///
+  /// Calls `get_upcoming_daily_teasers` — the curated calendar read, the same
+  /// 4-word cut the day wall shows, never the full text. Caller-independent by
+  /// design (the global pick outranks vote history for every tier), so the
+  /// result is identical on every device and safe to cache; that is what lets a
+  /// LOCAL notification, whose body is baked days before it fires, name the
+  /// question it is calling the user back to. A gap date simply has no entry.
+  Future<Map<String, String>> fetchUpcomingDailyTeasers();
 
   /// The discussion prompts ("smaczki") for a single question.
   ///
@@ -249,6 +265,25 @@ class MockQuestionRepository implements QuestionRepository {
       return words.take(4).join(' ');
     }
     return null;
+  }
+
+  @override
+  Future<Map<String, String>> fetchUpcomingDailyTeasers() async {
+    // One teaser per upcoming day, cycling the mock catalog, so a keyless dev
+    // session gets question-shaped reminder copy rather than falling back to
+    // the evergreen pool. No latency, for the same reason peekNextQuestion has
+    // none: a pending fake timer would fail any widget test showing the feed.
+    final now = DateTime.now();
+    final teasers = <String, String>{};
+    for (var offset = 0; offset < kUpcomingTeaserDays; offset++) {
+      final q = kMockQuestions[offset % kMockQuestions.length];
+      final words = q.questionText.trim().split(RegExp(r'\s+'));
+      if (words.isEmpty) continue;
+      teasers[dateOnlyKey(now.add(Duration(days: offset)))] = words
+          .take(4)
+          .join(' ');
+    }
+    return teasers;
   }
 
   @override
@@ -674,6 +709,33 @@ class SupabaseQuestionRepository implements QuestionRepository {
     final teaser = rows.first['teaser'] as String?;
     if (teaser == null || teaser.trim().isEmpty) return null;
     return teaser.trim();
+  }
+
+  @override
+  Future<Map<String, String>> fetchUpcomingDailyTeasers() async {
+    // Pure calendar read: {publish_date, teaser} per upcoming pick, the teaser
+    // cut to the first few words server-side. Nothing is assigned or consumed,
+    // and the RPC reads no auth.uid() — the rows are the same for everyone.
+    final data = await _db
+        .rpc(
+          'get_upcoming_daily_teasers',
+          params: {
+            'p_locale': locale,
+            // The reminder loop runs on local wall-clock days, so the window is
+            // anchored on the device's local date (server-clamped to UTC ±1).
+            'p_from': dateOnlyKey(DateTime.now()),
+            'p_days': kUpcomingTeaserDays,
+          },
+        )
+        .withNetworkTimeout();
+
+    final rows = (data as List).cast<Map<String, dynamic>>();
+    return {
+      for (final row in rows)
+        if (row['publish_date'] case final String date)
+          if (row['teaser'] case final String teaser)
+            if (teaser.trim().isNotEmpty) date: teaser.trim(),
+    };
   }
 
   @override

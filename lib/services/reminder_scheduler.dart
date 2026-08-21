@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../data/repositories/question_repository.dart' show dateOnlyKey;
 import '../features/settings/providers/reminder_providers.dart';
 import '../l10n/gen/app_localizations.dart';
 import 'notification_service.dart';
@@ -61,6 +62,26 @@ ReminderChannel reminderChannelFor(
   ),
 };
 
+/// The teaser for the daily a slot at [dayOffset] fires ON, from a map keyed by
+/// `yyyy-mm-dd` publish date.
+///
+/// Worth its own name because the off-by-one is invisible: a slot that reached
+/// for today's teaser instead of its own would ship a loop where every reminder
+/// names a question the user has already answered, and nothing would fail —
+/// the copy would just be quietly wrong for a month. Null for a gap date, a
+/// deactivated pick, or a horizon the cache hasn't reached.
+String? teaserForOffset(
+  Map<String, String> teasers,
+  DateTime from,
+  int dayOffset,
+) {
+  // Date arithmetic on the calendar day, not on 24h spans: adding a Duration
+  // across a DST boundary can land on the wrong date.
+  final day = DateTime(from.year, from.month, from.day + dayOffset);
+  final teaser = teasers[dateOnlyKey(day)]?.trim();
+  return (teaser == null || teaser.isEmpty) ? null : teaser;
+}
+
 /// Whether today's slot should stay silent rather than carry a message.
 ///
 /// Two reasons, both "the ping has nothing to offer":
@@ -100,7 +121,14 @@ Future<void> rescheduleReminderLoop({
   final reminder = ReminderPrefs.fromPrefs(prefs);
   if (!reminder.enabled) return;
 
-  final stats = QuestionCache(prefs).readStats();
+  final cache = QuestionCache(prefs);
+  final stats = cache.readStats();
+  // Teasers for the coming dailies, keyed by local date. Cache-only on purpose:
+  // this runs from `main()` before the provider graph and must work offline, so
+  // keeping the map fresh is the repository's job (see the caching decorator).
+  // An empty map is a normal state — every horizon falls back to its own pool.
+  final teasers = cache.readDailyTeasers(l10n.localeName);
+  final today = DateTime.now();
   final votedToday = hasVotedTodayLocal(prefs);
   final disagreePct = lastDisagreePctToday(prefs);
   // An unknown entitlement (never synced) counts as free: the cost of being
@@ -113,7 +141,7 @@ Future<void> rescheduleReminderLoop({
     minute: reminder.minute,
     // Device-local, matching the loop's wall-clock slots (and the local-midnight
     // rollover the daily itself runs on).
-    now: DateTime.now(),
+    now: today,
   );
   final random = Random();
 
@@ -134,6 +162,9 @@ Future<void> rescheduleReminderLoop({
         votedToday: votedToday,
         horizon: horizon,
         disagreePct: disagreePct,
+        // The daily this slot actually fires ON, not today's — offset N lands on
+        // day N, where day N's pick is the question in the feed.
+        teaser: teaserForOffset(teasers, today, dayOffset),
         random: random,
       );
       return (

@@ -112,6 +112,17 @@ surface.
   Two Android channels — `daily_question` (heads-up) and `comeback` (quiet)
   — so muting the chasing never mutes the reminder the user opted into; the
   channel follows the horizon, never the drawn message.
+  **The strongest line is the question itself, not the mechanics.**
+  `get_upcoming_daily_teasers` (2026-08-21, anon+authenticated) reads the
+  `daily_picks` calendar 31 days out and returns the SAME 4-word cut the day
+  wall shows — never the full text, and no `auth.uid()` anywhere, which is
+  what makes the rows identical on every device and therefore cacheable.
+  The caching repository keeps `QuestionCache.readDailyTeasers(locale)` warm
+  (refreshed by `ReminderRefreshWatcher`); `rescheduleReminderLoop` reads that
+  cache ONLY — it runs before the provider graph and must work offline. Each
+  slot takes the teaser of the day it FIRES on (`teaserForOffset`), never
+  today's, and the teaser is dropped post-vote (it would name the question
+  just answered). A gap date simply falls back to the evergreen pool.
 - **Buy to play; sign in to secure.** Every user gets an anonymous Supabase
   UUID at launch and the entitlement rides on THAT — a guest can hold PRO
   indefinitely. An account exists only to make progress survive a reinstall
@@ -301,9 +312,9 @@ lib/
 supabase/
   schema.sql             Bootstrap only — the ORIGINAL base tables, not today's
                          shape (see the hard rule above)
-  migrations/schema/     75 files: tables, RPCs, views, RLS, grants (has DDL).
+  migrations/schema/     77 files: tables, RPCs, views, RLS, grants (has DDL).
                          The real schema; newest file wins per object
-  migrations/data/       35 files: question seeds + catalog edits (no DDL, 3× bigger)
+  migrations/data/       37 files: question seeds + catalog edits (no DDL, 3× bigger)
   functions/             Edge functions (Deno/TS): revenue-cat-webhook,
                          sync-entitlement, admob-ssv, send-auth-email,
                          delete-account

@@ -35,6 +35,7 @@ void main() {
     required ReminderHorizon horizon,
     UserStats? userStats,
     int? disagreePct,
+    String? teaser,
   }) => {
     for (var seed = 0; seed < seeds; seed++)
       buildReminderMessage(
@@ -43,8 +44,31 @@ void main() {
         votedToday: votedToday,
         horizon: horizon,
         disagreePct: disagreePct,
+        teaser: teaser,
         random: Random(seed),
       ).body,
+  };
+
+  /// Every distinct TITLE the builder can return — the teaser rides in the
+  /// title, so the body-only helper can't see it.
+  Set<String> titlesAcross(
+    int seeds, {
+    required bool votedToday,
+    required ReminderHorizon horizon,
+    UserStats? userStats,
+    int? disagreePct,
+    String? teaser,
+  }) => {
+    for (var seed = 0; seed < seeds; seed++)
+      buildReminderMessage(
+        l10n: l10n,
+        stats: userStats,
+        votedToday: votedToday,
+        horizon: horizon,
+        disagreePct: disagreePct,
+        teaser: teaser,
+        random: Random(seed),
+      ).title,
   };
 
   group('not voted', () {
@@ -181,6 +205,92 @@ void main() {
           reason: '$horizon',
         );
       }
+    });
+  });
+
+  group('the teaser', () {
+    const teaser = 'Czy zdrada myslami to';
+
+    test('reaches every horizon that still asks for a vote', () {
+      // The one hook that is about the product rather than the user's
+      // mechanics — it has to survive all the way out to win-back.
+      for (final horizon in ReminderHorizon.values) {
+        final titles = titlesAcross(
+          60,
+          votedToday: false,
+          horizon: horizon,
+          userStats: stats(streak: 4),
+          teaser: teaser,
+        );
+        expect(
+          titles,
+          contains(l10n.notifTeaserTitle(teaser)),
+          reason: '$horizon',
+        );
+      }
+    });
+
+    test('win-back gets its own body under the same question', () {
+      final away = bodiesAcross(
+        60,
+        votedToday: false,
+        horizon: ReminderHorizon.away,
+        teaser: teaser,
+      );
+      final today = bodiesAcross(
+        60,
+        votedToday: false,
+        horizon: ReminderHorizon.today,
+        teaser: teaser,
+      );
+      expect(away, contains(l10n.notifTeaserBodyAway));
+      expect(today, contains(l10n.notifTeaserBody));
+      expect(today, isNot(contains(l10n.notifTeaserBodyAway)));
+    });
+
+    test('never names the question the user just answered', () {
+      // Post-vote the teaser would be the daily they've already voted on.
+      final titles = titlesAcross(
+        60,
+        votedToday: true,
+        horizon: ReminderHorizon.today,
+        userStats: stats(streak: 4),
+        disagreePct: 61,
+        teaser: teaser,
+      );
+      expect(titles, isNot(contains(l10n.notifTeaserTitle(teaser))));
+    });
+
+    test('a blank teaser is dropped rather than titled as an empty quote', () {
+      // A gap date, a deactivated pick or a cache miss all arrive as nothing.
+      for (final blank in <String?>[null, '', '   ']) {
+        final titles = titlesAcross(
+          40,
+          votedToday: false,
+          horizon: ReminderHorizon.today,
+          userStats: stats(),
+          teaser: blank,
+        );
+        expect(
+          titles,
+          isNot(contains(l10n.notifTeaserTitle(''))),
+          reason: blank == null ? 'null' : '"$blank"',
+        );
+        expect(titles, isNotEmpty);
+      }
+    });
+
+    test('does not crowd out the rest of the pool', () {
+      // Weighted, not certain: a single line every single fire would go stale
+      // as a habit just like the mechanics did.
+      final titles = titlesAcross(
+        60,
+        votedToday: false,
+        horizon: ReminderHorizon.today,
+        userStats: stats(),
+        teaser: teaser,
+      );
+      expect(titles.length, greaterThan(1));
     });
   });
 

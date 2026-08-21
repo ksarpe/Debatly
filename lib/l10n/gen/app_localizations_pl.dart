@@ -346,6 +346,19 @@ class AppLocalizationsPl extends AppLocalizations {
       'Czekają nowe pytania. Zobacz, czy nadal jesteś w mniejszości.';
 
   @override
+  String notifTeaserTitle(String teaser) {
+    return '$teaser…';
+  }
+
+  @override
+  String get notifTeaserBody =>
+      'Dzisiejsze pytanie dnia. Po której jesteś stronie?';
+
+  @override
+  String get notifTeaserBodyAway =>
+      'Dzisiejsze pytanie dnia. Ludzie już się o nie kłócą — bez Ciebie.';
+
+  @override
   String get notifChannelDailyName => 'Pytanie dnia';
 
   @override

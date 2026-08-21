@@ -132,6 +132,12 @@
   "notifAwayBody1": "Without you. Come back and see which side you're on today.",
   "notifAwayTitle2": "Changed your mind?",
   "notifAwayBody2": "New questions are waiting. See if you're still in the minority.",
+  "notifTeaserTitle": "{teaser}…",
+  "@notifTeaserTitle": {
+    "placeholders": { "teaser": { "type": "String" } }
+  },
+  "notifTeaserBody": "Today's question of the day. Which side are you on?",
+  "notifTeaserBodyAway": "Today's question of the day. People are already arguing — without you.",
   "notifChannelDailyName": "Daily question",
   "notifChannelDailyDescription": "Your daily nudge about today's question.",
   "notifChannelComebackName": "Come-back reminders",

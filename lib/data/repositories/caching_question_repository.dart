@@ -103,6 +103,25 @@ class CachingQuestionRepository implements QuestionRepository {
     }
   }
 
+  // The reminder loop's fuel. Unlike every other cached read this one exists
+  // FOR the cache: the notification bodies are baked days ahead by
+  // `rescheduleReminderLoop`, which reads the stored map directly (it runs
+  // before the provider graph and must work offline), so the fetch's real job
+  // is keeping that map fresh. Offline we return what's stored rather than
+  // erroring — a stale teaser is still the right question for its date, since
+  // the calendar only ever changes when the owner edits it.
+  @override
+  Future<Map<String, String>> fetchUpcomingDailyTeasers() async {
+    try {
+      final fresh = await inner.fetchUpcomingDailyTeasers();
+      if (fresh.isNotEmpty) await cache.writeDailyTeasers(locale, fresh);
+      return fresh;
+    } catch (e) {
+      if (!isOfflineError(e)) rethrow;
+      return cache.readDailyTeasers(locale);
+    }
+  }
+
   // Pre-vote layout data, not content: offline it degrades to "no smaczki"
   // (an empty list) rather than erroring or caching — the gate can't run
   // offline anyway (the vote itself needs the server) and the sheet is

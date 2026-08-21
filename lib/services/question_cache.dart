@@ -38,6 +38,7 @@ class QuestionCache {
   static const String _favIdsPrefix = '${_prefix}fav_ids_'; // + locale
   static const String _favQuestionsPrefix = '${_prefix}fav_qs_'; // + locale
   static const String _votePrefix = '${_prefix}vote_'; // + questionId
+  static const String _teasersPrefix = '${_prefix}teasers_'; // + locale
   static const String _statsKey = '${_prefix}stats';
   static const String _ranksKey = '${_prefix}ranks';
   static const String _cachedAsPremiumKey = '${_prefix}cached_as_premium';
@@ -199,6 +200,28 @@ class QuestionCache {
 
   Future<void> writeRanks(List<Rank> ranks) =>
       _writeList(_ranksKey, ranks, (r) => r.toJson());
+
+  // ---- Daily teasers ---------------------------------------------------------
+
+  /// The first words of each upcoming daily, keyed by its `yyyy-mm-dd` publish
+  /// date — what lets a LOCAL notification name the question it is calling the
+  /// user back to. The reminder loop bakes its text days ahead of the fire and
+  /// nothing runs at fire time, so this has to already be on the device.
+  ///
+  /// Locale-keyed like the catalog: the teaser is question text, and a language
+  /// switch must not leave yesterday's language sitting in tomorrow's fire.
+  Map<String, String> readDailyTeasers(String locale) {
+    final map = _readMap(_teasersPrefix + locale);
+    if (map == null) return const {};
+    return {
+      for (final entry in map.entries)
+        if (entry.value is String && (entry.value as String).trim().isNotEmpty)
+          entry.key: (entry.value as String).trim(),
+    };
+  }
+
+  Future<void> writeDailyTeasers(String locale, Map<String, String> teasers) =>
+      _writeMap(_teasersPrefix + locale, teasers);
 
   // ---- Meta ------------------------------------------------------------------
 

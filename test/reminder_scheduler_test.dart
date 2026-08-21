@@ -113,6 +113,51 @@ void main() {
     });
   });
 
+  group('teaser lookup', () {
+    final teasers = {
+      '2026-08-21': 'Czy zdrada myslami to',
+      '2026-08-22': 'Czy praca zdalna jest',
+      '2026-09-20': 'Czy dzieci powinny miec',
+    };
+
+    test('a slot reads the daily it fires on, never the current one', () {
+      // The off-by-one this guards: every reminder naming the question the
+      // user already answered, with nothing failing to say so.
+      expect(teaserForOffset(teasers, at(9, 0), 0), 'Czy zdrada myslami to');
+      expect(teaserForOffset(teasers, at(9, 0), 1), 'Czy praca zdalna jest');
+      expect(teaserForOffset(teasers, at(9, 0), 30), 'Czy dzieci powinny miec');
+    });
+
+    test('the time of day never shifts which date is read', () {
+      for (final hour in [0, 9, 23]) {
+        expect(
+          teaserForOffset(teasers, at(hour, 30), 1),
+          'Czy praca zdalna jest',
+          reason: 'at $hour:30',
+        );
+      }
+    });
+
+    test('a gap date yields nothing rather than the neighbouring day', () {
+      // 2026-08-23 has no pick: the slot must fall back to the evergreen pool,
+      // not quietly advertise the 22nd or the 20th of September.
+      expect(teaserForOffset(teasers, at(9, 0), 2), isNull);
+    });
+
+    test('blank and missing entries both read as nothing', () {
+      expect(teaserForOffset(const {}, at(9, 0), 0), isNull);
+      expect(teaserForOffset(const {'2026-08-21': '   '}, at(9, 0), 0), isNull);
+    });
+
+    test('a month-end offset rolls into the next month', () {
+      // DateTime(y, m, d + 30) has to normalise, not clamp.
+      expect(
+        teaserForOffset(teasers, DateTime(2026, 8, 21), 30),
+        'Czy dzieci powinny miec',
+      );
+    });
+  });
+
   group('channels', () {
     test('the reminder the user asked for is kept apart from the chasing', () {
       // The whole point of the split: muting come-back nudges in the OS must

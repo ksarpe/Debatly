@@ -57,6 +57,12 @@ enum ReminderHorizon {
 /// time-sensitive hooks (grace countdown, exact streak day) and the post-vote
 /// branch; every step further out drops another claim the fire could no longer
 /// stand behind, until [ReminderHorizon.away] talks only about the debate.
+///
+/// [teaser] is the first few words of the daily this slot fires ON — the only
+/// hook here that is about the product rather than about the user's mechanics,
+/// and the reason the whole calendar-read exists. It survives every horizon (a
+/// question is a question whether you left yesterday or a month ago) but never
+/// appears post-vote, where it would name the question just answered.
 ReminderMessage buildReminderMessage({
   required AppLocalizations l10n,
   required UserStats? stats,
@@ -64,6 +70,7 @@ ReminderMessage buildReminderMessage({
   required ReminderHorizon horizon,
   required Random random,
   int? disagreePct,
+  String? teaser,
 }) {
   final candidates = <ReminderMessage>[];
 
@@ -74,6 +81,23 @@ ReminderMessage buildReminderMessage({
       ..add((title: l10n.notifNudgeTitle1, body: l10n.notifNudgeBody1))
       ..add((title: l10n.notifNudgeTitle2, body: l10n.notifNudgeBody2))
       ..add((title: l10n.notifNudgeTitle3, body: l10n.notifNudgeBody3));
+  }
+
+  /// The real question, in the user's hand before they open anything. Weighted
+  /// but not certain: it's the strongest line we have, and it would still go
+  /// stale as a habit if it were the only one they ever saw.
+  void addTeaser() {
+    final text = teaser?.trim();
+    if (text == null || text.isEmpty) return;
+    final line = (
+      title: l10n.notifTeaserTitle(text),
+      body: horizon == ReminderHorizon.away
+          ? l10n.notifTeaserBodyAway
+          : l10n.notifTeaserBody,
+    );
+    candidates
+      ..add(line)
+      ..add(line);
   }
 
   final streak = stats?.currentStreak ?? 0;
@@ -128,6 +152,7 @@ ReminderMessage buildReminderMessage({
             ..add(keepAlive)
             ..add(keepAlive);
         }
+        addTeaser();
         addEvergreen();
 
       case ReminderHorizon.tomorrow:
@@ -140,6 +165,7 @@ ReminderMessage buildReminderMessage({
             body: l10n.notifStreakSoftBody,
           ));
         }
+        addTeaser();
         addEvergreen();
 
       case ReminderHorizon.drifting:
@@ -148,6 +174,7 @@ ReminderMessage buildReminderMessage({
         candidates
           ..add((title: l10n.notifDriftTitle1, body: l10n.notifDriftBody1))
           ..add((title: l10n.notifDriftTitle2, body: l10n.notifDriftBody2));
+        addTeaser();
         addEvergreen();
 
       case ReminderHorizon.away:
@@ -157,6 +184,7 @@ ReminderMessage buildReminderMessage({
         candidates
           ..add((title: l10n.notifAwayTitle1, body: l10n.notifAwayBody1))
           ..add((title: l10n.notifAwayTitle2, body: l10n.notifAwayBody2));
+        addTeaser();
     }
   }
 

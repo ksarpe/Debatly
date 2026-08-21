@@ -165,6 +165,9 @@ class _FakeRepo implements QuestionRepository {
   }
 
   @override
+  Future<Map<String, String>> fetchUpcomingDailyTeasers() async => const {};
+
+  @override
   Future<List<Smaczek>> fetchSmaczki(String questionId) async {
     smaczkiCallIds.add(questionId);
     return const [];

@@ -347,6 +347,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'New questions are waiting. See if you\'re still in the minority.';
 
   @override
+  String notifTeaserTitle(String teaser) {
+    return '$teaser…';
+  }
+
+  @override
+  String get notifTeaserBody =>
+      'Today\'s question of the day. Which side are you on?';
+
+  @override
+  String get notifTeaserBodyAway =>
+      'Today\'s question of the day. People are already arguing — without you.';
+
+  @override
   String get notifChannelDailyName => 'Daily question';
 
   @override
