@@ -347,6 +347,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'New questions are waiting. See if you\'re still in the minority.';
 
   @override
+  String get notifChannelDailyName => 'Daily question';
+
+  @override
+  String get notifChannelDailyDescription =>
+      'Your daily nudge about today\'s question.';
+
+  @override
+  String get notifChannelComebackName => 'Come-back reminders';
+
+  @override
+  String get notifChannelComebackDescription =>
+      'Occasional nudges when you\'ve been away for a while.';
+
+  @override
   String get settingsLanguage => 'Language';
 
   @override

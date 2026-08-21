@@ -108,6 +108,10 @@
   "notifAwayBody1": "Bez Ciebie. Wróć i sprawdź, po której stronie dziś jesteś.",
   "notifAwayTitle2": "Zmieniłeś zdanie?",
   "notifAwayBody2": "Czekają nowe pytania. Zobacz, czy nadal jesteś w mniejszości.",
+  "notifChannelDailyName": "Pytanie dnia",
+  "notifChannelDailyDescription": "Codzienne przypomnienie o dzisiejszym pytaniu.",
+  "notifChannelComebackName": "Przypomnienia o powrocie",
+  "notifChannelComebackDescription": "Rzadkie przypomnienia, gdy dłużej Cię nie było.",
 
   "settingsLanguage": "Język",
   "chooseLanguage": "Wybierz język",

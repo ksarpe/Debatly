@@ -704,6 +704,30 @@ abstract class AppLocalizations {
   /// **'New questions are waiting. See if you\'re still in the minority.'**
   String get notifAwayBody2;
 
+  /// No description provided for @notifChannelDailyName.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily question'**
+  String get notifChannelDailyName;
+
+  /// No description provided for @notifChannelDailyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Your daily nudge about today\'s question.'**
+  String get notifChannelDailyDescription;
+
+  /// No description provided for @notifChannelComebackName.
+  ///
+  /// In en, this message translates to:
+  /// **'Come-back reminders'**
+  String get notifChannelComebackName;
+
+  /// No description provided for @notifChannelComebackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Occasional nudges when you\'ve been away for a while.'**
+  String get notifChannelComebackDescription;
+
   /// No description provided for @settingsLanguage.
   ///
   /// In en, this message translates to:

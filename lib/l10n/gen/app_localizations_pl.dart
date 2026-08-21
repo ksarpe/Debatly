@@ -346,6 +346,20 @@ class AppLocalizationsPl extends AppLocalizations {
       'Czekają nowe pytania. Zobacz, czy nadal jesteś w mniejszości.';
 
   @override
+  String get notifChannelDailyName => 'Pytanie dnia';
+
+  @override
+  String get notifChannelDailyDescription =>
+      'Codzienne przypomnienie o dzisiejszym pytaniu.';
+
+  @override
+  String get notifChannelComebackName => 'Przypomnienia o powrocie';
+
+  @override
+  String get notifChannelComebackDescription =>
+      'Rzadkie przypomnienia, gdy dłużej Cię nie było.';
+
+  @override
   String get settingsLanguage => 'Język';
 
   @override

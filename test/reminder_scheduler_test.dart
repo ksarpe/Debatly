@@ -1,10 +1,19 @@
+import 'package:debatly/l10n/gen/app_localizations.dart';
+import 'package:debatly/services/reminder_messages.dart';
 import 'package:debatly/services/reminder_scheduler.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// The reminder's anti-spam contract: a nudge only fires when it still has
 /// something to offer. Everything here pins [shouldSilenceTodaysReminder], the
 /// one decision that stands between the user and a pointless ping.
 void main() {
+  late AppLocalizations l10n;
+
+  setUpAll(() async {
+    l10n = await AppLocalizations.delegate.load(const Locale('en'));
+  });
+
   /// Today at [hour]:[minute], relative to a fixed reference day so the tests
   /// never depend on the wall clock.
   DateTime at(int hour, int minute) => DateTime(2026, 8, 21, hour, minute);
@@ -101,6 +110,39 @@ void main() {
       // silence for anyone still away on day 8.
       expect(kReminderLoopOffsets, hasLength(lessThanOrEqualTo(12)));
       expect(kReminderLoopOffsets.where((o) => o <= 7), hasLength(lessThan(7)));
+    });
+  });
+
+  group('channels', () {
+    test('the reminder the user asked for is kept apart from the chasing', () {
+      // The whole point of the split: muting come-back nudges in the OS must
+      // not take the daily reminder down with them.
+      final daily = reminderChannelFor(ReminderHorizon.today, l10n);
+      final comeback = reminderChannelFor(ReminderHorizon.away, l10n);
+      expect(daily.id, isNot(comeback.id));
+      expect(daily.heightened, isTrue);
+      expect(comeback.heightened, isFalse);
+    });
+
+    test('a slot never changes channel on the message the pool drew', () {
+      // Today and tomorrow are both "the daily reminder"; drifting and away are
+      // both "we noticed you left". Channel follows the slot, not the copy.
+      expect(
+        reminderChannelFor(ReminderHorizon.tomorrow, l10n).id,
+        reminderChannelFor(ReminderHorizon.today, l10n).id,
+      );
+      expect(
+        reminderChannelFor(ReminderHorizon.drifting, l10n).id,
+        reminderChannelFor(ReminderHorizon.away, l10n).id,
+      );
+    });
+
+    test('every channel carries a localized name and description', () {
+      for (final horizon in ReminderHorizon.values) {
+        final channel = reminderChannelFor(horizon, l10n);
+        expect(channel.name, isNotEmpty, reason: '$horizon');
+        expect(channel.description, isNotEmpty, reason: '$horizon');
+      }
     });
   });
 }

@@ -7,6 +7,30 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+/// One Android notification channel, as the OS surfaces it in the app's own
+/// settings. The caller supplies the user-visible strings, so channel names are
+/// localized like every other piece of copy rather than frozen in English here.
+///
+/// iOS and macOS have no equivalent concept — everything lands in one bucket
+/// there and only [id] is ignored.
+class ReminderChannel {
+  const ReminderChannel({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.heightened,
+  });
+
+  final String id;
+  final String name;
+  final String description;
+
+  /// High importance — a heads-up banner with sound. False leaves the fire
+  /// sitting quietly in the shade, which is what an unprompted come-back nudge
+  /// deserves next to the reminder the user actually asked for.
+  final bool heightened;
+}
+
 /// On-device daily reminder for the question of the day.
 ///
 /// Deliberately **local** notifications — no Firebase, no APNs key, no server
@@ -41,10 +65,11 @@ class NotificationService {
   static const int _loopBaseId = 2001;
   static const int _maxLoopSlots = 16;
 
-  static const String _channelId = 'daily_reminder';
-  static const String _channelName = 'Questions';
-  static const String _channelDescription =
-      'A daily nudge to vote on new questions.';
+  /// The single English-only channel every reminder used to share. Split into
+  /// per-purpose channels (see [ReminderChannel]) so muting the come-back nudges
+  /// doesn't also mute the daily one the user opted into; deleted on init so it
+  /// stops sitting in the OS settings as an orphan.
+  static const String _legacyChannelId = 'daily_reminder';
 
   /// Initialises the plugin and the timezone database. Safe to call once at
   /// startup; subsequent calls no-op.
@@ -78,6 +103,15 @@ class NotificationService {
           macOS: darwin,
         ),
       );
+      if (Platform.isAndroid) {
+        // Best-effort tidy-up: no-op once it's gone, and on the platforms that
+        // never had it.
+        await _plugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >()
+            ?.deleteNotificationChannel(channelId: _legacyChannelId);
+      }
       _initialised = true;
     } catch (e) {
       debugPrint('NotificationService: init failed — $e');
@@ -182,7 +216,10 @@ class NotificationService {
     required int hour,
     required int minute,
     required List<int> dayOffsets,
-    required ({String title, String body})? Function(int dayOffset) build,
+    required ({String title, String body, ReminderChannel channel})? Function(
+      int dayOffset,
+    )
+    build,
   }) async {
     if (!_initialised) return;
     try {
@@ -210,16 +247,20 @@ class NotificationService {
           title: message.title,
           body: message.body,
           scheduledDate: when,
-          notificationDetails: const NotificationDetails(
+          notificationDetails: NotificationDetails(
             android: AndroidNotificationDetails(
-              _channelId,
-              _channelName,
-              channelDescription: _channelDescription,
-              importance: Importance.high,
-              priority: Priority.high,
+              message.channel.id,
+              message.channel.name,
+              channelDescription: message.channel.description,
+              importance: message.channel.heightened
+                  ? Importance.high
+                  : Importance.defaultImportance,
+              priority: message.channel.heightened
+                  ? Priority.high
+                  : Priority.defaultPriority,
             ),
-            iOS: DarwinNotificationDetails(),
-            macOS: DarwinNotificationDetails(),
+            iOS: const DarwinNotificationDetails(),
+            macOS: const DarwinNotificationDetails(),
           ),
           // Inexact alarms avoid the SCHEDULE_EXACT_ALARM permission and its Play
           // Store declaration — a daily reminder doesn't need to-the-second

@@ -132,6 +132,10 @@
   "notifAwayBody1": "Without you. Come back and see which side you're on today.",
   "notifAwayTitle2": "Changed your mind?",
   "notifAwayBody2": "New questions are waiting. See if you're still in the minority.",
+  "notifChannelDailyName": "Daily question",
+  "notifChannelDailyDescription": "Your daily nudge about today's question.",
+  "notifChannelComebackName": "Come-back reminders",
+  "notifChannelComebackDescription": "Occasional nudges when you've been away for a while.",
 
   "settingsLanguage": "Language",
   "chooseLanguage": "Choose language",

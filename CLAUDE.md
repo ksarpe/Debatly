@@ -92,6 +92,26 @@ surface.
   ask per local day; on a promotion day it rides right behind the rank-up
   celebration (`RankCelebrationListener`) instead of on top of it; never
   again past the last milestone.
+- **Reminders are LOCAL and earn each fire.** No FCM/APNs, no server cron —
+  `flutter_local_notifications` bakes the text at SCHEDULE time, so nothing
+  runs when a notification actually fires and every "personalisation" must
+  already be on the device. The loop is a run of one-shots on a thinning
+  cadence (`kReminderLoopOffsets` = day 0,1,2,3,5,8,12,17,23,30 — a month of
+  coverage, not a week of nightly pings), fully re-armed on launch, on
+  **resume** (`ReminderRefreshWatcher`), after a vote, and on a time/language
+  change. Because a re-arm cancels every pending slot, **a fire at offset N
+  proves N days of absence** — that is the invariant `ReminderHorizon` spends:
+  `today` may use the grace countdown and the exact streak day, `tomorrow`
+  drops the number, `drifting` (2–11) drops every streak and rank claim, and
+  `away` (12+) drops the mechanics for win-back copy. Never bake a live
+  counter into a far slot; it will fire as a lie. Two rules kill the spam:
+  a FREE user who already voted gets **no fire at all** that day (the daily
+  was their whole deck — every remaining line would point at the day wall),
+  and any slot landing within `kReminderQuietWindow` (4 h) of a session is
+  dropped. PRO keeps its post-vote nudge; the catalog is still open to them.
+  Two Android channels — `daily_question` (heads-up) and `comeback` (quiet)
+  — so muting the chasing never mutes the reminder the user opted into; the
+  channel follows the horizon, never the drawn message.
 - **Buy to play; sign in to secure.** Every user gets an anonymous Supabase
   UUID at launch and the entitlement rides on THAT — a guest can hold PRO
   indefinitely. An account exists only to make progress survive a reinstall

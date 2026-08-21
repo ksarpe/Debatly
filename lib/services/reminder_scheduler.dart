@@ -31,6 +31,36 @@ const List<int> kReminderLoopOffsets = [0, 1, 2, 3, 5, 8, 12, 17, 23, 30];
 /// phone down an hour ago and already decided what to do with today's question.
 const Duration kReminderQuietWindow = Duration(hours: 4);
 
+/// The channel a slot at [horizon] belongs to.
+///
+/// Two channels, split by what the user actually opted into rather than by
+/// message type: the everyday reminder they chose a time for, and the sparse
+/// nudges that only fire once they've stopped showing up. Android lets them mute
+/// the second without losing the first — the alternative was one bucket where
+/// silencing a win-back ping also silenced the daily.
+///
+/// The split follows [ReminderHorizon] rather than the drawn message, so the
+/// evening reminder always lands in the same place: a slot must not change
+/// channel depending on which line the pool happened to pick.
+ReminderChannel reminderChannelFor(
+  ReminderHorizon horizon,
+  AppLocalizations l10n,
+) => switch (horizon) {
+  ReminderHorizon.today || ReminderHorizon.tomorrow => ReminderChannel(
+    id: 'daily_question',
+    name: l10n.notifChannelDailyName,
+    description: l10n.notifChannelDailyDescription,
+    heightened: true,
+  ),
+  ReminderHorizon.drifting || ReminderHorizon.away => ReminderChannel(
+    id: 'comeback',
+    name: l10n.notifChannelComebackName,
+    description: l10n.notifChannelComebackDescription,
+    // Nobody asked to be chased. It waits in the shade instead of interrupting.
+    heightened: false,
+  ),
+};
+
 /// Whether today's slot should stay silent rather than carry a message.
 ///
 /// Two reasons, both "the ping has nothing to offer":
@@ -96,7 +126,7 @@ Future<void> rescheduleReminderLoop({
       // Only today's slot can be silenced — a later one is a fresh daily that
       // nobody has spent yet.
       if (horizon == ReminderHorizon.today && silenceToday) return null;
-      return buildReminderMessage(
+      final message = buildReminderMessage(
         l10n: l10n,
         stats: stats,
         // The vote state and the split are only known for today; the builder
@@ -105,6 +135,11 @@ Future<void> rescheduleReminderLoop({
         horizon: horizon,
         disagreePct: disagreePct,
         random: random,
+      );
+      return (
+        title: message.title,
+        body: message.body,
+        channel: reminderChannelFor(horizon, l10n),
       );
     },
   );
