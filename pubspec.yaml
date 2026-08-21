@@ -41,7 +41,7 @@ dependencies:
   purchases_flutter: ^10.2.3
   google_sign_in: ^7.2.0
   shared_preferences: ^2.5.5
-  intl: ^0.20.2
+  intl: ^0.20.3
   # A `now()` the tests can move. Used where a measured duration is data we act
   # on — the smaczek gate's dwell, which decides whether an answer counts toward
   # the debate profile — so the measurement itself is assertable under the fake
@@ -64,7 +64,7 @@ dependencies:
   # Crash + error reporting. Initialised in main() and centralised behind the
   # Monitoring facade (lib/core/monitoring/monitoring.dart); a no-op when no
   # SENTRY_DSN is provided, so dev/mock builds run untouched. See SENTRY_SETUP.md.
-  sentry_flutter: 9.24.0
+  sentry_flutter: 9.27.0
   # Play Install Referrer API (Android-only plugin, no iOS code): reads the
   # store link's `referrer` param (utm_source etc.) once on first launch so
   # InstallReferrerService can log `install_attributed` — install-source →
