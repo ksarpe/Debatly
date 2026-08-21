@@ -11,6 +11,7 @@ import '../../../services/question_cache.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/providers/stats_providers.dart';
 import '../../settings/screens/settings_screen.dart';
+import '../../settings/widgets/reminder_refresh_watcher.dart';
 import '../providers/question_providers.dart';
 import '../widgets/challenge_session_watcher.dart';
 import '../widgets/conformity_panel.dart';
@@ -303,6 +304,10 @@ class QuestionScreen extends ConsumerWidget {
           // Feeds app-lifecycle changes into the challenge session, so 30+
           // minutes in the background re-arms the gate cap. Zero-size.
           const ChallengeSessionWatcher(),
+          // Re-arms the reminder loop on every resume, so its cadence keeps
+          // measuring real absence rather than time since the last cold start.
+          // Zero-size.
+          const ReminderRefreshWatcher(),
           // Celebrates a rank climb (confetti + shareable card) the moment the
           // synced stats cross a tier — caught on launch and after a daily vote.
           // Zero-size; mounts here so it lives for the whole session.

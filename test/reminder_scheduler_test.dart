@@ -69,4 +69,38 @@ void main() {
       expect(silence(hour: 8, now: at(20, 0)), isFalse);
     });
   });
+
+  group('cadence', () {
+    test('starts today and thins out across a month', () {
+      // The shape is the whole point: dense while the habit is recoverable,
+      // sparse once it is a win-back — and never a week of nightly pings.
+      expect(kReminderLoopOffsets.first, 0);
+      expect(kReminderLoopOffsets.last, greaterThanOrEqualTo(28));
+      expect(
+        kReminderLoopOffsets,
+        orderedEquals(kReminderLoopOffsets.toList()..sort()),
+      );
+      expect(
+        kReminderLoopOffsets.toSet(),
+        hasLength(kReminderLoopOffsets.length),
+      );
+    });
+
+    test('gaps never shrink as the loop reaches further out', () {
+      final gaps = [
+        for (var i = 1; i < kReminderLoopOffsets.length; i++)
+          kReminderLoopOffsets[i] - kReminderLoopOffsets[i - 1],
+      ];
+      for (var i = 1; i < gaps.length; i++) {
+        expect(gaps[i], greaterThanOrEqualTo(gaps[i - 1]), reason: 'gap $i');
+      }
+    });
+
+    test('a month of coverage costs fewer fires than the old flat week', () {
+      // The regression this replaces: 7 consecutive days, then permanent
+      // silence for anyone still away on day 8.
+      expect(kReminderLoopOffsets, hasLength(lessThanOrEqualTo(12)));
+      expect(kReminderLoopOffsets.where((o) => o <= 7), hasLength(lessThan(7)));
+    });
+  });
 }

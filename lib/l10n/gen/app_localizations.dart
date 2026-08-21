@@ -656,6 +656,54 @@ abstract class AppLocalizations {
   /// **'Nice one. Come back tomorrow to keep it going.'**
   String get notifSafeBody;
 
+  /// No description provided for @notifDriftTitle1.
+  ///
+  /// In en, this message translates to:
+  /// **'Your seat is still here 🔥'**
+  String get notifDriftTitle1;
+
+  /// No description provided for @notifDriftBody1.
+  ///
+  /// In en, this message translates to:
+  /// **'A few days without your vote. Come back and say what you think.'**
+  String get notifDriftBody1;
+
+  /// No description provided for @notifDriftTitle2.
+  ///
+  /// In en, this message translates to:
+  /// **'Your rank is sliding ⚠️'**
+  String get notifDriftTitle2;
+
+  /// No description provided for @notifDriftBody2.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day without a vote sets you back. One is enough to stop it.'**
+  String get notifDriftBody2;
+
+  /// No description provided for @notifAwayTitle1.
+  ///
+  /// In en, this message translates to:
+  /// **'People are still arguing 🔥'**
+  String get notifAwayTitle1;
+
+  /// No description provided for @notifAwayBody1.
+  ///
+  /// In en, this message translates to:
+  /// **'Without you. Come back and see which side you\'re on today.'**
+  String get notifAwayBody1;
+
+  /// No description provided for @notifAwayTitle2.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed your mind?'**
+  String get notifAwayTitle2;
+
+  /// No description provided for @notifAwayBody2.
+  ///
+  /// In en, this message translates to:
+  /// **'New questions are waiting. See if you\'re still in the minority.'**
+  String get notifAwayBody2;
+
   /// No description provided for @settingsLanguage.
   ///
   /// In en, this message translates to:

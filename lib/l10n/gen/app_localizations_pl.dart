@@ -318,6 +318,34 @@ class AppLocalizationsPl extends AppLocalizations {
   String get notifSafeBody => 'Dobra robota. Wróć jutro, żeby ją podtrzymać.';
 
   @override
+  String get notifDriftTitle1 => 'Twoje miejsce czeka 🔥';
+
+  @override
+  String get notifDriftBody1 =>
+      'Kilka dni bez Twojego głosu. Wróć i powiedz, co myślisz.';
+
+  @override
+  String get notifDriftTitle2 => 'Ranga leci w dół ⚠️';
+
+  @override
+  String get notifDriftBody2 =>
+      'Każdy dzień bez głosu Cię cofa. Jeden wystarczy, żeby to zatrzymać.';
+
+  @override
+  String get notifAwayTitle1 => 'Ludzie wciąż się kłócą 🔥';
+
+  @override
+  String get notifAwayBody1 =>
+      'Bez Ciebie. Wróć i sprawdź, po której stronie dziś jesteś.';
+
+  @override
+  String get notifAwayTitle2 => 'Zmieniłeś zdanie?';
+
+  @override
+  String get notifAwayBody2 =>
+      'Czekają nowe pytania. Zobacz, czy nadal jesteś w mniejszości.';
+
+  @override
   String get settingsLanguage => 'Język';
 
   @override

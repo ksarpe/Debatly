@@ -8,11 +8,20 @@ import 'notification_service.dart';
 import 'question_cache.dart';
 import 'reminder_messages.dart';
 
-/// How many days ahead the reminder loop is pre-scheduled. A week gives the
-/// "loop" real day-to-day variety even for a user who doesn't open the app for a
-/// few days; it's recomputed on every launch / vote anyway, so the far days
-/// rarely fire as baked.
-const int kReminderLoopDays = 7;
+/// The day offsets the reminder loop is armed on, thinning out as it goes.
+///
+/// It used to be seven consecutive days, which got both ends wrong: someone
+/// absent for a week caught a ping every single evening, and then the loop ran
+/// out — since only a launch, resume or vote re-arms it, a user who stayed away
+/// past day seven left the reminder system permanently, exactly the user worth
+/// reaching. This cadence spends ten fires across a month instead of seven
+/// across a week: dense while a habit is still recoverable, sparse once it is a
+/// win-back, and never silent-by-accident.
+///
+/// Because every re-arm cancels the rest, a slot only fires after that many days
+/// of real absence — see [ReminderHorizon], which reads the same offsets as the
+/// honesty budget for what a fire is still allowed to claim.
+const List<int> kReminderLoopOffsets = [0, 1, 2, 3, 5, 8, 12, 17, 23, 30];
 
 /// How soon after a session today's reminder is considered redundant.
 ///
@@ -81,19 +90,20 @@ Future<void> rescheduleReminderLoop({
   await NotificationService.scheduleReminderLoop(
     hour: reminder.hour,
     minute: reminder.minute,
-    days: kReminderLoopDays,
-    build: (dayOffset, isToday) {
-      // Only today's slot can be silenced — a future day is a fresh daily that
+    dayOffsets: kReminderLoopOffsets,
+    build: (dayOffset) {
+      final horizon = ReminderHorizon.fromDayOffset(dayOffset);
+      // Only today's slot can be silenced — a later one is a fresh daily that
       // nobody has spent yet.
-      if (isToday && silenceToday) return null;
+      if (horizon == ReminderHorizon.today && silenceToday) return null;
       return buildReminderMessage(
         l10n: l10n,
         stats: stats,
-        // The vote state / split are only known for today; future days assume an
-        // unvoted day and fall back to the "come and vote" pool.
-        votedToday: isToday && votedToday,
-        isToday: isToday,
-        disagreePct: isToday ? disagreePct : null,
+        // The vote state and the split are only known for today; the builder
+        // gates both on the horizon, so passing them raw is safe.
+        votedToday: votedToday,
+        horizon: horizon,
+        disagreePct: disagreePct,
         random: random,
       );
     },

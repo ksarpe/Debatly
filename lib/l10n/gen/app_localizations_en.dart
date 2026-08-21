@@ -319,6 +319,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifSafeBody => 'Nice one. Come back tomorrow to keep it going.';
 
   @override
+  String get notifDriftTitle1 => 'Your seat is still here 🔥';
+
+  @override
+  String get notifDriftBody1 =>
+      'A few days without your vote. Come back and say what you think.';
+
+  @override
+  String get notifDriftTitle2 => 'Your rank is sliding ⚠️';
+
+  @override
+  String get notifDriftBody2 =>
+      'Every day without a vote sets you back. One is enough to stop it.';
+
+  @override
+  String get notifAwayTitle1 => 'People are still arguing 🔥';
+
+  @override
+  String get notifAwayBody1 =>
+      'Without you. Come back and see which side you\'re on today.';
+
+  @override
+  String get notifAwayTitle2 => 'Changed your mind?';
+
+  @override
+  String get notifAwayBody2 =>
+      'New questions are waiting. See if you\'re still in the minority.';
+
+  @override
   String get settingsLanguage => 'Language';
 
   @override

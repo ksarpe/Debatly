@@ -30,13 +30,16 @@ class NotificationService {
   /// any lingering schedule left by a previous app version when we re-arm.
   static const int _legacyDailyReminderId = 1001;
 
-  /// The daily-reminder loop is a run of one-shot notifications, one per upcoming
-  /// day, scheduled at [_loopBaseId], [_loopBaseId] + 1, … Each carries its own
+  /// The daily-reminder loop is a run of one-shot notifications, scheduled at
+  /// [_loopBaseId], [_loopBaseId] + 1, … — one per entry in the caller's cadence,
+  /// indexed by POSITION, not by day offset (the cadence thins out, so the two
+  /// stopped matching once it went past consecutive days). Each carries its own
   /// freshly-picked message (see [scheduleReminderLoop]) instead of one repeating
   /// line. We cancel a generous range on every re-arm so shrinking the loop never
-  /// strands an old day's notification.
+  /// strands an old entry — the range also covers the ids an older app version
+  /// wrote when it indexed by day offset across a 14-day window.
   static const int _loopBaseId = 2001;
-  static const int _maxLoopDays = 14;
+  static const int _maxLoopSlots = 16;
 
   static const String _channelId = 'daily_reminder';
   static const String _channelName = 'Questions';
@@ -159,15 +162,16 @@ class NotificationService {
     }
   }
 
-  /// (Re)schedules the daily-reminder loop: one one-shot notification per upcoming
-  /// day at [hour]:[minute] local time, for the next [days] days. The text for
-  /// each day is produced on demand by [build] — given the day's offset (0 =
-  /// today) and whether it's today's slot — so every day carries its own,
-  /// independently-picked message instead of one repeating line.
+  /// (Re)schedules the daily-reminder loop: one one-shot notification at
+  /// [hour]:[minute] local time for each day offset in [dayOffsets] (0 = today).
+  /// The offsets need not be consecutive — a thinning cadence is what keeps a
+  /// month of coverage from costing a month of daily pings. The text for each is
+  /// produced on demand by [build], given that day's offset, so every fire
+  /// carries its own independently-picked message instead of one repeating line.
   ///
-  /// [build] returns null to drop that day's slot entirely: the caller owns the
-  /// "is there anything worth saying today?" policy (see `rescheduleReminderLoop`)
-  /// and a day with nothing to offer must stay silent rather than fall back to a
+  /// [build] returns null to drop that slot entirely: the caller owns the "is
+  /// there anything worth saying?" policy (see `rescheduleReminderLoop`) and a
+  /// day with nothing to offer must stay silent rather than fall back to a
   /// filler line.
   ///
   /// Today's slot is only scheduled when [hour]:[minute] is still ahead of now;
@@ -177,19 +181,16 @@ class NotificationService {
   static Future<void> scheduleReminderLoop({
     required int hour,
     required int minute,
-    required int days,
-    required ({String title, String body})? Function(
-      int dayOffset,
-      bool isToday,
-    )
-    build,
+    required List<int> dayOffsets,
+    required ({String title, String body})? Function(int dayOffset) build,
   }) async {
     if (!_initialised) return;
     try {
       await _cancelManaged();
       final now = tz.TZDateTime.now(tz.local);
-      final count = days.clamp(1, _maxLoopDays);
-      for (var offset = 0; offset < count; offset++) {
+      final offsets = dayOffsets.take(_maxLoopSlots).toList(growable: false);
+      for (var slot = 0; slot < offsets.length; slot++) {
+        final offset = offsets[slot];
         // Constructing the date with `now.day + offset` lets TZDateTime normalise
         // month/year rollover and land on the right wall-clock time even across a
         // DST change (unlike adding a fixed 24h Duration).
@@ -202,10 +203,10 @@ class NotificationService {
           minute,
         );
         if (!when.isAfter(now)) continue; // today's slot already passed
-        final message = build(offset, offset == 0);
+        final message = build(offset);
         if (message == null) continue; // the caller's policy silenced this day
         await _plugin.zonedSchedule(
-          id: _loopBaseId + offset,
+          id: _loopBaseId + slot,
           title: message.title,
           body: message.body,
           scheduledDate: when,
@@ -243,7 +244,7 @@ class NotificationService {
   static Future<void> _cancelManaged() async {
     try {
       await _plugin.cancel(id: _legacyDailyReminderId);
-      for (var i = 0; i < _maxLoopDays; i++) {
+      for (var i = 0; i < _maxLoopSlots; i++) {
         await _plugin.cancel(id: _loopBaseId + i);
       }
     } catch (e) {
