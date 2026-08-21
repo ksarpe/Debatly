@@ -110,7 +110,10 @@ Future<void> _startApp() async {
 /// Non-blocking startup: SDKs and housekeeping that the UI doesn't need to
 /// paint its first frame. Fired from [_startApp] after `runApp`.
 Future<void> _initBackgroundServices(SharedPreferences prefs) async {
-  await guardedInit('notifications', NotificationService.initialise);
+  await guardedInit(
+    'notifications',
+    () => NotificationService.initialise(onOpened: _reportReminderOpened),
+  );
 
   // Re-arm the daily reminder on every launch: schedules survive app restarts
   // but not necessarily a device reboot, and re-scheduling also refreshes the
@@ -125,6 +128,18 @@ Future<void> _initBackgroundServices(SharedPreferences prefs) async {
   // StartupInitException. The service does its own bounding (platform-channel
   // read timeout, retry-next-launch on failure) and never throws.
   await InstallReferrerService.reportIfNeeded(prefs);
+}
+
+/// Reports a reminder the user actually TAPPED, with the shape of the slot that
+/// produced it (horizon, day offset, whether it carried a question).
+///
+/// A local notification cannot report delivery — the OS never tells us it fired,
+/// and on the Androids that kill background work most aggressively it may not
+/// have. So a tap is the only feedback the loop ever gets, and it is what makes
+/// "does the teaser beat the evergreen copy?" answerable at all instead of a
+/// design opinion. Fire-and-forget: [Analytics.log] never throws.
+void _reportReminderOpened(String? payload) {
+  Analytics.log('reminder_opened', decodeReminderPayload(payload));
 }
 
 /// Re-schedules the daily reminder from persisted prefs, in the user's current

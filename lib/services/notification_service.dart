@@ -73,7 +73,16 @@ class NotificationService {
 
   /// Initialises the plugin and the timezone database. Safe to call once at
   /// startup; subsequent calls no-op.
-  static Future<void> initialise() async {
+  ///
+  /// [onOpened] receives the payload of a reminder the user TAPPED, from both
+  /// paths that exist: the live callback (app running or backgrounded) and the
+  /// launch details (app was killed, so the tap is the reason we're starting and
+  /// there was no listener alive to catch it). Local notifications can't report
+  /// delivery, so a tap is the only signal the loop ever gets back — without
+  /// this, every claim about which copy works is unfalsifiable.
+  static Future<void> initialise({
+    void Function(String? payload)? onOpened,
+  }) async {
     if (_initialised) return;
     try {
       // Timezone DB + the device's local zone, so a daily wall-clock time fires
@@ -102,7 +111,16 @@ class NotificationService {
           iOS: darwin,
           macOS: darwin,
         ),
+        onDidReceiveNotificationResponse: (response) =>
+            onOpened?.call(response.payload),
       );
+      // The cold-start path: a tap that launched the process happened before
+      // any callback existed. Guarded by _initialised above, so it can't
+      // double-report on a second call.
+      final launch = await _plugin.getNotificationAppLaunchDetails();
+      if (launch?.didNotificationLaunchApp ?? false) {
+        onOpened?.call(launch?.notificationResponse?.payload);
+      }
       if (Platform.isAndroid) {
         // Best-effort tidy-up: no-op once it's gone, and on the platforms that
         // never had it.
@@ -162,6 +180,31 @@ class NotificationService {
     }
   }
 
+  /// The ids of this app's notification channels the user has muted (importance
+  /// "none"). Android only — iOS has no per-channel control, so it resolves
+  /// empty there and the app-level [areNotificationsEnabled] is the whole story.
+  ///
+  /// The point of splitting the channels was to let someone silence the chasing
+  /// without silencing the reminder they asked for; this is how we find out
+  /// whether they actually do, instead of assuming.
+  static Future<Set<String>> mutedChannelIds() async {
+    if (!_initialised || !Platform.isAndroid) return const {};
+    try {
+      final channels = await _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.getNotificationChannels();
+      return {
+        for (final channel in channels ?? const <AndroidNotificationChannel>[])
+          if (channel.importance == Importance.none) channel.id,
+      };
+    } catch (e) {
+      debugPrint('NotificationService: channel read failed — $e');
+      return const {};
+    }
+  }
+
   /// Requests OS permission to post notifications, returning whether it's
   /// granted. On Android < 13 no runtime permission exists, so this resolves
   /// true. Call right before enabling the reminder.
@@ -212,16 +255,23 @@ class NotificationService {
   /// an already-passed time simply isn't scheduled for today. The whole managed
   /// range (plus the legacy single reminder) is cancelled first, so re-arming is
   /// idempotent and never stacks duplicates.
-  static Future<void> scheduleReminderLoop({
+  /// Returns how many slots were actually armed — fewer than [dayOffsets] when
+  /// today's time has passed or the caller silenced a day.
+  static Future<int> scheduleReminderLoop({
     required int hour,
     required int minute,
     required List<int> dayOffsets,
-    required ({String title, String body, ReminderChannel channel})? Function(
-      int dayOffset,
-    )
+    required ({
+      String title,
+      String body,
+      ReminderChannel channel,
+      String payload,
+    })?
+    Function(int dayOffset)
     build,
   }) async {
-    if (!_initialised) return;
+    if (!_initialised) return 0;
+    var armed = 0;
     try {
       await _cancelManaged();
       final now = tz.TZDateTime.now(tz.local);
@@ -267,11 +317,14 @@ class NotificationService {
           // timing. No matchDateTimeComponents: each entry is a one-shot, so the
           // day's freshly-picked text isn't frozen into a repeating notification.
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          payload: message.payload,
         );
+        armed++;
       }
     } catch (e) {
       debugPrint('NotificationService: loop schedule failed — $e');
     }
+    return armed;
   }
 
   /// Cancels the daily reminder, e.g. when the user turns it off.

@@ -4,7 +4,7 @@ Ręczna checklista do przeklikania na **fizycznym telefonie** po każdym większ
 releasie (nowa wersja w Play / TestFlight). Cel: po przejściu wszystkiego z
 priorytetem P0 możesz powiedzieć „okej, działa" — bez zgadywania.
 
-Testy automatyczne (`flutter test`, 68 plików) pokrywają logikę i widgety,
+Testy automatyczne (`flutter test`, 70 plików) pokrywają logikę i widgety,
 a `integration_test/app_smoke_test.dart` przechodzi całą apkę end-to-end na
 mockowych danych (dziewięć pozycji z tej listy — oznaczone 🤖).
 Ta lista celowo pokrywa to, czego one **nie** dotykają: prawdziwe SDK (Supabase,
@@ -600,6 +600,16 @@ PRO wygasło, a dziś to pytanie jest pickiem.
 
 ## J. Powiadomienia
 
+> **Uwaga metodologiczna:** powiadomienia lokalne **nie raportują doręczenia** —
+> system nigdy nie mówi apce, że coś wypaliło. Jedynym sygnałem zwrotnym jest
+> tapnięcie (`reminder_opened`). Dlatego ta sekcja jest jedyną rzeczą, która
+> weryfikuje, czy pętla w ogóle działa na prawdziwym sprzęcie — testy
+> automatyczne pokrywają *wybór treści i polityki*, nigdy dostarczenie.
+>
+> **Skrót czasu:** żeby nie czekać dobami, zmieniaj datę w ustawieniach systemu
+> **przy ubitej apce**. Każde otwarcie apki przezbraja całą pętlę od nowa, więc
+> uruchomienie jej „żeby sprawdzić" kasuje to, co testujesz.
+
 ### J1 · Dostarczenie przypomnienia — **P0** 🧑
 | # | Krok | Oczekiwany efekt |
 |---|---|---|
@@ -607,21 +617,112 @@ PRO wygasło, a dziś to pytanie jest pickiem.
 | 2 | Ubij apkę z listy zadań | — |
 | 3 | Poczekaj do ustawionej godziny | Powiadomienie **przychodzi** mimo ubitej apki, z sensowną polską treścią |
 | 4 | Tapnij powiadomienie | Otwiera apkę na pytaniu dnia |
+| 5 | Sprawdź `app_events` | Jest `reminder_opened` z `horizon`, `day_offset`, `has_teaser` |
 
 ### J2 · Wyłączenie przypomnień — **P0** 🧑
 | # | Krok | Oczekiwany efekt |
 |---|---|---|
 | 1 | Wyłącz przełącznik, ustaw godzinę za 2 min, ubij apkę | Powiadomienie **nie** przychodzi |
 
-### J3 · Treść po zagłosowaniu — **P2** 🧑
+### J3 · FREE po głosie — cisza, nie inna treść — **P0** ⚙️ (konto FREE)
+Reguła: darmowa talia to jedno pytanie. Kto je wykorzystał, nie ma dziś po co
+wracać — więc **nie dostaje nic**, zamiast dostać ping o niczym.
+
 | # | Krok | Oczekiwany efekt |
 |---|---|---|
-| 1 | Zagłosuj dziś, ustaw przypomnienie za 3 min, ubij apkę | Treść nie brzmi jak „zagłosuj dziś" — uwzględnia, że już zagłosowałeś |
+| 1 | Konto FREE, zagłosuj na pytanie dnia | — |
+| 2 | Ustaw przypomnienie za ~5 h (poza oknem ciszy!), ubij apkę | — |
+| 3 | Przeskocz zegar do tej godziny | **Żadnego powiadomienia** — ani „zagłosuj", ani „zobacz wynik" |
+| 4 | Otwórz apkę, sprawdź `app_events` | `reminder_scheduled` ma `silenced: votedFree` |
 
-### J4 · Przypomnienie po zmianie języka — **P2** 🧑
+> Krok 2 celowo daje >4 h: przy krótszym odstępie zadziała okno ciszy (J4) i nie
+> odróżnisz, która reguła zamilkła.
+
+### J4 · Okno ciszy — byłeś tu przed chwilą — **P1** ⚙️
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Nie głosuj. Ustaw przypomnienie za ~1 h, ubij apkę | — |
+| 2 | Poczekaj do godziny | **Nic nie przychodzi** — odłożyłeś telefon godzinę temu |
+| 3 | `app_events` | `reminder_scheduled` ma `silenced: quietWindow` |
+| 4 | Powtórz z godziną za ~5 h | Powiadomienie **przychodzi** normalnie |
+
+### J5 · PRO po głosie dostaje nudge — **P2** ⚙️ (PRO)
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Konto PRO, zagłosuj, ustaw przypomnienie za ~5 h, ubij apkę | — |
+| 2 | Przeskocz zegar | Powiadomienie **przychodzi**, treść nie brzmi „zagłosuj dziś" — odnosi się do wyniku / reszty katalogu |
+
+### J6 · Powiadomienie nazywa pytanie — **P0** ⚙️
+Najmocniejszy element całej funkcji: w tytule ma być **treść**, nie mechanika.
+
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Otwórz apkę raz przy sieci (pobiera teasery), potem ustaw przypomnienie za 3 min i ubij | — |
+| 2 | Poczekaj | Część strzałów ma tytuł typu **„Czy oddałbyś zmysł smaku…"** — pierwsze 4 słowa pytania z wielokropkiem |
+| 3 | Sprawdź, czy to pytanie **tego dnia** | Zgadza się z pytaniem dnia po otwarciu apki — nie z wczorajszym |
+| 4 | Tytuł nie kończy się przecinkiem ani myślnikiem | „…ma rację…", nie „…ma rację,…" |
+| 5 | Nigdy nie widać pełnej treści pytania | Wycinek się urywa — inaczej ściana dnia traci sens |
+
+> Teaser jest losowany z puli (waga ×2), więc nie każdy strzał go ma. Jeśli po
+> kilku próbach nie pojawia się ani razu — to jest FAIL, cache teaserów nie
+> doszedł. Sprawdź, czy apka miała sieć przy starcie.
+
+### J7 · Dwa kanały — wyciszenie gonienia nie wycisza przypomnienia — **P1** 🧑 (Android)
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Ustawienia systemu → powiadomienia tej apki | Widać **dwa** kanały: „Pytanie dnia" i „Przypomnienia o powrocie" — po polsku |
+| 2 | Stary kanał „Questions" / „daily_reminder" | **Nie istnieje** (skasowany przy starcie) |
+| 3 | Wycisz „Przypomnienia o powrocie", zostaw „Pytanie dnia" | — |
+| 4 | Ustaw przypomnienie za 3 min, ubij apkę | Codzienne przypomnienie **nadal przychodzi** |
+| 5 | Otwórz apkę, `app_events` | `reminder_scheduled` ma `comeback_muted: true`, `daily_muted: false` |
+
+### J8 · Horyzont — dalekie strzały nie kłamią — **P1** ⚙️
+Reguła: strzał na offsecie N wypala tylko po N dniach nieobecności, więc im
+dalej, tym mniej wolno mu twierdzić.
+
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Zbuduj serię (kilka dni głosowania pod rząd), ustaw przypomnienie, ubij apkę | — |
+| 2 | Przeskocz zegar o **3 dni**, apki **nie otwieraj** | Powiadomienie przychodzi bez konkretnej liczby dni serii („Dzień 12 Twojej serii" = FAIL — seria już pękła) |
+| 3 | Przeskocz o **kolejne 2 tygodnie**, nadal nie otwieraj | Treść jest win-backowa („Ludzie wciąż się kłócą — bez Ciebie"), bez serii i rangi; ląduje w kanale **„Przypomnienia o powrocie"** i **nie** wyskakuje heads-upem |
+| 4 | Tapnij, sprawdź `app_events` | `reminder_opened` z `horizon: drifting` albo `away` i `day_offset` zgodnym z przeskokiem |
+
+### J9 · Przypomnienie po zmianie języka — **P2** 🧑
 | # | Krok | Oczekiwany efekt |
 |---|---|---|
 | 1 | Przełącz apkę na angielski, ustaw przypomnienie za 2 min, ubij apkę | Powiadomienie przychodzi **po angielsku** |
+| 2 | Ustawienia systemu → kanały | Nazwy kanałów też po angielsku |
+
+### J10 · Przeżycie restartu telefonu — **P1** 🧑 (Android)
+Manifest ma `RECEIVE_BOOT_COMPLETED` i `ScheduledNotificationReceiver` — ten test
+sprawdza, czy faktycznie działają.
+
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Ustaw przypomnienie za ~10 min, ubij apkę | — |
+| 2 | Zrestartuj telefon, **nie otwieraj apki** | — |
+| 3 | Poczekaj do godziny | Powiadomienie **przychodzi** |
+
+### J11 · Producenckie zabijanie procesów — **P1** 🧑 (Xiaomi / Huawei / Samsung / OnePlus)
+Największe realne ryzyko całej funkcji i jedyne, którego kod nie naprawi. Rób na
+telefonie z agresywną oszczędzaniem baterii, nie tylko na Pixelu.
+
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Ustaw przypomnienie za ~15 min, ubij apkę, zablokuj ekran, nie dotykaj | Powiadomienie przychodzi (dopuszczalne opóźnienie do kilkunastu minut — używamy alarmów **inexact**) |
+| 2 | Jeśli nie przyszło: ustawienia baterii → wyłącz optymalizację dla apki, powtórz | Przychodzi → to ograniczenie OEM, nie bug. **Zanotuj model i wynik** |
+
+> Wynik tego testu decyduje, czy w onboardingu warto dodać podpowiedź
+> „wyłącz optymalizację baterii". Nie zgaduj — zmierz.
+
+### J12 · Telemetria przypomnień — **P1** ⚙️
+| # | Krok | Oczekiwany efekt |
+|---|---|---|
+| 1 | Świeża instalacja, włącz przypomnienia, otwórz apkę | W `app_events` jest `reminder_scheduled` z `armed`, `planned`, `with_teaser`, `hour` |
+| 2 | Zamknij i otwórz apkę kilka razy tego samego dnia | **Nie przybywa** kolejnych `reminder_scheduled` — limit to jeden na dobę lokalną |
+| 3 | Przeskocz na następny dzień, otwórz apkę | Pojawia się **jeden** nowy |
+| 4 | Tapnij powiadomienie | `reminder_opened` z `horizon` / `day_offset` / `has_teaser` |
+| 5 | `armed` vs `planned` | `armed` bywa mniejsze (minięta godzina, wyciszony dzień) — nigdy większe, nigdy 0 przy włączonych przypomnieniach i braku `silenced` |
 
 ---
 
@@ -721,6 +822,7 @@ PRO wygasło, a dziś to pytanie jest pickiem.
 |---|---|---|
 | 1 | Przejdź: onboarding → głos → ściana → paywall → zamknięcie | — |
 | 2 | Sprawdź `app_events` w Supabase | Widać m.in. `daily_vote_cast`, `wall_reached`, `paywall_shown`, `paywall_dismissed`, `smaczek_challenge` z sensownymi properties |
+| 3 | Przypomnienia | `reminder_scheduled` (raz na dobę) i — po tapnięciu — `reminder_opened`. Szczegóły w **J12** |
 
 ### M4 · Sentry łapie błędy — **P1** ⚙️
 | # | Krok | Oczekiwany efekt |
@@ -763,7 +865,7 @@ PRO wygasło, a dziś to pytanie jest pickiem.
 Gdy release jest mały i chcesz jednego przebiegu:
 
 `A5` → `A2` → `B1` → `B2` → `B8` → `C1` → `C2` → `E3` → `E7` → `F1` → `D5` →
-`H3` → `K1` → `K2` → `J1` → `M5`
+`H3` → `K1` → `K2` → `J1` → `J6` → `M5`
 
 Jeśli którykolwiek padnie — **nie wypuszczaj**.
 
@@ -778,10 +880,12 @@ systemowego dialogu, zostaje przy Tobie.
 
 | Co | Czym | Które testy zdejmuje |
 |---|---|---|
-| Bramki jakości kodu | `dart format .`, `flutter analyze --fatal-infos --fatal-warnings`, `flutter test` | Wszystkie regresje logiki (68 plików testów) |
+| Bramki jakości kodu | `dart format .`, `flutter analyze --fatal-infos --fatal-warnings`, `flutter test` | Wszystkie regresje logiki (70 plików testów) |
 | Smoke integracyjny (6 przebiegów) | `flutter test integration_test/app_smoke_test.dart -d <device>` | `A2`, `B1`, `B3`, `B5`, `B9`, `C1`, `C2`, `C3`, `E7` — bramka kontry, blokada panelu smaczków, ściana dnia i reguły paywalla, pigułka + powrót do pytania dnia dla PRO, wylogowanie |
 | Parytet tłumaczeń | Porównanie kluczy `app_en.arb` ↔ `app_pl.arb` + szukanie hardkodowanych stringów w widgetach | Dużą część `K1` (zostaje Ci przegląd wizualny) |
 | Weryfikacja danych po Twojej sesji | Supabase MCP: `app_events`, wiersze głosów, `question_suggestions`, `get_debate_profile` | `M3` + weryfikacje w `B1`, `B2`, `K3`, `G1` |
+| Rozliczenie telemetrii przypomnień | SQL po `app_events`: czy `reminder_scheduled` leci raz na dobę, jaki jest rozkład `silenced`, ile strzałów niesie teaser, jak `reminder_opened` rozkłada się na horyzonty i czy teaser bije evergreen | Weryfikacje w `J3`, `J4`, `J6`, `J8`, `J12` — zostaje Ci samo klikanie |
+| Podgląd treści przyszłych powiadomień | SQL po `get_upcoming_daily_teasers` — dokładnie te tytuły, które dostaną użytkownicy przez najbliższy miesiąc | `J6` krok 3: możesz porównać zamiast zgadywać |
 | Reguła „głos jest ostateczny" po stronie serwera | Dwa wywołania `cast_daily_vote` przez SQL i porównanie zwróconego `my_choice` | `B2` (warstwa backendu) |
 | Wszystkie testy stron www | Przeglądarka: 200/404, treść, `noindex`, brak zewnętrznych requestów, hreflang, sitemapa | `N1`, `N2`, `N3`, `F3`, `M5` |
 | Zdrowie backendu | Supabase MCP `get_advisors` (RLS, indeksy), przegląd logów | Profilaktyka przed `M2` |
@@ -806,8 +910,11 @@ systemowego dialogu, zostaje przy Tobie.
 - **Logowanie społecznościowe** (`E4`, `E5`) — natywne dialogi Google/Apple.
 - **Cały łańcuch resetu hasła z maila** (`F1`, `F2`) — mail na telefonie
   i przejęcie deep linku przez OS.
-- **Dostarczanie powiadomień** (`J1`–`J4`) — trzeba poczekać na system przy
-  ubitej apce.
+- **Dostarczanie powiadomień** (`J1`–`J12`) — trzeba poczekać na system przy
+  ubitej apce. Powiadomienia lokalne nie raportują doręczenia, więc **nie ma
+  żadnej ścieżki, którą dałoby się to sprawdzić bez telefonu w ręku**.
+- **Kanały systemowe i zabijanie procesów przez producenta** (`J7`, `J11`) —
+  ustawienia OS i polityka baterii konkretnego Xiaomi/Samsunga.
 - **Systemowe dialogi uprawnień** (`A3`, `A4`).
 - **Share sheet i wygląd wygenerowanej grafiki** (`I3`, `I4`).
 - **Aktualizacja „na wierzch" i reinstalacja** (`A5`, `D5`, `M1`) — to test
@@ -819,6 +926,8 @@ systemowego dialogu, zostaje przy Tobie.
 - „przelec bramki jakości i smoke integracyjny" → wiersze 1–2 z tabeli 🤖 (zdejmuje 9 pozycji z listy)
 - „sprawdź strony www z checklisty" → `N1`–`N3`, `F3`, `M5`
 - „zweryfikuj w bazie, co zapisała moja sesja testowa" → `M3` + weryfikacje danych
+- „rozlicz telemetrię przypomnień" → rozkład `silenced`, otwarcia per horyzont, teaser vs evergreen (`J12`)
+- „pokaż tytuły powiadomień na najbliższy miesiąc" → odczyt `get_upcoming_daily_teasers` (`J6`)
 - „ustaw mi konto X na 5 głosów i 5 bramek" → przygotowanie pod `H5`
 - „dopisz do integration testu ścianę dnia i reguły paywalla" → rozszerzenie ⚙️
 

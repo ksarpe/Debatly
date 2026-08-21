@@ -5,8 +5,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// The reminder's anti-spam contract: a nudge only fires when it still has
-/// something to offer. Everything here pins [shouldSilenceTodaysReminder], the
-/// one decision that stands between the user and a pointless ping.
+/// something to offer, and every fire can be traced back to the slot that made
+/// it. Pins [todaysReminderSilence] — the one decision standing between the user
+/// and a pointless ping — plus the cadence, the teaser lookup, the tap payload
+/// and the channel split.
 void main() {
   late AppLocalizations l10n;
 
@@ -18,13 +20,13 @@ void main() {
   /// never depend on the wall clock.
   DateTime at(int hour, int minute) => DateTime(2026, 8, 21, hour, minute);
 
-  bool silence({
+  ReminderSilence? silence({
     bool votedToday = false,
     bool isPremium = false,
     int hour = 20,
     int minute = 0,
     required DateTime now,
-  }) => shouldSilenceTodaysReminder(
+  }) => todaysReminderSilence(
     votedToday: votedToday,
     isPremium: isPremium,
     hour: hour,
@@ -34,48 +36,54 @@ void main() {
 
   group('already voted', () {
     test('free + voted → silent: the daily was their whole deck', () {
-      expect(silence(votedToday: true, now: at(9, 0)), isTrue);
+      expect(
+        silence(votedToday: true, now: at(9, 0)),
+        ReminderSilence.votedFree,
+      );
     });
 
     test('free + voted → silent even far from the slot', () {
       // Nothing about the hour rescues it — there is no second question to open.
-      expect(silence(votedToday: true, now: at(0, 5)), isTrue);
+      expect(
+        silence(votedToday: true, now: at(0, 5)),
+        ReminderSilence.votedFree,
+      );
     });
 
     test('PRO + voted → still nudged: the catalog is open to them', () {
-      expect(
-        silence(votedToday: true, isPremium: true, now: at(9, 0)),
-        isFalse,
-      );
+      expect(silence(votedToday: true, isPremium: true, now: at(9, 0)), isNull);
     });
   });
 
   group('quiet window', () {
     test('a session hours before the slot leaves it armed', () {
-      expect(silence(now: at(9, 0)), isFalse);
+      expect(silence(now: at(9, 0)), isNull);
     });
 
     test('a session just inside the window silences the slot', () {
-      expect(silence(now: at(17, 30)), isTrue);
+      expect(silence(now: at(17, 30)), ReminderSilence.quietWindow);
     });
 
     test('the window boundary itself still fires', () {
-      expect(silence(now: at(16, 0)), isFalse);
+      expect(silence(now: at(16, 0)), isNull);
     });
 
     test('PRO gets no exemption from the quiet window', () {
       // The rule is "you were just here", which has nothing to do with tier.
-      expect(silence(isPremium: true, now: at(19, 0)), isTrue);
+      expect(
+        silence(isPremium: true, now: at(19, 0)),
+        ReminderSilence.quietWindow,
+      );
     });
 
     test('a slot already past is left to the scheduler, not silenced here', () {
       // `scheduleReminderLoop` never arms a passed slot; this must not claim
       // one is "within the window" just because it is close behind.
-      expect(silence(now: at(21, 0)), isFalse);
+      expect(silence(now: at(21, 0)), isNull);
     });
 
     test('an early-morning slot is unaffected by an evening session', () {
-      expect(silence(hour: 8, now: at(20, 0)), isFalse);
+      expect(silence(hour: 8, now: at(20, 0)), isNull);
     });
   });
 
@@ -155,6 +163,56 @@ void main() {
         teaserForOffset(teasers, DateTime(2026, 8, 21), 30),
         'Czy dzieci powinny miec',
       );
+    });
+  });
+
+  group('payload round-trip', () {
+    test('a tap can be attributed to the slot that produced it', () {
+      final payload = encodeReminderPayload(
+        horizon: ReminderHorizon.drifting,
+        dayOffset: 5,
+        hasTeaser: true,
+      );
+      expect(decodeReminderPayload(payload), {
+        'horizon': 'drifting',
+        'day_offset': 5,
+        'has_teaser': true,
+      });
+    });
+
+    test('every horizon survives the round-trip', () {
+      for (final horizon in ReminderHorizon.values) {
+        final decoded = decodeReminderPayload(
+          encodeReminderPayload(
+            horizon: horizon,
+            dayOffset: 0,
+            hasTeaser: false,
+          ),
+        );
+        expect(decoded['horizon'], horizon.name);
+      }
+    });
+
+    test('an unreadable payload never costs the user their tap', () {
+      // Written days before it is read, possibly by a later app version — a
+      // parse failure must degrade to "no properties", never to an exception
+      // on the launch path.
+      for (final junk in <String?>[
+        null,
+        '',
+        'not json',
+        '[]',
+        '{"h":42}',
+        '{"unexpected":"shape"}',
+      ]) {
+        expect(
+          () => decodeReminderPayload(junk),
+          returnsNormally,
+          reason: junk ?? 'null',
+        );
+      }
+      expect(decodeReminderPayload('not json'), isEmpty);
+      expect(decodeReminderPayload('{"h":42}'), isEmpty);
     });
   });
 
