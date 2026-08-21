@@ -105,6 +105,8 @@
   "@notifStreakBody": {
     "placeholders": { "streak": { "type": "int" } }
   },
+  "notifStreakSoftTitle": "Back in the game 🔥",
+  "notifStreakSoftBody": "One vote a day keeps a streak alive.",
   "notifGraceTitle": "Your rank is slipping ⚠️",
   "notifGraceBodyTomorrow": "It drops tomorrow unless you vote today.",
   "notifGraceBodyDays": "It drops in {days} days. Vote to hold on to it.",

@@ -99,6 +99,29 @@ void main() {
       expect(bodies, isNot(contains(l10n.notifGraceBodyTomorrow)));
       expect(bodies, isNot(contains(l10n.notifGraceBodyDays(1))));
     });
+
+    test('future-day slot never bakes in the exact streak day', () {
+      // The cached number describes today; by the time a far slot fires the
+      // streak may be long broken, and "day 5 of your streak" would be a lie.
+      final bodies = bodiesAcross(
+        50,
+        votedToday: false,
+        isToday: false,
+        userStats: stats(streak: 5),
+      );
+      expect(bodies, isNot(contains(l10n.notifStreakBody(5))));
+      expect(bodies, contains(l10n.notifStreakSoftBody));
+    });
+
+    test('the streak-free soft hook stays out of the streak-0 pool', () {
+      final bodies = bodiesAcross(
+        50,
+        votedToday: false,
+        isToday: false,
+        userStats: stats(),
+      );
+      expect(bodies, isNot(contains(l10n.notifStreakSoftBody)));
+    });
   });
 
   group('voted today', () {

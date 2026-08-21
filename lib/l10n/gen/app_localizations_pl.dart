@@ -274,6 +274,12 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get notifStreakSoftTitle => 'Wróć do gry 🔥';
+
+  @override
+  String get notifStreakSoftBody => 'Jeden głos dziennie podtrzymuje serię.';
+
+  @override
   String get notifGraceTitle => 'Twoja ranga się chwieje ⚠️';
 
   @override

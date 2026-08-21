@@ -30,8 +30,9 @@ String _todayStamp() {
 }
 
 /// Whether the user has already cast today's daily vote, per the locally-cached
-/// stamp. Read directly from [prefs] in `main()` (before the provider graph
-/// exists) to decide whether to skip tonight's reminder when re-arming it.
+/// stamp. Read directly from [prefs] (before the provider graph exists, e.g. in
+/// `main()`) by the reminder scheduler: it silences tonight's slot for a free
+/// user who already spent their daily, and switches PRO's to a post-vote line.
 bool hasVotedTodayLocal(SharedPreferences prefs) =>
     prefs.getString(_kLastVoteDateKey) == _todayStamp();
 

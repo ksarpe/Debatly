@@ -165,6 +165,11 @@ class NotificationService {
   /// today) and whether it's today's slot — so every day carries its own,
   /// independently-picked message instead of one repeating line.
   ///
+  /// [build] returns null to drop that day's slot entirely: the caller owns the
+  /// "is there anything worth saying today?" policy (see `rescheduleReminderLoop`)
+  /// and a day with nothing to offer must stay silent rather than fall back to a
+  /// filler line.
+  ///
   /// Today's slot is only scheduled when [hour]:[minute] is still ahead of now;
   /// an already-passed time simply isn't scheduled for today. The whole managed
   /// range (plus the legacy single reminder) is cancelled first, so re-arming is
@@ -173,7 +178,10 @@ class NotificationService {
     required int hour,
     required int minute,
     required int days,
-    required ({String title, String body}) Function(int dayOffset, bool isToday)
+    required ({String title, String body})? Function(
+      int dayOffset,
+      bool isToday,
+    )
     build,
   }) async {
     if (!_initialised) return;
@@ -195,6 +203,7 @@ class NotificationService {
         );
         if (!when.isAfter(now)) continue; // today's slot already passed
         final message = build(offset, offset == 0);
+        if (message == null) continue; // the caller's policy silenced this day
         await _plugin.zonedSchedule(
           id: _loopBaseId + offset,
           title: message.title,

@@ -87,6 +87,8 @@
   "notifNudgeBody3": "Oddaj głos, zanim zrobią to inni.",
   "notifStreakTitle": "Nie zgaś jej 🔥",
   "notifStreakBody": "Dzień {streak} Twojej serii. Zagłosuj dziś, żeby jej nie przerwać.",
+  "notifStreakSoftTitle": "Wróć do gry 🔥",
+  "notifStreakSoftBody": "Jeden głos dziennie podtrzymuje serię.",
   "notifGraceTitle": "Twoja ranga się chwieje ⚠️",
   "notifGraceBodyTomorrow": "Spadnie jutro, jeśli dziś nie zagłosujesz.",
   "notifGraceBodyDays": "Spadnie za {days} dni. Zagłosuj, żeby ją utrzymać.",

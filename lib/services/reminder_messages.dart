@@ -33,7 +33,9 @@ ReminderMessage buildReminderMessage({
 
   if (votedToday) {
     // Already voted today — never nudge to vote. Tease the live outcome and the
-    // next drop instead.
+    // next drop instead. In practice this branch only ever reaches PRO: a free
+    // user who voted has an empty deck, so `rescheduleReminderLoop` drops their
+    // slot outright rather than picking a message here.
     if (disagreePct != null && disagreePct > 0) {
       // The personalised "you were in the minority" hook is the strongest, so
       // weight it by adding it twice into the draw.
@@ -68,14 +70,26 @@ ReminderMessage buildReminderMessage({
     }
     final streak = stats?.currentStreak ?? 0;
     if (streak > 0) {
-      final keepAlive = (
-        title: l10n.notifStreakTitle,
-        body: l10n.notifStreakBody(streak),
-      );
-      candidates.add(keepAlive);
-      // The exact streak day is only honest for the nearest fire — weight it
-      // there, but keep a soft copy out of future days.
-      if (isToday) candidates.add(keepAlive);
+      if (isToday) {
+        // The exact streak day is only honest for the nearest fire, where the
+        // cached number still describes now — weight it, it's a strong hook.
+        final keepAlive = (
+          title: l10n.notifStreakTitle,
+          body: l10n.notifStreakBody(streak),
+        );
+        candidates
+          ..add(keepAlive)
+          ..add(keepAlive);
+      } else {
+        // A future day cannot know the streak survived. Baking today's number
+        // into a fire three days out is how someone whose streak already broke
+        // gets told they're on "day 12" — so the far slots keep the hook but
+        // drop every claim about the streak's current state.
+        candidates.add((
+          title: l10n.notifStreakSoftTitle,
+          body: l10n.notifStreakSoftBody,
+        ));
+      }
     }
     // Evergreen controversy nudges — always eligible, so there's always variety
     // even at streak 0 with an intact rank.

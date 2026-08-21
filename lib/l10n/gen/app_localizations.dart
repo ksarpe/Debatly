@@ -578,6 +578,18 @@ abstract class AppLocalizations {
   /// **'Day {streak} of your streak. Vote today to keep it alive.'**
   String notifStreakBody(int streak);
 
+  /// No description provided for @notifStreakSoftTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Back in the game 🔥'**
+  String get notifStreakSoftTitle;
+
+  /// No description provided for @notifStreakSoftBody.
+  ///
+  /// In en, this message translates to:
+  /// **'One vote a day keeps a streak alive.'**
+  String get notifStreakSoftBody;
+
   /// No description provided for @notifGraceTitle.
   ///
   /// In en, this message translates to:

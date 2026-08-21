@@ -274,6 +274,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get notifStreakSoftTitle => 'Back in the game 🔥';
+
+  @override
+  String get notifStreakSoftBody => 'One vote a day keeps a streak alive.';
+
+  @override
   String get notifGraceTitle => 'Your rank is slipping ⚠️';
 
   @override
