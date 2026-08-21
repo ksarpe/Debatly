@@ -1149,10 +1149,15 @@ class AppLocalizationsPl extends AppLocalizations {
   String get smaczekChallengeEyebrow => 'ZANIM POKAŻĘ WYNIK';
 
   @override
-  String get challengeHoldCta => 'TRZYMAM SIĘ';
+  String challengeStanceLine(String side) {
+    return 'Wcześniej zagłosowałeś na $side. Jak teraz brzmi Twoje zdanie?';
+  }
 
   @override
-  String get challengeMovedCta => 'TO MNIE RUSZYŁO';
+  String get challengeHoldCta => 'ZOSTAWIAM';
+
+  @override
+  String get challengeMovedCta => 'ZMIENIAM ZDANIE';
 
   @override
   String get smaczkiSheetFreeHeader =>

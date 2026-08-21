@@ -123,6 +123,22 @@ Future<void> _pumpABit(WidgetTester tester, [int frames = 10]) async {
   }
 }
 
+/// Waits out a toast before touching anything underneath it.
+///
+/// [AppToast] mounts a top-anchored overlay entry that spans the app bar, and
+/// the card is tappable (tap-to-dismiss) — so for its three-second hold a tap
+/// aimed at the profile icon lands on the toast instead. On the flutter_tester
+/// host the fake clock retires the hold inside `pumpAndSettle`, which is why
+/// this never mattered there; on a real device the clock is real, `pumpAndSettle`
+/// returns as soon as the frames stop, and the tap silently misses.
+Future<void> _waitForToast(WidgetTester tester, String message) async {
+  for (var i = 0; i < 40; i++) {
+    if (find.text(message).evaluate().isEmpty) return;
+    await tester.pump(const Duration(milliseconds: 250));
+  }
+  fail('The toast "$message" never cleared.');
+}
+
 /// A forward (leftward) fling on the feed — off the daily, which for a free
 /// account is the whole deck.
 Future<void> _swipeForward(WidgetTester tester) async {
@@ -145,7 +161,7 @@ Future<void> _swipeBack(WidgetTester tester) async {
 /// and the community split, holding ground.
 ///
 /// The gate is the reason this can't be a one-tap helper: the vote alone
-/// reveals nothing, and the answer tiles stay inert until the argument has
+/// reveals nothing, and the answer buttons stay inert until the argument has
 /// finished falling word by word.
 Future<void> _voteAndHoldGround(
   WidgetTester tester, {
@@ -166,7 +182,7 @@ Future<void> _voteAndHoldGround(
     reason: 'no split may be painted while the gate is up',
   );
 
-  await tester.tap(find.text('TRZYMAM SIĘ'));
+  await tester.tap(find.text('ZOSTAWIAM'));
   await tester.pumpAndSettle();
 }
 
@@ -438,6 +454,7 @@ void main() {
     // The app keeps working as a guest — there is no login gate in front of the
     // feed — and the hub has swapped the sign-out row for the pitch.
     expect(find.text('PYTANIE DNIA'), findsOneWidget);
+    await _waitForToast(tester, 'Wylogowano.');
     await tester.tap(find.byIcon(Icons.person_outline));
     await tester.pumpAndSettle();
     expect(find.text('ZABEZPIECZ KONTO'), findsOneWidget);

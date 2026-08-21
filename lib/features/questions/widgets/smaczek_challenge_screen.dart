@@ -11,7 +11,6 @@ import '../../../core/theme/app_typography.dart';
 import '../../../data/models/smaczek.dart';
 import '../../../data/models/vote_result.dart';
 import 'falling_words_text.dart';
-import 'vote_visuals.dart';
 
 /// What the gate reports back: how the user answered and how long they sat
 /// with the argument on screen (null when they left before it landed).
@@ -21,8 +20,9 @@ typedef SmaczekChallengeResult = ({ChallengeOutcome outcome, int? dwellMs});
 ///
 /// The user has just answered; before the percentages appear, the argument
 /// aimed at THEIR side falls in word by word — the same falling-words motion
-/// the feed uses for a question — and lands on their own answer, which visibly
-/// shakes. Then, and only then, they say whether it moved them.
+/// the feed uses for a question — and lands on the quiet reminder of their own
+/// vote, which visibly shakes. Then, and only then, they say whether it moved
+/// them.
 ///
 /// The VOTE IS FINAL either way: "to mnie ruszyło" admits the argument landed,
 /// it does not re-cast anything. It is never a trap: system back resolves as
@@ -84,10 +84,12 @@ class SmaczekChallengeScreen extends StatefulWidget {
 
 class _SmaczekChallengeScreenState extends State<SmaczekChallengeScreen>
     with TickerProviderStateMixin {
-  /// The hit: a damped side-to-side shake of the tile the argument landed on.
+  /// The hit: a damped side-to-side shake of the stance line the argument
+  /// landed on.
   static const Duration _impactDuration = Duration(milliseconds: 520);
 
-  /// The answer: the tile flashes (held) or dims and sinks (moved).
+  /// The answer: the stance line pulses brighter (held) or dims and sinks
+  /// (moved).
   static const Duration _verdictDuration = Duration(milliseconds: 420);
 
   late final AnimationController _impact = AnimationController(
@@ -157,13 +159,13 @@ class _SmaczekChallengeScreenState extends State<SmaczekChallengeScreen>
     Navigator.of(context).pop((outcome: outcome, dwellMs: dwellMs));
   }
 
-  /// Damped side-to-side wiggle of the struck tile — sharp at the moment of
-  /// impact, gone within half a second.
+  /// Damped side-to-side wiggle of the struck stance line — sharp at the
+  /// moment of impact, gone within half a second.
   double _shakeDx(double t) => math.sin(t * math.pi * 7) * 7 * (1 - t);
 
   /// A short brightening as the user holds their ground, back to normal by the
   /// end. Reads as "you took it".
-  double _flashOpacity(double t) => math.sin(t * math.pi) * 0.5;
+  double _heldPulse(double t) => math.sin(t * math.pi);
 
   @override
   Widget build(BuildContext context) {
@@ -211,15 +213,15 @@ class _SmaczekChallengeScreenState extends State<SmaczekChallengeScreen>
                       ),
                     ),
                     const SizedBox(height: 24),
-                    _AnswerTiles(
+                    _StanceLine(
                       mineIsYes: _mineIsYes,
                       impact: _impact,
                       verdict: _verdict,
                       outcome: _outcome,
                       shakeDx: _shakeDx,
-                      flashOpacity: _flashOpacity,
+                      heldPulse: _heldPulse,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     // Held back until the argument has landed: answering before
                     // it arrives would make the whole beat pointless. Compact
                     // gates skip the fade — buttons up right after the hit.
@@ -263,20 +265,23 @@ class _SmaczekChallengeScreenState extends State<SmaczekChallengeScreen>
   }
 }
 
-/// The two slanted vote tiles, laid out on the same grid as the result bars.
+/// The muted reminder of the vote the argument just hit.
 ///
-/// The side the user picked is lit and is the one the argument hits; the other
-/// sits faded beside it. On "moved" the lit tile dims and sinks a little while
-/// the other briefly brightens and settles back — "it shook me", never "I
-/// changed my answer": the vote stands, so no light may change hands for good.
-class _AnswerTiles extends StatelessWidget {
-  const _AnswerTiles({
+/// This used to be a pair of slanted TAK/NIE vote tiles — but two vote-shaped
+/// tiles under an argument read as "vote again", and people tried to tap them.
+/// A quiet line of text now states the recorded side and asks the question the
+/// buttons below answer. The impact shake and the "moved" sink land on this
+/// line, so the argument still visibly strikes the user's own stance; on
+/// "held" it pulses briefly brighter instead — "you took it". Either way the
+/// line dims, it never disappears: the vote stands.
+class _StanceLine extends StatelessWidget {
+  const _StanceLine({
     required this.mineIsYes,
     required this.impact,
     required this.verdict,
     required this.outcome,
     required this.shakeDx,
-    required this.flashOpacity,
+    required this.heldPulse,
   });
 
   final bool mineIsYes;
@@ -284,111 +289,42 @@ class _AnswerTiles extends StatelessWidget {
   final AnimationController verdict;
   final ChallengeOutcome? outcome;
   final double Function(double t) shakeDx;
-  final double Function(double t) flashOpacity;
+  final double Function(double t) heldPulse;
 
-  /// How far the user's tile sinks on "moved", in logical px.
-  static const double _sinkDy = 6;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: voteTileHeight(context),
-      child: AnimatedBuilder(
-        animation: Listenable.merge([impact, verdict]),
-        builder: (context, _) {
-          final moved = outcome == ChallengeOutcome.moved;
-          final v = verdict.value;
-          // "Moved": mine loses some of its light (never all — the vote still
-          // stands) and sinks; the other side gets a brief sympathetic glow
-          // that has fully faded again by the end of the beat.
-          final mineLit = moved ? 1 - 0.6 * v : 1.0;
-          final otherLit = moved ? math.sin(v * math.pi) * 0.35 : 0.0;
-          final mineDy = moved ? v * _sinkDy : 0.0;
-          return Row(
-            children: [
-              Expanded(
-                child: _Tile(
-                  isYes: true,
-                  lit: mineIsYes ? mineLit : otherLit,
-                  shakeDx: mineIsYes ? shakeDx(impact.value) : 0,
-                  dy: mineIsYes ? mineDy : 0,
-                  flash: outcome == ChallengeOutcome.held && mineIsYes
-                      ? flashOpacity(v)
-                      : 0,
-                ),
-              ),
-              const SizedBox(width: kVoteSeamGap),
-              Expanded(
-                child: _Tile(
-                  isYes: false,
-                  lit: !mineIsYes ? mineLit : otherLit,
-                  shakeDx: !mineIsYes ? shakeDx(impact.value) : 0,
-                  dy: !mineIsYes ? mineDy : 0,
-                  flash: outcome == ChallengeOutcome.held && !mineIsYes
-                      ? flashOpacity(v)
-                      : 0,
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// One tile plus the transforms of the moment: the sideways knock of the
-/// impact, the sink-and-dim of "moved", and the flash of a hold.
-class _Tile extends StatelessWidget {
-  const _Tile({
-    required this.isYes,
-    required this.lit,
-    required this.shakeDx,
-    required this.dy,
-    required this.flash,
-  });
-
-  final bool isYes;
-
-  /// 0..1 — how lit this tile is right now. Crossfaded rather than switched,
-  /// so the dimming and the sympathetic glow both read as light moving, not a
-  /// re-render.
-  final double lit;
-
-  final double shakeDx;
-  final double dy;
-  final double flash;
+  /// How far the line sinks on "moved", in logical px.
+  static const double _sinkDy = 4;
 
   @override
   Widget build(BuildContext context) {
-    Widget tile = Stack(
-      children: [
-        // Both states are painted and crossfaded: VoteSideTile takes a bool,
-        // so every in-between has to be built out of the two ends.
-        Opacity(
-          opacity: 1 - lit,
-          child: VoteSideTile(isYes: isYes, lit: false),
-        ),
-        Opacity(
-          opacity: lit,
-          child: VoteSideTile(isYes: isYes, lit: true),
-        ),
-        if (flash > 0)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: ColoredBox(
-                color: (isYes ? AppTheme.yes : AppTheme.no).withValues(
-                  alpha: flash,
-                ),
-              ),
-            ),
+    final colors = context.colors;
+    final side = (mineIsYes ? context.l10n.voteYes : context.l10n.voteNo)
+        .toUpperCase();
+    return AnimatedBuilder(
+      animation: Listenable.merge([impact, verdict]),
+      builder: (context, _) {
+        final v = verdict.value;
+        final moved = outcome == ChallengeOutcome.moved;
+        // "Held" brightens the line toward full ink for a beat; "moved" lets
+        // it lose some presence and sink a little.
+        final color = outcome == ChallengeOutcome.held
+            ? Color.lerp(colors.subtle, colors.ink, heldPulse(v))!
+            : colors.subtle;
+        Widget line = Opacity(
+          opacity: moved ? 1 - 0.45 * v : 1,
+          child: Text(
+            context.l10n.challengeStanceLine(side),
+            textAlign: TextAlign.center,
+            style: AppTypography.support(fontSize: 13).copyWith(color: color),
           ),
-      ],
+        );
+        final dx = shakeDx(impact.value);
+        final dy = moved ? v * _sinkDy : 0.0;
+        if (dx != 0 || dy != 0) {
+          line = Transform.translate(offset: Offset(dx, dy), child: line);
+        }
+        return line;
+      },
     );
-    if (shakeDx != 0 || dy != 0) {
-      tile = Transform.translate(offset: Offset(shakeDx, dy), child: tile);
-    }
-    return tile;
   }
 }
 

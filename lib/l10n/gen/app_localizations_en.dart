@@ -1132,10 +1132,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smaczekChallengeEyebrow => 'BEFORE I SHOW YOU THE RESULT';
 
   @override
-  String get challengeHoldCta => 'I\'M NOT BUDGING';
+  String challengeStanceLine(String side) {
+    return 'You voted $side earlier. Where does your opinion stand now?';
+  }
 
   @override
-  String get challengeMovedCta => 'THAT GOT ME';
+  String get challengeHoldCta => 'KEEPING IT';
+
+  @override
+  String get challengeMovedCta => 'CHANGED MY MIND';
 
   @override
   String get smaczkiSheetFreeHeader =>

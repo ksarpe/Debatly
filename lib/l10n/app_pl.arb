@@ -427,10 +427,17 @@
   },
 
   "smaczekChallengeEyebrow": "ZANIM POKAŻĘ WYNIK",
-  "challengeHoldCta": "TRZYMAM SIĘ",
-  "challengeMovedCta": "TO MNIE RUSZYŁO",
+  "challengeStanceLine": "Wcześniej zagłosowałeś na {side}. Jak teraz brzmi Twoje zdanie?",
+  "@challengeStanceLine": {
+    "description": "Wyszumiona linia nad przyciskami bramki — zastąpiła kafle TAK/NIE, które wyglądały jak przyciski do ponownego głosowania. {side} to zlokalizowana etykieta strony, na którą użytkownik zagłosował.",
+    "placeholders": {
+      "side": { "type": "String" }
+    }
+  },
+  "challengeHoldCta": "ZOSTAWIAM",
+  "challengeMovedCta": "ZMIENIAM ZDANIE",
   "@challengeMovedCta": {
-    "description": "The gate's second button. It admits the argument landed WITHOUT changing the vote — the vote is final, so it must not read as 'I changed my answer'."
+    "description": "The gate's second button (owner-approved copy, 2026-08-21). It records `moved` on a separate axis — the vote itself stays final and is never re-cast."
   },
   "smaczkiSheetFreeHeader": "Dostałeś argument przeciwko sobie. Zostały dwa: jeden, który Cię broni, i jeden, który komplikuje sprawę.",
   "@smaczkiSheetFreeHeader": {

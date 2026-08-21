@@ -62,7 +62,7 @@ void main() {
       findsOneWidget,
       reason: 'the argument comes before the percentages',
     );
-    await tester.tap(find.text('TRZYMAM SIĘ'));
+    await tester.tap(find.text('ZOSTAWIAM'));
     await tester.pumpAndSettle();
   }
 
@@ -286,7 +286,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('ZANIM POKAŻĘ WYNIK'), findsOneWidget);
 
-      await tester.tap(find.text('TO MNIE RUSZYŁO'));
+      await tester.tap(find.text('ZMIENIAM ZDANIE'));
       await tester.pumpAndSettle();
 
       // ONE cast — admitting the argument landed records an outcome on a
@@ -348,7 +348,7 @@ void main() {
             findsOneWidget,
             reason: 'gate $i of the session still shows',
           );
-          await tester.tap(find.text('TRZYMAM SIĘ'));
+          await tester.tap(find.text('ZOSTAWIAM'));
           await tester.pumpAndSettle();
         } else {
           // The valve for PRO: the first vote past the cap goes straight to
@@ -455,7 +455,7 @@ void main() {
     );
 
     // Answering it is what releases the percentages.
-    await tester.tap(find.text('TRZYMAM SIĘ'));
+    await tester.tap(find.text('ZOSTAWIAM'));
     await tester.pumpAndSettle();
     expect(find.text('60%'), findsOneWidget);
     expect(find.text('40%'), findsOneWidget);

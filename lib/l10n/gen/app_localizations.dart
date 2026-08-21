@@ -1970,16 +1970,22 @@ abstract class AppLocalizations {
   /// **'BEFORE I SHOW YOU THE RESULT'**
   String get smaczekChallengeEyebrow;
 
+  /// Muted line above the gate's answer buttons, replacing the old TAK/NIE tiles (they looked tappable and users tried to re-vote on them). {side} is the localized YES/NO label of the side the user picked.
+  ///
+  /// In en, this message translates to:
+  /// **'You voted {side} earlier. Where does your opinion stand now?'**
+  String challengeStanceLine(String side);
+
   /// No description provided for @challengeHoldCta.
   ///
   /// In en, this message translates to:
-  /// **'I\'M NOT BUDGING'**
+  /// **'KEEPING IT'**
   String get challengeHoldCta;
 
   /// No description provided for @challengeMovedCta.
   ///
   /// In en, this message translates to:
-  /// **'THAT GOT ME'**
+  /// **'CHANGED MY MIND'**
   String get challengeMovedCta;
 
   /// No description provided for @smaczkiSheetFreeHeader.

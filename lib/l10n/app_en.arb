@@ -516,8 +516,17 @@
   "smaczkiUnlockCta": "Unlock",
   "smaczkiLockedBeforeVote": "Vote first. Then I'll see if you hold.",
   "smaczekChallengeEyebrow": "BEFORE I SHOW YOU THE RESULT",
-  "challengeHoldCta": "I'M NOT BUDGING",
-  "challengeMovedCta": "THAT GOT ME",
+  "challengeStanceLine": "You voted {side} earlier. Where does your opinion stand now?",
+  "@challengeStanceLine": {
+    "description": "Muted line above the gate's answer buttons, replacing the old TAK/NIE tiles (they looked tappable and users tried to re-vote on them). {side} is the localized YES/NO label of the side the user picked.",
+    "placeholders": {
+      "side": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeHoldCta": "KEEPING IT",
+  "challengeMovedCta": "CHANGED MY MIND",
   "smaczkiSheetFreeHeader": "You got the argument against you. Two left: one that defends you, one that complicates it.",
   "smaczkiSheetFreeHeaderPlain": "{count, plural, =0{That argument is behind you.} =1{The first one is behind you. One more waits.} other{The first one is behind you. {count} more wait.}}",
   "@smaczkiSheetFreeHeaderPlain": {

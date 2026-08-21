@@ -12,7 +12,7 @@ import 'support/localized_test_app.dart';
 ///   * the argument is on screen, and the two answers to it only appear once it
 ///     has finished landing — answering before the hit lands is the one way to
 ///     make the whole beat pointless;
-///   * "trzymam się" and "to mnie ruszyło" report distinct outcomes, and the
+///   * "zostawiam" and "zmieniam zdanie" report distinct outcomes, and the
 ///     dwell (gate opened → tap) rides along, because without it every future
 ///     decision about this mechanic is guesswork — and it counts the fall,
 ///     which is the second the user spends reading;
@@ -85,8 +85,14 @@ void main() {
     );
 
     await tester.pumpAndSettle();
-    expect(find.text('TRZYMAM SIĘ'), findsOneWidget);
-    expect(find.text('TO MNIE RUSZYŁO'), findsOneWidget);
+    expect(find.text('ZOSTAWIAM'), findsOneWidget);
+    expect(find.text('ZMIENIAM ZDANIE'), findsOneWidget);
+    // The old TAK/NIE tiles are gone — a muted line states the recorded side
+    // instead, so nothing under the argument looks like a re-vote.
+    expect(
+      find.text('Wcześniej zagłosowałeś na TAK. Jak teraz brzmi Twoje zdanie?'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('holding the ground reports "held" with a measured dwell', (
@@ -95,7 +101,7 @@ void main() {
     await open(tester);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('TRZYMAM SIĘ'));
+    await tester.tap(find.text('ZOSTAWIAM'));
     await tester.pumpAndSettle();
     expect(reported, hasLength(1));
     expect(reported.single.outcome, ChallengeOutcome.held);
@@ -116,7 +122,7 @@ void main() {
     // debate profile with no way to find out why.
     await open(tester);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('TRZYMAM SIĘ'));
+    await tester.tap(find.text('ZOSTAWIAM'));
     await tester.pumpAndSettle();
 
     // 9 words: 90 ms of stagger each past the first, plus one 380 ms fall.
@@ -127,13 +133,13 @@ void main() {
     );
   });
 
-  testWidgets('"to mnie ruszyło" reports "moved" — nothing more', (
+  testWidgets('"zmieniam zdanie" reports "moved" — nothing more', (
     tester,
   ) async {
     await open(tester);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('TO MNIE RUSZYŁO'));
+    await tester.tap(find.text('ZMIENIAM ZDANIE'));
     await tester.pumpAndSettle();
     expect(reported, hasLength(1));
     expect(reported.single.outcome, ChallengeOutcome.moved);
@@ -170,7 +176,7 @@ void main() {
       reason: 'compact gates do not make the user wait for the buttons',
     );
 
-    await tester.tap(find.text('TRZYMAM SIĘ'));
+    await tester.tap(find.text('ZOSTAWIAM'));
     await tester.pumpAndSettle();
     expect(reported.single.outcome, ChallengeOutcome.held);
   });

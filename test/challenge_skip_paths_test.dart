@@ -252,7 +252,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('ZANIM POKAŻĘ WYNIK'), findsOneWidget);
-    await tester.tap(find.text('TRZYMAM SIĘ'));
+    await tester.tap(find.text('ZOSTAWIAM'));
     await tester.pumpAndSettle();
 
     expect(repo.recordCalls, 1);
