@@ -439,3 +439,38 @@ code.uid {
 /* display:flex na <td> wypadłoby z układu tabeli — wystarczy pozwolić zawijać. */
 .mkt-table tr.editor-row td.mkt-acts { white-space: normal; }
 .mkt-table tr.editor-row td.mkt-acts .btn { margin: 0 0 4px 4px; }
+
+/* ---------- /bulk — hurtowa edycja ---------- */
+.step {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 19px; height: 19px; margin-right: 7px; border-radius: 50%;
+  background: var(--accent); color: #fff; font-size: 11.5px; font-weight: 700;
+  vertical-align: 1px;
+}
+.pick-lbl { display: flex; gap: 7px; align-items: center; }
+.pick-lbl input { width: auto; }
+textarea.mono {
+  width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; line-height: 1.5;
+}
+.bulk-table td { vertical-align: middle; }
+.bulk-table td.q { font-weight: 500; }
+.bulk-table input[type="checkbox"] { width: auto; }
+
+.bulk-item {
+  border: 1px solid var(--border-soft); border-radius: var(--radius);
+  padding: 10px 12px; margin-bottom: 8px;
+}
+.bulk-item.bad { border-color: var(--danger); }
+.bulk-item.done { border-color: var(--ok); }
+.bulk-head { display: flex; gap: 10px; align-items: center; }
+.bulk-head input[type="checkbox"] { width: auto; flex: none; }
+.bulk-head .t {
+  flex: 1; min-width: 0; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bulk-msg { margin: 8px 0 0; padding: 8px 10px; font-size: 13px; }
+.bulk-warn { margin-top: 6px; color: var(--warn); }
+details.sec.bulk-diff { margin: 8px 0 0; background: transparent; }
+details.sec.bulk-diff > summary { padding: 8px 0; }
+details.sec.bulk-diff > .body { padding: 0 0 8px; }

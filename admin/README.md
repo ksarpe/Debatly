@@ -75,6 +75,38 @@ dostaje flagę **EN do weryfikacji**:
 Flaga żyje poza hashem treści, więc jej przełączanie nie unieważnia otwartych
 wersji roboczych.
 
+## Hurtowo (zakładka „Hurtowo”, `/bulk`)
+
+Ta sama edycja co pojedyncza, tylko dziesięć pytań naraz — zamiast wyklikiwać
+JSON pytanie po pytaniu:
+
+1. **Wybierz** pytania (te same filtry co na liście — np. „🎯 smaczki bez
+   strony” to gotowa worklista tagowania). Zaznaczenie przeżywa zmianę strony.
+2. **Kopiuj JSON** — panel dociąga pełne snapshoty i wrzuca do schowka paczkę
+   `{"questions":[{"id","category","pl","en","smaczki":[{"position","pl","en","side"}]}]}`,
+   opcjonalnie z instrukcją formatu dla agenta.
+3. **Wklej odpowiedź** agenta. Płot ```` ```json ```` i tekst dookoła są
+   obcinane. Dopasowanie po `id`.
+4. **Podgląd** — dla każdej pozycji różnica przed/po, ostrzeżenia o limitach,
+   odznaki „bez zmian” / „nowe” / „zablokowane”. Odznaczasz, czego nie chcesz,
+   i publikujesz całość jednym przyciskiem.
+
+**Scalanie smaczków.** Pola nieobecne w JSON-ie zostają bez zmian, więc
+`"smaczki":[{"position":1,"side":"attacks_no"}]` otaguje pierwszy wiersz i nie
+ruszy pozostałych. Jeśli **każdy** wiersz ma numer (`position`/`n`/`id`), patch
+jest punktowy; jeśli choć jeden go nie ma — JSON jest całą listą i wiersze poza
+jego długością znikają. Kasowanie: `{"position":3,"delete":true}`. Pozycja bez
+`id` = nowe pytanie. Te same reguły obsługuje przycisk „📥 Wklej” w edytorze
+pojedynczego pytania (wspólny kod: `lib/bulk.js`).
+
+**Zapis nie ma skrótu.** Każde pytanie dostaje własny draft
+(`admin_save_draft` → `admin_submit_draft` → `admin_approve_draft`) na
+snapshotcie pobranym tuż przed zapisem, więc ochrona przed konfliktami, audyt
+i automat „EN do weryfikacji” działają jak przy pojedynczej edycji. `editor`
+zgłasza całą paczkę do zatwierdzenia, `approver` publikuje. Błąd na jednym
+pytaniu nie przerywa reszty — wiersz zostaje na czerwono z komunikatem i można
+go ponowić.
+
 ## Historia
 
 Każda zatwierdzona zmiana trafia do `admin_audit_log` ze stanem przed i po —

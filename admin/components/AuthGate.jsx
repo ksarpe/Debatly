@@ -106,6 +106,7 @@ function Nav({ email, role }) {
     <nav className="nav">
       <div className="brand">Debatly<span>.</span>admin</div>
       <Link href="/" className={is('/')}>Pytania</Link>
+      <Link href="/bulk" className={is('/bulk')}>Hurtowo</Link>
       <Link href="/stats" className={is('/stats')}>Statystyki</Link>
       <Link href="/live" className={is('/live')}>Live 💰</Link>
       <Link href="/marketing" className={is('/marketing')}>Marketing</Link>

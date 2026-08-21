@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { api, CATEGORIES, LIMITS, SIDES } from '../lib/api';
+import { api, CATEGORIES, LIMITS } from '../lib/api';
 import SmaczkiEditor from './SmaczkiEditor';
 import Counter from './Counter';
 import Diff from './Diff';
+import { extractJson, mergeSmaczki } from '../lib/bulk';
 
 const empty = {
   category: 'Reflection', is_premium: false, is_active: true,
@@ -272,7 +273,7 @@ export default function QuestionEditor({
     setPasteErr(null);
     let json;
     try {
-      json = JSON.parse(pasteText);
+      json = JSON.parse(extractJson(pasteText));
     } catch (e) {
       setPasteErr('Nieprawidłowy JSON: ' + e.message);
       return;
@@ -286,37 +287,12 @@ export default function QuestionEditor({
     if (typeof q.pl === 'string') next.pl = q.pl;
     if (typeof q.en === 'string') next.en = q.en;
     if (Array.isArray(json.smaczki)) {
-      // Tag smaczka: kanonicznie "side", alias "type" (agenty piszą różnie).
-      // Brak klucza = zostaje obecny tag; jawne null = zdejmij tag; nieznana
-      // wartość = twardy błąd, żeby literówka agenta nie przeszła po cichu.
-      const readSide = (s, cur, i) => {
-        const key = 'side' in s ? 'side' : ('type' in s ? 'type' : null);
-        if (!key) return cur ?? null;
-        const raw = s[key];
-        if (raw === null) return null;
-        const v = String(raw).trim().toLowerCase();
-        if (!SIDES.some((o) => o.value === v)) {
-          throw new Error(`Smaczek ${i + 1}: nieznana wartość "${key}": "${raw}". `
-            + 'Dozwolone: attacks_yes, attacks_no, neutral albo null.');
-        }
-        return v;
-      };
-      // Merged onto the rows already in the form, by position: a JSON that
-      // carries only sides — {"smaczki":[{"side":"attacks_yes"}, …]}, which is
+      // Merged onto the rows already in the form: a JSON that carries only
+      // sides — {"smaczki":[{"position":1,"side":"attacks_yes"}, …]}, which is
       // what a tagging pass returns — tags them instead of blanking their text.
+      // Reguły scalania siedzą w lib/bulk.js, wspólne ze stroną /bulk.
       try {
-        next.smaczki = [...json.smaczki]
-          .sort((a, b) => (a?.id ?? 0) - (b?.id ?? 0))
-          .map((s, i) => {
-            const cur = form.smaczki[i] ?? {};
-            const src = s && typeof s === 'object' ? s : {};
-            return {
-              pl: typeof src.pl === 'string' ? src.pl : String(cur.pl ?? ''),
-              en: typeof src.en === 'string' ? src.en : String(cur.en ?? ''),
-              side: readSide(src, cur.side, i),
-            };
-          })
-          .filter((s) => s.pl !== '' || s.en !== '');
+        next.smaczki = mergeSmaczki(form.smaczki, json.smaczki);
       } catch (e) {
         setPasteErr(e.message);
         return;
