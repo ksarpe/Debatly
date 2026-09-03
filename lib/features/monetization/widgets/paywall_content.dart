@@ -25,12 +25,38 @@ import 'paywall_footer_links.dart';
 import 'paywall_offer_error.dart';
 import 'paywall_offer_section.dart';
 
+/// Whether the paywall open MOST RECENTLY on screen ever had a purchasable
+/// offering rendered. Reset on every open, flipped once packages arrive.
+///
+/// Exists for the day wall's once-a-day automatic open: its latch is spent
+/// before the paywall resolves (so an instant dismissal still counts), but an
+/// open that never got past the offline/retry state sold nothing — the wall
+/// reads this afterwards and re-arms the latch so the day's one automatic
+/// open isn't burned on a screen with no prices on it.
+class PaywallOfferSeenNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void reset() => state = false;
+
+  void markSeen() => state = true;
+}
+
+final paywallOfferSeenProvider =
+    NotifierProvider<PaywallOfferSeenNotifier, bool>(
+      PaywallOfferSeenNotifier.new,
+    );
+
 /// Where the user opened the paywall from. Analytics-only: the pitch itself
 /// is identical for every entry point (one slogan headline, one subline), and
 /// the enum name becomes the `source` value in the paywall funnel events.
 enum PaywallSource {
-  /// Settings row and other neutral entry points.
+  /// Neutral / unclassified entry points.
   general,
+
+  /// The Settings screen's PRO row — split out of [general] so the funnel can
+  /// tell a deliberate settings visit from the catch-all.
+  settings,
 
   /// The post-onboarding bridge screen's "unlock all 500" CTA.
   bridge,
@@ -50,6 +76,9 @@ enum PaywallSource {
   /// The locked PRO depth (trend / categories / moved list) under the debate
   /// profile in the conformity panel.
   profile,
+
+  /// A locked tile on the modes screen (Związki / Rodzina / …).
+  modes,
 }
 
 /// The paywall body inside the fullscreen paywall ([ProPaywallScreen]): a
@@ -309,6 +338,10 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
         }
       }
       preselected ??= packages.isEmpty ? null : packages.first;
+      if (packages.isNotEmpty) {
+        // Something purchasable is on screen — this open genuinely sold.
+        ref.read(paywallOfferSeenProvider.notifier).markSeen();
+      }
       setState(() {
         _packages = packages;
         _selected ??= preselected;
