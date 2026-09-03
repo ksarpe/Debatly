@@ -13,16 +13,16 @@ class AuthNotice extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF4A3A1A)),
+        border: Border.all(color: context.colors.hairline),
         borderRadius: BorderRadius.circular(12),
-        color: const Color(0xFF171207),
+        color: context.colors.cardSurface,
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: const Color(0xFFFFC857), size: 20),
+            Icon(icon, color: context.colors.sparkInk, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(

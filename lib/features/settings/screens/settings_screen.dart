@@ -16,6 +16,7 @@ import '../../../services/reminder_scheduler.dart';
 import '../../../services/supabase_service.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/screens/auth_screen.dart';
+import '../../account/widgets/auth_segmented_tabs.dart' show AuthMode;
 import '../../account/widgets/restore_sign_in_prompt.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
 import '../../monetization/widgets/purchase_settlement.dart';
@@ -392,7 +393,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     }
   }
 
-  void _openAuth() => showAuthSheet(context);
+  /// Opens the auth sheet on the REGISTER tab. The button says "secure
+  /// account", and only registering (email/password `updateUser`, social
+  /// `linkIdentityWithIdToken`) upgrades the anonymous user in place — same
+  /// UUID, so the streak, votes, favourites and PRO survive. The sign-in tab
+  /// stays one tap away for a genuine "sign back in", but it must not be the
+  /// default: email/password sign-in REPLACES the session and strands the
+  /// guest profile, and a guest with months of votes who picks "sign in"
+  /// because that is what the sheet opened on has no way back.
+  void _openAuth() => showAuthSheet(context, initialMode: AuthMode.register);
 
   /// Opens the "Suggest a question" sheet — the user's idea lands in the
   /// team's review inbox, not in the catalog.

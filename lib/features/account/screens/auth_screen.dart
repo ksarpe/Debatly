@@ -37,7 +37,8 @@ import '../widgets/auth_social_button.dart';
 /// in replaces the session with another account's and leaves the guest's streak,
 /// votes and favourites behind, so opening those prompts on the sign-in tab
 /// pointed the user at the one action that destroys what they were told to
-/// protect. Entry points that genuinely mean "sign back in" (Settings, the
+/// protect. Settings' "secure account" button is the same pitch and opens the
+/// register tab too. Entry points that genuinely mean "sign back in" (the
 /// restore chooser, the paywall footer) keep the default.
 Future<void> showAuthSheet(
   BuildContext context, {
