@@ -228,7 +228,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   /// Shows the PRO paywall, then refreshes the session so the gate sees
   /// the upgrade immediately.
   Future<void> _openPaywall() async {
-    final purchased = await showProPaywall(context);
+    final purchased = await showProPaywall(
+      context,
+      source: PaywallSource.settings,
+    );
     if (!mounted) return;
     if (purchased) {
       // Premium is claimed only once the entitlement is really there — a

@@ -186,6 +186,11 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
   /// tap, or by this surface going away entirely.
   int _loadGeneration = 0;
 
+  /// One `paywall_offer_shown` per open, not per fetch: a resume-triggered
+  /// refetch or a manual retry lands on the same offer the same user is
+  /// already looking at.
+  bool _offerShownLogged = false;
+
   void _setBusy(bool value) {
     setState(() => _busy = value);
     widget.onBusyChanged?.call(value);
@@ -341,6 +346,7 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
       if (packages.isNotEmpty) {
         // Something purchasable is on screen — this open genuinely sold.
         ref.read(paywallOfferSeenProvider.notifier).markSeen();
+        _logOfferShown(preselected!);
       }
       setState(() {
         _packages = packages;
@@ -348,6 +354,30 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
       });
       return;
     }
+  }
+
+  /// The storefront this open is actually priced in.
+  ///
+  /// Deliberately NOT folded into `paywall_shown`: that one fires in
+  /// [initState], before the offering exists, and moving it behind the fetch
+  /// would stop it counting the opens where the offer never loads — which is
+  /// exactly what `paywall_offer_unavailable` is measured against.
+  ///
+  /// The currency comes from the App Store / Play storefront of the signed-in
+  /// store account, never from the device locale or the app language, so a
+  /// Polish-language install can legitimately be priced in USD (a foreign
+  /// store account, or a sandbox tester whose region is not PL). Without this
+  /// row those installs are invisible until someone buys, and they quietly
+  /// skew both the funnel and the price test.
+  void _logOfferShown(Package preselected) {
+    if (_offerShownLogged) return;
+    _offerShownLogged = true;
+    Analytics.log('paywall_offer_shown', {
+      'source': widget.source.name,
+      'currency': preselected.storeProduct.currencyCode,
+      'price': preselected.storeProduct.price,
+      'plan': preselected.packageType.name,
+    });
   }
 
   void _selectPackage(Package package) {
