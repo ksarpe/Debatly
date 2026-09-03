@@ -20,6 +20,8 @@ import '../../account/widgets/restore_sign_in_prompt.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
 import '../../monetization/widgets/purchase_settlement.dart';
 import '../../questions/providers/favorites_providers.dart';
+import '../../questions/providers/question_providers.dart'
+    show questionRepositoryProvider;
 import '../../questions/widgets/suggest_question_sheet.dart';
 import '../providers/app_info_provider.dart';
 import '../providers/dev_tools_providers.dart';
@@ -582,6 +584,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     // the strings for `picked` directly rather than via `context.l10n`, which
     // won't reflect the switch until the next frame.
     final l10n = await AppLocalizations.delegate.load(picked);
+    // The scheduler reads teasers from the cache, and the cache has never been
+    // written for a language the app hasn't run in — top it up first
+    // (best-effort, mirroring ReminderRefreshWatcher) or a whole month of
+    // slots falls back to evergreen copy until the next resume.
+    if (mounted) {
+      try {
+        await ref.read(questionRepositoryProvider).fetchUpcomingDailyTeasers();
+      } catch (_) {
+        // Offline is fine — the loop builds from whatever the cache holds.
+      }
+    }
     await rescheduleReminderLoop(prefs: prefs, l10n: l10n);
   }
 

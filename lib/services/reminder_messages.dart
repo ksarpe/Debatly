@@ -6,9 +6,22 @@ import '../l10n/gen/app_localizations.dart';
 /// A single reminder's text — what [NotificationService] bakes into one fire.
 typedef ReminderMessage = ({String title, String body});
 
+/// One drawn reminder plus whether the draw actually PICKED the teaser line.
+///
+/// The distinction is the whole point: the teaser is one weighted candidate in
+/// the pool, so "a teaser was available" and "this fire carries the question"
+/// are different claims — and the tap payload's `has_teaser` must make the
+/// second one, or the teaser-vs-evergreen comparison it exists for is noise.
+typedef ReminderDraw = ({String title, String body, bool usedTeaser});
+
 /// The day-offset from which a slot is addressing someone who has drifted away
 /// for good, rather than someone who missed a couple of days.
 const int kReminderAwayDays = 12;
+
+/// How many missed days cost one rank (mirrors the server's decay rule). A slot
+/// firing before this many days of absence must not claim the rank is already
+/// sliding — the threat isn't fact yet.
+const int kRankDecayMissedDays = 3;
 
 /// How far into the future a scheduled slot sits — and therefore how long the
 /// user will have been absent by the time it fires.
@@ -63,7 +76,7 @@ enum ReminderHorizon {
 /// and the reason the whole calendar-read exists. It survives every horizon (a
 /// question is a question whether you left yesterday or a month ago) but never
 /// appears post-vote, where it would name the question just answered.
-ReminderMessage buildReminderMessage({
+ReminderDraw buildReminderMessage({
   required AppLocalizations l10n,
   required UserStats? stats,
   required bool votedToday,
@@ -71,8 +84,14 @@ ReminderMessage buildReminderMessage({
   required Random random,
   int? disagreePct,
   String? teaser,
+  // Whether, by the day this slot FIRES, the rank decay (one rank per
+  // [kRankDecayMissedDays] missed days) has actually begun. The scheduler
+  // derives it from the slot's day offset; defaults to false so the claim can
+  // only be made when a caller vouches for it.
+  bool rankDecayUnderway = false,
 }) {
   final candidates = <ReminderMessage>[];
+  ReminderMessage? teaserLine;
 
   /// The evergreen controversy nudges — always honest, so they backstop every
   /// horizon that still asks for a vote.
@@ -95,6 +114,7 @@ ReminderMessage buildReminderMessage({
           ? l10n.notifTeaserBodyAway
           : l10n.notifTeaserBody,
     );
+    teaserLine = line;
     candidates
       ..add(line)
       ..add(line);
@@ -169,11 +189,21 @@ ReminderMessage buildReminderMessage({
         addEvergreen();
 
       case ReminderHorizon.drifting:
-        // Days of silence. The rank decay is now fact rather than a threat, and
-        // the streak is past saving — so stop selling it and name the absence.
-        candidates
-          ..add((title: l10n.notifDriftTitle1, body: l10n.notifDriftBody1))
-          ..add((title: l10n.notifDriftTitle2, body: l10n.notifDriftBody2));
+        // Days of silence. The streak is past saving, so name the absence —
+        // and only make the rank-slide claim once it is FACT: decay starts
+        // after [kRankDecayMissedDays] missed days, and someone whose cached
+        // streak was already zero had no rank progress to lose. Without both
+        // gates a rank-less user gets told their rank is sliding on day two.
+        candidates.add((
+          title: l10n.notifDriftTitle1,
+          body: l10n.notifDriftBody1,
+        ));
+        if (rankDecayUnderway && streak > 0) {
+          candidates.add((
+            title: l10n.notifDriftTitle2,
+            body: l10n.notifDriftBody2,
+          ));
+        }
         addTeaser();
         addEvergreen();
 
@@ -193,7 +223,16 @@ ReminderMessage buildReminderMessage({
     return (
       title: l10n.notificationDailyTitle,
       body: l10n.notificationDailyBody,
+      usedTeaser: false,
     );
   }
-  return candidates[random.nextInt(candidates.length)];
+  final picked = candidates[random.nextInt(candidates.length)];
+  // Record equality is by value, and the teaser line is unique by construction
+  // (its title carries the question text) — so this is "did the draw land on
+  // the teaser", not "was one available".
+  return (
+    title: picked.title,
+    body: picked.body,
+    usedTeaser: picked == teaserLine,
+  );
 }

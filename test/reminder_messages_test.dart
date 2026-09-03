@@ -164,6 +164,50 @@ void main() {
       expect(bodies, contains(l10n.notifDriftBody1));
     });
 
+    test('the rank-slide line waits until decay is fact', () {
+      // Decay costs one rank per three missed days — a drifting slot firing on
+      // day two must not claim the rank is already sliding.
+      final early = bodiesAcross(
+        60,
+        votedToday: false,
+        horizon: ReminderHorizon.drifting,
+        userStats: stats(streak: 9),
+      );
+      expect(early, isNot(contains(l10n.notifDriftBody2)));
+    });
+
+    test('the rank-slide line is reachable once decay began', () {
+      final bodies = {
+        for (var seed = 0; seed < 60; seed++)
+          buildReminderMessage(
+            l10n: l10n,
+            stats: stats(streak: 9),
+            votedToday: false,
+            horizon: ReminderHorizon.drifting,
+            rankDecayUnderway: true,
+            random: Random(seed),
+          ).body,
+      };
+      expect(bodies, contains(l10n.notifDriftBody2));
+    });
+
+    test('a rank-less user is never told their rank is sliding', () {
+      // Cached streak 0 = no rank progress to lose; the warning would be
+      // addressed to nobody.
+      final bodies = {
+        for (var seed = 0; seed < 60; seed++)
+          buildReminderMessage(
+            l10n: l10n,
+            stats: stats(),
+            votedToday: false,
+            horizon: ReminderHorizon.drifting,
+            rankDecayUnderway: true,
+            random: Random(seed),
+          ).body,
+      };
+      expect(bodies, isNot(contains(l10n.notifDriftBody2)));
+    });
+
     test('a win-back slot talks only about the debate', () {
       // Weeks gone. "Vote before everyone else does" would be addressing a
       // habit that no longer exists, so the evergreen pool is out too.
@@ -277,6 +321,44 @@ void main() {
           reason: blank == null ? 'null' : '"$blank"',
         );
         expect(titles, isNotEmpty);
+      }
+    });
+
+    test('usedTeaser reports the draw, not the availability', () {
+      // `has_teaser` in the tap payload is the loop's only feedback signal;
+      // a fire that drew an evergreen line while a teaser sat unused in the
+      // pool must not claim it carried the question.
+      var used = 0;
+      var unused = 0;
+      for (var seed = 0; seed < 100; seed++) {
+        final draw = buildReminderMessage(
+          l10n: l10n,
+          stats: stats(streak: 4),
+          votedToday: false,
+          horizon: ReminderHorizon.today,
+          teaser: teaser,
+          random: Random(seed),
+        );
+        expect(draw.usedTeaser, draw.title == l10n.notifTeaserTitle(teaser));
+        draw.usedTeaser ? used++ : unused++;
+      }
+      // Both outcomes are reachable — the flag genuinely varies with the draw.
+      expect(used, greaterThan(0));
+      expect(unused, greaterThan(0));
+    });
+
+    test('a PRO post-vote slot never claims a teaser it cannot carry', () {
+      for (var seed = 0; seed < 60; seed++) {
+        final draw = buildReminderMessage(
+          l10n: l10n,
+          stats: stats(streak: 4),
+          votedToday: true,
+          horizon: ReminderHorizon.today,
+          disagreePct: 61,
+          teaser: teaser,
+          random: Random(seed),
+        );
+        expect(draw.usedTeaser, isFalse);
       }
     });
 
