@@ -113,7 +113,7 @@ void main() {
     expect(find.text('BEZ LIMITU.\nBEZ KOŃCA.\nGLOBALNIE.'), findsOneWidget);
     expect(
       find.text(
-        '500+ pytań w 5 trybach, w tym Seks i intymność. Wszystkie argumenty '
+        'Setki pytań w 5 trybach, w tym Seks i intymność. Wszystkie argumenty '
         'ZA i PRZECIW, cała Twoja historia.',
       ),
       findsOneWidget,
@@ -176,7 +176,7 @@ void main() {
       );
       expect(find.text('BEZ LIMITU.\nBEZ KOŃCA.\nGLOBALNIE.'), findsNothing);
       // Subline, plans and CTA stay the shared copy.
-      expect(find.textContaining('500+ pytań'), findsOneWidget);
+      expect(find.textContaining('Setki pytań'), findsOneWidget);
       expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
     },
   );
@@ -196,7 +196,7 @@ void main() {
     expect(find.text('BEZ LIMITU.\nBEZ KOŃCA.\nGLOBALNIE.'), findsOneWidget);
     expect(
       find.text(
-        '500+ pytań w 5 trybach, w tym Seks i intymność. Wszystkie argumenty '
+        'Setki pytań w 5 trybach, w tym Seks i intymność. Wszystkie argumenty '
         'ZA i PRZECIW, cała Twoja historia.',
       ),
       findsOneWidget,

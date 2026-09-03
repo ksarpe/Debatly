@@ -45,7 +45,7 @@ class PaywallCtaButton extends StatelessWidget {
             onTap: busy ? null : onTap,
             // A MINIMUM height, not a fixed one. The pill used to be a hard 54 /
             // 62 around an unbounded Column, so at a large system text size the
-            // Polish copy ("ODBLOKUJ PONAD 500 PYTAŃ" over "(co tydzień nowe
+            // Polish copy ("ODBLOKUJ SETKI PYTAŃ" over "(co tydzień nowe
             // zestawy!)") wrapped, outgrew the box and overflowed. Now the pill
             // grows with its label; padding, not a magic number, sets the height
             // a phone actually sees.

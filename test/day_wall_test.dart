@@ -159,7 +159,7 @@ void main() {
     // modes, named, because the wall is where most free users first hear
     // of them.
     expect(
-      find.text('(500+ pytań, 5 trybów, w tym Seks i intymność)'),
+      find.text('(setki pytań, 5 trybów, w tym Seks i intymność)'),
       findsOneWidget,
     );
     // The "come back tomorrow" button was dropped — it must stay gone.

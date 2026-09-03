@@ -39,7 +39,7 @@ void main() {
     // The DISPLAY headline and the ACTION buttons render uppercased in the
     // widgets, so the finders match the on-screen casing.
     expect(find.text('TO BYŁY DWA — A ZOSTAŁY JESZCZE SETKI'), findsOneWidget);
-    expect(find.text('(500+ pytań, 5 trybów)'), findsOneWidget);
+    expect(find.text('(setki pytań, 5 trybów)'), findsOneWidget);
     expect(
       find.textContaining('Codziennie dostajesz jedno nowe pytanie'),
       findsOneWidget,

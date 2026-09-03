@@ -754,7 +754,7 @@
   "@bridgeCtaSecondary": {
     "description": "Secondary bridge CTA — opens the paywall sheet."
   },
-  "bridgeCtaSecondaryHint": "(500+ questions, 5 modes)",
+  "bridgeCtaSecondaryHint": "(hundreds of questions, 5 modes)",
   "@bridgeCtaSecondaryHint": {
     "description": "Small line under the secondary bridge CTA label. Concrete catalog size instead of the vague '(and many more perks)' — the vaguest line in the funnel sat directly under a paywall-opening button (owner-approved swap, 2026-08-31)."
   },
@@ -763,7 +763,7 @@
     "description": "Tiny uppercase caption set inside the day wall's circular countdown, under the live HH:MM:SS ticking down to the user's local midnight. Keep it short — it has to fit inside the ring."
   },
   "wallCtaUnlock": "Don't wait — unlock everything",
-  "wallCtaCaption": "(500+ questions, 5 modes, including Sex & intimacy)",
+  "wallCtaCaption": "(hundreds of questions, 5 modes, including Sex & intimacy)",
   "@wallCtaCaption": {
     "description": "Small second line inside the day wall's unlock CTA pill, under the main label. Names the concrete catalog — the old '(new sets every week!)' promised a cadence the catalog doesn't keep, a trust risk on the main conversion surface (owner-approved swap, 2026-08-31)."
   },
@@ -813,7 +813,7 @@
       "n": { "type": "int" }
     }
   },
-  "paywallSubtitle": "500+ questions in 5 modes, including Sex & intimacy. Every argument FOR and AGAINST, your whole history.",
+  "paywallSubtitle": "Hundreds of questions in 5 modes, including Sex & intimacy. Every argument FOR and AGAINST, your whole history.",
   "@paywallSubtitle": {
     "description": "The paywall's one pitch line under the slogan headline, identical for every entry point. Names the modes and the intimacy mode by its topic label (never '+18')."
   },

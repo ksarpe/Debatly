@@ -1523,7 +1523,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bridgeCtaSecondary => 'Unlock all';
 
   @override
-  String get bridgeCtaSecondaryHint => '(500+ questions, 5 modes)';
+  String get bridgeCtaSecondaryHint => '(hundreds of questions, 5 modes)';
 
   @override
   String get wallCountdownCaption => 'Until free';
@@ -1533,7 +1533,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get wallCtaCaption =>
-      '(500+ questions, 5 modes, including Sex & intimacy)';
+      '(hundreds of questions, 5 modes, including Sex & intimacy)';
 
   @override
   String wallRemindLine(String teaser, String time) {
@@ -1575,7 +1575,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paywallSubtitle =>
-      '500+ questions in 5 modes, including Sex & intimacy. Every argument FOR and AGAINST, your whole history.';
+      'Hundreds of questions in 5 modes, including Sex & intimacy. Every argument FOR and AGAINST, your whole history.';
 
   @override
   String get paywallFeatureUnlimited => 'Questions with no daily limit';

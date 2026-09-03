@@ -1557,7 +1557,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bridgeCtaSecondary => 'Odblokuj wszystkie';
 
   @override
-  String get bridgeCtaSecondaryHint => '(500+ pytań, 5 trybów)';
+  String get bridgeCtaSecondaryHint => '(setki pytań, 5 trybów)';
 
   @override
   String get wallCountdownCaption => 'Do darmowego';
@@ -1566,7 +1566,8 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wallCtaUnlock => 'Nie czekaj — odblokuj wszystkie';
 
   @override
-  String get wallCtaCaption => '(500+ pytań, 5 trybów, w tym Seks i intymność)';
+  String get wallCtaCaption =>
+      '(setki pytań, 5 trybów, w tym Seks i intymność)';
 
   @override
   String wallRemindLine(String teaser, String time) {
@@ -1610,7 +1611,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get paywallSubtitle =>
-      '500+ pytań w 5 trybach, w tym Seks i intymność. Wszystkie argumenty ZA i PRZECIW, cała Twoja historia.';
+      'Setki pytań w 5 trybach, w tym Seks i intymność. Wszystkie argumenty ZA i PRZECIW, cała Twoja historia.';
 
   @override
   String get paywallFeatureUnlimited => 'Pytania bez limitu dziennego';
