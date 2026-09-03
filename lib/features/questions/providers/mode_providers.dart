@@ -39,6 +39,28 @@ String questionModesHintLabel(AppLocalizations l10n, QuestionMode? mode) =>
       null => l10n.modesHintGeneric,
     };
 
+/// SharedPreferences key: whether the modes screen has ever been opened on
+/// this install. Until then the app bar's modes icon wears a small "new"
+/// dot — the one signal on the feed that the icon leads somewhere new.
+const String kModesSeenPrefKey = 'modes_seen';
+
+class ModesSeenNotifier extends Notifier<bool> {
+  @override
+  bool build() =>
+      ref.watch(sharedPreferencesProvider).getBool(kModesSeenPrefKey) ?? false;
+
+  /// Retires the dot. A no-op once seen.
+  Future<void> markSeen() async {
+    if (state) return;
+    state = true;
+    await ref.read(sharedPreferencesProvider).setBool(kModesSeenPrefKey, true);
+  }
+}
+
+final modesSeenProvider = NotifierProvider<ModesSeenNotifier, bool>(
+  ModesSeenNotifier.new,
+);
+
 /// SharedPreferences key for the once-per-install modes hint under the voted
 /// daily. Absent = never shown; a `yyyy-MM-dd` = first shown that day (and
 /// shown again only that day); [kModesHintDone] = tapped, never again.

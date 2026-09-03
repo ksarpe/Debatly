@@ -13,6 +13,7 @@ import '../../account/providers/session_providers.dart';
 import '../../account/providers/stats_providers.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../settings/widgets/reminder_refresh_watcher.dart';
+import '../providers/mode_providers.dart';
 import '../providers/question_providers.dart';
 import '../widgets/challenge_session_watcher.dart';
 import '../widgets/conformity_panel.dart';
@@ -222,8 +223,10 @@ class QuestionScreen extends ConsumerWidget {
     // Zero on phones; on wider screens it is how far the capped question column
     // sits from each edge, which the app-bar icons follow.
     final gutter = horizontalGutter(context);
-    // Tints the modes icon while the feed is pinned to a topic.
+    // Tints the modes icon while the feed is pinned to a topic; the "new"
+    // dot rides on it until the modes screen has been opened once.
     final activeMode = ref.watch(activeModeProvider);
+    final modesSeen = ref.watch(modesSeenProvider);
 
     return Scaffold(
       // Let the body fill the whole screen so the question centres against the
@@ -272,10 +275,35 @@ class QuestionScreen extends ConsumerWidget {
           // the same weight as the rest of the bar so the question canvas
           // stays untouched; lit in the spark while a mode is pinned.
           IconButton(
-            icon: Icon(
-              Icons.grid_view_rounded,
-              size: 21,
-              color: activeMode == null ? null : AppTheme.spark,
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  Icons.grid_view_rounded,
+                  size: 21,
+                  color: activeMode == null ? null : AppTheme.spark,
+                ),
+                // A spark dot in the corner until the screen is opened
+                // once — the standard "something new here" mark, and the
+                // only thing on the feed that says the icon is worth a tap.
+                if (!modesSeen)
+                  Positioned(
+                    top: -3,
+                    right: -4,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: AppTheme.spark,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: context.colors.background,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             tooltip: context.l10n.modesTooltip,
             onPressed: () => openModes(context),

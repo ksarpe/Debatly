@@ -407,6 +407,7 @@
   "modesHintMoneyWork": "Więcej o kasie i pracy",
   "modesHintSociety": "Więcej o społeczeństwie",
   "modesHintGeneric": "Zobacz tryby",
+  "modesHintNew": "Nowość: tryb Seks i intymność",
   "modeBadgeTooltip": "Tryb: feed pokazuje tylko pytania z tego tematu. „Wróć do feedu” na dole wyłącza tryb.",
 
   "updateRequiredTitle": "Czas na aktualizację",
@@ -579,10 +580,10 @@
   "bridgeBody": "Codziennie dostajesz jedno nowe pytanie. Za darmo, na zawsze. Nie chcesz czekać do jutra? Odblokuj cały katalog od razu.",
   "bridgeCtaPrimary": "Odbierz dzisiejsze pytanie",
   "bridgeCtaSecondary": "Odblokuj wszystkie",
-  "bridgeCtaSecondaryHint": "(500+ pytań od razu)",
+  "bridgeCtaSecondaryHint": "(500+ pytań, 5 trybów)",
   "wallCountdownCaption": "Do darmowego",
   "wallCtaUnlock": "Nie czekaj — odblokuj wszystkie",
-  "wallCtaCaption": "(500+ pytań czeka od razu)",
+  "wallCtaCaption": "(500+ pytań, 5 trybów, w tym Seks i intymność)",
   "wallRemindLine": "Jutro: „{teaser}…” — przypomnę Ci o {time}.",
   "wallRemindLineNoTeaser": "Jutro nowe pytanie — przypomnę Ci o {time}.",
   "wallRemindCta": "Przypomnij mi jutro",
@@ -597,8 +598,9 @@
       "n": { "type": "int" }
     }
   },
-  "paywallSubtitle": "500+ pytań, wszystkie argumenty ZA i PRZECIW, cała Twoja historia głosów.",
+  "paywallSubtitle": "500+ pytań w 5 trybach, w tym Seks i intymność. Wszystkie argumenty ZA i PRZECIW, cała Twoja historia.",
   "paywallFeatureUnlimited": "Pytania bez limitu dziennego",
+  "paywallFeatureModes": "Tryby: Seks i intymność, Związki, Rodzina, Kasa i praca, Społeczeństwo",
   "paywallFeatureSmaczki": "Wszystkie argumenty, nie pierwszy",
   "paywallFeatureHistory": "Historia i ulubione na zawsze",
   "paywallFeatureOffline": "Tryb offline — cały katalog w telefonie",

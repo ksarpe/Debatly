@@ -244,31 +244,42 @@ void main() {
     await settleModes(tester);
   });
 
-  testWidgets('the hint under the voted daily names its topic, stamps the '
-      'day, and a tap opens the modes screen and retires it', (tester) async {
+  testWidgets('FREE: the hint under the voted daily leads with the intimacy '
+      'mode, stamps the day, and a tap opens the modes screen, retires it '
+      'and the "new" dot', (tester) async {
     final container = await pumpFeed(tester, premium: false, voted: true);
     final prefs = container.read(sharedPreferencesProvider);
 
-    // The daily is a Relationships question → the topic-specific label.
-    expect(find.text('WIĘCEJ O ZWIĄZKACH'), findsOneWidget);
-    expect(find.text('ZOBACZ TRYBY'), findsNothing);
+    expect(find.text('NOWOŚĆ: TRYB SEKS I INTYMNOŚĆ'), findsOneWidget);
+    expect(find.text('WIĘCEJ O ZWIĄZKACH'), findsNothing);
     expect(
       prefs.getString(kModesHintPrefKey),
       dateOnlyKey(DateTime.now()),
       reason: 'first render stamps today',
     );
+    expect(container.read(modesSeenProvider), isFalse);
 
-    await tester.tap(find.text('WIĘCEJ O ZWIĄZKACH'));
+    await tester.tap(find.text('NOWOŚĆ: TRYB SEKS I INTYMNOŚĆ'));
     await settleModes(tester);
 
     expect(find.byType(ModesScreen), findsOneWidget);
     expect(prefs.getString(kModesHintPrefKey), kModesHintDone);
+    // Opening the screen is what retires the app-bar dot.
+    expect(container.read(modesSeenProvider), isTrue);
+    expect(prefs.getBool(kModesSeenPrefKey), isTrue);
+  });
+
+  testWidgets('PRO: the hint names the daily\'s own topic', (tester) async {
+    await pumpFeed(tester, premium: true, pool: pool, voted: true);
+    // The daily is a Relationships question → the topic-specific label.
+    expect(find.text('WIĘCEJ O ZWIĄZKACH'), findsOneWidget);
+    expect(find.text('NOWOŚĆ: TRYB SEKS I INTYMNOŚĆ'), findsNothing);
   });
 
   testWidgets('no hint before the vote', (tester) async {
     await pumpFeed(tester, premium: false, voted: false);
+    expect(find.text('NOWOŚĆ: TRYB SEKS I INTYMNOŚĆ'), findsNothing);
     expect(find.text('WIĘCEJ O ZWIĄZKACH'), findsNothing);
-    expect(find.text('ZOBACZ TRYBY'), findsNothing);
   });
 
   testWidgets('no hint once retired', (tester) async {
@@ -284,6 +295,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(find.text('NOWOŚĆ: TRYB SEKS I INTYMNOŚĆ'), findsNothing);
     expect(find.text('WIĘCEJ O ZWIĄZKACH'), findsNothing);
   });
 }

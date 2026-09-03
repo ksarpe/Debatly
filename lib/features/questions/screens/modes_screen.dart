@@ -22,6 +22,11 @@ import '../widgets/animated_flame_icon.dart'
 /// itself.
 Future<void> openModes(BuildContext context) {
   Analytics.log('modes_opened');
+  // The first open retires the "new" dot on the app-bar icon.
+  ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(modesSeenProvider.notifier).markSeen();
   return Navigator.of(
     context,
   ).push(MaterialPageRoute<void>(builder: (_) => const ModesScreen()));

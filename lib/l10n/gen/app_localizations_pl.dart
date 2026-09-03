@@ -1120,6 +1120,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get modesHintGeneric => 'Zobacz tryby';
 
   @override
+  String get modesHintNew => 'Nowość: tryb Seks i intymność';
+
+  @override
   String get modeBadgeTooltip =>
       'Tryb: feed pokazuje tylko pytania z tego tematu. „Wróć do feedu” na dole wyłącza tryb.';
 
@@ -1554,7 +1557,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bridgeCtaSecondary => 'Odblokuj wszystkie';
 
   @override
-  String get bridgeCtaSecondaryHint => '(500+ pytań od razu)';
+  String get bridgeCtaSecondaryHint => '(500+ pytań, 5 trybów)';
 
   @override
   String get wallCountdownCaption => 'Do darmowego';
@@ -1563,7 +1566,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wallCtaUnlock => 'Nie czekaj — odblokuj wszystkie';
 
   @override
-  String get wallCtaCaption => '(500+ pytań czeka od razu)';
+  String get wallCtaCaption => '(500+ pytań, 5 trybów, w tym Seks i intymność)';
 
   @override
   String wallRemindLine(String teaser, String time) {
@@ -1607,10 +1610,14 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get paywallSubtitle =>
-      '500+ pytań, wszystkie argumenty ZA i PRZECIW, cała Twoja historia głosów.';
+      '500+ pytań w 5 trybach, w tym Seks i intymność. Wszystkie argumenty ZA i PRZECIW, cała Twoja historia.';
 
   @override
   String get paywallFeatureUnlimited => 'Pytania bez limitu dziennego';
+
+  @override
+  String get paywallFeatureModes =>
+      'Tryby: Seks i intymność, Związki, Rodzina, Kasa i praca, Społeczeństwo';
 
   @override
   String get paywallFeatureSmaczki => 'Wszystkie argumenty, nie pierwszy';

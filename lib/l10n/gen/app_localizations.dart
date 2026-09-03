@@ -1952,6 +1952,12 @@ abstract class AppLocalizations {
   /// **'See the modes'**
   String get modesHintGeneric;
 
+  /// The once-per-install link under the voted daily for a FREE user — leads with the newest, strongest hook instead of the daily's own topic. PRO gets the topic-specific variants.
+  ///
+  /// In en, this message translates to:
+  /// **'New: the Sex & intimacy mode'**
+  String get modesHintNew;
+
   /// No description provided for @modeBadgeTooltip.
   ///
   /// In en, this message translates to:
@@ -2549,7 +2555,7 @@ abstract class AppLocalizations {
   /// Small line under the secondary bridge CTA label. Concrete catalog size instead of the vague '(and many more perks)' — the vaguest line in the funnel sat directly under a paywall-opening button (owner-approved swap, 2026-08-31).
   ///
   /// In en, this message translates to:
-  /// **'(500+ questions right away)'**
+  /// **'(500+ questions, 5 modes)'**
   String get bridgeCtaSecondaryHint;
 
   /// Tiny uppercase caption set inside the day wall's circular countdown, under the live HH:MM:SS ticking down to the user's local midnight. Keep it short — it has to fit inside the ring.
@@ -2567,7 +2573,7 @@ abstract class AppLocalizations {
   /// Small second line inside the day wall's unlock CTA pill, under the main label. Names the concrete catalog — the old '(new sets every week!)' promised a cadence the catalog doesn't keep, a trust risk on the main conversion surface (owner-approved swap, 2026-08-31).
   ///
   /// In en, this message translates to:
-  /// **'(500+ questions waiting right now)'**
+  /// **'(500+ questions, 5 modes, including Sex & intimacy)'**
   String get wallCtaCaption;
 
   /// The day wall's reminder opt-in line, shown in place of the unlock CTA until answered once per install. Names TOMORROW'S daily pick (the wall's own 4-word teaser, ellipsis appended here) and the reminder time (HH:MM, 24h) — the notification that fires tomorrow carries the same teaser, so this is a promise the app keeps.
@@ -2618,10 +2624,10 @@ abstract class AppLocalizations {
   /// **'{n, plural, =1{1 vote.\nSee what it says about you.} other{{n} votes.\nSee what they say about you.}}'**
   String paywallProfileHeadline(int n);
 
-  /// No description provided for @paywallSubtitle.
+  /// The paywall's one pitch line under the slogan headline, identical for every entry point. Names the modes and the intimacy mode by its topic label (never '+18').
   ///
   /// In en, this message translates to:
-  /// **'500+ questions, every argument FOR and AGAINST, your entire voting history.'**
+  /// **'500+ questions in 5 modes, including Sex & intimacy. Every argument FOR and AGAINST, your whole history.'**
   String get paywallSubtitle;
 
   /// First row of the paywall's compact feature list.
@@ -2629,6 +2635,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Questions with no daily limit'**
   String get paywallFeatureUnlimited;
+
+  /// Second row of the paywall's feature list: the five topic modes a PRO user can pin the feed to.
+  ///
+  /// In en, this message translates to:
+  /// **'Modes: Sex & intimacy, Relationships, Family, Money & work, Society'**
+  String get paywallFeatureModes;
 
   /// No description provided for @paywallFeatureSmaczki.
   ///

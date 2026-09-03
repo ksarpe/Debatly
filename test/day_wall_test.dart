@@ -155,8 +155,13 @@ void main() {
     // The single CTA: unlock (the pill renders its label uppercase). The way
     // back is the back swipe.
     expect(find.text('NIE CZEKAJ — ODBLOKUJ WSZYSTKIE'), findsOneWidget);
-    // Concrete catalog, not a cadence the catalog doesn't keep.
-    expect(find.text('(500+ pytań czeka od razu)'), findsOneWidget);
+    // Concrete catalog, not a cadence the catalog doesn't keep — and the
+    // modes, named, because the wall is where most free users first hear
+    // of them.
+    expect(
+      find.text('(500+ pytań, 5 trybów, w tym Seks i intymność)'),
+      findsOneWidget,
+    );
     // The "come back tomorrow" button was dropped — it must stay gone.
     expect(find.text('albo wróć jutro'), findsNothing);
   });

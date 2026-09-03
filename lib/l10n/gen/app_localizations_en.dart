@@ -1105,6 +1105,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get modesHintGeneric => 'See the modes';
 
   @override
+  String get modesHintNew => 'New: the Sex & intimacy mode';
+
+  @override
   String get modeBadgeTooltip =>
       'Mode: the feed shows only questions on this topic. “Back to the feed” at the bottom switches it off.';
 
@@ -1520,7 +1523,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bridgeCtaSecondary => 'Unlock all';
 
   @override
-  String get bridgeCtaSecondaryHint => '(500+ questions right away)';
+  String get bridgeCtaSecondaryHint => '(500+ questions, 5 modes)';
 
   @override
   String get wallCountdownCaption => 'Until free';
@@ -1529,7 +1532,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wallCtaUnlock => 'Don\'t wait — unlock everything';
 
   @override
-  String get wallCtaCaption => '(500+ questions waiting right now)';
+  String get wallCtaCaption =>
+      '(500+ questions, 5 modes, including Sex & intimacy)';
 
   @override
   String wallRemindLine(String teaser, String time) {
@@ -1571,10 +1575,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paywallSubtitle =>
-      '500+ questions, every argument FOR and AGAINST, your entire voting history.';
+      '500+ questions in 5 modes, including Sex & intimacy. Every argument FOR and AGAINST, your whole history.';
 
   @override
   String get paywallFeatureUnlimited => 'Questions with no daily limit';
+
+  @override
+  String get paywallFeatureModes =>
+      'Modes: Sex & intimacy, Relationships, Family, Money & work, Society';
 
   @override
   String get paywallFeatureSmaczki => 'Every argument, not just the first';

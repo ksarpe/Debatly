@@ -189,12 +189,16 @@ class QuestionBody extends ConsumerWidget {
       final hint = ref.read(modesHintProvider.notifier);
       WidgetsBinding.instance.addPostFrameCallback((_) => hint.markShown());
     }
-    final modesHintLabel = showModesHint
+    // Free leads with the newest, strongest hook (the intimacy mode); PRO,
+    // who can already open it, gets the daily's own topic instead.
+    final modesHintLabel = !showModesHint
+        ? null
+        : isPremium
         ? questionModesHintLabel(
             context.l10n,
             QuestionMode.forCategory(current.category),
           )
-        : null;
+        : context.l10n.modesHintNew;
     // The free tier's pull FORWARD: after the daily vote the only way to the
     // day wall — the model's main conversion surface — used to be a forward
     // swipe nothing nudges (the hand hint retires after the first swipe ever).

@@ -4,10 +4,11 @@ import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 
-/// The paywall's compact feature list: four one-line rows separated by
+/// The paywall's compact feature list: five one-line rows separated by
 /// hairlines. Replaces the old Free/PRO table + six-row benefit list — the
-/// whole pitch now fits above the fold, and the daily-limit row leads because
-/// removing that limit IS the product.
+/// whole pitch fits above the fold, the daily-limit row leads because
+/// removing that limit IS the product, and the modes row (2026-09-02) sits
+/// right under it because the modes are what the catalog now looks like.
 class PaywallFeatureList extends StatelessWidget {
   const PaywallFeatureList({super.key});
 
@@ -16,6 +17,7 @@ class PaywallFeatureList extends StatelessWidget {
     final l10n = context.l10n;
     final rows = <(IconData, String)>[
       (Icons.all_inclusive, l10n.paywallFeatureUnlimited),
+      (Icons.grid_view_rounded, l10n.paywallFeatureModes),
       (Icons.check_rounded, l10n.paywallFeatureSmaczki),
       (Icons.check_rounded, l10n.paywallFeatureHistory),
       (Icons.check_rounded, l10n.paywallFeatureOffline),
