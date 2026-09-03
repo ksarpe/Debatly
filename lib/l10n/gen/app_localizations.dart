@@ -1778,6 +1778,168 @@ abstract class AppLocalizations {
   /// **'Question of the day'**
   String get backToDailyQuestion;
 
+  /// Bottom-of-feed link shown to a FREE user who has voted today's daily — opens the day wall (same destination as the forward swipe), so the tier's main conversion surface doesn't depend on a gesture nobody is nudged to make.
+  ///
+  /// In en, this message translates to:
+  /// **'The next question is waiting'**
+  String get nextQuestionWaiting;
+
+  /// Title of the modes screen: four topic tiles (relationships / family / money & work / society) a PRO user can pin the feed to. Free users see the tiles locked; a tap opens the paywall.
+  ///
+  /// In en, this message translates to:
+  /// **'Modes'**
+  String get modesTitle;
+
+  /// No description provided for @modesTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Question modes'**
+  String get modesTooltip;
+
+  /// No description provided for @modesSubtitlePro.
+  ///
+  /// In en, this message translates to:
+  /// **'One topic at a time. The question of the day stays at the top of the feed.'**
+  String get modesSubtitlePro;
+
+  /// No description provided for @modesSubtitleFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Modes are PRO: pick a topic and the feed shows only those questions.'**
+  String get modesSubtitleFree;
+
+  /// No description provided for @modeRelationships.
+  ///
+  /// In en, this message translates to:
+  /// **'Relationships'**
+  String get modeRelationships;
+
+  /// Three-word line under the mode's name on the modes screen. Same shape for the other mode descriptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Love, cheating, boundaries'**
+  String get modeRelationshipsDescription;
+
+  /// No description provided for @modeFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'Family'**
+  String get modeFamily;
+
+  /// No description provided for @modeFamilyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Kids, parents, money at home'**
+  String get modeFamilyDescription;
+
+  /// No description provided for @modeMoneyWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Money & work'**
+  String get modeMoneyWork;
+
+  /// No description provided for @modeMoneyWorkDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay, promotion, honesty'**
+  String get modeMoneyWorkDescription;
+
+  /// No description provided for @modeSociety.
+  ///
+  /// In en, this message translates to:
+  /// **'Society'**
+  String get modeSociety;
+
+  /// No description provided for @modeSocietyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Law, freedom, community'**
+  String get modeSocietyDescription;
+
+  /// Eyebrow of the ticked card at the top of the modes screen naming the current scope: the pinned mode, 'All topics' (PRO, no mode) or 'Question of the day' (free).
+  ///
+  /// In en, this message translates to:
+  /// **'Now playing'**
+  String get modesNowPlaying;
+
+  /// No description provided for @modesAllTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'All topics'**
+  String get modesAllTopics;
+
+  /// No description provided for @modesAllTopicsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything we have, shuffled'**
+  String get modesAllTopicsDescription;
+
+  /// Description line of the 'Now playing' card for a FREE user, whose scope is the daily question.
+  ///
+  /// In en, this message translates to:
+  /// **'One shared question a day, free'**
+  String get modesDailyScopeDescription;
+
+  /// No description provided for @modesComingSoonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Next mode'**
+  String get modesComingSoonTitle;
+
+  /// The dashed, dimmed placeholder row at the foot of the modes list.
+  ///
+  /// In en, this message translates to:
+  /// **'In the works'**
+  String get modesComingSoonBody;
+
+  /// Quiet centred line at the very bottom of the modes screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Switching modes never erases your history'**
+  String get modesFooter;
+
+  /// Bottom-of-feed link shown while a mode is active: switches the mode off and lands back on the question of the day.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to the feed'**
+  String get modesBackToFeed;
+
+  /// No description provided for @modesHintRelationships.
+  ///
+  /// In en, this message translates to:
+  /// **'More about relationships'**
+  String get modesHintRelationships;
+
+  /// No description provided for @modesHintFamily.
+  ///
+  /// In en, this message translates to:
+  /// **'More about family'**
+  String get modesHintFamily;
+
+  /// No description provided for @modesHintMoneyWork.
+  ///
+  /// In en, this message translates to:
+  /// **'More about money & work'**
+  String get modesHintMoneyWork;
+
+  /// No description provided for @modesHintSociety.
+  ///
+  /// In en, this message translates to:
+  /// **'More about society'**
+  String get modesHintSociety;
+
+  /// Bottom-of-feed link under the voted daily, once per install: opens the modes screen. The topic-specific variants above are used when the daily's category belongs to a mode.
+  ///
+  /// In en, this message translates to:
+  /// **'See the modes'**
+  String get modesHintGeneric;
+
+  /// No description provided for @modeBadgeTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Mode: the feed shows only questions on this topic. “Back to the feed” at the bottom switches it off.'**
+  String get modeBadgeTooltip;
+
   /// Headline of the blocking force-update screen (build below app_update_gate.min_version).
   ///
   /// In en, this message translates to:
@@ -1994,11 +2156,23 @@ abstract class AppLocalizations {
   /// **'You got the argument against you. Two left: one that defends you, one that complicates it.'**
   String get smaczkiSheetFreeHeader;
 
+  /// The full attack→defense header for a user whose gate outcome was MOVED — they just felt the product work on them, and the acknowledgement is the honest, strongest pitch (owner-approved, 2026-08-31). Same structural promise as smaczkiSheetFreeHeader, so the same tagging preconditions apply.
+  ///
+  /// In en, this message translates to:
+  /// **'That one flipped you. Two left: one that defends you, one that complicates it.'**
+  String get smaczkiSheetFreeHeaderMoved;
+
   /// No description provided for @smaczkiSheetFreeHeaderPlain.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =0{That argument is behind you.} =1{The first one is behind you. One more waits.} other{The first one is behind you. {count} more wait.}}'**
   String smaczkiSheetFreeHeaderPlain(int count);
+
+  /// No description provided for @smaczkiSheetFreeHeaderMovedPlain.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{That one flipped you — and it was the last.} =1{That one flipped you. The next one is waiting.} other{That one flipped you. {count} more are waiting.}}'**
+  String smaczkiSheetFreeHeaderMovedPlain(int count);
 
   /// No description provided for @resultFlipLine.
   ///
@@ -2354,35 +2528,11 @@ abstract class AppLocalizations {
   /// **'Unlock all'**
   String get bridgeCtaSecondary;
 
-  /// Small line under the secondary bridge CTA label — hints that PRO carries more than just the catalog.
+  /// Small line under the secondary bridge CTA label. Concrete catalog size instead of the vague '(and many more perks)' — the vaguest line in the funnel sat directly under a paywall-opening button (owner-approved swap, 2026-08-31).
   ///
   /// In en, this message translates to:
-  /// **'(and many more perks)'**
+  /// **'(500+ questions right away)'**
   String get bridgeCtaSecondaryHint;
-
-  /// No description provided for @onboardingNotifyTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Hey, one more thing'**
-  String get onboardingNotifyTitle;
-
-  /// No description provided for @onboardingNotifyBody.
-  ///
-  /// In en, this message translates to:
-  /// **'I can remind you to vote every day, at a time you pick. Voting takes 10 seconds — and your streak grows on its own. You can always switch it off in settings.'**
-  String get onboardingNotifyBody;
-
-  /// No description provided for @onboardingNotifyEnable.
-  ///
-  /// In en, this message translates to:
-  /// **'Turn on reminders'**
-  String get onboardingNotifyEnable;
-
-  /// No description provided for @onboardingNotifySkip.
-  ///
-  /// In en, this message translates to:
-  /// **'Maybe later'**
-  String get onboardingNotifySkip;
 
   /// Tiny uppercase caption set inside the day wall's circular countdown, under the live HH:MM:SS ticking down to the user's local midnight. Keep it short — it has to fit inside the ring.
   ///
@@ -2396,11 +2546,41 @@ abstract class AppLocalizations {
   /// **'Don\'t wait — unlock everything'**
   String get wallCtaUnlock;
 
-  /// Small second line inside the day wall's unlock CTA pill, under the main label, teasing that the catalog keeps growing.
+  /// Small second line inside the day wall's unlock CTA pill, under the main label. Names the concrete catalog — the old '(new sets every week!)' promised a cadence the catalog doesn't keep, a trust risk on the main conversion surface (owner-approved swap, 2026-08-31).
   ///
   /// In en, this message translates to:
-  /// **'(new sets every week!)'**
+  /// **'(500+ questions waiting right now)'**
   String get wallCtaCaption;
+
+  /// The day wall's reminder opt-in line, shown in place of the unlock CTA until answered once per install. Names TOMORROW'S daily pick (the wall's own 4-word teaser, ellipsis appended here) and the reminder time (HH:MM, 24h) — the notification that fires tomorrow carries the same teaser, so this is a promise the app keeps.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow: “{teaser}…” — I\'ll remind you at {time}.'**
+  String wallRemindLine(String teaser, String time);
+
+  /// The reminder opt-in line when no teaser is available (a gap date in the daily calendar, or offline with nothing cached).
+  ///
+  /// In en, this message translates to:
+  /// **'A new question tomorrow — I\'ll remind you at {time}.'**
+  String wallRemindLineNoTeaser(String time);
+
+  /// No description provided for @wallRemindCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind me tomorrow'**
+  String get wallRemindCta;
+
+  /// No description provided for @wallRemindSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get wallRemindSkip;
+
+  /// Success toast after the wall's reminder opt-in was granted by the OS.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ll remind you tomorrow at {time}. Change the time in settings.'**
+  String wallRemindConfirmed(String time);
 
   /// Small uppercase brand label at the top of the paywall sheet. A brand mark — identical in every locale.
   ///

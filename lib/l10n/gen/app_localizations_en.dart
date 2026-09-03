@@ -1016,6 +1016,90 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backToDailyQuestion => 'Question of the day';
 
   @override
+  String get nextQuestionWaiting => 'The next question is waiting';
+
+  @override
+  String get modesTitle => 'Modes';
+
+  @override
+  String get modesTooltip => 'Question modes';
+
+  @override
+  String get modesSubtitlePro =>
+      'One topic at a time. The question of the day stays at the top of the feed.';
+
+  @override
+  String get modesSubtitleFree =>
+      'Modes are PRO: pick a topic and the feed shows only those questions.';
+
+  @override
+  String get modeRelationships => 'Relationships';
+
+  @override
+  String get modeRelationshipsDescription => 'Love, cheating, boundaries';
+
+  @override
+  String get modeFamily => 'Family';
+
+  @override
+  String get modeFamilyDescription => 'Kids, parents, money at home';
+
+  @override
+  String get modeMoneyWork => 'Money & work';
+
+  @override
+  String get modeMoneyWorkDescription => 'Pay, promotion, honesty';
+
+  @override
+  String get modeSociety => 'Society';
+
+  @override
+  String get modeSocietyDescription => 'Law, freedom, community';
+
+  @override
+  String get modesNowPlaying => 'Now playing';
+
+  @override
+  String get modesAllTopics => 'All topics';
+
+  @override
+  String get modesAllTopicsDescription => 'Everything we have, shuffled';
+
+  @override
+  String get modesDailyScopeDescription => 'One shared question a day, free';
+
+  @override
+  String get modesComingSoonTitle => 'Next mode';
+
+  @override
+  String get modesComingSoonBody => 'In the works';
+
+  @override
+  String get modesFooter => 'Switching modes never erases your history';
+
+  @override
+  String get modesBackToFeed => 'Back to the feed';
+
+  @override
+  String get modesHintRelationships => 'More about relationships';
+
+  @override
+  String get modesHintFamily => 'More about family';
+
+  @override
+  String get modesHintMoneyWork => 'More about money & work';
+
+  @override
+  String get modesHintSociety => 'More about society';
+
+  @override
+  String get modesHintGeneric => 'See the modes';
+
+  @override
+  String get modeBadgeTooltip =>
+      'Mode: the feed shows only questions on this topic. “Back to the feed” at the bottom switches it off.';
+
+  @override
   String get updateRequiredTitle => 'Time to update';
 
   @override
@@ -1147,6 +1231,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'You got the argument against you. Two left: one that defends you, one that complicates it.';
 
   @override
+  String get smaczkiSheetFreeHeaderMoved =>
+      'That one flipped you. Two left: one that defends you, one that complicates it.';
+
+  @override
   String smaczkiSheetFreeHeaderPlain(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1154,6 +1242,18 @@ class AppLocalizationsEn extends AppLocalizations {
       other: 'The first one is behind you. $count more wait.',
       one: 'The first one is behind you. One more waits.',
       zero: 'That argument is behind you.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String smaczkiSheetFreeHeaderMovedPlain(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'That one flipped you. $count more are waiting.',
+      one: 'That one flipped you. The next one is waiting.',
+      zero: 'That one flipped you — and it was the last.',
     );
     return '$_temp0';
   }
@@ -1411,20 +1511,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bridgeCtaSecondary => 'Unlock all';
 
   @override
-  String get bridgeCtaSecondaryHint => '(and many more perks)';
-
-  @override
-  String get onboardingNotifyTitle => 'Hey, one more thing';
-
-  @override
-  String get onboardingNotifyBody =>
-      'I can remind you to vote every day, at a time you pick. Voting takes 10 seconds — and your streak grows on its own. You can always switch it off in settings.';
-
-  @override
-  String get onboardingNotifyEnable => 'Turn on reminders';
-
-  @override
-  String get onboardingNotifySkip => 'Maybe later';
+  String get bridgeCtaSecondaryHint => '(500+ questions right away)';
 
   @override
   String get wallCountdownCaption => 'Until free';
@@ -1433,7 +1520,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wallCtaUnlock => 'Don\'t wait — unlock everything';
 
   @override
-  String get wallCtaCaption => '(new sets every week!)';
+  String get wallCtaCaption => '(500+ questions waiting right now)';
+
+  @override
+  String wallRemindLine(String teaser, String time) {
+    return 'Tomorrow: “$teaser…” — I\'ll remind you at $time.';
+  }
+
+  @override
+  String wallRemindLineNoTeaser(String time) {
+    return 'A new question tomorrow — I\'ll remind you at $time.';
+  }
+
+  @override
+  String get wallRemindCta => 'Remind me tomorrow';
+
+  @override
+  String get wallRemindSkip => 'Not now';
+
+  @override
+  String wallRemindConfirmed(String time) {
+    return 'I\'ll remind you tomorrow at $time. Change the time in settings.';
+  }
 
   @override
   String get paywallBrand => 'DEBATLY PRO';

@@ -19,9 +19,12 @@ import '../../onboarding/providers/onboarding_providers.dart'
 import '../../questions/providers/question_providers.dart';
 import '../../questions/widgets/vote_visuals.dart'
     show VoteButtonsRow, voteRowMaxHeight;
+import '../../settings/providers/reminder_providers.dart';
+import 'paywall_content.dart' show paywallOfferSeenProvider;
 import 'paywall_cta_button.dart';
 import 'pro_paywall_screen.dart';
 import 'purchase_settlement.dart';
+import 'wall_reminder_ask.dart';
 
 /// SharedPreferences key: the local `yyyy-MM-dd` date the wall last opened the
 /// paywall automatically — the "at most once a day" latch. Absent until
@@ -37,20 +40,22 @@ const double _kSwipeCommitDistance = 64;
 /// the blurred continuation) plus the room the blur needs to fade out in.
 const double _kMinQuestionHeight = 120;
 
-/// The shortest the wall's three bands (ring · question group · CTA) are laid
-/// out in: the ring at full size, the feed's minimum question group (question +
-/// 28 gap + the vote row at this text scale) and a CTA that grows with the
-/// system font. Under this the wall scrolls rather than squeezing — and it has
-/// to be generous, because everything but the middle band is a fixed height
-/// that an undersized floor would simply overflow.
-double _minWallHeight(BuildContext context) {
+/// The shortest the wall's three bands (ring · question group · bottom band)
+/// are laid out in: the ring at full size, the feed's minimum question group
+/// (question + 28 gap + the vote row at this text scale) and a bottom band
+/// that grows with the system font — the unlock CTA, or the taller reminder
+/// ask while it is pending ([askShown]). Under this the wall scrolls rather
+/// than squeezing — and it has to be generous, because everything but the
+/// middle band is a fixed height that an undersized floor would simply
+/// overflow.
+double _minWallHeight(BuildContext context, {required bool askShown}) {
   final scale = math.max(1.0, MediaQuery.textScalerOf(context).scale(1));
   return 12 +
       _CountdownRing.maxDiameter +
       _kMinQuestionHeight +
       28 +
       voteRowMaxHeight(context) +
-      62 * scale +
+      (askShown ? WallReminderAsk.minHeight(context) : 62 * scale) +
       20;
 }
 
@@ -64,15 +69,19 @@ double _minWallHeight(BuildContext context) {
 /// an equally blurred, inert TAK/NIE row under it, at the feed's widths, gap
 /// and type sizes, so the wall reads as the next question screen behind
 /// frosted glass; and at the bottom the unlock CTA (opens the paywall,
-/// always). The streak lives in the app-bar chip — the wall never repeats it.
+/// always) — or, until it has been answered once on this install, the
+/// reminder ask ([WallReminderAsk]: "Jutro: „`<teaser>`…” — przypomnę Ci o
+/// 20:00"), which hands the band back to the CTA the moment it is answered.
+/// The streak lives in the app-bar chip — the wall never repeats it.
 /// The way back to today's daily is a rightward swipe — the same gesture that
 /// browses the feed — or the system back gesture/button, which the wall
 /// intercepts so it never exits the app ("never a trap").
 ///
-/// On arrival it logs `wall_reached` and — at most once per local day, and
-/// only after today's daily has been voted on — opens the paywall
-/// automatically. Every later arrival that day shows just the wall; the
-/// paywall then opens only from the CTA.
+/// On arrival it logs `wall_reached` and — at most once per local day, only
+/// after today's daily has been voted on, never on install day 0 and never
+/// over an unanswered reminder ask — opens the paywall automatically. Every
+/// later arrival that day shows just the wall; the paywall then opens only
+/// from the CTA.
 class DayWallView extends ConsumerStatefulWidget {
   const DayWallView({super.key});
 
@@ -90,6 +99,11 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
 
   /// Guards against stacking a tapped sheet on top of the automatic one.
   bool _sheetOpen = false;
+
+  /// Flipped when the reminder ask is answered on THIS wall, so the band
+  /// swaps to the unlock CTA in the same frame — the pref it also writes is
+  /// not a provider, so nothing else would rebuild.
+  bool _askAnswered = false;
 
   @override
   void initState() {
@@ -143,21 +157,34 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
   Future<void> _onArrived() async {
     if (!mounted) return;
     final prefs = ref.read(sharedPreferencesProvider);
+    final dayNumber = installDayNumber(prefs);
     Analytics.log('wall_reached', {
       'streak': ref.read(currentStreakProvider),
-      'day_number': installDayNumber(prefs),
+      'day_number': dayNumber,
     });
 
-    // The automatic open: at most once per LOCAL day, and never before the
-    // user has voted on today's daily — the wall must not be the first thing
-    // that asks for money.
+    // The automatic open: at most once per LOCAL day; never before the user
+    // has voted on today's daily — the wall must not be the first thing that
+    // asks for money; never on install day 0 — that wall's job is the
+    // reminder ask (a paywall two minutes into the first session was closed
+    // within 2 s half the time, and the buyers were the people who came
+    // back); and never on top of an unanswered ask — one question at a time.
+    // Every skipped arrival leaves the latch unspent, so the first arrival
+    // that qualifies today still gets the day's one automatic open.
     final daily = ref.read(todaysDailyQuestionProvider).asData?.value;
     final voted =
         daily != null &&
         (ref.read(dailyVoteStateProvider(daily.id)).asData?.value.hasVoted ??
             false);
+    final askPending = wallReminderAskPending(
+      prefs,
+      ref.read(reminderControllerProvider),
+    );
     final today = dateOnlyKey(DateTime.now());
-    if (!voted || prefs.getString(kWallAutoPaywallDatePrefKey) == today) {
+    if (!voted ||
+        dayNumber < 1 ||
+        askPending ||
+        prefs.getString(kWallAutoPaywallDatePrefKey) == today) {
       return;
     }
     // Latched BEFORE the paywall resolves, so even an instantly-dismissed
@@ -165,6 +192,15 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
     await prefs.setString(kWallAutoPaywallDatePrefKey, today);
     if (!mounted) return;
     await _openPaywall(trigger: 'auto');
+    // ...but an open that never managed to render an offering (store cold
+    // start, offline past the retries) spent the latch on a screen with no
+    // prices on it. Re-arm it so a later arrival today can auto-open again
+    // once the store answers. A crash mid-paywall leaves the latch spent —
+    // same as before.
+    if (!mounted) return;
+    if (!ref.read(paywallOfferSeenProvider)) {
+      await prefs.remove(kWallAutoPaywallDatePrefKey);
+    }
   }
 
   /// Opens the paywall and, if money changed hands, settles what the user sees.
@@ -219,6 +255,16 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final teaser = ref.watch(wallTeaserProvider).asData?.value;
+    // The reminder ask owns the bottom band until answered once on this
+    // install; the pref is written by the ask itself, [_askAnswered] is what
+    // rebuilds this wall, and the provider watch covers reminders switched on
+    // anywhere else (Settings) while the wall sits open.
+    final showAsk =
+        !_askAnswered &&
+        wallReminderAskPending(
+          ref.watch(sharedPreferencesProvider),
+          ref.watch(reminderControllerProvider),
+        );
 
     return PopScope(
       // System back returns to today's daily instead of leaving the app — the
@@ -251,7 +297,7 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
           // a split-screen column) the whole thing scrolls instead of
           // overflowing — an overflowed CTA is painted but untouchable.
           child: FitOrScroll(
-            minContentHeight: _minWallHeight(context),
+            minContentHeight: _minWallHeight(context, askShown: showAsk),
             child: Column(
               children: [
                 const SizedBox(height: 12),
@@ -309,12 +355,18 @@ class _DayWallViewState extends ConsumerState<DayWallView> {
                       // the screen instead of spanning the column.
                       child: SizedBox(
                         width: double.infinity,
-                        child: PaywallCtaButton(
-                          label: l10n.wallCtaUnlock,
-                          caption: l10n.wallCtaCaption,
-                          busy: false,
-                          onTap: () => _openPaywall(trigger: 'tap'),
-                        ),
+                        child: showAsk
+                            ? WallReminderAsk(
+                                teaser: teaser,
+                                onAnswered: () =>
+                                    setState(() => _askAnswered = true),
+                              )
+                            : PaywallCtaButton(
+                                label: l10n.wallCtaUnlock,
+                                caption: l10n.wallCtaCaption,
+                                busy: false,
+                                onTap: () => _openPaywall(trigger: 'tap'),
+                              ),
                       ),
                     ),
                   ),

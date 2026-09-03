@@ -90,16 +90,20 @@ class CachingQuestionRepository implements QuestionRepository {
     }
   }
 
-  // The wall's next-question teaser is bait, not content: offline the wall
-  // simply shows no preview instead of erroring or serving a stale tease for a
-  // question the server may no longer pick tomorrow. Never cached.
+  // The wall's next-question teaser is tomorrow's calendar pick (the RPC has
+  // no per-user filter since 20260902120000), so offline it can come from the
+  // same place the reminder loop reads it: the cached teaser calendar. Same
+  // cut, same date, same question — the wall's "Jutro: „…”" promise stays
+  // honest with no network. A gap date (no cached row) shows no preview
+  // rather than a stale or invented one. The peek itself is never cached.
   @override
   Future<String?> peekNextQuestion({List<String> excludeIds = const []}) async {
     try {
       return await inner.peekNextQuestion(excludeIds: excludeIds);
     } catch (e) {
       if (!isOfflineError(e)) rethrow;
-      return null;
+      final tomorrow = dateOnlyKey(DateTime.now().add(const Duration(days: 1)));
+      return cache.readDailyTeasers(locale)[tomorrow];
     }
   }
 

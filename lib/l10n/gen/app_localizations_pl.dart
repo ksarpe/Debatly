@@ -1030,6 +1030,91 @@ class AppLocalizationsPl extends AppLocalizations {
   String get backToDailyQuestion => 'Pytanie dnia';
 
   @override
+  String get nextQuestionWaiting => 'Następne pytanie czeka';
+
+  @override
+  String get modesTitle => 'Tryby';
+
+  @override
+  String get modesTooltip => 'Tryby pytań';
+
+  @override
+  String get modesSubtitlePro =>
+      'Jeden temat naraz. Pytanie dnia zostaje na górze feedu.';
+
+  @override
+  String get modesSubtitleFree =>
+      'Tryby są w PRO: wybierasz temat, a feed pokazuje tylko takie pytania.';
+
+  @override
+  String get modeRelationships => 'Związki';
+
+  @override
+  String get modeRelationshipsDescription => 'Miłość, zdrada, granice';
+
+  @override
+  String get modeFamily => 'Rodzina';
+
+  @override
+  String get modeFamilyDescription => 'Dzieci, rodzice, pieniądze w domu';
+
+  @override
+  String get modeMoneyWork => 'Kasa i praca';
+
+  @override
+  String get modeMoneyWorkDescription => 'Wypłata, awans, uczciwość';
+
+  @override
+  String get modeSociety => 'Społeczeństwo';
+
+  @override
+  String get modeSocietyDescription => 'Prawo, wolność, wspólnota';
+
+  @override
+  String get modesNowPlaying => 'Teraz grasz';
+
+  @override
+  String get modesAllTopics => 'Wszystkie tematy';
+
+  @override
+  String get modesAllTopicsDescription => 'Wszystko, co mamy, wymieszane';
+
+  @override
+  String get modesDailyScopeDescription =>
+      'Jedno wspólne pytanie dziennie, za darmo';
+
+  @override
+  String get modesComingSoonTitle => 'Kolejny tryb';
+
+  @override
+  String get modesComingSoonBody => 'W przygotowaniu';
+
+  @override
+  String get modesFooter => 'Zmiana trybu nie usuwa Twojej historii';
+
+  @override
+  String get modesBackToFeed => 'Wróć do feedu';
+
+  @override
+  String get modesHintRelationships => 'Więcej o związkach';
+
+  @override
+  String get modesHintFamily => 'Więcej o rodzinie';
+
+  @override
+  String get modesHintMoneyWork => 'Więcej o kasie i pracy';
+
+  @override
+  String get modesHintSociety => 'Więcej o społeczeństwie';
+
+  @override
+  String get modesHintGeneric => 'Zobacz tryby';
+
+  @override
+  String get modeBadgeTooltip =>
+      'Tryb: feed pokazuje tylko pytania z tego tematu. „Wróć do feedu” na dole wyłącza tryb.';
+
+  @override
   String get updateRequiredTitle => 'Czas na aktualizację';
 
   @override
@@ -1164,6 +1249,10 @@ class AppLocalizationsPl extends AppLocalizations {
       'Dostałeś argument przeciwko sobie. Zostały dwa: jeden, który Cię broni, i jeden, który komplikuje sprawę.';
 
   @override
+  String get smaczkiSheetFreeHeaderMoved =>
+      'Ten jeden Cię przewrócił. Zostały dwa: jeden, który Cię broni, i jeden, który komplikuje sprawę.';
+
+  @override
   String smaczkiSheetFreeHeaderPlain(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1173,6 +1262,20 @@ class AppLocalizationsPl extends AppLocalizations {
       two: 'Pierwszy masz za sobą. Zostały jeszcze dwa.',
       one: 'Pierwszy masz za sobą. Został jeszcze jeden.',
       zero: 'Ten argument masz już za sobą.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String smaczkiSheetFreeHeaderMovedPlain(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ten jeden Cię przewrócił. Zostało jeszcze $count.',
+      few: 'Ten jeden Cię przewrócił. $count kolejne czekają.',
+      two: 'Ten jeden Cię przewrócił. Dwa kolejne czekają.',
+      one: 'Ten jeden Cię przewrócił. Następny już czeka.',
+      zero: 'Ten jeden Cię przewrócił — i był ostatni.',
     );
     return '$_temp0';
   }
@@ -1442,20 +1545,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get bridgeCtaSecondary => 'Odblokuj wszystkie';
 
   @override
-  String get bridgeCtaSecondaryHint => '(i wiele innych korzyści)';
-
-  @override
-  String get onboardingNotifyTitle => 'Hej, jeszcze jedno';
-
-  @override
-  String get onboardingNotifyBody =>
-      'Mogę Ci codziennie przypominać o głosowaniu — o godzinie, którą wybierzesz. Jak coś, to sobie to wyłączysz w ustawieniach.';
-
-  @override
-  String get onboardingNotifyEnable => 'Włącz przypomnienia';
-
-  @override
-  String get onboardingNotifySkip => 'Może później';
+  String get bridgeCtaSecondaryHint => '(500+ pytań od razu)';
 
   @override
   String get wallCountdownCaption => 'Do darmowego';
@@ -1464,7 +1554,28 @@ class AppLocalizationsPl extends AppLocalizations {
   String get wallCtaUnlock => 'Nie czekaj — odblokuj wszystkie';
 
   @override
-  String get wallCtaCaption => '(co tydzień nowe zestawy!)';
+  String get wallCtaCaption => '(500+ pytań czeka od razu)';
+
+  @override
+  String wallRemindLine(String teaser, String time) {
+    return 'Jutro: „$teaser…” — przypomnę Ci o $time.';
+  }
+
+  @override
+  String wallRemindLineNoTeaser(String time) {
+    return 'Jutro nowe pytanie — przypomnę Ci o $time.';
+  }
+
+  @override
+  String get wallRemindCta => 'Przypomnij mi jutro';
+
+  @override
+  String get wallRemindSkip => 'Nie teraz';
+
+  @override
+  String wallRemindConfirmed(String time) {
+    return 'Przypomnę Ci jutro o $time. Godzinę zmienisz w ustawieniach.';
+  }
 
   @override
   String get paywallBrand => 'DEBATLY PRO';

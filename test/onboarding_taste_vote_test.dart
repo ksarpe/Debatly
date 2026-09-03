@@ -230,9 +230,10 @@ void main() {
     expect(find.text('ZOBACZMY KOLEJNE'), findsOneWidget);
   });
 
-  // The bridge between the taste card and the reminder ask: it explains the
-  // freemium model and carries its own CTAs (the deck's bottom "Dalej" is
-  // suppressed there) — the dominant one continues for free.
+  // The bridge, the deck's last card: it explains the freemium model and
+  // carries its own CTAs (the deck's bottom "Dalej" is suppressed there) — the
+  // dominant one continues for free, straight into the feed. (The reminder
+  // ask that used to follow it lives on the day wall now.)
   Future<void> passBridge(WidgetTester tester) async {
     expect(find.text('TO BYŁY DWA — A ZOSTAŁY JESZCZE SETKI'), findsOneWidget);
     expect(find.text('ODBLOKUJ WSZYSTKIE'), findsOneWidget);
@@ -240,10 +241,8 @@ void main() {
     await settlePage(tester);
   }
 
-  testWidgets('Continue after the reveal advances to the bridge and '
-      'then the notifications ask, and "Maybe later" finishes onboarding', (
-    tester,
-  ) async {
+  testWidgets('Continue after the reveal advances to the bridge, whose free '
+      'CTA finishes onboarding — no reminder ask in the deck', (tester) async {
     var finished = 0;
     await tester.pumpWidget(
       LocalizedTestApp(home: OnboardingScreen(onFinish: () => finished++)),
@@ -271,49 +270,21 @@ void main() {
     // Round two's reveal sells the catalog: the "nothing is obvious" headline
     // (question font — uppercased word pairs) with the "only question two"
     // teaser, and its "Co jeszcze macie?" (the bottom Next is suppressed on
-    // this page) lands on the bridge — whose title answers it — and the
-    // bridge's primary CTA on the reminder opt-in, the final card.
+    // this page) lands on the bridge — whose title answers it — the final
+    // card.
     expect(find.textContaining('OCZYWISTE'), findsWidgets);
     expect(find.text('A to było dopiero drugie pytanie…'), findsOneWidget);
     await tapText(tester, 'CO JESZCZE MACIE?');
     await settlePage(tester);
-    await passBridge(tester);
-
-    expect(find.text('HEJ, JESZCZE JEDNO'), findsOneWidget);
-    expect(find.text('WŁĄCZ PRZYPOMNIENIA'), findsOneWidget);
     expect(finished, 0);
 
-    // "Maybe later" ends the tutorial without enabling — the home gate (the
-    // feed with today's daily) is next.
-    await tapText(tester, 'MOŻE PÓŹNIEJ');
-    await settlePage(tester);
+    // The bridge's free CTA ends the tutorial — the home gate (the feed with
+    // today's daily) is next. The old reminder card must stay gone: the ask
+    // is the day wall's now.
+    await passBridge(tester);
 
     expect(finished, 1);
-  });
-
-  testWidgets('the reminder ask never traps the user — "Enable" finishes even '
-      'when the notification plugin is unavailable', (tester) async {
-    // The native plugin no-ops in the test host, so the permission request
-    // resolves false; the card must still end the tutorial rather than
-    // stalling on its busy spinner.
-    var finished = 0;
-    await tester.pumpWidget(
-      LocalizedTestApp(home: OnboardingScreen(onFinish: () => finished++)),
-    );
-    await settlePage(tester);
-    await reachVotePage(tester);
-    await completeStanceRound(tester); // round one
-    await passInterlude(tester);
-    // Round two, holding the line this time — the respectful teaser reveal.
-    await completeStanceRound(tester, changeMind: false);
-    expect(find.text('Sprawdzimy. Pytań nam nie zabraknie…'), findsOneWidget);
-    await tapText(tester, 'CO JESZCZE MACIE?'); // taste result → the bridge
-    await settlePage(tester);
-    await passBridge(tester); // → reminder ask
-
-    await tapText(tester, 'WŁĄCZ PRZYPOMNIENIA');
-    await settlePage(tester);
-
-    expect(finished, 1);
+    expect(find.text('HEJ, JESZCZE JEDNO'), findsNothing);
+    expect(find.text('WŁĄCZ PRZYPOMNIENIA'), findsNothing);
   });
 }
