@@ -13,19 +13,37 @@ async function rpc(fn, args = {}) {
   return data;
 }
 
+/**
+ * Kolejność ma znaczenie: DAY_LOCKED musi trafić przed gołe LOCKED wersji
+ * roboczej, bo inaczej blokada kalendarza tłumaczy się na komunikat o draftach.
+ */
+const ERRORS = [
+  ['DAY_LOCKED',
+    'Dziś i jutro są już opublikowane — dzisiejsze pytanie jest na ekranach, '
+    + 'a jutrzejsze poszło w zapowiedź ściany dnia i w zaplanowane powiadomienia. '
+    + 'Najbliższy dzień, który można zmienić, to pojutrze.'],
+  ['CALENDAR_CHANGED',
+    'Kalendarz zmienił się, odkąd otworzyłeś tę stronę — na tym dniu stoi już '
+    + 'inne pytanie. Odśwież i wybierz dzień jeszcze raz; nic nie zostało zmienione.'],
+  ['QUESTION_USED',
+    'To pytanie jest już pytaniem dnia w dniu, którego nie da się ruszyć (dziś, '
+    + 'jutro albo w przeszłości). Jedno pytanie może być pytaniem dnia tylko raz.'],
+  ['QUESTION_INACTIVE',
+    'To pytanie jest nieaktywne — nocne porządkowanie i tak usunęłoby je z kalendarza.'],
+  ['CONFLICT',
+    'Ktoś zmienił to pytanie, odkąd zacząłeś edycję. Odśwież, żeby zobaczyć aktualną '
+    + 'wersję — Twoje zmiany nie zostały nadpisane.'],
+  ['FORBIDDEN', 'Brak uprawnień do tej operacji.'],
+  ['LOCKED', 'Ta wersja robocza czeka już na zatwierdzenie i nie można jej edytować.'],
+];
+
 function decorate(error) {
   const msg = error.message || '';
   const e = new Error(msg);
   e.raw = error;
-  e.isConflict = msg.includes('CONFLICT');
+  e.isConflict = msg.includes('CONFLICT') || msg.includes('CALENDAR_CHANGED');
   e.isForbidden = msg.includes('FORBIDDEN');
-  e.friendly = msg.includes('CONFLICT')
-    ? 'Ktoś zmienił to pytanie, odkąd zacząłeś edycję. Odśwież, żeby zobaczyć aktualną wersję — Twoje zmiany nie zostały nadpisane.'
-    : msg.includes('FORBIDDEN')
-      ? 'Brak uprawnień do tej operacji.'
-      : msg.includes('LOCKED')
-        ? 'Ta wersja robocza czeka już na zatwierdzenie i nie można jej edytować.'
-        : msg;
+  e.friendly = ERRORS.find(([code]) => msg.includes(code))?.[1] ?? msg;
   return e;
 }
 
@@ -35,10 +53,15 @@ export const api = {
 
   // Licznik sprzedaży /live: liczniki + przychód + ostatnie eventy RevenueCat
   // (billing_events). Strona odpytuje to cyklicznie i gra dźwięk przy nowym zakupie.
-  liveSales: () => rpc('admin_live_sales'),
+  // Domyślnie tylko prawdziwe pieniądze — sandbox, testy z dashboardu RevenueCat
+  // i ręczne granty promo są odfiltrowane po stronie serwera (includeTest = podgląd).
+  liveSales: (includeTest = false) => rpc('admin_live_sales', { p_include_test: includeTest }),
 
   // Cały dashboard /stats jednym strzałem; p_days = null → od początku.
   // Konta wewnętrzne (nasze maile) są domyślnie wycięte z każdej liczby.
+  // Głosy przychodzą też w rozbiciu na plan, jaki konto miało W CHWILI głosu
+  // (totals.votes_pro/votes_free, daily[].votes_pro/votes_free, top_voters[]) —
+  // patrz admin_user_pro_window w 20260903120000.
   dashboardStats: (days = null, includeInternal = false) =>
     rpc('admin_dashboard_stats', { p_days: days, p_include_internal: includeInternal }),
 
@@ -102,6 +125,43 @@ export const api = {
     }
     return res;
   },
+  // Kalendarz pytań dnia (daily_picks). Okno dni z dziurami włącznie — dzień bez
+  // wpisu to "losowanie osobiste dla wszystkich", i to też trzeba widzieć.
+  // Każdy wiersz niesie stan całego kalendarza (cal_*), tak jak total_count na
+  // liście pytań.
+  listDailyPicks: (from = null, days = 45) =>
+    rpc('admin_list_daily_picks', { p_from: from, p_days: days }),
+
+  // Wyszukiwarka do podmiany. scheduled_on != null ⇒ zamiana miejscami,
+  // null ⇒ podmiana (stare pytanie ląduje na końcu kalendarza).
+  searchDailyCandidates: ({ search = null, onlyFavorites = false, onlyUnscheduled = false, limit = 30 } = {}) =>
+    rpc('admin_search_daily_candidates', {
+      p_search: search,
+      p_only_favorites: onlyFavorites,
+      p_only_unscheduled: onlyUnscheduled,
+      p_limit: limit,
+    }),
+
+  // Jedyny zapis kalendarza (tylko approver). expected = pytanie, które panel
+  // miał na ekranie dla tego dnia, expectEmpty = panel widział pusty dzień —
+  // niezgodność którejkolwiek strony jest odrzucana (CALENDAR_CHANGED) zamiast
+  // nadpisywać cudzą zmianę. Bez expectEmpty pusty dzień nie miał żadnej
+  // blokady: NULL w expected znaczy "pomiń sprawdzenie" (wygoda SQL-editora),
+  // a NULL to dokładnie to, co panel wysyłał dla dziury w kalendarzu.
+  // Baza pilnuje też podłogi "pojutrze".
+  setDailyPick: (date, questionId, expectedQuestionId = null, expectEmpty = false) =>
+    rpc('admin_set_daily_pick', {
+      p_date: date,
+      p_question_id: questionId,
+      p_expected_question_id: expectedQuestionId,
+      p_expect_empty: expectEmpty,
+    }),
+
+  // To samo co nocny cron 02:47 UTC — usuwa martwe przyszłe wpisy i ściąga
+  // resztę na kolejne dni. Warto odpalić PRZED przypięciem dnia reklamowego,
+  // żeby przesunięcie dat wydarzyło się teraz, a nie w nocy.
+  compactDailyPicks: () => rpc('admin_compact_daily_picks'),
+
   // Dziennik marketingowy: wiersz = dzień. Zwraca { tracking_since, rows } —
   // pola ręczne (filmik, wejścia, pobrania) + policzone przez bazę
   // installs_tracked / purchases / revenue_pln, także dla dni bez wpisu.
