@@ -61,20 +61,39 @@ free user who wants more than the daily either pays or comes back tomorrow.
 **everyone** (the session still resolves first — its tier shapes the deck).
 First run: welcome → 2 taste questions (vote → arguments → re-vote → split) →
 the **bridge** (`OnboardingBridgeCard`: "To były dwa. Zostało 500." — primary
-CTA continues for free, secondary opens the paywall sheet) → reminder opt-in
-→ the feed with today's daily. **No wall anywhere in onboarding, and never a
-paywall before the user's first vote.**
+CTA continues for free, secondary opens the paywall sheet) → the feed with
+today's daily. **No wall anywhere in onboarding, and never a paywall before
+the user's first vote.** The reminder opt-in is not in the deck any more: it
+moved to the day wall (2026-09-02), where it can name tomorrow's question.
 
 A free user's deck is `[daily]`. Swiping forward lands on the **day wall**:
-a blurred teaser of the next question (first 4 words via the read-only
-`peek_next_question` — it consumes nothing), a live countdown to the user's
-local midnight and the unlock CTA (the streak stays visible in the app-bar
-chip above the wall). The way back to the daily is the back swipe or the
-system back gesture — the wall intercepts back so it never exits the app.
-The wall is a fork, never a trap.
+a blurred teaser of the next question (first 4 words of TOMORROW'S daily
+pick via the read-only `peek_next_question` — it consumes nothing and, since
+20260902120000, applies no per-user filter, so it is the same cut the
+reminder bakes), a live countdown to the user's local midnight and the unlock
+CTA (the streak stays visible in the app-bar chip above the wall). Until it
+has been answered once on the install, the CTA's band holds the **reminder
+ask** instead (`WallReminderAsk`: "Jutro: „<teaser>…” — przypomnę Ci o
+20:00" / "Przypomnij mi jutro" / "Nie teraz"); either answer hands the band
+back to the CTA in the same frame. The way back to the daily is the back
+swipe or the system back gesture — the wall intercepts back so it never
+exits the app. The wall is a fork, never a trap.
+
+**Modes** (2026-09-02): the app bar's grid icon opens a list of topics —
+Związki, Rodzina, Kasa i praca, Społeczeństwo (client-side groupings of
+`questions.category`; each row is a big name over a three-word description;
+a ticked "Teraz grasz" card above names the current scope; no counts, no
+progress anywhere). A PRO user
+pins the deck to one: the daily stays first, the mode's questions follow in
+the usual unseen-first order, every non-daily card wears the mode pill and
+"Wróć do feedu" at the foot of the feed unpins it. Free sees the tiles locked
+(tap → paywall). Under the voted daily, once per install, a quiet link
+("Więcej o związkach →") points at the screen — a link, not a card.
 
 The **paywall** (a fullscreen dialog) opens: automatically at most once per
-local day on the first wall hit *after* the daily vote; always on the
+local day on the first wall hit *after* the daily vote, from install day 1 on
+(day 0's wall is the reminder ask's; an unanswered ask defers the auto-open
+to the next arrival with the latch unspent); always on the
 wall/bridge unlock CTAs and on tapping a locked feature (favorites star, the
 locked older-history panel, locked smaczki); never at app start, in
 onboarding, or before the
