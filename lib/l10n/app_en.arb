@@ -476,6 +476,12 @@
   "modesTooltip": "Question modes",
   "modesSubtitlePro": "One topic at a time. The question of the day stays at the top of the feed.",
   "modesSubtitleFree": "Modes are PRO: pick a topic and the feed shows only those questions.",
+  "modeIntimacy": "Sex & intimacy",
+  "@modeIntimacy": {
+    "description": "The PRO-only adult-themes mode, always the first row on the modes screen. A TOPIC label on purpose, not an age badge ('+18'): the store ratings rest on the content being text-only, mature discussion."
+  },
+  "modeIntimacyDescription": "Body, desire, taboo",
+  "modesHintIntimacy": "More about intimacy",
   "modeRelationships": "Relationships",
   "modeRelationshipsDescription": "Love, cheating, boundaries",
   "@modeRelationshipsDescription": {

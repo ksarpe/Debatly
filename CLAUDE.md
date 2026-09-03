@@ -78,10 +78,17 @@ surface.
   midnight and the unlock CTA (the streak stays in the app-bar chip). Back
   swipe or system back return to the daily — the wall intercepts back. Never
   a trap.
-- **Modes (2026-09-02, `QuestionMode`):** four client-side groupings of
-  `questions.category` — Związki (Relationships+Friendship), Rodzina
-  (Family), Kasa i praca (Money+Work), Społeczeństwo
-  (Ethics+Society+Justice+Culture) — that a PRO user pins the deck to from
+- **Modes (2026-09-02, `QuestionMode`):** five client-side groupings of
+  `questions.category` — **Seks i intymność** (`Intimacy`, always the FIRST
+  row, ember-shimmer border + flame glyph; a TOPIC label on purpose, never
+  "+18": the 3+/14+ store ratings rest on the content being text-only mature
+  discussion, and a self-applied adult badge claims a rating the content
+  doesn't need; its questions are PRO-only and must never become the daily —
+  server-side exclusion from `daily_picks`, the personal fallback draw and
+  the wall teaser ships with the first INSERT batch), Związki
+  (Relationships+Friendship), Rodzina (Family), Kasa i praca (Money+Work),
+  Społeczeństwo (Ethics+Society+Justice+Culture) — that a PRO user pins the
+  deck to from
   the modes screen (app-bar grid icon → a ticked "Teraz grasz" card naming
   the current scope, then one full-width row per OTHER choice — big name over
   a three-word description, arrow; "Wszystkie tematy" is a row only while a

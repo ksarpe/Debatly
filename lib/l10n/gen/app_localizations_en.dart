@@ -1033,6 +1033,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Modes are PRO: pick a topic and the feed shows only those questions.';
 
   @override
+  String get modeIntimacy => 'Sex & intimacy';
+
+  @override
+  String get modeIntimacyDescription => 'Body, desire, taboo';
+
+  @override
+  String get modesHintIntimacy => 'More about intimacy';
+
+  @override
   String get modeRelationships => 'Relationships';
 
   @override

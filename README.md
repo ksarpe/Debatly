@@ -80,7 +80,9 @@ swipe or the system back gesture — the wall intercepts back so it never
 exits the app. The wall is a fork, never a trap.
 
 **Modes** (2026-09-02): the app bar's grid icon opens a list of topics —
-Związki, Rodzina, Kasa i praca, Społeczeństwo (client-side groupings of
+Seks i intymność (always first, ember-shimmer border; PRO-only questions
+that never become the daily), Związki, Rodzina, Kasa i praca, Społeczeństwo
+(client-side groupings of
 `questions.category`; each row is a big name over a three-word description;
 a ticked "Teraz grasz" card above names the current scope; no counts, no
 progress anywhere). A PRO user

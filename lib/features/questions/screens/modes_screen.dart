@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,6 +14,7 @@ import '../../monetization/widgets/pro_paywall_screen.dart';
 import '../../monetization/widgets/purchase_settlement.dart';
 import '../providers/mode_providers.dart';
 import '../providers/question_providers.dart';
+import '../widgets/animated_flame_icon.dart' show flameColor, kFlame;
 
 /// Opens the modes screen — pushed as a sub-screen (title + X) like history
 /// and favorites, never a sheet. Safe to open for any tier: the screen gates
@@ -146,12 +149,15 @@ class ModesScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 12),
                       ],
+                      // Declaration order is screen order: the adult-themes
+                      // mode is declared first and wears the flame.
                       for (final mode in QuestionMode.values)
                         if (mode != active) ...[
                           _ModeRow(
                             name: questionModeName(l10n, mode),
                             description: questionModeDescription(l10n, mode),
                             locked: !premium,
+                            flame: mode == QuestionMode.intimacy,
                             onTap: () =>
                                 _pick(context, ref, mode, premium: premium),
                           ),
@@ -254,30 +260,48 @@ const double _kHeadingSize = 24;
 
 /// One choice: the topic's name as a big heading over its three-word
 /// description, an arrow on the right (a padlock for free) — on the raised
-/// card surface with the hairline border.
+/// card surface with the hairline border. The [flame] row (the adult-themes
+/// mode) swaps the hairline for a slowly shimmering ember border with a
+/// breathing glow, and a flame glyph in place of the arrow — see
+/// [_FlameFrame].
 class _ModeRow extends StatelessWidget {
   const _ModeRow({
     required this.name,
     required this.description,
     required this.locked,
     required this.onTap,
+    this.flame = false,
   });
 
   final String name;
   final String description;
   final bool locked;
   final VoidCallback onTap;
+  final bool flame;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Material(
+    final IconData trailing;
+    final Color trailingColor;
+    if (locked) {
+      trailing = Icons.lock_outline;
+      trailingColor = colors.subtle;
+    } else if (flame) {
+      trailing = Icons.local_fire_department_rounded;
+      trailingColor = flameColor(context);
+    } else {
+      trailing = Icons.arrow_forward;
+      trailingColor = colors.subtle;
+    }
+    final card = Material(
       color: Colors.transparent,
       child: Ink(
         decoration: BoxDecoration(
           color: colors.cardSurface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: colors.hairline),
+          // The flame frame paints its own border on top.
+          border: flame ? null : Border.all(color: colors.hairline),
         ),
         child: InkWell(
           onTap: onTap,
@@ -308,9 +332,17 @@ class _ModeRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Icon(
-                  locked ? Icons.lock_outline : Icons.arrow_forward,
-                  size: 18,
-                  color: colors.subtle,
+                  trailing,
+                  size: flame && !locked ? 20 : 18,
+                  color: trailingColor,
+                  shadows: flame && !locked
+                      ? [
+                          Shadow(
+                            color: trailingColor.withValues(alpha: 0.6),
+                            blurRadius: 12,
+                          ),
+                        ]
+                      : null,
                 ),
               ],
             ),
@@ -318,7 +350,145 @@ class _ModeRow extends StatelessWidget {
         ),
       ),
     );
+    return flame ? _FlameFrame(child: card) : card;
   }
+}
+
+/// The ember frame around the adult-themes row: a 1.5 px border whose
+/// spark → amber → glow sweep turns slowly around the card, over a halo that
+/// breathes in step — "lekko się mieni, jak płomień". One 4-second loop
+/// drives both; every effect is an integer number of cycles over it, so the
+/// wrap is seamless. Under reduced motion it is a still spark border with a
+/// fixed soft glow, and the loop never starts.
+class _FlameFrame extends StatefulWidget {
+  const _FlameFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_FlameFrame> createState() => _FlameFrameState();
+}
+
+class _FlameFrameState extends State<_FlameFrame>
+    with SingleTickerProviderStateMixin {
+  static const Duration _period = Duration(milliseconds: 4000);
+
+  late final AnimationController _loop = AnimationController(
+    vsync: this,
+    duration: _period,
+  );
+
+  bool get _reduceMotion => MediaQuery.disableAnimationsOf(context);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reduced motion can flip at runtime; re-evaluate whether the loop runs.
+    if (!_reduceMotion && !_loop.isAnimating) {
+      _loop.repeat();
+    } else if (_reduceMotion && _loop.isAnimating) {
+      _loop.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _loop.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_reduceMotion) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.sparkGlow.withValues(alpha: 0.16),
+              blurRadius: 16,
+              spreadRadius: 0.5,
+            ),
+          ],
+        ),
+        child: CustomPaint(
+          foregroundPainter: const _FlameBorderPainter(phase: null),
+          child: widget.child,
+        ),
+      );
+    }
+    return AnimatedBuilder(
+      animation: _loop,
+      child: widget.child,
+      builder: (context, child) {
+        final p = _loop.value;
+        // One slow breath per loop.
+        final breath = 0.5 + 0.5 * math.sin(2 * math.pi * p);
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.sparkGlow.withValues(
+                  alpha: 0.10 + 0.14 * breath,
+                ),
+                blurRadius: 14 + 10 * breath,
+                spreadRadius: 0.5,
+              ),
+            ],
+          ),
+          child: CustomPaint(
+            foregroundPainter: _FlameBorderPainter(phase: p),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Paints the frame's border. With a [phase] the stroke is a sweep gradient
+/// (spark → amber → glow → spark) rotated by that fraction of a turn, so the
+/// bright band travels once around the card per loop; a null phase is the
+/// still, plain-spark border for reduced motion.
+class _FlameBorderPainter extends CustomPainter {
+  const _FlameBorderPainter({required this.phase});
+
+  final double? phase;
+
+  static const double _stroke = 1.5;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = (Offset.zero & size).deflate(_stroke / 2);
+    final rrect = RRect.fromRectAndRadius(
+      rect,
+      const Radius.circular(14 - _stroke / 2),
+    );
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _stroke;
+    final phase = this.phase;
+    if (phase == null) {
+      paint.color = AppTheme.spark;
+    } else {
+      paint.shader = SweepGradient(
+        colors: const [
+          AppTheme.spark,
+          kFlame,
+          AppTheme.sparkGlow,
+          AppTheme.spark,
+          AppTheme.spark,
+        ],
+        stops: const [0, 0.18, 0.36, 0.55, 1],
+        transform: GradientRotation(2 * math.pi * phase),
+      ).createShader(rect);
+    }
+    canvas.drawRRect(rrect, paint);
+  }
+
+  @override
+  bool shouldRepaint(_FlameBorderPainter old) => old.phase != phase;
 }
 
 /// The dashed placeholder at the foot of the list: the next mode, "in the

@@ -8,6 +8,7 @@ import '../../../l10n/gen/app_localizations.dart';
 /// Localized tile / badge name of a mode.
 String questionModeName(AppLocalizations l10n, QuestionMode mode) =>
     switch (mode) {
+      QuestionMode.intimacy => l10n.modeIntimacy,
       QuestionMode.relationships => l10n.modeRelationships,
       QuestionMode.family => l10n.modeFamily,
       QuestionMode.moneyWork => l10n.modeMoneyWork,
@@ -17,6 +18,7 @@ String questionModeName(AppLocalizations l10n, QuestionMode mode) =>
 /// The three-word line under a mode's name on the modes screen.
 String questionModeDescription(AppLocalizations l10n, QuestionMode mode) =>
     switch (mode) {
+      QuestionMode.intimacy => l10n.modeIntimacyDescription,
       QuestionMode.relationships => l10n.modeRelationshipsDescription,
       QuestionMode.family => l10n.modeFamilyDescription,
       QuestionMode.moneyWork => l10n.modeMoneyWorkDescription,
@@ -27,6 +29,9 @@ String questionModeDescription(AppLocalizations l10n, QuestionMode mode) =>
 /// category belongs to a mode, the generic "Zobacz tryby" otherwise.
 String questionModesHintLabel(AppLocalizations l10n, QuestionMode? mode) =>
     switch (mode) {
+      // Never reached in practice (the category never becomes the daily),
+      // but the switch must be total.
+      QuestionMode.intimacy => l10n.modesHintIntimacy,
       QuestionMode.relationships => l10n.modesHintRelationships,
       QuestionMode.family => l10n.modesHintFamily,
       QuestionMode.moneyWork => l10n.modesHintMoneyWork,

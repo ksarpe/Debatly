@@ -1047,6 +1047,15 @@ class AppLocalizationsPl extends AppLocalizations {
       'Tryby są w PRO: wybierasz temat, a feed pokazuje tylko takie pytania.';
 
   @override
+  String get modeIntimacy => 'Seks i intymność';
+
+  @override
+  String get modeIntimacyDescription => 'Ciało, pożądanie, tabu';
+
+  @override
+  String get modesHintIntimacy => 'Więcej o intymności';
+
+  @override
   String get modeRelationships => 'Związki';
 
   @override

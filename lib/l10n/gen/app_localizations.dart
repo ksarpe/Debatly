@@ -1808,6 +1808,24 @@ abstract class AppLocalizations {
   /// **'Modes are PRO: pick a topic and the feed shows only those questions.'**
   String get modesSubtitleFree;
 
+  /// The PRO-only adult-themes mode, always the first row on the modes screen. A TOPIC label on purpose, not an age badge ('+18'): the store ratings rest on the content being text-only, mature discussion.
+  ///
+  /// In en, this message translates to:
+  /// **'Sex & intimacy'**
+  String get modeIntimacy;
+
+  /// No description provided for @modeIntimacyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Body, desire, taboo'**
+  String get modeIntimacyDescription;
+
+  /// No description provided for @modesHintIntimacy.
+  ///
+  /// In en, this message translates to:
+  /// **'More about intimacy'**
+  String get modesHintIntimacy;
+
   /// No description provided for @modeRelationships.
   ///
   /// In en, this message translates to:

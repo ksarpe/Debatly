@@ -87,6 +87,14 @@ void main() {
     return container;
   }
 
+  /// The modes screen's flame row shimmers forever, so pumpAndSettle would
+  /// chase it — bounded pumps instead, wherever the screen is on stage.
+  Future<void> settleModes(WidgetTester tester) async {
+    for (var i = 0; i < 8; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+  }
+
   Future<ProviderContainer> pumpModes(
     WidgetTester tester, {
     required bool premium,
@@ -104,7 +112,7 @@ void main() {
         child: const LocalizedTestApp(home: ModesScreen()),
       ),
     );
-    await tester.pumpAndSettle();
+    await settleModes(tester);
     return container;
   }
 
@@ -142,11 +150,12 @@ void main() {
     expect(find.text('WRÓĆ DO FEEDU'), findsNothing);
   });
 
-  testWidgets('the modes screen: four tiles; a PRO tap pins the mode and '
-      'closes', (tester) async {
+  testWidgets('the modes screen: five rows, intimacy first with the flame; '
+      'a PRO tap pins the mode and closes', (tester) async {
     final container = await pumpModes(tester, premium: true, pool: pool);
 
     for (final name in [
+      'SEKS I INTYMNOŚĆ',
       'ZWIĄZKI',
       'RODZINA',
       'KASA I PRACA',
@@ -154,6 +163,13 @@ void main() {
     ]) {
       expect(find.text(name), findsOneWidget);
     }
+    // The adult-themes mode is always the first row, and wears the flame
+    // instead of the arrow.
+    expect(
+      tester.getTopLeft(find.text('SEKS I INTYMNOŚĆ')).dy,
+      lessThan(tester.getTopLeft(find.text('ZWIĄZKI')).dy),
+    );
+    expect(find.byIcon(Icons.local_fire_department_rounded), findsOneWidget);
     expect(find.byIcon(Icons.lock_outline), findsNothing);
     // The "now playing" card names the whole catalog while nothing is
     // pinned — and "all topics" is then NOT also a row (nothing to leave).
@@ -166,7 +182,7 @@ void main() {
     expect(find.text('Zmiana trybu nie usuwa Twojej historii'), findsOneWidget);
 
     await tester.tap(find.text('RODZINA'));
-    await tester.pumpAndSettle();
+    await settleModes(tester);
 
     expect(container.read(activeModeProvider), QuestionMode.family);
     expect(container.read(questionIndexProvider), 1);
@@ -180,7 +196,7 @@ void main() {
       'leaves the list and "all topics" becomes the way back', (tester) async {
     final container = await pumpModes(tester, premium: true, pool: pool);
     await tester.tap(find.text('ZWIĄZKI'));
-    await tester.pumpAndSettle();
+    await settleModes(tester);
     expect(container.read(activeModeProvider), QuestionMode.relationships);
 
     // Reopen the screen: the card names the mode, its row is gone, and "all
@@ -191,15 +207,16 @@ void main() {
         child: const LocalizedTestApp(home: ModesScreen()),
       ),
     );
-    await tester.pumpAndSettle();
+    await settleModes(tester);
     expect(find.text('ZWIĄZKI'), findsOneWidget);
     expect(find.text('Miłość, zdrada, granice'), findsOneWidget);
     expect(find.text('WSZYSTKIE TEMATY'), findsOneWidget);
-    // Four choices: all topics + the three other modes.
+    // Arrows: all topics + the three other plain modes (the flame row keeps
+    // its flame).
     expect(find.byIcon(Icons.arrow_forward), findsNWidgets(4));
 
     await tester.tap(find.text('WSZYSTKIE TEMATY'));
-    await tester.pumpAndSettle();
+    await settleModes(tester);
 
     expect(container.read(activeModeProvider), isNull);
     expect(container.read(questionIndexProvider), 0);
@@ -209,22 +226,22 @@ void main() {
       'the daily, a tap opens the paywall and pins nothing', (tester) async {
     final container = await pumpModes(tester, premium: false);
 
-    // All topics + the four modes, every one behind the padlock.
-    expect(find.byIcon(Icons.lock_outline), findsNWidgets(5));
+    // All topics + the five modes, every one behind the padlock (the flame
+    // row too — its glyph yields to the lock, the shimmer stays).
+    expect(find.byIcon(Icons.lock_outline), findsNWidgets(6));
     expect(find.byIcon(Icons.arrow_forward), findsNothing);
+    expect(find.byIcon(Icons.local_fire_department_rounded), findsNothing);
     expect(find.text('PYTANIE DNIA'), findsOneWidget);
     expect(find.text('WSZYSTKIE TEMATY'), findsOneWidget);
     expect(find.byType(ProPaywallScreen), findsNothing);
 
-    await tester.tap(find.text('ZWIĄZKI'));
-    for (var i = 0; i < 6; i++) {
-      await tester.pump(const Duration(milliseconds: 150));
-    }
+    await tester.tap(find.text('SEKS I INTYMNOŚĆ'));
+    await settleModes(tester);
 
     expect(find.byType(ProPaywallScreen), findsOneWidget);
     expect(container.read(activeModeProvider), isNull);
     await tester.tap(find.byIcon(Icons.close_rounded));
-    await tester.pumpAndSettle();
+    await settleModes(tester);
   });
 
   testWidgets('the hint under the voted daily names its topic, stamps the '
@@ -242,7 +259,7 @@ void main() {
     );
 
     await tester.tap(find.text('WIĘCEJ O ZWIĄZKACH'));
-    await tester.pumpAndSettle();
+    await settleModes(tester);
 
     expect(find.byType(ModesScreen), findsOneWidget);
     expect(prefs.getString(kModesHintPrefKey), kModesHintDone);
