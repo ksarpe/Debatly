@@ -85,8 +85,12 @@ Future<ModesShowcaseAction?> showModesShowcase(
     barrierColor: Colors.transparent,
     barrierLabel: 'modes showcase',
     transitionDuration: const Duration(milliseconds: 280),
-    pageBuilder: (_, _, _) =>
-        _ModesShowcase(iconRect: iconRect, premium: premium),
+    // A general dialog gives its page no Material — every Text on the card
+    // would render with the "missing Material" yellow underline.
+    pageBuilder: (_, _, _) => Material(
+      type: MaterialType.transparency,
+      child: _ModesShowcase(iconRect: iconRect, premium: premium),
+    ),
     transitionBuilder: (_, animation, _, child) => FadeTransition(
       opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
       child: child,
