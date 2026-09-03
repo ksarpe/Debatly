@@ -527,8 +527,12 @@
   "@modesShowcaseTitle": {
     "description": "The one-time showcase overlay after a vote: the feed dims, a spotlight is cut around the app bar's modes icon, and this card sits under it."
   },
-  "modesShowcaseBodyFree": "Pick a topic and the feed shows only those questions: Sex & intimacy, Relationships, Family, Money & work, Society. Modes are part of PRO.",
-  "modesShowcaseBodyPro": "Pick a topic and the feed shows only those questions: Sex & intimacy, Relationships, Family, Money & work, Society. They're in your PRO.",
+  "modesShowcaseLead": "Questions about sex, the body and taboo that nobody else will ask you. No beating around the bush.",
+  "@modesShowcaseLead": {
+    "description": "The featured row inside the showcase card, under the 'Sex & intimacy' name with the flame — the mode the showcase leads with."
+  },
+  "modesShowcaseBodyFree": "Plus Relationships, Family, Money & work, Society. Pick a topic and the feed shows only those questions. Modes are part of PRO.",
+  "modesShowcaseBodyPro": "Plus Relationships, Family, Money & work, Society. Pick a topic and the feed shows only those questions. They're in your PRO.",
   "modesShowcaseCta": "See the modes",
   "modesShowcaseClose": "Close",
   "@modesHintNew": {

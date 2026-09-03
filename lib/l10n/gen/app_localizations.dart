@@ -1970,16 +1970,22 @@ abstract class AppLocalizations {
   /// **'Modes'**
   String get modesShowcaseTitle;
 
+  /// The featured row inside the showcase card, under the 'Sex & intimacy' name with the flame — the mode the showcase leads with.
+  ///
+  /// In en, this message translates to:
+  /// **'Questions about sex, the body and taboo that nobody else will ask you. No beating around the bush.'**
+  String get modesShowcaseLead;
+
   /// No description provided for @modesShowcaseBodyFree.
   ///
   /// In en, this message translates to:
-  /// **'Pick a topic and the feed shows only those questions: Sex & intimacy, Relationships, Family, Money & work, Society. Modes are part of PRO.'**
+  /// **'Plus Relationships, Family, Money & work, Society. Pick a topic and the feed shows only those questions. Modes are part of PRO.'**
   String get modesShowcaseBodyFree;
 
   /// No description provided for @modesShowcaseBodyPro.
   ///
   /// In en, this message translates to:
-  /// **'Pick a topic and the feed shows only those questions: Sex & intimacy, Relationships, Family, Money & work, Society. They\'re in your PRO.'**
+  /// **'Plus Relationships, Family, Money & work, Society. Pick a topic and the feed shows only those questions. They\'re in your PRO.'**
   String get modesShowcaseBodyPro;
 
   /// No description provided for @modesShowcaseCta.

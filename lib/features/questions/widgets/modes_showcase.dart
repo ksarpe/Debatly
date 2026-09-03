@@ -11,6 +11,7 @@ import '../../../core/widgets/spark_cta_button.dart';
 import '../../../services/analytics.dart';
 import '../../account/providers/session_providers.dart';
 import '../screens/modes_screen.dart';
+import 'animated_flame_icon.dart' show AnimatedFlameIcon, flameColor;
 
 /// The app bar's modes icon (see `QuestionScreen`), so the showcase can find
 /// it on screen and cut its spotlight around it. Unmounted whenever the feed
@@ -239,7 +240,57 @@ class _ModesShowcaseState extends State<_ModesShowcase>
                             30,
                           ).copyWith(color: colors.ink),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
+                        // The mode the showcase leads with: the intimacy
+                        // row, flame and all, before the rest are listed.
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.spark.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppTheme.spark.withValues(alpha: 0.45),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: _reduceMotion
+                                    ? Icon(
+                                        Icons.local_fire_department_rounded,
+                                        size: 22,
+                                        color: flameColor(context),
+                                      )
+                                    : const AnimatedFlameIcon.lit(size: 22),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l10n.modeIntimacy.toUpperCase(),
+                                      style: AppTypography.display(
+                                        20,
+                                      ).copyWith(color: colors.ink),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      l10n.modesShowcaseLead,
+                                      style: AppTypography.body(
+                                        fontSize: 13.5,
+                                        height: 1.35,
+                                      ).copyWith(color: colors.ink),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         Text(
                           widget.premium
                               ? l10n.modesShowcaseBodyPro

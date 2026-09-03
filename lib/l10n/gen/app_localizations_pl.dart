@@ -1129,12 +1129,16 @@ class AppLocalizationsPl extends AppLocalizations {
   String get modesShowcaseTitle => 'Tryby';
 
   @override
+  String get modesShowcaseLead =>
+      'Pytania o seks, ciało i tabu, jakich nikt inny Ci nie zada. Bez owijania w bawełnę.';
+
+  @override
   String get modesShowcaseBodyFree =>
-      'Wybierz temat, a feed pokaże tylko takie pytania: Seks i intymność, Związki, Rodzina, Kasa i praca, Społeczeństwo. Tryby są częścią PRO.';
+      'Do tego Związki, Rodzina, Kasa i praca, Społeczeństwo. Wybierz temat, a feed pokaże tylko takie pytania. Tryby są częścią PRO.';
 
   @override
   String get modesShowcaseBodyPro =>
-      'Wybierz temat, a feed pokaże tylko takie pytania: Seks i intymność, Związki, Rodzina, Kasa i praca, Społeczeństwo. Masz je w swoim PRO.';
+      'Do tego Związki, Rodzina, Kasa i praca, Społeczeństwo. Wybierz temat, a feed pokaże tylko takie pytania. Masz je w swoim PRO.';
 
   @override
   String get modesShowcaseCta => 'Zobacz tryby';

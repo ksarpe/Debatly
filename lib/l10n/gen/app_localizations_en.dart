@@ -1114,12 +1114,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get modesShowcaseTitle => 'Modes';
 
   @override
+  String get modesShowcaseLead =>
+      'Questions about sex, the body and taboo that nobody else will ask you. No beating around the bush.';
+
+  @override
   String get modesShowcaseBodyFree =>
-      'Pick a topic and the feed shows only those questions: Sex & intimacy, Relationships, Family, Money & work, Society. Modes are part of PRO.';
+      'Plus Relationships, Family, Money & work, Society. Pick a topic and the feed shows only those questions. Modes are part of PRO.';
 
   @override
   String get modesShowcaseBodyPro =>
-      'Pick a topic and the feed shows only those questions: Sex & intimacy, Relationships, Family, Money & work, Society. They\'re in your PRO.';
+      'Plus Relationships, Family, Money & work, Society. Pick a topic and the feed shows only those questions. They\'re in your PRO.';
 
   @override
   String get modesShowcaseCta => 'See the modes';

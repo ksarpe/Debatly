@@ -73,6 +73,11 @@ void main() {
 
     expect(find.text('NOWOŚĆ'), findsOneWidget);
     expect(find.text('TRYBY'), findsOneWidget);
+    // Leads with the intimacy mode — name, flame and its own line — then
+    // the rest.
+    expect(find.text('SEKS I INTYMNOŚĆ'), findsOneWidget);
+    expect(find.byIcon(Icons.local_fire_department_rounded), findsOneWidget);
+    expect(find.textContaining('nikt inny Ci nie zada'), findsOneWidget);
     expect(find.textContaining('Tryby są częścią PRO'), findsOneWidget);
     expect(find.text('ZOBACZ TRYBY'), findsOneWidget);
 
