@@ -19,6 +19,7 @@ import '../widgets/challenge_session_watcher.dart';
 import '../widgets/conformity_panel.dart';
 import '../widgets/daily_rollover_watcher.dart';
 import '../widgets/load_error.dart';
+import '../widgets/modes_showcase.dart' show modesIconKey;
 import '../widgets/offline_banner.dart';
 import '../widgets/question_body.dart';
 import '../widgets/rank_up_sheet.dart';
@@ -275,6 +276,8 @@ class QuestionScreen extends ConsumerWidget {
           // the same weight as the rest of the bar so the question canvas
           // stays untouched; lit in the spark while a mode is pinned.
           IconButton(
+            // The showcase cuts its spotlight around this key.
+            key: modesIconKey,
             icon: Stack(
               clipBehavior: Clip.none,
               children: [

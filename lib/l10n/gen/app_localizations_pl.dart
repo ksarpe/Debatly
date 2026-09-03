@@ -1123,6 +1123,26 @@ class AppLocalizationsPl extends AppLocalizations {
   String get modesHintNew => 'Nowość: tryb Seks i intymność';
 
   @override
+  String get modesShowcaseEyebrow => 'Nowość';
+
+  @override
+  String get modesShowcaseTitle => 'Tryby';
+
+  @override
+  String get modesShowcaseBodyFree =>
+      'Wybierz temat, a feed pokaże tylko takie pytania: Seks i intymność, Związki, Rodzina, Kasa i praca, Społeczeństwo. Tryby są częścią PRO.';
+
+  @override
+  String get modesShowcaseBodyPro =>
+      'Wybierz temat, a feed pokaże tylko takie pytania: Seks i intymność, Związki, Rodzina, Kasa i praca, Społeczeństwo. Masz je w swoim PRO.';
+
+  @override
+  String get modesShowcaseCta => 'Zobacz tryby';
+
+  @override
+  String get modesShowcaseClose => 'Zamknij';
+
+  @override
   String get modeBadgeTooltip =>
       'Tryb: feed pokazuje tylko pytania z tego tematu. „Wróć do feedu” na dole wyłącza tryb.';
 

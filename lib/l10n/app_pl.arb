@@ -408,6 +408,12 @@
   "modesHintSociety": "Więcej o społeczeństwie",
   "modesHintGeneric": "Zobacz tryby",
   "modesHintNew": "Nowość: tryb Seks i intymność",
+  "modesShowcaseEyebrow": "Nowość",
+  "modesShowcaseTitle": "Tryby",
+  "modesShowcaseBodyFree": "Wybierz temat, a feed pokaże tylko takie pytania: Seks i intymność, Związki, Rodzina, Kasa i praca, Społeczeństwo. Tryby są częścią PRO.",
+  "modesShowcaseBodyPro": "Wybierz temat, a feed pokaże tylko takie pytania: Seks i intymność, Związki, Rodzina, Kasa i praca, Społeczeństwo. Masz je w swoim PRO.",
+  "modesShowcaseCta": "Zobacz tryby",
+  "modesShowcaseClose": "Zamknij",
   "modeBadgeTooltip": "Tryb: feed pokazuje tylko pytania z tego tematu. „Wróć do feedu” na dole wyłącza tryb.",
 
   "updateRequiredTitle": "Czas na aktualizację",

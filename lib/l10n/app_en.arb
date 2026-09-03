@@ -522,6 +522,15 @@
   "modesHintSociety": "More about society",
   "modesHintGeneric": "See the modes",
   "modesHintNew": "New: the Sex & intimacy mode",
+  "modesShowcaseEyebrow": "New",
+  "modesShowcaseTitle": "Modes",
+  "@modesShowcaseTitle": {
+    "description": "The one-time showcase overlay after a vote: the feed dims, a spotlight is cut around the app bar's modes icon, and this card sits under it."
+  },
+  "modesShowcaseBodyFree": "Pick a topic and the feed shows only those questions: Sex & intimacy, Relationships, Family, Money & work, Society. Modes are part of PRO.",
+  "modesShowcaseBodyPro": "Pick a topic and the feed shows only those questions: Sex & intimacy, Relationships, Family, Money & work, Society. They're in your PRO.",
+  "modesShowcaseCta": "See the modes",
+  "modesShowcaseClose": "Close",
   "@modesHintNew": {
     "description": "The once-per-install link under the voted daily for a FREE user — leads with the newest, strongest hook instead of the daily's own topic. PRO gets the topic-specific variants."
   },

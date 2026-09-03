@@ -1958,6 +1958,42 @@ abstract class AppLocalizations {
   /// **'New: the Sex & intimacy mode'**
   String get modesHintNew;
 
+  /// No description provided for @modesShowcaseEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get modesShowcaseEyebrow;
+
+  /// The one-time showcase overlay after a vote: the feed dims, a spotlight is cut around the app bar's modes icon, and this card sits under it.
+  ///
+  /// In en, this message translates to:
+  /// **'Modes'**
+  String get modesShowcaseTitle;
+
+  /// No description provided for @modesShowcaseBodyFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a topic and the feed shows only those questions: Sex & intimacy, Relationships, Family, Money & work, Society. Modes are part of PRO.'**
+  String get modesShowcaseBodyFree;
+
+  /// No description provided for @modesShowcaseBodyPro.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a topic and the feed shows only those questions: Sex & intimacy, Relationships, Family, Money & work, Society. They\'re in your PRO.'**
+  String get modesShowcaseBodyPro;
+
+  /// No description provided for @modesShowcaseCta.
+  ///
+  /// In en, this message translates to:
+  /// **'See the modes'**
+  String get modesShowcaseCta;
+
+  /// No description provided for @modesShowcaseClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get modesShowcaseClose;
+
   /// No description provided for @modeBadgeTooltip.
   ///
   /// In en, this message translates to:

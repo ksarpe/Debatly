@@ -104,10 +104,18 @@ surface.
   `seen` flags, same votes — a question answered in a mode is archived like
   any other. Non-daily cards wear the `ModeBadge`. Free sees the tiles locked
   with counts (tap → paywall, `PaywallSource.modes`; a purchase pins the
-  tapped mode). The feed's ONE pointer at it is the once-per-install link
-  under the voted daily ("Więcej o związkach →", `modesHintProvider`, for the
-  local day it first shows; a tap retires it) — a link, never a card: the
-  vote → argument → split loop stays uninterrupted.
+  tapped mode). Two pointers at it in the feed: the once-per-install link
+  under the voted daily (`modesHintProvider`; free: "Nowość: tryb Seks i
+  intymność →", PRO: the daily's topic; for the local day it first shows, a
+  tap retires it) — a link, never a card — and the ONE sanctioned post-vote
+  modal, the once-per-install **showcase** (`maybeShowModesShowcase`,
+  `modes_showcase_seen`): after the bars, the feed dims with a spotlight cut
+  around the app-bar modes icon (`modesIconKey`) and a "Nowość / Tryby" card
+  with "Zobacz tryby" / "Zamknij". Claims the vote's single prompt slot ahead
+  of the review ask; never on a promotion day; a silent no-op (once unspent)
+  whenever the icon is not on screen. Otherwise the vote → argument → split
+  loop stays uninterrupted. The app-bar icon also wears a spark "new" dot
+  until the modes screen is opened once (`modes_seen`).
 - **Paywall-opening rules:** auto at most once per local day, on the first
   wall hit AFTER the daily vote, **from install day 1 on** (`installDayNumber
   ≥ 1` — day 0's wall carries the reminder ask instead, see below; a wall hit

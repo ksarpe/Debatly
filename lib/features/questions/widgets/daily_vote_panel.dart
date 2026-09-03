@@ -24,6 +24,7 @@ import '../../settings/providers/reminder_providers.dart';
 import '../../settings/providers/review_providers.dart';
 import '../providers/challenge_providers.dart';
 import '../providers/question_providers.dart';
+import 'modes_showcase.dart';
 import 'prototype_history_entry.dart';
 import 'smaczek_challenge_screen.dart';
 import 'suggest_question_nudge.dart';
@@ -526,6 +527,16 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
       final isPromotionDay = ladder.any(
         (r) => r.tier > 0 && r.minStreak == streak,
       );
+
+      // The one-time modes showcase (2026-09-02) claims the slot first: a
+      // new install's first vote, an updated install's next one — the only
+      // moment the feed tells a user the modes exist. Never on a promotion
+      // day (the celebration owns it), and a no-op wherever the app bar's
+      // modes icon is not on screen.
+      if (!isPromotionDay && await maybeShowModesShowcase(context, ref)) {
+        return;
+      }
+      if (!mounted) return;
 
       // On a promotion day the celebration owns the moment and the review ask
       // rides right behind it instead (RankCelebrationListener); otherwise a

@@ -1108,6 +1108,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get modesHintNew => 'New: the Sex & intimacy mode';
 
   @override
+  String get modesShowcaseEyebrow => 'New';
+
+  @override
+  String get modesShowcaseTitle => 'Modes';
+
+  @override
+  String get modesShowcaseBodyFree =>
+      'Pick a topic and the feed shows only those questions: Sex & intimacy, Relationships, Family, Money & work, Society. Modes are part of PRO.';
+
+  @override
+  String get modesShowcaseBodyPro =>
+      'Pick a topic and the feed shows only those questions: Sex & intimacy, Relationships, Family, Money & work, Society. They\'re in your PRO.';
+
+  @override
+  String get modesShowcaseCta => 'See the modes';
+
+  @override
+  String get modesShowcaseClose => 'Close';
+
+  @override
   String get modeBadgeTooltip =>
       'Mode: the feed shows only questions on this topic. “Back to the feed” at the bottom switches it off.';
 
