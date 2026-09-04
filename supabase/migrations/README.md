@@ -235,3 +235,18 @@ catastrophe. Do not "fix" it by flattening the folders back.
   transaction impersonating a real voter: `record_smaczek_challenge('moved')`
   left `choice` untouched, stamped outcome + dwell, bumped only the moved
   counter, and a replay was a full no-op. Idempotent.
+- `20260904120000_intimacy_never_the_daily.sql` (the `Intimacy` category —
+  the PRO-only "Seks i intymność" mode — is never the daily: new
+  `is_daily_eligible_category(text)` predicate; a BEFORE INSERT/UPDATE trigger
+  on `daily_picks` refuses such a question whatever wrote it;
+  `admin_set_daily_pick` raises `QUESTION_EXCLUDED` and
+  `admin_search_daily_candidates` never lists one; `get_daily_question`'s pick
+  join + personal fallback, `peek_next_question`'s both branches and the
+  legacy `reveal_free_question` / `reveal_ad_question` draws skip it.
+  `get_questions` untouched — PRO sees the catalog, the client filters by
+  mode. Also revokes the stray PUBLIC execute on
+  `billing_event_telegram_notify()`) — **applied to prod 2026-09-04** via MCP
+  as `intimacy_never_the_daily`, BEFORE the first Intimacy row exists, so the
+  batch lands on a fenced catalog. Verified live in a rolled-back block: an
+  Intimacy insert into `daily_picks` raises `QUESTION_EXCLUDED`, the fallback
+  draw never returns one. Idempotent.

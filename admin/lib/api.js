@@ -28,6 +28,9 @@ const ERRORS = [
   ['QUESTION_USED',
     'To pytanie jest już pytaniem dnia w dniu, którego nie da się ruszyć (dziś, '
     + 'jutro albo w przeszłości). Jedno pytanie może być pytaniem dnia tylko raz.'],
+  ['QUESTION_EXCLUDED',
+    'Pytania z kategorii Intimacy (Seks i intymność) nigdy nie są pytaniem dnia — '
+    + 'to tryb tylko dla PRO. Baza odrzuca je niezależnie od panelu.'],
   ['QUESTION_INACTIVE',
     'To pytanie jest nieaktywne — nocne porządkowanie i tak usunęłoby je z kalendarza.'],
   ['CONFLICT',

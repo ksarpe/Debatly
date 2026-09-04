@@ -84,8 +84,10 @@ surface.
   "+18": the 3+/14+ store ratings rest on the content being text-only mature
   discussion, and a self-applied adult badge claims a rating the content
   doesn't need; its questions are PRO-only and must never become the daily —
-  server-side exclusion from `daily_picks`, the personal fallback draw and
-  the wall teaser ships with the first INSERT batch), Związki
+  `is_daily_eligible_category()` (20260904120000) fences it out of
+  `daily_picks` (row trigger + `QUESTION_EXCLUDED` from the admin RPC), the
+  personal fallback draw, the wall teaser and the legacy reveals; the admin
+  category list has it since the same day), Związki
   (Relationships+Friendship), Rodzina (Family), Kasa i praca (Money+Work),
   Społeczeństwo (Ethics+Society+Justice+Culture) — that a PRO user pins the
   deck to from
