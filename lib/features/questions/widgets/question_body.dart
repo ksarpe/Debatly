@@ -11,15 +11,21 @@ import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/fit_or_scroll.dart';
+import '../../../data/models/question_mode.dart';
+import '../../../data/repositories/question_repository.dart' show dateOnlyKey;
+import '../../../services/analytics.dart';
 import '../../account/providers/session_providers.dart';
 import '../../monetization/widgets/day_wall_view.dart';
 import '../providers/challenge_providers.dart';
+import '../providers/mode_providers.dart';
 import '../providers/question_providers.dart';
 import '../providers/swipe_hint_providers.dart';
+import '../screens/modes_screen.dart';
 import 'daily_question_badge.dart';
 import 'daily_vote_panel.dart';
 import 'favorite_star_button.dart';
 import 'go_deeper_button.dart';
+import 'mode_badge.dart';
 import 'new_question_badge.dart';
 import 'share_question_button.dart';
 import 'smaczki_panel.dart';
@@ -152,11 +158,61 @@ class QuestionBody extends ConsumerWidget {
     // link: a back swipe already steps backwards.)
     final showHintAndDeeper = hasRows;
     final showJumpToLatest = ref.watch(canJumpToLatestProvider);
+    // A pinned mode (PRO): every non-daily card wears the mode's pill, and
+    // the foot of the feed carries the one way out — "Wróć do feedu", which
+    // lands on the daily. The daily jump yields to it while a mode is on:
+    // two links that both end on the daily would only muddle the row.
+    final activeMode = ref.watch(activeModeProvider);
+    final modeLabel = hasRows && !isDaily && activeMode != null
+        ? questionModeName(context.l10n, activeMode)
+        : null;
+    final showLeaveMode = activeMode != null && isPremium;
     // The mirror jump: a PRO user somewhere in the catalog gets a one-tap way
     // back to the shared question of the day (the deck keeps it at index 0).
-    final showJumpToDaily = ref.watch(canJumpToDailyProvider);
+    final showJumpToDaily =
+        ref.watch(canJumpToDailyProvider) && activeMode == null;
+    // The one pointer at the modes screen the feed makes: a quiet link under
+    // the voted daily, naming the daily's own topic ("Więcej o związkach →"),
+    // for the local day it first appears on and never again; a tap retires
+    // it. Both tiers: discovery for PRO, the locked tiles (→ paywall) for
+    // free. A link, never a card — the vote → argument → split loop above it
+    // is the part of the first session that works, and stays uninterrupted.
+    final hintStamp = ref.watch(modesHintProvider);
+    final showModesHint =
+        hasRows &&
+        isDaily &&
+        hasVoted &&
+        activeMode == null &&
+        (hintStamp == null || hintStamp == dateOnlyKey(DateTime.now()));
+    if (showModesHint && hintStamp == null) {
+      // First render stamps today — after the frame, never mid-build.
+      final hint = ref.read(modesHintProvider.notifier);
+      WidgetsBinding.instance.addPostFrameCallback((_) => hint.markShown());
+    }
+    // Free leads with the newest, strongest hook (the intimacy mode); PRO,
+    // who can already open it, gets the daily's own topic instead.
+    final modesHintLabel = !showModesHint
+        ? null
+        : isPremium
+        ? questionModesHintLabel(
+            context.l10n,
+            QuestionMode.forCategory(current.category),
+          )
+        : context.l10n.modesHintNew;
+    // The free tier's pull FORWARD: after the daily vote the only way to the
+    // day wall — the model's main conversion surface — used to be a forward
+    // swipe nothing nudges (the hand hint retires after the first swipe ever).
+    // The funnel showed it: far fewer wall arrivals than daily votes. This
+    // link is the swipe's destination as a tap; the wall's own rules (auto
+    // paywall once a day, never a trap) are untouched.
+    final showNextTease = hasRows && isDaily && !isPremium && hasVoted;
     final showOverlay =
-        showHintAndDeeper || showJumpToLatest || showJumpToDaily;
+        showHintAndDeeper ||
+        showJumpToLatest ||
+        showJumpToDaily ||
+        showNextTease ||
+        showLeaveMode ||
+        modesHintLabel != null;
 
     // The smaczki sheet is VOTE-GATED, for both tiers: a counter-argument read
     // before taking a side is just information without a target, and a vote
@@ -253,6 +309,7 @@ class QuestionBody extends ConsumerWidget {
                       questionId: hasRows ? questionId : null,
                       isDaily: isDaily,
                       showNewBadge: showNewBadge,
+                      modeLabel: modeLabel,
                     ),
                   ),
                   // The bottom overlay is a SIBLING of the group above, not a
@@ -266,6 +323,9 @@ class QuestionBody extends ConsumerWidget {
                       showHintAndDeeper: showHintAndDeeper,
                       showJumpToLatest: showJumpToLatest,
                       showJumpToDaily: showJumpToDaily,
+                      showNextTease: showNextTease,
+                      showLeaveMode: showLeaveMode,
+                      modesHintLabel: modesHintLabel,
                       questionId: hasRows ? questionId : null,
                       questionText: hasRows ? current.questionText : null,
                       goDeeperLabel: goDeeperLabel,
@@ -273,7 +333,16 @@ class QuestionBody extends ConsumerWidget {
                       onGoDeeper: questionId == null
                           ? null
                           : hasVoted
-                          ? () => showSmaczkiSheet(context, questionId)
+                          ? () {
+                              // The sheet had no open event of its own, so the
+                              // pill→sheet→paywall(smaczki) step was invisible
+                              // in the funnel.
+                              Analytics.log('smaczki_sheet_opened', {
+                                'post_gate': record != null,
+                                'premium': isPremium,
+                              });
+                              showSmaczkiSheet(context, questionId);
+                            }
                           : () {
                               // Same refusal as a locked card: the arguments
                               // exist, they are just not readable until the
@@ -288,6 +357,24 @@ class QuestionBody extends ConsumerWidget {
                           ref.read(questionIndexProvider.notifier).toLatest(),
                       onJumpToDaily: () =>
                           ref.read(questionIndexProvider.notifier).toDaily(),
+                      onNextTease: () {
+                        // Separate from `wall_reached` (which follows right
+                        // after) so the link's adoption is measurable against
+                        // swipe arrivals.
+                        Analytics.log('wall_link_tapped');
+                        ref.read(dayWallVisibleProvider.notifier).show();
+                      },
+                      onLeaveMode: () {
+                        Analytics.log('mode_cleared', {'from': 'feed'});
+                        ref.read(questionIndexProvider.notifier).leaveMode();
+                      },
+                      onModesHint: () {
+                        Analytics.log('modes_hint_tapped', {
+                          'premium': isPremium,
+                        });
+                        ref.read(modesHintProvider.notifier).dismiss();
+                        openModes(context);
+                      },
                     )
                   else
                     SizedBox(height: bottomInset + 24),
@@ -323,6 +410,7 @@ class _CentredGroup extends StatelessWidget {
     required this.questionId,
     required this.isDaily,
     required this.showNewBadge,
+    required this.modeLabel,
   });
 
   /// Non-null exactly when the question is readable, i.e. when the vote panel
@@ -337,6 +425,10 @@ class _CentredGroup extends StatelessWidget {
   /// Whether the visible question wears the "NOWE" pill (added to the catalog
   /// within the freshness window — see `newQuestionIdsProvider`).
   final bool showNewBadge;
+
+  /// The pinned mode's name for the pill on a non-daily card while a mode is
+  /// active (PRO); null otherwise.
+  final String? modeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -356,7 +448,7 @@ class _CentredGroup extends StatelessWidget {
             minContentHeight: _minGroupHeight(
               context,
               withRows: hasRows,
-              withBadge: isDaily || showNewBadge,
+              withBadge: isDaily || showNewBadge || modeLabel != null,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -366,9 +458,14 @@ class _CentredGroup extends StatelessWidget {
                 // they just appear with the question they label. The daily
                 // wears its identity pill; "NOWE" yields to it on the rare
                 // day the shared pick is also freshly added (two pills would
-                // shove the question down for no extra information).
+                // shove the question down for no extra information). A
+                // pinned mode's pill sits between the two: every non-daily
+                // card in a mode wears it, so "where am I" is never a guess.
                 if (isDaily) ...[
                   const DailyQuestionBadge(),
+                  const SizedBox(height: 16),
+                ] else if (modeLabel != null) ...[
+                  ModeBadge(label: modeLabel!),
                   const SizedBox(height: 16),
                 ] else if (showNewBadge) ...[
                   const NewQuestionBadge(),
@@ -448,6 +545,9 @@ class _BottomOverlay extends StatelessWidget {
     required this.showHintAndDeeper,
     required this.showJumpToLatest,
     required this.showJumpToDaily,
+    required this.showNextTease,
+    required this.showLeaveMode,
+    required this.modesHintLabel,
     required this.questionId,
     required this.questionText,
     required this.goDeeperLabel,
@@ -455,11 +555,26 @@ class _BottomOverlay extends StatelessWidget {
     required this.onGoDeeper,
     required this.onJumpToLatest,
     required this.onJumpToDaily,
+    required this.onNextTease,
+    required this.onLeaveMode,
+    required this.onModesHint,
   });
 
   final bool showHintAndDeeper;
   final bool showJumpToLatest;
   final bool showJumpToDaily;
+
+  /// Free tier, daily voted: the "next question is waiting →" link that walks
+  /// to the day wall without requiring the forward swipe.
+  final bool showNextTease;
+
+  /// PRO with a mode pinned: the "← wróć do feedu" link that unpins it and
+  /// lands on the daily.
+  final bool showLeaveMode;
+
+  /// The once-per-install "więcej o związkach →" link under the voted daily
+  /// (opens the modes screen); null hides it.
+  final String? modesHintLabel;
 
   /// Non-null exactly when the visible question is readable — the share pill
   /// needs its text, the star its id.
@@ -473,6 +588,9 @@ class _BottomOverlay extends StatelessWidget {
   final VoidCallback? onGoDeeper;
   final VoidCallback onJumpToLatest;
   final VoidCallback onJumpToDaily;
+  final VoidCallback onNextTease;
+  final VoidCallback onLeaveMode;
+  final VoidCallback onModesHint;
 
   @override
   Widget build(BuildContext context) {
@@ -547,16 +665,28 @@ class _BottomOverlay extends StatelessWidget {
                   ),
                 ),
               ],
-              if (showJumpToDaily || showJumpToLatest) ...[
+              if (showJumpToDaily ||
+                  showJumpToLatest ||
+                  showNextTease ||
+                  showLeaveMode ||
+                  modesHintLabel != null) ...[
                 if (showHintAndDeeper) const SizedBox(height: 12),
-                // The two feed jumps share a row when both apply (mid-deck,
-                // behind the furthest question) — a Wrap so narrow phones at
-                // large text scales stack them instead of overflowing. The
-                // daily jump points back (index 0), the latest jump forward.
+                // The feed jumps share a row when several apply — a Wrap so
+                // narrow phones at large text scales stack them instead of
+                // overflowing. The daily jump and the mode exit point back
+                // (both end on index 0), the latest jump, the free tier's
+                // wall link and the modes hint point forward.
                 Wrap(
                   alignment: WrapAlignment.center,
                   spacing: 8,
                   children: [
+                    if (showLeaveMode)
+                      _FeedLinkButton(
+                        label: context.l10n.modesBackToFeed,
+                        icon: Icons.close_rounded,
+                        iconAfterLabel: false,
+                        onTap: onLeaveMode,
+                      ),
                     if (showJumpToDaily)
                       _FeedLinkButton(
                         label: context.l10n.backToDailyQuestion,
@@ -570,6 +700,20 @@ class _BottomOverlay extends StatelessWidget {
                         icon: Icons.arrow_forward,
                         iconAfterLabel: true,
                         onTap: onJumpToLatest,
+                      ),
+                    if (showNextTease)
+                      _FeedLinkButton(
+                        label: context.l10n.nextQuestionWaiting,
+                        icon: Icons.arrow_forward,
+                        iconAfterLabel: true,
+                        onTap: onNextTease,
+                      ),
+                    if (modesHintLabel != null)
+                      _FeedLinkButton(
+                        label: modesHintLabel!,
+                        icon: Icons.grid_view_rounded,
+                        iconAfterLabel: true,
+                        onTap: onModesHint,
                       ),
                   ],
                 ),

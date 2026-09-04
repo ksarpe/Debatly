@@ -119,6 +119,11 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
       for (final s in smaczki)
         if (s.position != record.smaczekPosition) s,
     ];
+    // "To mnie ruszyło" is the sheet's emotional peak — the user just felt the
+    // product work on them, and the same header everyone else gets would waste
+    // it. The acknowledged variant makes the flip itself the pitch; the same
+    // honesty arithmetic applies to both (owner-approved copy, 2026-08-31).
+    final moved = record.outcome == ChallengeOutcome.moved;
     final hasDefense = remaining.any(
       (s) =>
           s.isTagged &&
@@ -130,9 +135,13 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
         remaining.length == 2 &&
         hasDefense &&
         hasComplication) {
-      return l10n.smaczkiSheetFreeHeader;
+      return moved
+          ? l10n.smaczkiSheetFreeHeaderMoved
+          : l10n.smaczkiSheetFreeHeader;
     }
-    return l10n.smaczkiSheetFreeHeaderPlain(remaining.length);
+    return moved
+        ? l10n.smaczkiSheetFreeHeaderMovedPlain(remaining.length)
+        : l10n.smaczkiSheetFreeHeaderPlain(remaining.length);
   }
 
   @override

@@ -8,6 +8,7 @@ import '../../../core/startup/supabase_init_provider.dart';
 import '../../../data/models/conformity_stats.dart';
 import '../../../data/models/debate_profile.dart';
 import '../../../data/models/question.dart';
+import '../../../data/models/question_mode.dart';
 import '../../../data/models/smaczek.dart';
 import '../../../data/models/vote_history_entry.dart';
 import '../../../data/models/vote_result.dart';
@@ -150,6 +151,29 @@ final furthestIndexProvider = NotifierProvider<FurthestIndexNotifier, int>(
   FurthestIndexNotifier.new,
 );
 
+/// The mode the feed is pinned to (PRO only — the tiles are locked for free),
+/// or null for the plain catalog. A session-only filter over the loaded
+/// pool: [questionDeckProvider] keeps the daily at index 0 and follows it
+/// with the mode's questions in the usual unseen-first order, so nothing is
+/// fetched or recorded differently and a question voted inside a mode is
+/// archived exactly like one met in the plain feed. In-memory on purpose —
+/// a relaunch opens on the whole catalog, two taps re-pin it.
+///
+/// A plain holder: pin and unpin through [QuestionDeckNotifier.enterMode] /
+/// [QuestionDeckNotifier.leaveMode], which also move the reader. (The deck
+/// depends on this provider, so the index notifier can reach down to it —
+/// the reverse would be a dependency cycle.)
+class ActiveModeNotifier extends Notifier<QuestionMode?> {
+  @override
+  QuestionMode? build() => null;
+
+  void set(QuestionMode? mode) => state = mode;
+}
+
+final activeModeProvider = NotifierProvider<ActiveModeNotifier, QuestionMode?>(
+  ActiveModeNotifier.new,
+);
+
 /// Tracks which question in the loaded list is currently shown.
 ///
 /// The "wind" swipe simply advances this index; the view animates the text
@@ -210,6 +234,27 @@ class QuestionDeckNotifier extends Notifier<int> {
   /// (see [questionDeckProvider]) — used on an identity switch so a fresh user
   /// starts at their own daily.
   void toDaily() => state = 0;
+
+  /// Pins the deck to [mode] and lands on its first question — index 1,
+  /// right after the daily the deck keeps at 0 — or stays on the daily when
+  /// the mode holds nothing yet (pool still loading, or empty for this
+  /// catalog). The furthest-reached marker is dropped first: it referred to
+  /// positions in a deck that no longer exists.
+  void enterMode(QuestionMode mode) {
+    ref.read(activeModeProvider.notifier).set(mode);
+    ref.read(furthestIndexProvider.notifier).reset();
+    state = _length > 1 ? 1 : 0;
+    _bumpFurthest();
+  }
+
+  /// Unpins the mode and lands on the daily — "Wróć do feedu", and the reset
+  /// on an identity switch or a premium lapse. A no-op with no mode pinned.
+  void leaveMode() {
+    if (ref.read(activeModeProvider) == null) return;
+    ref.read(activeModeProvider.notifier).set(null);
+    ref.read(furthestIndexProvider.notifier).reset();
+    state = 0;
+  }
 
   /// Jumps forward to the furthest question reached this session — the "undo"
   /// for a run of back swipes.
@@ -453,6 +498,12 @@ final questionDeckProvider = Provider<List<Question>>((ref) {
   }
 
   final pool = ref.watch(questionsProvider).asData?.value ?? const <Question>[];
+  // A pinned mode narrows the catalog to its categories; the daily stays at
+  // index 0 either way (the shared moment, and the anchor toDaily /
+  // isShowingDaily rely on). A filter, not a different fetch: the same seen
+  // flags order it, so nothing voted inside a mode escapes the archive.
+  final mode = ref.watch(activeModeProvider);
+  final scoped = mode == null ? pool : pool.where(mode.includes).toList();
   final seed = ref.watch(deckShuffleSeedProvider);
 
   // Order unseen-before-seen, shuffling each group with the per-launch seed:
@@ -470,10 +521,10 @@ final questionDeckProvider = Provider<List<Question>>((ref) {
     return [...unseen, ...seen];
   }
 
-  if (daily == null) return withDevPin(orderedUnseenFirst(pool));
+  if (daily == null) return withDevPin(orderedUnseenFirst(scoped));
   return withDevPin([
     daily,
-    ...orderedUnseenFirst(pool.where((q) => q.id != daily.id)),
+    ...orderedUnseenFirst(scoped.where((q) => q.id != daily.id)),
   ]);
 });
 
@@ -548,9 +599,12 @@ final dayWallVisibleProvider = NotifierProvider<DayWallVisibleNotifier, bool>(
 );
 
 /// Teaser of the next question waiting behind the wall — the first few words
-/// the server is willing to show a free user (see `peek_next_question`, a pure
-/// read that consumes nothing). Excludes the served daily so the wall never
-/// teases the question sitting right behind the back swipe.
+/// of TOMORROW'S daily pick, for everyone (see `peek_next_question`, a pure
+/// read that consumes nothing; since 20260902120000 the pick branch has no
+/// per-user filter, so this is the same cut tomorrow's reminder bakes and
+/// the wall's "Jutro: „…” — przypomnę Ci" line can name it). A gap date falls
+/// back to a random unvoted question. Excludes the served daily so the wall
+/// never teases the question sitting right behind the back swipe.
 ///
 /// Deliberately NOT autoDispose: QuestionBody warms it while the free user is
 /// still on the feed, so the wall arrives with the teaser already readable

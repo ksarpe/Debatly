@@ -85,6 +85,27 @@ void main() {
     test('an early-morning slot is unaffected by an evening session', () {
       expect(silence(hour: 8, now: at(20, 0)), isNull);
     });
+
+    test('tomorrow\'s slot is dropped when a post-midnight time puts it '
+        'within the window of an evening session', () {
+      // 23:00 session, reminder set to 01:00 — today's 01:00 is long past, but
+      // tomorrow's fires two hours after the user put the phone down.
+      final now = at(23, 0);
+      final tomorrowSlot = DateTime(now.year, now.month, now.day + 1, 1, 0);
+      expect(reminderSlotInQuietWindow(now: now, fireAt: tomorrowSlot), isTrue);
+    });
+
+    test('a far slot is never inside the window', () {
+      final now = at(23, 0);
+      final farSlot = DateTime(now.year, now.month, now.day + 5, 1, 0);
+      expect(reminderSlotInQuietWindow(now: now, fireAt: farSlot), isFalse);
+    });
+
+    test('a passed moment is not "inside the window"', () {
+      final now = at(21, 0);
+      final passed = DateTime(now.year, now.month, now.day, 20, 0);
+      expect(reminderSlotInQuietWindow(now: now, fireAt: passed), isFalse);
+    });
   });
 
   group('cadence', () {

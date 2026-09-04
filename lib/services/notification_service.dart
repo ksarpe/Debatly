@@ -50,6 +50,10 @@ class NotificationService {
   static bool _initialised = false;
   static bool get isInitialised => _initialised;
 
+  /// The zone identifier `tz.local` currently points at, so re-detection can
+  /// skip the (string-keyed) location lookup when nothing changed.
+  static String? _tzIdentifier;
+
   /// Legacy id of the old single repeating reminder. Kept only so we can cancel
   /// any lingering schedule left by a previous app version when we re-arm.
   static const int _legacyDailyReminderId = 1001;
@@ -88,14 +92,7 @@ class NotificationService {
       // Timezone DB + the device's local zone, so a daily wall-clock time fires
       // at the right local moment regardless of where the user is.
       tzdata.initializeTimeZones();
-      try {
-        final info = await FlutterTimezone.getLocalTimezone();
-        tz.setLocalLocation(tz.getLocation(info.identifier));
-      } catch (e) {
-        // Falls back to UTC (the timezone package default) — the reminder still
-        // fires daily, just anchored to UTC rather than the device zone.
-        debugPrint('NotificationService: timezone detect failed — $e');
-      }
+      await _syncLocalTimezone();
 
       const android = AndroidInitializationSettings('@mipmap/ic_launcher');
       // Don't ask for permission at init — we request it contextually when the
@@ -133,6 +130,25 @@ class NotificationService {
       _initialised = true;
     } catch (e) {
       debugPrint('NotificationService: init failed — $e');
+    }
+  }
+
+  /// Points `tz.local` at the device's CURRENT zone. Runs at init and again on
+  /// every re-arm: the process can outlive a flight across timezones, and a
+  /// loop scheduled against a stale `tz.local` fires at the wrong local hour
+  /// (and hands `teaserForOffset` dates one day off from the real fire day).
+  ///
+  /// Best-effort — on failure `tz.local` keeps whatever it had (UTC on a
+  /// never-succeeded detect), which still fires daily, just not anchored to
+  /// the device zone.
+  static Future<void> _syncLocalTimezone() async {
+    try {
+      final info = await FlutterTimezone.getLocalTimezone();
+      if (info.identifier == _tzIdentifier) return;
+      tz.setLocalLocation(tz.getLocation(info.identifier));
+      _tzIdentifier = info.identifier;
+    } catch (e) {
+      debugPrint('NotificationService: timezone detect failed — $e');
     }
   }
 
@@ -271,6 +287,9 @@ class NotificationService {
     build,
   }) async {
     if (!_initialised) return 0;
+    // The device zone may have changed since init (travel with the app
+    // resident) — every re-arm re-anchors the loop to the current one.
+    await _syncLocalTimezone();
     var armed = 0;
     try {
       await _cancelManaged();

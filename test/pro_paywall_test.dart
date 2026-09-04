@@ -108,19 +108,28 @@ void main() {
     // The brand label anchors the top-left of the sheet.
     expect(find.text('DEBATLY PRO'), findsOneWidget);
 
-    // Streak 0 → the default slogan headline, with the catalog pitch under it.
+    // Streak 0 → the default slogan headline, with the catalog pitch under
+    // it — which names the modes, the intimacy one by its topic label.
     expect(find.text('BEZ LIMITU.\nBEZ KOŃCA.\nGLOBALNIE.'), findsOneWidget);
     expect(
       find.text(
-        '500+ pytań, wszystkie argumenty ZA i PRZECIW, cała Twoja '
-        'historia głosów.',
+        'Setki pytań w 5 trybach, w tym Seks i intymność. Wszystkie argumenty '
+        'ZA i PRZECIW, cała Twoja historia.',
       ),
       findsOneWidget,
     );
 
-    // The four feature rows, arguments second — the one differentiator no
-    // competitor has, so it must sit right under the daily-limit row.
+    // The five feature rows: the daily limit, then the modes (what the
+    // catalog now looks like), then the arguments — the one differentiator
+    // no competitor has.
     expect(find.text('Pytania bez limitu dziennego'), findsOneWidget);
+    expect(
+      find.text(
+        'Tryby: Seks i intymność, Związki, Rodzina, Kasa i praca, '
+        'Społeczeństwo',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Wszystkie argumenty, nie pierwszy'), findsOneWidget);
     expect(find.text('Historia i ulubione na zawsze'), findsOneWidget);
     // Offline, not "zero ads": the free tier has no ads either, so selling
@@ -167,7 +176,7 @@ void main() {
       );
       expect(find.text('BEZ LIMITU.\nBEZ KOŃCA.\nGLOBALNIE.'), findsNothing);
       // Subline, plans and CTA stay the shared copy.
-      expect(find.textContaining('500+ pytań'), findsOneWidget);
+      expect(find.textContaining('Setki pytań'), findsOneWidget);
       expect(find.text('ODBLOKUJ PEŁNY DOSTĘP'), findsOneWidget);
     },
   );
@@ -187,21 +196,25 @@ void main() {
     expect(find.text('BEZ LIMITU.\nBEZ KOŃCA.\nGLOBALNIE.'), findsOneWidget);
     expect(
       find.text(
-        '500+ pytań, wszystkie argumenty ZA i PRZECIW, cała Twoja '
-        'historia głosów.',
+        'Setki pytań w 5 trybach, w tym Seks i intymność. Wszystkie argumenty '
+        'ZA i PRZECIW, cała Twoja historia.',
       ),
       findsOneWidget,
     );
 
     // The feature list order is fixed regardless of source: catalog first,
-    // then the arguments row.
+    // the modes row, then the arguments row.
     final catalogY = tester
         .getTopLeft(find.text('Pytania bez limitu dziennego'))
+        .dy;
+    final modesY = tester
+        .getTopLeft(find.textContaining('Tryby: Seks i intymność'))
         .dy;
     final smaczkiY = tester
         .getTopLeft(find.text('Wszystkie argumenty, nie pierwszy'))
         .dy;
-    expect(catalogY, lessThan(smaczkiY));
+    expect(catalogY, lessThan(modesY));
+    expect(modesY, lessThan(smaczkiY));
   });
 
   testWidgets('lifetime card carries the months-of-subscription comparison', (

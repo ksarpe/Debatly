@@ -107,6 +107,42 @@ zgłasza całą paczkę do zatwierdzenia, `approver` publikuje. Błąd na jednym
 pytaniu nie przerywa reszty — wiersz zostaje na czerwono z komunikatem i można
 go ponowić.
 
+## Pytania dnia (zakładka „Pytania dnia”, `/daily`)
+
+Kalendarz `daily_picks` — jedno pytanie na dzień dla całego świata. Zakładka
+pokazuje okno 45 dni (strzałki + skok do daty), a przy każdym dniu to, czego
+potrzeba do oceny pytania: kategorię, liczbę smaczków (i ile bez strony),
+liczbę **prawdziwych głosów** (tylu użytkowników zobaczy od razu wyniki zamiast
+przycisków) oraz gwiazdkę/ptaszka. Dzień bez wpisu też jest widoczny — wtedy
+każdy dostaje losowanie osobiste.
+
+**Dziś i jutro są zablokowane, pierwszy edytowalny dzień to pojutrze.**
+Dzisiejsze pytanie jest już na ekranach i w `user_daily_questions`; jutrzejsze
+też zdążyło wyjść w świat — `get_daily_question` przycina datę do UTC ±1 (więc
+telefon w UTC+13 ma już przypisane jutro), ściana dnia pokazuje jego zapowiedź,
+a pętla przypomnień wpisała jego 4-słowną zapowiedź w powiadomienia, które już
+leżą na telefonach. Podłogi pilnuje baza, nie interfejs.
+
+Wybierasz dzień (klik w wiersz), szukasz pytania i klikasz przy nim przycisk:
+
+- pytanie, które **ma już swój dzień** → **Zamień**: dwie daty zamieniają się
+  miejscami,
+- pytanie **spoza kalendarza** → **Wstaw**: wchodzi na wybrany dzień, a
+  dotychczasowe ląduje **na końcu kalendarza** (nie wypada z rotacji).
+
+Nigdy nie robimy dziury w kalendarzu, bo `compact_daily_picks()` (cron 02:47
+UTC) ściąga przyszłe pytania na kolejne dni — jedna dziura przesuwa **wszystkie
+późniejsze daty o dzień** i po cichu odpina dzień, który właśnie przypiąłeś pod
+reklamę. Z tego samego powodu zakładka krzyczy, gdy w kalendarzu są nieaktywne
+przyszłe pytania, i daje przycisk **„Uporządkuj teraz”** — lepiej przesunąć
+daty świadomie teraz niż odkryć to rano.
+
+Podmiana wymaga roli `approver` (publikuje się na cały świat, tak jak
+zatwierdzenie pytania) i jest zapisywana w `admin_audit_log`, więc widać ją też
+w historii obu pytań. Panel wysyła przy zapisie pytanie, które miał na ekranie —
+jeśli w międzyczasie ktoś zmienił ten dzień, zapis jest odrzucany zamiast
+nadpisać cudzą zmianę.
+
 ## Historia
 
 Każda zatwierdzona zmiana trafia do `admin_audit_log` ze stanem przed i po —

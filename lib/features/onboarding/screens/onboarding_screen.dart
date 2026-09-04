@@ -6,7 +6,6 @@ import '../../../services/analytics.dart';
 import '../widgets/onboarding_bridge_card.dart';
 import '../widgets/onboarding_dots.dart';
 import '../widgets/onboarding_intro_card.dart';
-import '../widgets/onboarding_notifications_card.dart';
 import '../widgets/onboarding_primary_button.dart';
 import '../widgets/spark_logo.dart';
 import '../widgets/taste_vote_card.dart';
@@ -14,10 +13,14 @@ import '../widgets/taste_vote_card.dart';
 /// The first-launch tutorial: a swipeable deck that welcomes the user, lands
 /// them straight on real questions to vote on (with a taste of the smaczki
 /// behind them), then explains the freemium model on the bridge card — one
-/// free question a day, forever; the paywall sheet only if THEY ask — and
-/// asks for the daily reminder. Reaching the end hands over to the home gate,
-/// which for every tier is the feed with today's daily. No wall anywhere in
-/// this flow.
+/// free question a day, forever; the paywall sheet only if THEY ask. Reaching
+/// the end hands over to the home gate, which for every tier is the feed with
+/// today's daily. No wall anywhere in this flow.
+///
+/// There is deliberately NO reminder ask here either (there was one — "Hej,
+/// jeszcze jedno" — and 18% said yes, asked before they had felt anything).
+/// The opt-in lives on the day wall, right after the first vote, where it can
+/// name tomorrow's question: see `WallReminderAsk`.
 ///
 /// There is deliberately NO account step here: the session starts anonymously
 /// on its own, sign-in for returning PRO users lives as a link on the paywall,
@@ -58,11 +61,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     curve: OnboardingIntroCard.ctaRevealInterval,
   );
 
-  /// Index of the taste-vote page / the bridge / the notifications page in
-  /// the deck. Set from the page list each build (constant in practice).
+  /// Index of the taste-vote page / the bridge (the last card) in the deck.
+  /// Set from the page list each build (constant in practice).
   int _votePageIndex = 0;
   int _bridgePageIndex = 0;
-  int _notifyPageIndex = 0;
 
   /// Funnel steps already reported, so swiping back and forth doesn't re-count
   /// a page as "reached" twice.
@@ -109,9 +111,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   /// card, which is the only place that knows when round two starts.)
   void _onPageChanged(int i) {
     setState(() => _index = i);
-    if (i == _notifyPageIndex) {
-      _logStep('onboarding_notify_shown');
-    } else if (i == _bridgePageIndex) {
+    if (i == _bridgePageIndex) {
       _logStep('bridge_shown');
     } else if (i == _votePageIndex) {
       _logStep('onboarding_taste_shown');
@@ -176,21 +176,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     // Having just lived the loop twice, the user gets the model explained on
     // the bridge: one free question a day forever, the whole catalog behind
     // the (dismissible) paywall sheet — and the free path is the louder
-    // button. It carries its own CTAs, so the deck's shared "Next" hides.
-    final bridgePage = OnboardingBridgeCard(onContinue: _next);
-
-    // Straight after the aha, while the app still feels fresh, we ask to turn on
-    // the daily reminder. The card carries its own buttons (Enable / Not now),
-    // both of which end the tutorial — the feed with today's daily is next.
-    final notifyPage = OnboardingNotificationsCard(
+    // button. It carries its own CTAs, so the deck's shared "Next" hides, and
+    // it is the last card: both paths off it end the tutorial — the feed with
+    // today's daily is next.
+    final bridgePage = OnboardingBridgeCard(
       onContinue: () => _finish('direct'),
     );
 
     _votePageIndex = introCards.length;
     _bridgePageIndex = introCards.length + 1;
-    _notifyPageIndex = introCards.length + 2;
 
-    final pageCount = _notifyPageIndex + 1;
+    final pageCount = _bridgePageIndex + 1;
 
     return Scaffold(
       backgroundColor: context.colors.background,
@@ -220,26 +216,21 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       onPageChanged: _onPageChanged,
                       // From the taste-vote page onward the deck is one-way and
                       // button-driven: swiping is disabled on the vote page (a
-                      // gate, not a slide) AND on the bridge/notifications pages
-                      // — swiping back from there would rebuild the taste card
-                      // and restart the whole two-question loop. Each of those
-                      // pages carries its own "Continue", so swipe is only ever
-                      // needed on the intro card(s) before the vote.
+                      // gate, not a slide) AND on the bridge — swiping back
+                      // from there would rebuild the taste card and restart
+                      // the whole two-question loop. Both pages carry their
+                      // own "Continue", so swipe is only ever needed on the
+                      // intro card(s) before the vote.
                       physics: _index >= _votePageIndex
                           ? const NeverScrollableScrollPhysics()
                           : null,
-                      children: [
-                        ...introCards,
-                        votePage,
-                        bridgePage,
-                        notifyPage,
-                      ],
+                      children: [...introCards, votePage, bridgePage],
                     ),
                   ),
                   // Progress dots + the "Let's begin" CTA on the pages that are pure
                   // copy (the welcome card); the taste-vote page (its
-                  // "Continue" revealed after voting), the bridge (its own two
-                  // CTAs) and the notifications page carry their own buttons.
+                  // "Continue" revealed after voting) and the bridge (its own
+                  // two CTAs) carry their own buttons.
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
                     child: Column(
@@ -251,8 +242,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           curve: Curves.easeOut,
                           child:
                               (_index == _votePageIndex ||
-                                  _index == _bridgePageIndex ||
-                                  _index == _notifyPageIndex)
+                                  _index == _bridgePageIndex)
                               ? const SizedBox(width: double.infinity)
                               : AnimatedBuilder(
                                   animation: _ctaIn,

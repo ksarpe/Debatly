@@ -46,6 +46,10 @@ Future<bool> showProPaywall(
   // route pops (the smaczki sheet closes behind it), and the container is what
   // tells a confirmed purchase apart from a pending one afterwards.
   final container = ProviderScope.containerOf(context, listen: false);
+  // This open hasn't rendered an offering yet. Reset here, not in the
+  // content's initState — that runs mid-build, where Riverpod (rightly)
+  // refuses provider writes. See [paywallOfferSeenProvider].
+  container.read(paywallOfferSeenProvider.notifier).reset();
   final result = await Navigator.of(context).push<bool>(
     MaterialPageRoute<bool>(
       fullscreenDialog: true,
@@ -74,6 +78,9 @@ Future<bool> showProPaywall(
   if (!purchased) {
     Analytics.log('paywall_dismissed', {
       'source': source.name,
+      // Same split as `paywall_shown`: without it an auto-open's instant
+      // bounce and a user-initiated close were indistinguishable here.
+      'trigger': trigger,
       'seconds_visible': DateTime.now().difference(openedAt).inSeconds,
     });
   }

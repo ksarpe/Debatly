@@ -7,21 +7,25 @@ import '../../../core/layout/content_width.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/monitoring/monitoring.dart';
 import '../../../core/network/connectivity_providers.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../services/question_cache.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/providers/stats_providers.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../settings/widgets/reminder_refresh_watcher.dart';
+import '../providers/mode_providers.dart';
 import '../providers/question_providers.dart';
 import '../widgets/challenge_session_watcher.dart';
 import '../widgets/conformity_panel.dart';
 import '../widgets/daily_rollover_watcher.dart';
 import '../widgets/load_error.dart';
+import '../widgets/modes_showcase.dart' show modesIconKey;
 import '../widgets/offline_banner.dart';
 import '../widgets/question_body.dart';
 import '../widgets/rank_up_sheet.dart';
 import '../widgets/stat_chips.dart';
 import '../widgets/streak_up_celebration.dart';
+import 'modes_screen.dart';
 
 /// The home screen: a single styled question centred on a clean canvas, with a
 /// settings gear top-right and a small info icon just above the question.
@@ -119,7 +123,8 @@ class QuestionScreen extends ConsumerWidget {
       ref.invalidate(conformityStatsProvider);
       ref.invalidate(debateProfileProvider);
       // Snap back to the daily so a new user never inherits the previous
-      // user's position in the deck.
+      // user's position in the deck — nor the previous user's pinned mode.
+      ref.read(questionIndexProvider.notifier).leaveMode();
       ref.read(questionIndexProvider.notifier).toDaily();
       ref.read(furthestIndexProvider.notifier).reset();
     });
@@ -173,6 +178,10 @@ class QuestionScreen extends ConsumerWidget {
     ref.listen(isPremiumProvider, (wasPremium, isPremium) {
       if (wasPremium == true && isPremium == false) {
         ref.read(questionCacheProvider).clearContent();
+        // A mode is a PRO filter over a pool that has just emptied — leave
+        // it set and the free feed would wear the badge and the exit link
+        // for nothing.
+        ref.read(questionIndexProvider.notifier).leaveMode();
       }
       // Either flip rebuilds the deck into a different shape (free feed vs full
       // catalog), so the furthest-reached position no longer refers to the same
@@ -215,6 +224,10 @@ class QuestionScreen extends ConsumerWidget {
     // Zero on phones; on wider screens it is how far the capped question column
     // sits from each edge, which the app-bar icons follow.
     final gutter = horizontalGutter(context);
+    // Tints the modes icon while the feed is pinned to a topic; the "new"
+    // dot rides on it until the modes screen has been opened once.
+    final activeMode = ref.watch(activeModeProvider);
+    final modesSeen = ref.watch(modesSeenProvider);
 
     return Scaffold(
       // Let the body fill the whole screen so the question centres against the
@@ -259,6 +272,45 @@ class QuestionScreen extends ConsumerWidget {
         // anonymous identity); securing the account is a clearly-labelled
         // action INSIDE the profile, not a gate in front of it.
         actions: [
+          // The modes entry: a small four-tile glyph next to the profile icon,
+          // the same weight as the rest of the bar so the question canvas
+          // stays untouched; lit in the spark while a mode is pinned.
+          IconButton(
+            // The showcase cuts its spotlight around this key.
+            key: modesIconKey,
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  Icons.grid_view_rounded,
+                  size: 21,
+                  color: activeMode == null ? null : AppTheme.spark,
+                ),
+                // A spark dot in the corner until the screen is opened
+                // once — the standard "something new here" mark, and the
+                // only thing on the feed that says the icon is worth a tap.
+                if (!modesSeen)
+                  Positioned(
+                    top: -3,
+                    right: -4,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: AppTheme.spark,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: context.colors.background,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            tooltip: context.l10n.modesTooltip,
+            onPressed: () => openModes(context),
+          ),
           IconButton(
             icon: const Icon(Icons.person_outline),
             tooltip: context.l10n.settingsTooltip,

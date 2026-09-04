@@ -16,10 +16,13 @@ import '../../../services/reminder_scheduler.dart';
 import '../../../services/supabase_service.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/screens/auth_screen.dart';
+import '../../account/widgets/auth_segmented_tabs.dart' show AuthMode;
 import '../../account/widgets/restore_sign_in_prompt.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
 import '../../monetization/widgets/purchase_settlement.dart';
 import '../../questions/providers/favorites_providers.dart';
+import '../../questions/providers/question_providers.dart'
+    show questionRepositoryProvider;
 import '../../questions/widgets/suggest_question_sheet.dart';
 import '../providers/app_info_provider.dart';
 import '../providers/dev_tools_providers.dart';
@@ -225,7 +228,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   /// Shows the PRO paywall, then refreshes the session so the gate sees
   /// the upgrade immediately.
   Future<void> _openPaywall() async {
-    final purchased = await showProPaywall(context);
+    final purchased = await showProPaywall(
+      context,
+      source: PaywallSource.settings,
+    );
     if (!mounted) return;
     if (purchased) {
       // Premium is claimed only once the entitlement is really there — a
@@ -390,7 +396,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     }
   }
 
-  void _openAuth() => showAuthSheet(context);
+  /// Opens the auth sheet on the REGISTER tab. The button says "secure
+  /// account", and only registering (email/password `updateUser`, social
+  /// `linkIdentityWithIdToken`) upgrades the anonymous user in place — same
+  /// UUID, so the streak, votes, favourites and PRO survive. The sign-in tab
+  /// stays one tap away for a genuine "sign back in", but it must not be the
+  /// default: email/password sign-in REPLACES the session and strands the
+  /// guest profile, and a guest with months of votes who picks "sign in"
+  /// because that is what the sheet opened on has no way back.
+  void _openAuth() => showAuthSheet(context, initialMode: AuthMode.register);
 
   /// Opens the "Suggest a question" sheet — the user's idea lands in the
   /// team's review inbox, not in the catalog.
@@ -582,6 +596,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     // the strings for `picked` directly rather than via `context.l10n`, which
     // won't reflect the switch until the next frame.
     final l10n = await AppLocalizations.delegate.load(picked);
+    // The scheduler reads teasers from the cache, and the cache has never been
+    // written for a language the app hasn't run in — top it up first
+    // (best-effort, mirroring ReminderRefreshWatcher) or a whole month of
+    // slots falls back to evergreen copy until the next resume.
+    if (mounted) {
+      try {
+        await ref.read(questionRepositoryProvider).fetchUpcomingDailyTeasers();
+      } catch (_) {
+        // Offline is fine — the loop builds from whatever the cache holds.
+      }
+    }
     await rescheduleReminderLoop(prefs: prefs, l10n: l10n);
   }
 

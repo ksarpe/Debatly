@@ -164,13 +164,11 @@ void main() {
     await tapLabel('CO JESZCZE MACIE?');
     await settle();
 
-    // The bridge (the conversion moment every user now reaches) → free path.
+    // The bridge (the conversion moment every user now reaches) is the last
+    // card: its free path closes the deck. (The reminder ask that used to
+    // follow lives on the day wall now.)
     expect(find.text('TO BYŁY DWA — A ZOSTAŁY JESZCZE SETKI'), findsOneWidget);
     await tapLabel('ODBIERZ DZISIEJSZE PYTANIE');
-    await settle();
-
-    // The reminder ask closes the deck; declining still finishes onboarding.
-    await tapLabel('MOŻE PÓŹNIEJ');
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
@@ -292,6 +290,43 @@ void main() {
     expect(find.text('SESJA GOŚCIA'), findsOneWidget);
     expect(find.text('Premium aktywne'), findsOneWidget);
     expect(find.text('ZABEZPIECZ KONTO'), findsOneWidget);
+  });
+
+  testWidgets('Settings "secure account" opens the auth sheet on REGISTER', (
+    WidgetTester tester,
+  ) async {
+    // The button promises to SECURE the guest profile, and only registering
+    // keeps the anonymous UUID (the user is upgraded in place). Opening on the
+    // sign-in tab pointed a guest with months of votes at the one action that
+    // replaces the session and strands everything. Sign-in stays reachable as
+    // the secondary tab.
+    final prefs = await _mockPrefs();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          sessionProvider.overrideWith(() => FakeSession(guestSession())),
+        ],
+        child: const LocalizedTestApp(home: SettingsScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('ZABEZPIECZ KONTO'));
+    await tester.pumpAndSettle();
+
+    // Register-tab markers: the join headline, the confirm-password field and
+    // the terms line only exist there.
+    expect(find.text('DOŁĄCZ DO DEBATLY'), findsOneWidget);
+    expect(find.text('POWTÓRZ HASŁO'), findsOneWidget);
+    expect(
+      find.text(
+        'Kontynuując, akceptujesz Regulamin oraz Politykę prywatności.',
+      ),
+      findsOneWidget,
+    );
+    // The sign-in tab is still there as the secondary path.
+    expect(find.text('ZALOGUJ SIĘ'), findsOneWidget);
   });
 
   testWidgets('Premium user can open the Manage subscription sheet', (

@@ -106,6 +106,20 @@ enum ReminderSilence {
   quietWindow,
 }
 
+/// Whether a slot firing at [fireAt] lands inside [kReminderQuietWindow] of
+/// [now] — and every caller of the scheduler IS a session, so "now" is the
+/// moment the user was last in the app.
+///
+/// Takes the fire moment rather than assuming today because the window is
+/// about proximity to the session, not about the calendar day: a reminder time
+/// shortly after midnight puts TOMORROW's slot within hours of an evening
+/// session — exactly the redundant ping the window exists to drop. A moment
+/// already past is not "inside the window"; the scheduler never arms it anyway.
+bool reminderSlotInQuietWindow({
+  required DateTime now,
+  required DateTime fireAt,
+}) => fireAt.isAfter(now) && fireAt.difference(now) < kReminderQuietWindow;
+
 /// Whether today's slot should stay silent rather than carry a message, and why.
 ///
 /// PRO keeps its post-vote nudge — the catalog is still there to open — so the
@@ -122,7 +136,7 @@ ReminderSilence? todaysReminderSilence({
 }) {
   if (votedToday && !isPremium) return ReminderSilence.votedFree;
   final slot = DateTime(now.year, now.month, now.day, hour, minute);
-  if (slot.isAfter(now) && slot.difference(now) < kReminderQuietWindow) {
+  if (reminderSlotInQuietWindow(now: now, fireAt: slot)) {
     return ReminderSilence.quietWindow;
   }
   return null;
@@ -206,13 +220,23 @@ Future<void> rescheduleReminderLoop({
     dayOffsets: kReminderLoopOffsets,
     build: (dayOffset) {
       final horizon = ReminderHorizon.fromDayOffset(dayOffset);
-      // Only today's slot can be silenced — a later one is a fresh daily that
-      // nobody has spent yet.
+      // Only today's slot can be spent by a vote — a later one is a fresh
+      // daily that nobody has spent yet.
       if (horizon == ReminderHorizon.today && silence != null) return null;
+      // The quiet window applies to ANY slot near this session, not just
+      // today's: a post-midnight reminder time puts tomorrow's slot within
+      // hours of an evening session.
+      final fireAt = DateTime(
+        today.year,
+        today.month,
+        today.day + dayOffset,
+        reminder.hour,
+        reminder.minute,
+      );
+      if (reminderSlotInQuietWindow(now: today, fireAt: fireAt)) return null;
       // The daily this slot actually fires ON, not today's — offset N lands on
       // day N, where day N's pick is the question in the feed.
       final teaser = teaserForOffset(teasers, today, dayOffset);
-      if (teaser != null) withTeaser++;
       final message = buildReminderMessage(
         l10n: l10n,
         stats: stats,
@@ -222,8 +246,14 @@ Future<void> rescheduleReminderLoop({
         horizon: horizon,
         disagreePct: disagreePct,
         teaser: teaser,
+        // By fire day the user has been absent `dayOffset` days (the re-arm
+        // invariant), so decay is fact exactly from the threshold on.
+        rankDecayUnderway: dayOffset >= kRankDecayMissedDays,
         random: random,
       );
+      // Count (and report) the teaser only when the draw actually picked it —
+      // availability isn't the claim `has_teaser` makes downstream.
+      if (message.usedTeaser) withTeaser++;
       return (
         title: message.title,
         body: message.body,
@@ -231,7 +261,7 @@ Future<void> rescheduleReminderLoop({
         payload: encodeReminderPayload(
           horizon: horizon,
           dayOffset: dayOffset,
-          hasTeaser: teaser != null,
+          hasTeaser: message.usedTeaser,
         ),
       );
     },

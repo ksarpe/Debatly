@@ -29,7 +29,16 @@ surface.
   reintroduce ad reveals.
 - **The daily is GLOBAL again (2026-08-20): `daily_picks`.** An owner-curated
   calendar table — one question pinned per date (question UNIQUE — a question
-  is the daily at most once), written only via SQL editor/service_role.
+  is the daily at most once), written from the admin panel's **Pytania dnia**
+  tab (`admin_set_daily_pick`, approver only) or the SQL editor/service_role.
+  **The panel refuses anything before UTC today+2** — today's pick is on
+  screens, and tomorrow's is published too (the ±1 clamp lets a UTC+13 device
+  hold it, the day wall teases it, the reminder loop baked it into
+  notifications already sitting on phones). A swap exchanges two dates in
+  place; replacing a date parks the displaced question at the END of the
+  calendar — never a hole, because one hole makes `compact_daily_picks()` pull
+  every later pick a day earlier and silently un-pin the date somebody chose
+  for an ad day (20260831120000).
   Seeded 2026-08-21 → 2027-11-15 with 452 picks (every active question with
   zero real votes + every one whose only votes were premium/tester accounts),
   categories round-robined; the owner appends. **Deactivating a pick's
@@ -60,21 +69,81 @@ surface.
   najnowszego" (`canJumpToDailyProvider` → `toDaily()`).
 - **The free deck is `[daily]`.** A forward swipe off it shows the day wall:
   blurred teaser of the next question (`peek_next_question` — a pure read,
-  first 4 words, consumes nothing; since 2026-08-20 it teases TOMORROW'S
-  pick, falling back to a random unvoted question), live countdown to LOCAL
+  first 4 words, consumes nothing; it teases TOMORROW'S pick **for everyone,
+  no per-user exclusions** since 20260902120000 — the wall's reminder line
+  names it, and the reminder that fires must name the same question — and
+  falls back to a random unvoted question only on a gap date; offline the
+  caching repo serves tomorrow's row of the cached teaser calendar), live
+  countdown to LOCAL
   midnight and the unlock CTA (the streak stays in the app-bar chip). Back
   swipe or system back return to the daily — the wall intercepts back. Never
   a trap.
+- **Modes (2026-09-02, `QuestionMode`):** five client-side groupings of
+  `questions.category` — **Seks i intymność** (`Intimacy`, always the FIRST
+  row, ember-shimmer border + flame glyph; a TOPIC label on purpose, never
+  "+18": the 3+/14+ store ratings rest on the content being text-only mature
+  discussion, and a self-applied adult badge claims a rating the content
+  doesn't need; its questions are PRO-only and must never become the daily —
+  `is_daily_eligible_category()` (20260904120000) fences it out of
+  `daily_picks` (row trigger + `QUESTION_EXCLUDED` from the admin RPC), the
+  personal fallback draw, the wall teaser and the legacy reveals; the admin
+  category list has it since the same day), Związki
+  (Relationships+Friendship), Rodzina (Family), Kasa i praca (Money+Work),
+  Społeczeństwo (Ethics+Society+Justice+Culture) — that a PRO user pins the
+  deck to from
+  the modes screen (app-bar grid icon → a ticked "Teraz grasz" card naming
+  the current scope, then one full-width row per OTHER choice — big name over
+  a three-word description, arrow; "Wszystkie tematy" is a row only while a
+  mode is pinned — a dashed "Kolejny tryb / W przygotowaniu" row and the
+  footer "Zmiana trybu nie usuwa Twojej historii"; no save button, a tap is
+  the choice; **no counts, no progress** — owner's call, the
+  `get_question_category_progress` RPC stays live but unused). The daily
+  keeps index 0;
+  `activeModeProvider` filters the pool in memory for the session and is
+  cleared on identity switch, premium lapse, "Wróć do feedu" (foot of the
+  feed, lands on the daily; the daily jump hides while a mode is on) and the
+  "Wszystkie tematy" row on the modes screen. Same
+  `seen` flags, same votes — a question answered in a mode is archived like
+  any other. Non-daily cards wear the `ModeBadge`. Free sees the tiles locked
+  with counts (tap → paywall, `PaywallSource.modes`; a purchase pins the
+  tapped mode). Two pointers at it in the feed: the once-per-install link
+  under the voted daily (`modesHintProvider`; free: "Nowość: tryb Seks i
+  intymność →", PRO: the daily's topic; for the local day it first shows, a
+  tap retires it) — a link, never a card — and the ONE sanctioned post-vote
+  modal, the once-per-install **showcase** (`maybeShowModesShowcase`,
+  `modes_showcase_seen`): after the bars, the feed dims with a spotlight cut
+  around the app-bar modes icon (`modesIconKey`) and a "Nowość / Tryby" card
+  with "Zobacz tryby" / "Zamknij". Claims the vote's single prompt slot ahead
+  of the review ask; never on a promotion day; a silent no-op (once unspent)
+  whenever the icon is not on screen. Otherwise the vote → argument → split
+  loop stays uninterrupted. The app-bar icon also wears a spark "new" dot
+  until the modes screen is opened once (`modes_seen`).
 - **Paywall-opening rules:** auto at most once per local day, on the first
-  wall hit AFTER the daily vote; always on the wall/bridge unlock CTAs and on
-  tapping a locked feature (star / the history screen's locked older-history
-  panel / locked smaczki); never at app start, in onboarding, or before the
-  user's first vote. Always dismissible (floating X / system back). The
-  history screen itself is open to everyone: free sees today's card(s) — the
-  daily is always free — plus the locked panel.
+  wall hit AFTER the daily vote, **from install day 1 on** (`installDayNumber
+  ≥ 1` — day 0's wall carries the reminder ask instead, see below; a wall hit
+  over an unanswered ask skips the auto-open with the latch unspent); always
+  on the wall/bridge unlock CTAs and on tapping a locked feature (star / the
+  history screen's locked older-history panel / locked smaczki); never at app
+  start, in onboarding, or before the user's first vote. Always dismissible
+  (floating X / system back). The history screen itself is open to everyone:
+  free sees today's card(s) — the daily is always free — plus the locked
+  panel.
 - **Onboarding:** welcome → 2 taste questions (ARB text + hard-coded ids for
   the live split; votes are NOT cast) → the bridge (`OnboardingBridgeCard`,
-  free path is the dominant CTA) → reminder opt-in → the feed. No wall.
+  free path is the dominant CTA, the LAST card) → the feed. No wall, and no
+  reminder ask (moved to the day wall 2026-09-02 — 18% opt-in there, asked
+  before the user had felt anything).
+- **The reminder opt-in lives on the day wall** (`WallReminderAsk`,
+  2026-09-02): in place of the unlock CTA, once per install
+  (`wall_reminder_asked`), the line "Jutro: „<teaser>…” — przypomnę Ci o
+  20:00" — the wall's own teaser, i.e. TOMORROW'S pick, which is also what
+  tomorrow's notification bakes, so the promise names the question the
+  reminder will name. Enable = OS prompt → reminder on + loop armed (the
+  Settings toggle's path); denied = the Settings toast with "open settings";
+  either answer hands the band back to the unlock CTA in the same frame. A
+  decline is final for the wall — Settings keep the toggle. Events:
+  `wall_notify_shown` / `wall_notify_enabled {granted}` /
+  `wall_notify_declined`.
 - **Paywall:** fullscreen dialog, identical copy for EVERY entry point — the
   fixed slogan headline ("Bez limitu. / Bez końca. / Globalnie.") + catalog
   subline; no streak escalation, no per-feature headlines (`PaywallSource`
@@ -102,8 +171,10 @@ surface.
   change. Because a re-arm cancels every pending slot, **a fire at offset N
   proves N days of absence** — that is the invariant `ReminderHorizon` spends:
   `today` may use the grace countdown and the exact streak day, `tomorrow`
-  drops the number, `drifting` (2–11) drops every streak and rank claim, and
-  `away` (12+) drops the mechanics for win-back copy. Never bake a live
+  drops the number, `drifting` (2–11) drops every streak claim and only makes
+  the rank-slide claim once it is fact (day ≥ 3 — the decay threshold — and a
+  cached streak that was alive), and `away` (12+) drops the mechanics for
+  win-back copy. Never bake a live
   counter into a far slot; it will fire as a lie. Two rules kill the spam:
   a FREE user who already voted gets **no fire at all** that day (the daily
   was their whole deck — every remaining line would point at the day wall),

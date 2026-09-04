@@ -1,4 +1,5 @@
 import 'package:debatly/core/locale/app_locale.dart';
+import 'package:debatly/core/time/epoch_day.dart';
 import 'package:debatly/data/models/question.dart';
 import 'package:debatly/data/models/user_stats.dart';
 import 'package:debatly/data/models/vote_result.dart';
@@ -6,7 +7,12 @@ import 'package:debatly/data/repositories/question_repository.dart';
 import 'package:debatly/features/account/providers/session_providers.dart';
 import 'package:debatly/features/account/providers/stats_providers.dart';
 import 'package:debatly/features/monetization/widgets/day_wall_view.dart';
+import 'package:debatly/features/monetization/widgets/paywall_content.dart'
+    show paywallOfferSeenProvider;
 import 'package:debatly/features/monetization/widgets/pro_paywall_screen.dart';
+import 'package:debatly/features/monetization/widgets/wall_reminder_ask.dart';
+import 'package:debatly/features/onboarding/providers/onboarding_providers.dart'
+    show kOnboardingCompletedDayPrefKey;
 import 'package:debatly/features/questions/providers/question_providers.dart';
 import 'package:debatly/features/questions/widgets/question_body.dart';
 import 'package:debatly/features/questions/widgets/vote_visuals.dart';
@@ -22,8 +28,10 @@ import 'support/test_prefs.dart';
 /// The freemium day wall: a free user's forward swipe off the daily lands on
 /// the wall (teaser + live countdown + unlock CTA) — and the fullscreen
 /// paywall auto-opens at most once per local day, only after today's daily has
-/// been voted on. The ways back to the daily are the back swipe and the
-/// system back gesture — the wall is never a trap.
+/// been voted on, from install day 1 on. Day 0's wall carries the reminder
+/// ask instead (naming tomorrow's teaser), once per install. The ways back to
+/// the daily are the back swipe and the system back gesture — the wall is
+/// never a trap.
 void main() {
   Question q(String id, [String? text]) => Question(
     id: id,
@@ -33,18 +41,27 @@ void main() {
 
   /// Pumps the feed body for a FREE session and returns the container.
   ///
-  /// The wall runs a 1-second countdown timer, so tests use bounded [pump]s —
-  /// pumpAndSettle would chase the ticking clock forever.
+  /// Defaults to install day 1 with the reminder ask already answered, so the
+  /// paywall-latch tests see the wall the way a returning user does; the
+  /// day-0 / ask tests opt out. The wall runs a 1-second countdown timer, so
+  /// tests use bounded [pump]s — pumpAndSettle would chase the ticking clock
+  /// forever.
   Future<ProviderContainer> pumpFreeFeed(
     WidgetTester tester, {
     bool voted = true,
     int streak = 3,
+    int dayNumber = 1,
+    bool reminderAsked = true,
   }) async {
     final daily = q('daily', 'Czy pytanie dnia jest darmowe?');
     final container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(
-          await mockSharedPreferences(),
+          await mockSharedPreferences({
+            kOnboardingCompletedDayPrefKey:
+                epochDay(DateTime.now()) - dayNumber,
+            if (reminderAsked) kWallReminderAskedPrefKey: true,
+          }),
         ),
         sessionProvider.overrideWith(() => FakeSession(guestSession())),
         isPremiumProvider.overrideWithValue(false),
@@ -138,7 +155,13 @@ void main() {
     // The single CTA: unlock (the pill renders its label uppercase). The way
     // back is the back swipe.
     expect(find.text('NIE CZEKAJ — ODBLOKUJ WSZYSTKIE'), findsOneWidget);
-    expect(find.text('(co tydzień nowe zestawy!)'), findsOneWidget);
+    // Concrete catalog, not a cadence the catalog doesn't keep — and the
+    // modes, named, because the wall is where most free users first hear
+    // of them.
+    expect(
+      find.text('(setki pytań, 5 trybów, w tym Seks i intymność)'),
+      findsOneWidget,
+    );
     // The "come back tomorrow" button was dropped — it must stay gone.
     expect(find.text('albo wróć jutro'), findsNothing);
   });
@@ -175,7 +198,7 @@ void main() {
 
   testWidgets('after a vote, the first wall hit of the day auto-opens the '
       'sheet — later hits do not', (tester) async {
-    await pumpFreeFeed(tester, voted: true);
+    final container = await pumpFreeFeed(tester, voted: true);
 
     await swipeForward(tester);
     // The fullscreen paywall covers the wall, which stays underneath offstage.
@@ -185,6 +208,11 @@ void main() {
       findsOneWidget,
       reason: 'first wall hit of the day + voted → the paywall opens itself',
     );
+
+    // In production the offering renders here; there is no RevenueCat in a
+    // widget test, so mark it seen by hand — the once-a-day latch only stays
+    // spent for an open that actually showed prices (see the re-arm test).
+    container.read(paywallOfferSeenProvider.notifier).markSeen();
 
     // Dismiss it — the sheet is closable and lands the user back on the wall.
     await tester.tap(find.byIcon(Icons.close_rounded));
@@ -199,6 +227,32 @@ void main() {
     await swipeForward(tester);
     expect(find.byType(DayWallView), findsOneWidget);
     expect(find.byType(ProPaywallScreen), findsNothing);
+  });
+
+  testWidgets('an auto-open that never rendered an offering re-arms the '
+      'once-a-day latch', (tester) async {
+    // No RevenueCat in a widget test, so the offer never loads — exactly the
+    // store-cold-start / offline case this covers: the day's one automatic
+    // open must not be burned on a screen with no prices on it.
+    await pumpFreeFeed(tester, voted: true);
+
+    await swipeForward(tester);
+    expect(find.byType(ProPaywallScreen), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await pumpABit(tester);
+    expect(find.byType(ProPaywallScreen), findsNothing);
+
+    // The next arrival gets another chance — the latch was re-armed.
+    await swipeBack(tester);
+    await pumpABit(tester);
+    await swipeForward(tester);
+    expect(
+      find.byType(ProPaywallScreen),
+      findsOneWidget,
+      reason: 'offer never rendered → the automatic open was not spent',
+    );
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await pumpABit(tester);
   });
 
   testWidgets('the sheet never auto-opens before the daily has been voted on', (
@@ -218,6 +272,127 @@ void main() {
     await tester.tap(find.text('NIE CZEKAJ — ODBLOKUJ WSZYSTKIE'));
     await pumpABit(tester);
     expect(find.byType(ProPaywallScreen), findsOneWidget);
+  });
+
+  testWidgets('on install day 0 the wall carries the reminder ask instead of '
+      'the paywall — naming tomorrow\'s teaser and the reminder time', (
+    tester,
+  ) async {
+    final container = await pumpFreeFeed(
+      tester,
+      voted: true,
+      dayNumber: 0,
+      reminderAsked: false,
+    );
+
+    await swipeForward(tester);
+    expect(find.byType(DayWallView), findsOneWidget);
+    expect(
+      find.byType(ProPaywallScreen),
+      findsNothing,
+      reason: 'day 0 + voted → no automatic paywall; the ask has the band',
+    );
+    expect(find.byType(WallReminderAsk), findsOneWidget);
+    // The promise names the wall's own teaser (tomorrow's pick) and the
+    // default reminder time — the same line the notification will carry.
+    expect(
+      find.text('Jutro: „Czy cztery pierwsze słowa…” — przypomnę Ci o 20:00.'),
+      findsOneWidget,
+    );
+    expect(find.text('PRZYPOMNIJ MI JUTRO'), findsOneWidget);
+    expect(find.text('NIE TERAZ'), findsOneWidget);
+    // The unlock CTA yields the band to the ask.
+    expect(find.text('NIE CZEKAJ — ODBLOKUJ WSZYSTKIE'), findsNothing);
+
+    // "Not now": the ask is done for this install, the CTA is back in the
+    // same frame, and the reminder stays off. (The ask band is taller than
+    // the CTA, so on the 600px test viewport the wall scrolls — bring the
+    // decline into view first.)
+    await tester.ensureVisible(find.text('NIE TERAZ'));
+    await tester.pump();
+    await tester.tap(find.text('NIE TERAZ'));
+    await pumpABit(tester);
+    expect(find.byType(WallReminderAsk), findsNothing);
+    expect(find.text('NIE CZEKAJ — ODBLOKUJ WSZYSTKIE'), findsOneWidget);
+    final prefs = container.read(sharedPreferencesProvider);
+    expect(prefs.getBool(kWallReminderAskedPrefKey), isTrue);
+    expect(prefs.getBool('reminders_enabled'), isNot(true));
+
+    // Back and forward again: asked is asked — and day 0 still never
+    // auto-opens the paywall.
+    await swipeBack(tester);
+    await pumpABit(tester);
+    await swipeForward(tester);
+    expect(find.byType(WallReminderAsk), findsNothing);
+    expect(find.byType(ProPaywallScreen), findsNothing);
+    expect(find.text('NIE CZEKAJ — ODBLOKUJ WSZYSTKIE'), findsOneWidget);
+  });
+
+  testWidgets('"Remind me" never traps the user — with no notification '
+      'plugin the ask still closes and the CTA returns', (tester) async {
+    // The native plugin is not initialised in the test host, so the
+    // permission request resolves false: the ask must still mark itself
+    // answered and hand the band back, not stall on its busy spinner.
+    final container = await pumpFreeFeed(
+      tester,
+      voted: true,
+      dayNumber: 0,
+      reminderAsked: false,
+    );
+    await swipeForward(tester);
+    expect(find.byType(WallReminderAsk), findsOneWidget);
+
+    await tester.ensureVisible(find.text('PRZYPOMNIJ MI JUTRO'));
+    await tester.pump();
+    await tester.tap(find.text('PRZYPOMNIJ MI JUTRO'));
+    await pumpABit(tester);
+
+    expect(find.byType(WallReminderAsk), findsNothing);
+    expect(find.text('NIE CZEKAJ — ODBLOKUJ WSZYSTKIE'), findsOneWidget);
+    final prefs = container.read(sharedPreferencesProvider);
+    expect(prefs.getBool(kWallReminderAskedPrefKey), isTrue);
+    // Denied by the (absent) OS → the reminder was NOT switched on.
+    expect(prefs.getBool('reminders_enabled'), isNot(true));
+  });
+
+  testWidgets('an unanswered ask defers the automatic paywall to the next '
+      'arrival, latch unspent', (tester) async {
+    // Day 1, voted — the paywall would auto-open — but the ask was never
+    // answered (a user who skipped the wall on day 0).
+    final container = await pumpFreeFeed(
+      tester,
+      voted: true,
+      dayNumber: 1,
+      reminderAsked: false,
+    );
+
+    await swipeForward(tester);
+    expect(find.byType(WallReminderAsk), findsOneWidget);
+    expect(
+      find.byType(ProPaywallScreen),
+      findsNothing,
+      reason: 'one question at a time: the ask first, the paywall not on top',
+    );
+
+    await tester.ensureVisible(find.text('NIE TERAZ'));
+    await tester.pump();
+    await tester.tap(find.text('NIE TERAZ'));
+    await pumpABit(tester);
+    expect(find.byType(WallReminderAsk), findsNothing);
+
+    // The next arrival today is the first that qualifies — it gets the day's
+    // one automatic open.
+    await swipeBack(tester);
+    await pumpABit(tester);
+    await swipeForward(tester);
+    expect(
+      find.byType(ProPaywallScreen),
+      findsOneWidget,
+      reason: 'ask answered, day ≥ 1, voted → the automatic open was not spent',
+    );
+    container.read(paywallOfferSeenProvider.notifier).markSeen();
+    await tester.tap(find.byIcon(Icons.close_rounded));
+    await pumpABit(tester);
   });
 
   testWidgets('a premium user swiping forward gets the next question, '

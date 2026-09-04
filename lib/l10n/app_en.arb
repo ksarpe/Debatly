@@ -465,6 +465,83 @@
   "@backToDailyQuestion": {
     "description": "Bottom-of-feed link that jumps back to today's shared daily question (deck position 0)."
   },
+  "nextQuestionWaiting": "The next question is waiting",
+  "@nextQuestionWaiting": {
+    "description": "Bottom-of-feed link shown to a FREE user who has voted today's daily — opens the day wall (same destination as the forward swipe), so the tier's main conversion surface doesn't depend on a gesture nobody is nudged to make."
+  },
+  "modesTitle": "Modes",
+  "@modesTitle": {
+    "description": "Title of the modes screen: four topic tiles (relationships / family / money & work / society) a PRO user can pin the feed to. Free users see the tiles locked; a tap opens the paywall."
+  },
+  "modesTooltip": "Question modes",
+  "modesSubtitlePro": "One topic at a time. The question of the day stays at the top of the feed.",
+  "modesSubtitleFree": "Modes are PRO: pick a topic and the feed shows only those questions.",
+  "modeIntimacy": "Sex & intimacy",
+  "@modeIntimacy": {
+    "description": "The PRO-only adult-themes mode, always the first row on the modes screen. A TOPIC label on purpose, not an age badge ('+18'): the store ratings rest on the content being text-only, mature discussion."
+  },
+  "modeIntimacyDescription": "Body, desire, taboo",
+  "modesHintIntimacy": "More about intimacy",
+  "modeRelationships": "Relationships",
+  "modeRelationshipsDescription": "Love, cheating, boundaries",
+  "@modeRelationshipsDescription": {
+    "description": "Three-word line under the mode's name on the modes screen. Same shape for the other mode descriptions."
+  },
+  "modeFamily": "Family",
+  "modeFamilyDescription": "Kids, parents, money at home",
+  "modeMoneyWork": "Money & work",
+  "modeMoneyWorkDescription": "Pay, promotion, honesty",
+  "modeSociety": "Society",
+  "modeSocietyDescription": "Law, freedom, community",
+  "modesNowPlaying": "Now playing",
+  "@modesNowPlaying": {
+    "description": "Eyebrow of the ticked card at the top of the modes screen naming the current scope: the pinned mode, 'All topics' (PRO, no mode) or 'Question of the day' (free)."
+  },
+  "modesAllTopics": "All topics",
+  "modesAllTopicsDescription": "Everything we have, shuffled",
+  "modesDailyScopeDescription": "One shared question a day, free",
+  "@modesDailyScopeDescription": {
+    "description": "Description line of the 'Now playing' card for a FREE user, whose scope is the daily question."
+  },
+  "modesComingSoonTitle": "Next mode",
+  "modesComingSoonBody": "In the works",
+  "@modesComingSoonBody": {
+    "description": "The dashed, dimmed placeholder row at the foot of the modes list."
+  },
+  "modesFooter": "Switching modes never erases your history",
+  "@modesFooter": {
+    "description": "Quiet centred line at the very bottom of the modes screen."
+  },
+  "modesBackToFeed": "Back to the feed",
+  "@modesBackToFeed": {
+    "description": "Bottom-of-feed link shown while a mode is active: switches the mode off and lands back on the question of the day."
+  },
+  "modesHintRelationships": "More about relationships",
+  "modesHintFamily": "More about family",
+  "modesHintMoneyWork": "More about money & work",
+  "modesHintSociety": "More about society",
+  "modesHintGeneric": "See the modes",
+  "modesHintNew": "New: the Sex & intimacy mode",
+  "modesShowcaseEyebrow": "New",
+  "modesShowcaseTitle": "Modes",
+  "@modesShowcaseTitle": {
+    "description": "The one-time showcase overlay after a vote: the feed dims, a spotlight is cut around the app bar's modes icon, and this card sits under it."
+  },
+  "modesShowcaseLead": "Questions about sex, the body and taboo that nobody else will ask you. No beating around the bush.",
+  "@modesShowcaseLead": {
+    "description": "The featured row inside the showcase card, under the 'Sex & intimacy' name with the flame — the mode the showcase leads with."
+  },
+  "modesShowcaseBodyFree": "Plus Relationships, Family, Money & work, Society. Pick a topic and the feed shows only those questions. Modes are part of PRO.",
+  "modesShowcaseBodyPro": "Plus Relationships, Family, Money & work, Society. Pick a topic and the feed shows only those questions. They're in your PRO.",
+  "modesShowcaseCta": "See the modes",
+  "modesShowcaseClose": "Close",
+  "@modesHintNew": {
+    "description": "The once-per-install link under the voted daily for a FREE user — leads with the newest, strongest hook instead of the daily's own topic. PRO gets the topic-specific variants."
+  },
+  "@modesHintGeneric": {
+    "description": "Bottom-of-feed link under the voted daily, once per install: opens the modes screen. The topic-specific variants above are used when the daily's category belongs to a mode."
+  },
+  "modeBadgeTooltip": "Mode: the feed shows only questions on this topic. “Back to the feed” at the bottom switches it off.",
   "updateRequiredTitle": "Time to update",
   "@updateRequiredTitle": {
     "description": "Headline of the blocking force-update screen (build below app_update_gate.min_version)."
@@ -528,7 +605,17 @@
   "challengeHoldCta": "KEEPING IT",
   "challengeMovedCta": "CHANGED MY MIND",
   "smaczkiSheetFreeHeader": "You got the argument against you. Two left: one that defends you, one that complicates it.",
+  "smaczkiSheetFreeHeaderMoved": "That one flipped you. Two left: one that defends you, one that complicates it.",
+  "@smaczkiSheetFreeHeaderMoved": {
+    "description": "The full attack→defense header for a user whose gate outcome was MOVED — they just felt the product work on them, and the acknowledgement is the honest, strongest pitch (owner-approved, 2026-08-31). Same structural promise as smaczkiSheetFreeHeader, so the same tagging preconditions apply."
+  },
   "smaczkiSheetFreeHeaderPlain": "{count, plural, =0{That argument is behind you.} =1{The first one is behind you. One more waits.} other{The first one is behind you. {count} more wait.}}",
+  "smaczkiSheetFreeHeaderMovedPlain": "{count, plural, =0{That one flipped you — and it was the last.} =1{That one flipped you. The next one is waiting.} other{That one flipped you. {count} more are waiting.}}",
+  "@smaczkiSheetFreeHeaderMovedPlain": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "@smaczkiSheetFreeHeaderPlain": {
     "placeholders": {
       "count": { "type": "int" }
@@ -680,22 +767,50 @@
   "@bridgeCtaSecondary": {
     "description": "Secondary bridge CTA — opens the paywall sheet."
   },
-  "bridgeCtaSecondaryHint": "(and many more perks)",
+  "bridgeCtaSecondaryHint": "(hundreds of questions, 5 modes)",
   "@bridgeCtaSecondaryHint": {
-    "description": "Small line under the secondary bridge CTA label — hints that PRO carries more than just the catalog."
+    "description": "Small line under the secondary bridge CTA label. Concrete catalog size instead of the vague '(and many more perks)' — the vaguest line in the funnel sat directly under a paywall-opening button (owner-approved swap, 2026-08-31)."
   },
-  "onboardingNotifyTitle": "Hey, one more thing",
-  "onboardingNotifyBody": "I can remind you to vote every day, at a time you pick. Voting takes 10 seconds — and your streak grows on its own. You can always switch it off in settings.",
-  "onboardingNotifyEnable": "Turn on reminders",
-  "onboardingNotifySkip": "Maybe later",
   "wallCountdownCaption": "Until free",
   "@wallCountdownCaption": {
     "description": "Tiny uppercase caption set inside the day wall's circular countdown, under the live HH:MM:SS ticking down to the user's local midnight. Keep it short — it has to fit inside the ring."
   },
   "wallCtaUnlock": "Don't wait — unlock everything",
-  "wallCtaCaption": "(new sets every week!)",
+  "wallCtaCaption": "(hundreds of questions, 5 modes, including Sex & intimacy)",
   "@wallCtaCaption": {
-    "description": "Small second line inside the day wall's unlock CTA pill, under the main label, teasing that the catalog keeps growing."
+    "description": "Small second line inside the day wall's unlock CTA pill, under the main label. Names the concrete catalog — the old '(new sets every week!)' promised a cadence the catalog doesn't keep, a trust risk on the main conversion surface (owner-approved swap, 2026-08-31)."
+  },
+  "wallRemindLine": "Tomorrow: “{teaser}…” — I'll remind you at {time}.",
+  "@wallRemindLine": {
+    "description": "The day wall's reminder opt-in line, shown in place of the unlock CTA until answered once per install. Names TOMORROW'S daily pick (the wall's own 4-word teaser, ellipsis appended here) and the reminder time (HH:MM, 24h) — the notification that fires tomorrow carries the same teaser, so this is a promise the app keeps.",
+    "placeholders": {
+      "teaser": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "wallRemindLineNoTeaser": "A new question tomorrow — I'll remind you at {time}.",
+  "@wallRemindLineNoTeaser": {
+    "description": "The reminder opt-in line when no teaser is available (a gap date in the daily calendar, or offline with nothing cached).",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "wallRemindCta": "Remind me tomorrow",
+  "wallRemindSkip": "Not now",
+  "wallRemindConfirmed": "I'll remind you tomorrow at {time}. Change the time in settings.",
+  "@wallRemindConfirmed": {
+    "description": "Success toast after the wall's reminder opt-in was granted by the OS.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
   },
   "paywallBrand": "DEBATLY PRO",
   "@paywallBrand": {
@@ -711,8 +826,15 @@
       "n": { "type": "int" }
     }
   },
-  "paywallSubtitle": "500+ questions, every argument FOR and AGAINST, your entire voting history.",
+  "paywallSubtitle": "Hundreds of questions in 5 modes, including Sex & intimacy. Every argument FOR and AGAINST, your whole history.",
+  "@paywallSubtitle": {
+    "description": "The paywall's one pitch line under the slogan headline, identical for every entry point. Names the modes and the intimacy mode by its topic label (never '+18')."
+  },
   "paywallFeatureUnlimited": "Questions with no daily limit",
+  "paywallFeatureModes": "Modes: Sex & intimacy, Relationships, Family, Money & work, Society",
+  "@paywallFeatureModes": {
+    "description": "Second row of the paywall's feature list: the five topic modes a PRO user can pin the feed to."
+  },
   "@paywallFeatureUnlimited": {
     "description": "First row of the paywall's compact feature list."
   },

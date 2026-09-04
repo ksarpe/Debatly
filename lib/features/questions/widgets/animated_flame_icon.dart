@@ -45,6 +45,13 @@ class AnimatedFlameIcon extends StatefulWidget {
     this.size = 20,
   });
 
+  /// A flame that is simply alight — near full heat, no streak or rank
+  /// behind it. For places that borrow the glyph as decoration (the modes
+  /// screen's ember row) rather than as the streak indicator.
+  const AnimatedFlameIcon.lit({super.key, this.size = 20})
+    : streak = 30,
+      rankTier = 0;
+
   /// Current streak length. 0 renders the muted, static flame.
   final int streak;
 

@@ -164,7 +164,7 @@ void main() {
         tester,
         premium: false,
         gateRecord: const ChallengeRecord(
-          outcome: ChallengeOutcome.moved,
+          outcome: ChallengeOutcome.held,
           smaczekPosition: 2,
           smaczekTagged: true,
           choice: 1, // voted TAK; the gate served the attacks_yes row (pos 2)
@@ -188,6 +188,68 @@ void main() {
           'Dostałeś argument przeciwko sobie. Zostały dwa: jeden, który Cię '
           'broni, i jeden, który komplikuje sprawę.',
         ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'a MOVED gate gets the acknowledged header — the flip itself is the '
+    'pitch, with the same attack → defense promise behind it',
+    (tester) async {
+      await pumpSheet(
+        tester,
+        premium: false,
+        gateRecord: const ChallengeRecord(
+          outcome: ChallengeOutcome.moved,
+          smaczekPosition: 2,
+          smaczekTagged: true,
+          choice: 1,
+        ),
+        smaczki: const [
+          Smaczek(
+            position: 2,
+            isLocked: false,
+            text: 'Atak na TAK.',
+            side: SmaczekSide.attacksYes,
+          ),
+          Smaczek(position: 1, isLocked: true, side: SmaczekSide.attacksNo),
+          Smaczek(position: 3, isLocked: true, side: SmaczekSide.neutral),
+        ],
+      );
+
+      expect(
+        find.text(
+          'Ten jeden Cię przewrócił. Zostały dwa: jeden, który Cię broni, '
+          'i jeden, który komplikuje sprawę.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'a MOVED gate on an untagged catalog still acknowledges the flip — with '
+    'the honest count, never the defense promise',
+    (tester) async {
+      await pumpSheet(
+        tester,
+        premium: false,
+        gateRecord: const ChallengeRecord(
+          outcome: ChallengeOutcome.moved,
+          smaczekPosition: 1,
+          smaczekTagged: false,
+          choice: 1,
+        ),
+        smaczki: const [
+          Smaczek(position: 1, isLocked: false, text: 'Pierwszy argument.'),
+          Smaczek(position: 2, isLocked: true),
+          Smaczek(position: 3, isLocked: true),
+        ],
+      );
+
+      expect(
+        find.text('Ten jeden Cię przewrócił. Dwa kolejne czekają.'),
         findsOneWidget,
       );
     },

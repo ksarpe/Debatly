@@ -364,20 +364,52 @@ code.uid {
 }
 
 .daily-chart { width: 100%; height: auto; display: block; margin-bottom: 8px; }
-.daily-chart .bar { fill: var(--accent); opacity: .75; }
-.daily-chart .bar:hover { opacity: 1; }
-.daily-chart .line {
-  fill: none; stroke: var(--warn); stroke-width: 2;
-  stroke-linejoin: round; stroke-linecap: round;
+.daily-chart .bar { fill: var(--accent); opacity: .7; }
+.daily-chart .bar.hot { opacity: 1; }
+/* górna część słupka: głosy z kont PRO (złoto, jak .badge.premium) */
+.daily-chart .bar-pro { fill: var(--warn); opacity: .8; }
+.daily-chart .bar-pro.hot { opacity: 1; }
+.daily-chart .line,
+.daily-chart .line-new,
+.daily-chart .line-land {
+  fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round;
+  pointer-events: none;
 }
-.daily-chart .dot-purchase { fill: var(--ok); }
+.daily-chart .line { stroke: var(--warn); }
+.daily-chart .line-new { stroke: var(--ok); stroke-dasharray: 5 3; }
+.daily-chart .line-land { stroke: var(--text-faint); stroke-dasharray: 2 3; }
+.daily-chart .dot-purchase { fill: var(--ok); stroke: var(--bg-card); stroke-width: 1.5; }
+.daily-chart .grid { stroke: var(--border-soft); stroke-width: 1; }
+.daily-chart .axis { fill: var(--text-faint); font-size: 10px; }
+.daily-chart .cursor { stroke: var(--text-dim); stroke-width: 1; stroke-dasharray: 3 3; pointer-events: none; }
+.daily-chart .hit { fill: transparent; cursor: crosshair; }
+.chart-readout {
+  display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12.5px; color: var(--text-dim);
+  min-height: 20px; margin: 4px 0 8px; font-variant-numeric: tabular-nums;
+}
+.chart-readout b { color: var(--text); font-weight: 600; }
+.chart-readout .faint { font-size: inherit; }
 .legend { float: right; font-size: 12px; color: var(--text-dim); font-weight: 400; }
 .legend .swatch {
   display: inline-block; width: 10px; height: 10px; border-radius: 2px;
-  margin: 0 5px 0 12px; vertical-align: baseline;
+  margin: 0 5px 0 0; vertical-align: baseline;
 }
-.legend .swatch.bar { background: var(--accent); opacity: .75; }
+.legend .swatch.bar { background: var(--accent); opacity: .7; }
+.legend .swatch.bar-pro { background: var(--warn); opacity: .8; }
 .legend .swatch.line { background: var(--warn); height: 3px; vertical-align: middle; }
+.legend .swatch.line-new { background: var(--ok); height: 3px; vertical-align: middle; }
+.legend .swatch.line-land { background: var(--text-faint); height: 3px; vertical-align: middle; }
+.legend .swatch.dot { background: var(--ok); border-radius: 50%; }
+.legend-toggle {
+  background: none; border: 0; padding: 0 0 0 12px; font: inherit; color: inherit; cursor: pointer;
+}
+.legend-toggle.off { opacity: .4; text-decoration: line-through; }
+.legend-static { padding-left: 12px; }
+.how-counted summary { cursor: pointer; font-weight: 600; font-size: 13.5px; }
+.how-counted ul { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--text-dim); }
+.how-counted li { margin-bottom: 6px; }
+.how-counted li b { color: var(--text); }
+.funnel-step { font-size: 11.5px; }
 .hist { font-size: 13.5px; border-bottom: 1px solid var(--border-soft); padding: 9px 0; }
 .hist:last-child { border-bottom: 0; }
 .spin { color: var(--text-faint); padding: 40px 0; text-align: center; }
@@ -474,3 +506,21 @@ textarea.mono {
 details.sec.bulk-diff { margin: 8px 0 0; background: transparent; }
 details.sec.bulk-diff > summary { padding: 8px 0; }
 details.sec.bulk-diff > .body { padding: 0 0 8px; }
+
+/* ---------- /daily — kalendarz pytań dnia ---------- */
+/* Dzień już opublikowany (przeszłość/dziś/jutro): nie klika się, więc nie
+   udaje klikalnego. */
+tbody tr.day-locked, tbody tr.day-locked:hover { cursor: default; background: transparent; }
+tbody tr.day-locked td { opacity: .62; }
+.warn-num { color: var(--warn); font-weight: 600; }
+
+.cand-list { display: flex; flex-direction: column; gap: 6px; }
+.cand {
+  display: flex; gap: 12px; align-items: center;
+  border: 1px solid var(--border-soft); border-radius: var(--radius);
+  background: var(--bg-card); padding: 9px 11px;
+}
+.cand:hover { border-color: var(--border); }
+.cand-main { flex: 1; min-width: 0; }
+.cand-q { font-weight: 500; }
+.cand-side { flex: none; display: flex; gap: 8px; align-items: center; }
