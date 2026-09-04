@@ -212,8 +212,11 @@ export const SIDES = [
   { value: 'neutral', label: '◇ neutralny', hint: 'osobisty/praktyczny — działa w obie strony' },
 ];
 
+// `Intimacy` (2026-09-02) is the "Seks i intymność" mode: PRO-only in the app
+// and never the daily — keep it out of daily_picks (the DB refuses it once the
+// exclusion migration lands, until then the calendar tab is on its own).
 export const CATEGORIES = [
   'Connection', 'Culture', 'Dreams', 'Environment', 'Ethics', 'Family',
-  'Freedom', 'Friendship', 'Health', 'Justice', 'Lifestyle', 'Money',
-  'Reflection', 'Relationships', 'Society', 'Technology', 'Work',
+  'Freedom', 'Friendship', 'Health', 'Intimacy', 'Justice', 'Lifestyle',
+  'Money', 'Reflection', 'Relationships', 'Society', 'Technology', 'Work',
 ];
