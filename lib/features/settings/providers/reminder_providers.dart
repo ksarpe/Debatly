@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
+import '../../questions/providers/question_providers.dart'
+    show dailyFetchDayProvider;
 
 const String _kEnabledKey = 'reminders_enabled';
 const String _kHourKey = 'reminder_hour';
@@ -35,6 +37,28 @@ String _todayStamp() {
 /// user who already spent their daily, and switches PRO's to a post-vote line.
 bool hasVotedTodayLocal(SharedPreferences prefs) =>
     prefs.getString(_kLastVoteDateKey) == _todayStamp();
+
+/// Reactive twin of [hasVotedTodayLocal] for widgets: true once today's local
+/// vote stamp is set. Re-reads the stamp when [markVotedToday] writes it and
+/// whenever the feed rolls over to a new local day ([dailyFetchDayProvider]),
+/// so the streak chip's "cooling" state flips back at midnight without a
+/// restart.
+class VotedTodayLocal extends Notifier<bool> {
+  @override
+  bool build() {
+    ref.watch(dailyFetchDayProvider);
+    return hasVotedTodayLocal(ref.watch(sharedPreferencesProvider));
+  }
+
+  /// Re-evaluates the stamp — called right after it is written.
+  void refresh() {
+    state = hasVotedTodayLocal(ref.read(sharedPreferencesProvider));
+  }
+}
+
+final votedTodayLocalProvider = NotifierProvider<VotedTodayLocal, bool>(
+  VotedTodayLocal.new,
+);
 
 /// The share (0..100) of voters who disagreed with the user on today's daily, or
 /// null when they haven't voted today (so a stale yesterday value never leaks
@@ -114,6 +138,8 @@ class ReminderController extends Notifier<ReminderPrefs> {
     if (disagreePct != null) {
       await prefs.setInt(_kLastDisagreePctKey, disagreePct);
     }
+    // Wake the streak chip: its cooling (blue) state reads this stamp.
+    ref.read(votedTodayLocalProvider.notifier).refresh();
   }
 }
 

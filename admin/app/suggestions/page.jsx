@@ -165,8 +165,8 @@ export default function SuggestionsPage() {
                         {fmtDate(r.created_at)}
                       </td>
                       <td>
-                        <span className={`badge ${r.kind === 'smaczek' ? 'approved' : ''}`}>
-                          {r.kind === 'smaczek' ? 'Smaczek' : 'Pytanie'}
+                        <span className={`badge ${r.kind === 'smaczek' ? 'approved' : r.kind === 'feedback' ? 'pending' : ''}`}>
+                          {r.kind === 'smaczek' ? 'Smaczek' : r.kind === 'feedback' ? 'Opinia' : 'Pytanie'}
                         </span>
                       </td>
                       <td className="q-cell" style={{ whiteSpace: 'pre-wrap' }}>
@@ -180,7 +180,7 @@ export default function SuggestionsPage() {
                       <td className="muted">{r.locale ?? '—'}</td>
                       <td><span className={`badge ${st.cls}`}>{st.label}</span></td>
                       <td className="muted" style={{ maxWidth: 220 }}>{r.admin_note ?? ''}</td>
-                      <td className="mkt-acts" style={{ whiteSpace: 'nowrap' }}>
+                      <td className="row-acts" style={{ whiteSpace: 'nowrap' }}>
                         {r.status !== 'accepted' && (
                           <button className="btn sm ok" disabled={busy}
                                   title="Bierzemy do katalogu"

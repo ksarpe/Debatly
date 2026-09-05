@@ -17,7 +17,7 @@ import '../../../l10n/gen/app_localizations.dart';
 import '../../../services/analytics.dart';
 import '../../account/providers/rank_celebration_providers.dart';
 import '../../account/providers/stats_providers.dart';
-import '../../settings/providers/review_providers.dart';
+import '../../settings/widgets/review_pre_prompt.dart';
 import 'confetti_overlay.dart';
 import 'rank_share_card.dart';
 import 'rank_sheet.dart' show rankIcon;
@@ -485,15 +485,12 @@ class _RankCelebrationListenerState
         rank: rank,
         streak: stats.currentStreak,
       );
-      // The store-review ask rides right behind the closed celebration — the
-      // moment of satisfaction. It only fires when a vote milestone (3rd/7th
-      // vote) is due — see reviewPromptControllerProvider; on every other
-      // rank-up it's a no-op inside.
-      if (mounted) {
-        await ref
-            .read(reviewPromptControllerProvider.notifier)
-            .maybePromptForReview();
-      }
+      // The store-review ask (our pre-prompt, then the OS sheet or the
+      // feedback form) rides right behind the closed celebration — the moment
+      // of satisfaction. It only fires when a vote milestone (3rd/7th vote) is
+      // due — see reviewPromptControllerProvider; on every other rank-up it's
+      // a no-op inside.
+      if (mounted) await maybePromptForReview(context, ref);
     } finally {
       _busy = false;
     }

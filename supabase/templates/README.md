@@ -17,18 +17,21 @@ maile renderuje GoTrue po stronie serwera, nie Flutter, więc ARB-y ich nie widz
 
 | Szablon | Plik | Co go wywołuje |
 |---|---|---|
-| Confirm sign up | [confirm-signup.html](confirm-signup.html) | `signUp()` — [supabase_service.dart:283](../../lib/services/supabase_service.dart) |
-| Reset password | [reset-password.html](reset-password.html) | `resetPasswordForEmail()` — [supabase_service.dart:242](../../lib/services/supabase_service.dart) |
-| Change email address | [change-email.html](change-email.html) | `updateUser(email:)` przy upgrade gościa — [supabase_service.dart:277](../../lib/services/supabase_service.dart) |
+| Reset password | [reset-password.html](reset-password.html) | `resetPasswordForEmail()` — [supabase_service.dart](../../lib/services/supabase_service.dart), link „Nie pamiętasz hasła?" pod legacy formularzem |
+| Confirm sign up | [confirm-signup.html](confirm-signup.html) | **Tylko stare buildy (< 2.4).** Apka od 2026-09-05 nie woła `signUp()` — arkusz logowania jest social-only |
+| Change email address | [change-email.html](change-email.html) | **Tylko stare buildy (< 2.4).** `updateUser(email:)` przy upgrade gościa zniknął razem z rejestracją mailem |
+| Magic link | dashboard (bez kopii w repo) | **Panel admina** — `signInWithOtp` w [AuthGate.jsx](../../admin/components/AuthGate.jsx). Dlatego providera Email nie wolno wyłączyć |
 
-**Nieużywane** (nie ma sensu ich ruszać): Invite user, Magic link / OTP,
-Reauthentication — apka nie woła `inviteUserByEmail`, `signInWithOtp` ani
-`reauthenticate`. Google i Apple idą przez `signInWithIdToken`, czyli bez maila.
+**Nieużywane** (nie ma sensu ich ruszać): Invite user, Reauthentication — nikt
+nie woła `inviteUserByEmail` ani `reauthenticate`. Google i Apple idą przez
+`signInWithIdToken` / `linkIdentityWithIdToken`, czyli bez maila.
 
-Pułapka: rejestracja gościa **nie** wysyła „Confirm sign up", tylko „Change email
-address" — bo anonimowy user jest podnoszony w miejscu przez `updateUser`, żeby
-nie zgubić streaka. Dlatego `change-email.html` jest napisany neutralnie i musi
-wyglądać sensownie także jako pierwszy mail powitalny.
+Pułapka (historyczna, wciąż żywa dla starych buildów): rejestracja gościa **nie**
+wysyłała „Confirm sign up", tylko „Change email address" — bo anonimowy user był
+podnoszony w miejscu przez `updateUser`, żeby nie zgubić streaka. Dlatego
+`change-email.html` jest napisany neutralnie i musi wyglądać sensownie także
+jako pierwszy mail powitalny. Nie kasuj go, dopóki gate `app_update_gate` nie
+wymusi 2.4+.
 
 ## Tematy wiadomości
 

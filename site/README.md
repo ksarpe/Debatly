@@ -16,8 +16,10 @@ na treść, której nie ma.
 | [`reset-hasla/`](reset-hasla/index.html) | `https://debatly.app/reset-hasla` | `AppConfig.passwordResetRedirectUrl` → `resetPasswordForEmail(redirectTo:)` |
 
 Inne podstrony, do których aplikacja linkuje, a których nie ma jeszcze w repo:
-`/privacy`, `/terms`, `/delete-account`, `/email-potwierdzony`
-(patrz `AppConfig`).
+`/privacy`, `/terms`, `/delete-account` (patrz `AppConfig`). Na
+`/email-potwierdzony` celują już tylko buildy sprzed 2.4 (mail
+potwierdzający rejestrację mailem — usuniętą z apki 2026-09-05); strona musi
+wisieć, dopóki `app_update_gate` ich nie wymusi.
 
 ## `reset-hasla` — most między mailem a aplikacją
 

@@ -617,15 +617,20 @@ class _BottomOverlay extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (showHintAndDeeper) ...[
-                // Subtle hint that questions are swipeable.
-                Text(
-                  context.l10n.swipeHint,
-                  textAlign: TextAlign.center,
-                  style: AppTypography.support(
-                    fontSize: 13,
-                  ).copyWith(color: context.colors.subtle),
-                ),
-                const SizedBox(height: 14),
+                // Subtle hint that questions are swipeable. It yields to the
+                // free tier's "Następne pytanie czeka →" link below: that
+                // link IS the swipe as a tap, and two lines saying "there is
+                // a next question" over one card read as a stutter.
+                if (!showNextTease) ...[
+                  Text(
+                    context.l10n.swipeHint,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.support(
+                      fontSize: 13,
+                    ).copyWith(color: context.colors.subtle),
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 // The action bar: "go deeper" carries the middle of the row
                 // (4/6), flanked by the share pill on the left and the favorites
                 // star on the right (1/6 each) in the same rounded-rectangle

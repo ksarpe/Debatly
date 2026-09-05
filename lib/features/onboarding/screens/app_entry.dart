@@ -8,7 +8,6 @@ import '../../../core/startup/supabase_init_provider.dart';
 import '../../../services/supabase_service.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/widgets/password_recovery_listener.dart';
-import '../../account/widgets/pending_registration_watcher.dart';
 import '../../account/widgets/save_pro_prompt.dart';
 import '../../questions/screens/question_screen.dart';
 import '../../questions/widgets/load_error.dart';
@@ -77,19 +76,17 @@ class _AppEntryState extends ConsumerState<AppEntry> {
     };
 
     // Above the phase switcher: a tapped password-reset link can arrive in any
-    // phase, splash included, and must not be swallowed — and a registration
-    // confirmed in the browser has to be picked up wherever the user happens to
-    // be when they come back (see [PendingRegistrationWatcher]).
+    // phase, splash included, and must not be swallowed. (The legacy
+    // email/password accounts still reset passwords; registration itself is
+    // social-only, so nothing is confirmed in a browser any more.)
     return PasswordRecoveryListener(
-      child: PendingRegistrationWatcher(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 450),
-          switchInCurve: Curves.easeOut,
-          switchOutCurve: Curves.easeIn,
-          // Key on the phase so the switcher cross-fades between screens rather
-          // than reusing the previous element.
-          child: KeyedSubtree(key: ValueKey(_phase), child: child),
-        ),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 450),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        // Key on the phase so the switcher cross-fades between screens rather
+        // than reusing the previous element.
+        child: KeyedSubtree(key: ValueKey(_phase), child: child),
       ),
     );
   }

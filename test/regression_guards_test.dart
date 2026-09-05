@@ -81,6 +81,48 @@ void main() {
     });
   });
 
+  group('SessionState.canLinkSocial', () {
+    // The Settings "sign in without a password" row. It exists for the
+    // email/password accounts that predate the social-only sheet: on a fresh
+    // install their password is the only key to their history, so they get a
+    // way to add Apple / Google onto the SAME uid before the legacy form goes.
+    test('a password-only account can link a social identity', () {
+      const user = SessionState(
+        userId: 'u1',
+        isAnonymous: false,
+        linkedProviders: ['email'],
+      );
+      expect(user.hasSocialIdentity, isFalse);
+      expect(user.canLinkSocial, isTrue);
+    });
+
+    test('an account that already has Google or Apple has nothing to link', () {
+      const both = SessionState(
+        userId: 'u1',
+        isAnonymous: false,
+        linkedProviders: ['email', 'google'],
+      );
+      const apple = SessionState(
+        userId: 'u1',
+        isAnonymous: false,
+        linkedProviders: ['apple'],
+      );
+      expect(both.canLinkSocial, isFalse);
+      expect(apple.canLinkSocial, isFalse);
+    });
+
+    test('a guest never sees the row — the secure-account CTA is theirs', () {
+      const guest = SessionState(userId: 'u1', isAnonymous: true);
+      expect(guest.hasSocialIdentity, isFalse);
+      expect(guest.canLinkSocial, isFalse);
+    });
+
+    test('no session / mock mode — nothing to link', () {
+      expect(const SessionState().canLinkSocial, isFalse);
+      expect(const SessionState(isPremium: true).canLinkSocial, isFalse);
+    });
+  });
+
   group('RankCelebrationController.evaluate', () {
     UserStats statsAtTier(int tier) => UserStats.fromJson({
       'current_streak': 10,

@@ -118,7 +118,13 @@ they review?" signal, so the second ask is unconditional — the native sheet's
 own quota suppresses it for users who already rated). At most one ask per
 local day; on a rank-promotion day it fires right after the rank-up animation
 closes instead of on top of it; past the 7th-vote milestone it never asks
-again.
+again. Since 2026-09-05 the native sheet no longer opens cold: our own
+pre-prompt ("Jak Ci się gra w Debatly?", `review_pre_prompt.dart`) asks
+first — "Świetnie" hands over to the OS sheet, "Mogłoby być lepiej" opens a
+one-field feedback form that lands in the admin's suggestions inbox
+(`submit_app_feedback`, kind = 'feedback') instead of in the store, and
+"Później" spends the ask quietly. No stars of our own and no reward on any
+branch: both stores forbid incentivised reviews and nothing can verify one.
 
 ### The account model: buy to play, sign in to secure
 
@@ -134,11 +140,19 @@ Identity and account are separate things, and only the identity gates content:
   streak reaches three (`maybePromptSecureStreak`), and offered again in
   Settings (`SecureAccountButton`).
 
-The auth sheet offers the register tab to **everyone** — a free player who
-wants to keep playing for free can still secure their streak with an account.
-Registering upgrades the anonymous user in place (same UUID), so nothing is
-lost and no entitlement is gained. The sign-in link on the paywall sheet
-remains the returning buyer's route to the account their PRO sits on.
+The auth sheet is **social-only** (since 2026-09-05): "Continue with Apple" /
+"Continue with Google", for everyone — a free player who wants to keep playing
+for free secures their streak the same way a buyer secures PRO. One button is
+both register and sign-in: a guest's identity is linked onto the anonymous
+user in place (same UUID), so nothing is lost and no entitlement is gained;
+only an identity that already belongs to another account switches to it,
+after a confirm. Email/password **registration is gone from the client**; the
+accounts made before the switch still sign in behind the sheet's "I have a
+password" link (and keep the password-reset flow), and Settings offers them a
+"Sign in without a password" row that links Apple/Google onto the same
+account. The sign-in link on the paywall sheet remains the returning buyer's
+route to the account their PRO sits on. The Email provider stays ON
+server-side — the admin panel and older builds depend on it.
 
 Every user — free included — has Settings and a profile now; account deletion
 for signed-in users works in-app again, and the web link

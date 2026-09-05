@@ -14,8 +14,7 @@ import { api } from '../../lib/api';
  *                 and is NOT an install; the RPC keeps it apart.
  *   nowa        = the install's FIRST app event falls inside the window.
  *   aktywna     = ≥1 app event inside the window (new + returning).
- *   doba        = Europe/Warsaw, the owner's clock (same as /live and the
- *                 marketing journal).
+ *   doba        = Europe/Warsaw, the owner's clock (same as /live).
  */
 
 const STEP_LABELS = {
@@ -96,6 +95,11 @@ export default function StatsPage() {
   const windowLabel = days == null
     ? `od ${data?.tracking_since ?? 'startu telemetrii'}`
     : `ostatnie ${days} dni`;
+
+  // Głosy wg pytania: dzisiejsze i wczorajsze pytanie dnia na wierzchu, reszta
+  // (katalog, po którym chodzą PRO) zwinięta pod "pokaż więcej".
+  const velocityPicks = useMemo(() => (data?.velocity ?? []).filter((v) => v.is_recent_pick), [data]);
+  const velocityRest = useMemo(() => (data?.velocity ?? []).filter((v) => !v.is_recent_pick), [data]);
 
   return (
     <>
@@ -196,7 +200,7 @@ export default function StatsPage() {
                 błąd, nie użytkownik.
               </li>
               <li>
-                <b>Doba</b> = Europe/Warsaw, jak na /live i w dzienniku marketingowym. Nasze konta
+                <b>Doba</b> = Europe/Warsaw, jak na /live. Nasze konta
                 (maile firmowe + każdy, kto kiedykolwiek kupił w sandboxie) są wycięte, chyba że
                 zaznaczysz „pokaż też nasze konta”.
               </li>
@@ -334,32 +338,20 @@ export default function StatsPage() {
             </div>
 
             <div className="card">
-              <h3>Głosy wg pytania — ostatnie 7 dni</h3>
-              <div className="tbl-scroll">
-                <table className="stats-table">
-                  <thead>
-                    <tr>
-                      <th>Pytanie</th><th className="num">Głosy</th>
-                      <th className="num">TAK/NIE</th><th className="num">Suspect %</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.velocity.length === 0 && (
-                      <tr><td colSpan={4} className="muted">Brak głosów w ostatnich 7 dniach</td></tr>
-                    )}
-                    {data.velocity.map((v) => (
-                      <tr key={v.question_id}>
-                        <td className="q-cell">{v.question_text_pl}</td>
-                        <td className="num">{nf.format(v.votes)}</td>
-                        <td className="num">{v.yes_votes}/{v.no_votes}</td>
-                        <td className={`num ${v.suspect_pct >= 50 ? 'warn-cell' : ''}`}>
-                          {v.suspect_pct != null ? `${v.suspect_pct}%` : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <h3>Głosy wg pytania <span className="faint">(pytanie dnia: dziś i wczoraj)</span></h3>
+              <VelocityTable rows={velocityPicks} today={data.daily.at(-1)?.day}
+                             empty="Na dziś i wczoraj nie ma pytania dnia w kalendarzu" />
+              {velocityRest.length > 0 && (
+                <details className="more-rows">
+                  <summary>Pokaż więcej — pozostałe pytania z ostatnich 7 dni ({velocityRest.length})</summary>
+                  <VelocityTable rows={velocityRest} today={data.daily.at(-1)?.day} />
+                </details>
+              )}
+              <p className="faint" style={{ marginBottom: 0 }}>
+                Głosy z ostatnich 7 dni (doba {data.timezone}). Pytanie dnia pokazuje się nawet z zerem —
+                to zero jest informacją. Reszta to katalog, po którym chodzą konta PRO; data przy
+                pytaniu to dzień, w którym jest albo będzie pytaniem dnia.
+              </p>
             </div>
           </div>
 
@@ -483,6 +475,45 @@ export default function StatsPage() {
         </>
       )}
     </>
+  );
+}
+
+function VelocityTable({ rows, today, empty }) {
+  return (
+    <div className="tbl-scroll">
+      <table className="stats-table">
+        <thead>
+          <tr>
+            <th>Pytanie</th><th className="num">Głosy</th>
+            <th className="num">TAK/NIE</th><th className="num">Suspect %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 && (
+            <tr><td colSpan={4} className="muted">{empty ?? 'Brak głosów w ostatnich 7 dniach'}</td></tr>
+          )}
+          {rows.map((v) => (
+            <tr key={v.question_id}>
+              <td className="q-cell">
+                {v.pick_date && (
+                  <span className={`badge ${v.is_recent_pick ? 'pending' : ''}`}
+                        style={{ marginRight: 6 }}
+                        title={v.pick_date > today ? 'w kalendarzu pytań dnia' : 'było pytaniem dnia'}>
+                    {v.pick_date === today ? 'dziś' : fmtDay(v.pick_date)}
+                  </span>
+                )}
+                {v.question_text_pl}
+              </td>
+              <td className="num">{nf.format(v.votes)}</td>
+              <td className="num">{v.yes_votes}/{v.no_votes}</td>
+              <td className={`num ${v.suspect_pct >= 50 ? 'warn-cell' : ''}`}>
+                {v.suspect_pct != null ? `${v.suspect_pct}%` : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

@@ -194,10 +194,13 @@ void main() {
       ),
       findsOneWidget,
     );
-    // The segmented tab and the sign-in CTA both render "ZALOGUJ SIĘ".
-    expect(find.text('ZALOGUJ SIĘ'), findsNWidgets(2));
     // Tests report as Android, so the sheet offers Google (Apple is iOS-only).
     expect(find.text('KONTYNUUJ Z GOOGLE'), findsOneWidget);
+    // Social-only: no register/sign-in tabs, and no email form until the
+    // legacy link is tapped.
+    expect(find.text('ZAŁÓŻ KONTO'), findsNothing);
+    expect(find.text('EMAIL'), findsNothing);
+    expect(find.text('MAM KONTO Z HASŁEM'), findsOneWidget);
   });
 
   testWidgets('Auth sheet offers Apple (not Google) on iOS', (
@@ -217,26 +220,16 @@ void main() {
     }
   });
 
-  testWidgets('Register tab shows the terms/privacy consent line', (
+  testWidgets('The terms/privacy consent line is always on', (
     WidgetTester tester,
   ) async {
+    // Every social tap can CREATE the account (a guest is upgraded in place),
+    // so there is no "existing user" tab left that could skip the consent.
     await tester.pumpWidget(
       const ProviderScope(child: LocalizedTestApp(home: AuthScreen())),
     );
     await tester.pumpAndSettle();
 
-    // Sign-in tab: no consent line (existing user, not creating an account).
-    expect(
-      find.text(
-        'Kontynuując, akceptujesz Regulamin oraz Politykę prywatności.',
-      ),
-      findsNothing,
-    );
-
-    // Switch to the register tab — the consent line (one Text.rich with the
-    // Terms + Privacy links) now renders.
-    await tester.tap(find.text('ZAŁÓŻ KONTO'));
-    await tester.pumpAndSettle();
     expect(
       find.text(
         'Kontynuując, akceptujesz Regulamin oraz Politykę prywatności.',
@@ -245,12 +238,9 @@ void main() {
     );
   });
 
-  testWidgets('Auth sheet offers registration to a free guest too', (
+  testWidgets('The legacy password form is sign-in only, one tap away', (
     WidgetTester tester,
   ) async {
-    // Registration is open to everyone: a free player secures their streak and
-    // votes the same way a buyer secures PRO (the anonymous user is upgraded
-    // in place), so a non-premium session still gets the register tab.
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -261,11 +251,20 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('ZAŁÓŻ KONTO'), findsOneWidget);
-    // The segmented tab AND the sign-in CTA (which stays) both read the same
-    // uppercase label now.
-    expect(find.text('ZALOGUJ SIĘ'), findsNWidgets(2));
-    // Social sign-in stays available — existing Google users have no password.
+    // Folded: the sign-in CTA is not on screen yet.
+    expect(find.text('ZALOGUJ SIĘ'), findsNothing);
+
+    await tester.tap(find.text('MAM KONTO Z HASŁEM'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('EMAIL'), findsOneWidget);
+    expect(find.text('HASŁO'), findsOneWidget);
+    expect(find.text('NIE PAMIĘTASZ HASŁA?'), findsOneWidget);
+    expect(find.text('ZALOGUJ SIĘ'), findsOneWidget);
+    // No registration: no confirm field, and the link folds away once open.
+    expect(find.text('POWTÓRZ HASŁO'), findsNothing);
+    expect(find.text('MAM KONTO Z HASŁEM'), findsNothing);
+    // Social sign-in stays available above the form.
     expect(find.text('KONTYNUUJ Z GOOGLE'), findsOneWidget);
   });
 
@@ -292,14 +291,13 @@ void main() {
     expect(find.text('ZABEZPIECZ KONTO'), findsOneWidget);
   });
 
-  testWidgets('Settings "secure account" opens the auth sheet on REGISTER', (
+  testWidgets('Settings "secure account" opens the social-only account sheet', (
     WidgetTester tester,
   ) async {
-    // The button promises to SECURE the guest profile, and only registering
-    // keeps the anonymous UUID (the user is upgraded in place). Opening on the
-    // sign-in tab pointed a guest with months of votes at the one action that
-    // replaces the session and strands everything. Sign-in stays reachable as
-    // the secondary tab.
+    // The button promises to SECURE the guest profile, and a social tap does
+    // exactly that: the identity is linked onto the anonymous user in place,
+    // same UUID. The legacy password sign-in — the one action that replaces
+    // the session and strands a guest's progress — stays folded behind a link.
     final prefs = await _mockPrefs();
     await tester.pumpWidget(
       ProviderScope(
@@ -315,18 +313,20 @@ void main() {
     await tester.tap(find.text('ZABEZPIECZ KONTO'));
     await tester.pumpAndSettle();
 
-    // Register-tab markers: the join headline, the confirm-password field and
-    // the terms line only exist there.
-    expect(find.text('DOŁĄCZ DO DEBATLY'), findsOneWidget);
-    expect(find.text('POWTÓRZ HASŁO'), findsOneWidget);
+    // The sheet: one headline, the social button (Android → Google), the
+    // consent line, and the legacy link — no tabs, no register form.
+    expect(find.text('TWOJE KONTO'), findsOneWidget);
+    expect(find.text('KONTYNUUJ Z GOOGLE'), findsOneWidget);
     expect(
       find.text(
         'Kontynuując, akceptujesz Regulamin oraz Politykę prywatności.',
       ),
       findsOneWidget,
     );
-    // The sign-in tab is still there as the secondary path.
-    expect(find.text('ZALOGUJ SIĘ'), findsOneWidget);
+    expect(find.text('POWTÓRZ HASŁO'), findsNothing);
+    expect(find.text('ZAŁÓŻ KONTO'), findsNothing);
+    // The password sign-in is still reachable, one deliberate tap away.
+    expect(find.text('MAM KONTO Z HASŁEM'), findsOneWidget);
   });
 
   testWidgets('Premium user can open the Manage subscription sheet', (

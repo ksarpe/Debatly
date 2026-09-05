@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/locale/l10n_extension.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../account/providers/grace_providers.dart';
 import '../../account/providers/stats_providers.dart';
 import 'animated_flame_icon.dart';
 import 'rank_sheet.dart';
@@ -18,8 +19,10 @@ import 'rank_sheet.dart';
 final streakChipKeyProvider = Provider<GlobalKey>((ref) => GlobalKey());
 
 /// 🔥 Streak — consecutive days the user voted on the daily. Muted at 0; a
-/// living, shimmering flame once it is running (see [AnimatedFlameIcon]).
-/// Tapping it opens the rank sheet.
+/// living, shimmering flame once it is running (see [AnimatedFlameIcon]) —
+/// and BLUE while today's vote is still missing ([streakAtRiskProvider]): the
+/// streak is cooling and a missed day starts eating its graces. Tapping it
+/// opens the rank sheet.
 class StreakChip extends ConsumerWidget {
   const StreakChip({super.key});
 
@@ -27,6 +30,7 @@ class StreakChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(userStatsValueProvider);
     final active = stats.currentStreak > 0;
+    final cooling = ref.watch(streakAtRiskProvider);
     return _StatChip(
       // Tag the flame with the shared key so the streak-up flourish can read its
       // on-screen position and land the flying flame exactly on it.
@@ -35,11 +39,18 @@ class StreakChip extends ConsumerWidget {
         child: AnimatedFlameIcon(
           streak: stats.currentStreak,
           rankTier: stats.rankTier,
+          cooling: cooling,
         ),
       ),
       label: '${stats.currentStreak}',
-      labelColor: active ? flameColor(context) : context.colors.subtle,
-      tooltip: context.l10n.streakTooltip,
+      labelColor: !active
+          ? context.colors.subtle
+          : cooling
+          ? graceColor(context)
+          : flameColor(context),
+      tooltip: cooling
+          ? context.l10n.streakCoolingTooltip
+          : context.l10n.streakTooltip,
       onTap: () => showRankSheet(context),
     );
   }

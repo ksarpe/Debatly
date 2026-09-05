@@ -1,32 +1,22 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/feedback/app_toast.dart';
 import '../../../core/feedback/haptics.dart';
 import '../../../core/layout/content_width.dart';
 import '../../../core/locale/l10n_extension.dart';
-import '../../../core/network/network_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../data/models/smaczek.dart';
+import '../../../services/analytics.dart';
 import '../../account/providers/session_providers.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
 import '../../monetization/widgets/purchase_settlement.dart';
 import '../providers/challenge_providers.dart';
 import '../providers/question_providers.dart';
-
-/// Shortest smaczek suggestion the server accepts — mirrors the
-/// `submit_smaczek_suggestion` RPC (TOO_SHORT). The send button stays disabled
-/// below it so the server error is only ever a backstop.
-const int kSmaczekSuggestionMinChars = 5;
-
-/// Longest smaczek suggestion the server accepts (RPC: TOO_LONG). Enforced
-/// client-side by the field's maxLength, so the counter blocks instead of the
-/// server.
-const int kSmaczekSuggestionMaxChars = 80;
+import 'smaczek_composer.dart';
 
 /// Opens the "Smaczki" panel as a modal sheet that slides up from the bottom.
 ///
@@ -66,8 +56,33 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
   /// Blocks the premium button while the paywall / purchase is in flight.
   bool _busy = false;
 
-  /// Whether the "suggest your own smaczek" composer is unfolded.
+  /// Whether the "suggest your own smaczek" composer is unfolded in place of
+  /// the footer button under the list.
   bool _composing = false;
+
+  void _openComposer() {
+    Analytics.log('smaczek_composer_opened', {
+      'question_id': widget.questionId,
+    });
+    setState(() => _composing = true);
+  }
+
+  /// The sheet's footer under the list: the "Zaproponuj własny" button, or
+  /// the composer it unfolds into. Null on the DEV pin, which has no server
+  /// row the RPC could pin an argument to.
+  Widget? _footer() {
+    if (widget.questionId == kDevCustomQuestionId) return null;
+    if (_composing) {
+      return SmaczekComposer(
+        questionId: widget.questionId,
+        onSent: () => setState(() => _composing = false),
+      );
+    }
+    return _SuggestSmaczekButton(
+      questionId: widget.questionId,
+      onTap: _openComposer,
+    );
+  }
 
   Future<void> _getPremium() async {
     // The tap that got here landed on a locked card: say "not yours yet" in the
@@ -179,49 +194,27 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text.rich(
-                        TextSpan(
-                          text: context.l10n.smaczkiTitle.toUpperCase(),
-                          children: [
-                            // The "(smaczki)" aside — deliberately a different
-                            // cut than the condensed headline: small, quiet
-                            // Manrope, lowercase.
-                            TextSpan(
-                              text: ' ${context.l10n.smaczkiTitleTag}',
-                              style: AppTypography.support(
-                                fontSize: 13,
-                              ).copyWith(color: context.colors.subtle),
-                            ),
-                          ],
-                        ),
-                        style: AppTypography.title(
-                          fontSize: 30,
-                        ).copyWith(color: context.colors.ink),
+                // The "Zaproponuj własny" CTA is the button under the list,
+                // not a corner button here (community-arguments step 0,
+                // 2026-09-05 — see [_SuggestSmaczekButton]).
+                Text.rich(
+                  TextSpan(
+                    text: context.l10n.smaczkiTitle.toUpperCase(),
+                    children: [
+                      // The "(smaczki)" aside — deliberately a different
+                      // cut than the condensed headline: small, quiet
+                      // Manrope, lowercase.
+                      TextSpan(
+                        text: ' ${context.l10n.smaczkiTitleTag}',
+                        style: AppTypography.support(
+                          fontSize: 13,
+                        ).copyWith(color: context.colors.subtle),
                       ),
-                    ),
-                    // Bare text button in the top-right corner — toggles the
-                    // one-line composer below.
-                    TextButton(
-                      onPressed: () => setState(() => _composing = !_composing),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        foregroundColor: AppTheme.spark,
-                      ),
-                      child: Text(
-                        context.l10n.smaczekSuggestCta.toUpperCase(),
-                        style: AppTypography.action(fontSize: 12),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  style: AppTypography.title(
+                    fontSize: 30,
+                  ).copyWith(color: context.colors.ink),
                 ),
                 const SizedBox(height: 6),
                 // How many arguments are still ahead of the reader — everything
@@ -248,13 +241,6 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
                 const SizedBox(height: 16),
                 const Divider(),
                 const SizedBox(height: 16),
-                if (_composing) ...[
-                  _SmaczekComposer(
-                    questionId: widget.questionId,
-                    onSent: () => setState(() => _composing = false),
-                  ),
-                  const SizedBox(height: 16),
-                ],
                 Flexible(
                   child: smaczkiAsync.when(
                     loading: () => const Padding(
@@ -281,140 +267,18 @@ class _SmaczkiSheetState extends ConsumerState<_SmaczkiSheet> {
                     ),
                   ),
                 ),
+                // The way in for the user's own argument: pinned under the
+                // list rather than scrolled with it, so it is on screen for
+                // every list length and its glow is never clipped by the
+                // scroll view. The cards' own 12px bottom margin plus this
+                // gap keep the rhythm.
+                if (_footer() case final footer?) ...[
+                  const SizedBox(height: 4),
+                  footer,
+                ],
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The one-line "suggest your own smaczek" composer, unfolded by the header's
-/// text button. Sends the raw idea to the same review inbox as question
-/// suggestions (`question_suggestions`, kind = 'smaczek') — nothing appears in
-/// the app until the team rewrites and publishes it.
-///
-/// Input hygiene: single line, hard 80-char cap, control characters filtered
-/// out locally AND rejected server-side; the RPC is parameterised, so the text
-/// is never interpolated into SQL.
-class _SmaczekComposer extends ConsumerStatefulWidget {
-  const _SmaczekComposer({required this.questionId, required this.onSent});
-
-  final String questionId;
-
-  /// Called after a successful submit so the parent can fold the composer.
-  final VoidCallback onSent;
-
-  @override
-  ConsumerState<_SmaczekComposer> createState() => _SmaczekComposerState();
-}
-
-class _SmaczekComposerState extends ConsumerState<_SmaczekComposer> {
-  final TextEditingController _controller = TextEditingController();
-  bool _busy = false;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  int get _trimmedLength => _controller.text.trim().length;
-
-  bool get _canSend => !_busy && _trimmedLength >= kSmaczekSuggestionMinChars;
-
-  Future<void> _submit() async {
-    if (!_canSend) return;
-    setState(() => _busy = true);
-    // Captured before the await: a success folds the composer away, after
-    // which `context` is unusable — the toast rides the root overlay instead.
-    final l10n = context.l10n;
-    final overlay = AppToast.capture(context);
-    try {
-      await ref
-          .read(questionRepositoryProvider)
-          .submitSmaczekSuggestion(
-            questionId: widget.questionId,
-            text: _controller.text.trim(),
-          );
-      widget.onSent();
-      AppToast.showOn(
-        overlay,
-        l10n.suggestQuestionThanks,
-        type: ToastType.success,
-      );
-    } catch (e) {
-      // The shared daily cap gets its own friendlier line; offline gets the
-      // calm "no connection"; anything else is the generic failure.
-      final message = e.toString().contains('RATE_LIMITED')
-          ? l10n.suggestQuestionRateLimited
-          : isOfflineError(e)
-          ? l10n.noConnection
-          : l10n.suggestQuestionFailed;
-      AppToast.showOn(overlay, message, type: ToastType.error);
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return TextField(
-      controller: _controller,
-      enabled: !_busy,
-      autofocus: true,
-      maxLength: kSmaczekSuggestionMaxChars,
-      textCapitalization: TextCapitalization.sentences,
-      textInputAction: TextInputAction.send,
-      inputFormatters: [
-        // Belt and braces against pasted control characters — the RPC rejects
-        // them too (BAD_TEXT), this just keeps the error out of the UX.
-        FilteringTextInputFormatter.deny(RegExp(r'[\x00-\x1F\x7F]')),
-      ],
-      onChanged: (_) => setState(() {}),
-      onSubmitted: (_) => _submit(),
-      style: AppTypography.body(fontSize: 14).copyWith(color: colors.ink),
-      decoration: InputDecoration(
-        hintText: context.l10n.smaczekSuggestHint,
-        hintStyle: AppTypography.support(
-          fontSize: 13,
-        ).copyWith(color: colors.subtle),
-        isDense: true,
-        // Nudges toward the minimum while typing the first few words, then
-        // gets out of the way.
-        helperText:
-            _trimmedLength > 0 && _trimmedLength < kSmaczekSuggestionMinChars
-            ? context.l10n.smaczekSuggestMinChars
-            : null,
-        helperStyle: AppTypography.support().copyWith(color: colors.subtle),
-        counterStyle: AppTypography.support().copyWith(color: colors.subtle),
-        suffixIcon: _busy
-            ? const Padding(
-                padding: EdgeInsets.all(10),
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
-            : IconButton(
-                tooltip: context.l10n.smaczekSuggestSend,
-                icon: const Icon(Icons.send_rounded, size: 20),
-                color: _canSend ? AppTheme.spark : colors.subtle,
-                onPressed: _canSend ? _submit : null,
-              ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: colors.hairline),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppTheme.spark),
-        ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: colors.hairline),
         ),
       ),
     );
@@ -509,6 +373,81 @@ class _SmaczekCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The way in for the user's own argument — the sheet's footer button
+/// (community-arguments step 0, 2026-09-05; the owner's placement, over an
+/// under-the-bars variant built and dropped the same day). It wears the
+/// shared accent-CTA look — the spark gradient pill, its glow and the dark
+/// label, the same as "go deeper" and the paywall button — and NOT a card: a
+/// fourth numbered card read as a fourth smaczek, and the owner wants a
+/// button. Tappable on BOTH tiers — a free user WRITES, the lock is only on
+/// reading. A tap unfolds [SmaczekComposer] in its place. Logs
+/// `smaczek_composer_shown` on mount — the measurement's "saw the way in"
+/// denominator.
+class _SuggestSmaczekButton extends StatefulWidget {
+  const _SuggestSmaczekButton({required this.questionId, required this.onTap});
+
+  final String questionId;
+  final VoidCallback onTap;
+
+  @override
+  State<_SuggestSmaczekButton> createState() => _SuggestSmaczekButtonState();
+}
+
+class _SuggestSmaczekButtonState extends State<_SuggestSmaczekButton> {
+  @override
+  void initState() {
+    super.initState();
+    Analytics.log('smaczek_composer_shown', {'question_id': widget.questionId});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = context.l10n.smaczekSuggestCta.toUpperCase();
+    return Semantics(
+      button: true,
+      label: label,
+      // One node, read once: the glyph and the text are the button's face.
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: double.infinity,
+          // A MINIMUM: the label follows the system font and must never be
+          // painted outside the pill it belongs to (see GoDeeperButton).
+          constraints: const BoxConstraints(minHeight: kMinTouchTarget),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(
+            borderRadius: AppTheme.ctaRadius,
+            gradient: AppTheme.ctaGradient,
+            boxShadow: AppTheme.ctaGlow,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.edit_rounded,
+                size: 18,
+                color: AppTheme.ctaForeground,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.action(
+                    fontSize: 14,
+                  ).copyWith(color: AppTheme.ctaForeground),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

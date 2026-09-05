@@ -58,17 +58,15 @@ class AppConfig {
     defaultValue: 'https://debatly.app/delete-account',
   );
 
-  /// Landing page the confirmation link in the sign-up email redirects to once
-  /// Supabase has verified the address. Passed as `emailRedirectTo` when the
-  /// account is created; without it the user lands on the project's bare Site
-  /// URL. See [privacyPolicyUrl] for the baked-in/overridable rationale.
-  static const String emailConfirmedUrl = String.fromEnvironment(
-    'EMAIL_CONFIRMED_URL',
-    defaultValue: 'https://debatly.app/email-potwierdzony',
-  );
-
   /// Where the password-reset mail sends the user, so the new password can be
   /// typed IN THE APP.
+  ///
+  /// Still needed after the sheet went social-only (2026-09-05): email
+  /// REGISTRATION is gone from the client, but the accounts it created keep
+  /// signing in with a password behind the sheet's "I have a password" link,
+  /// and a forgotten password is still the only thing that can lock one out.
+  /// (`EMAIL_CONFIRMED_URL` / the sign-up confirmation landing went with the
+  /// register form; older builds still send that mail.)
   ///
   /// This is a WEB page that forwards into the app, not the `debatly://` deep
   /// link itself. Both end in the same place on a phone, but only this one

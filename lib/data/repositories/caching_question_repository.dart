@@ -330,6 +330,10 @@ class CachingQuestionRepository implements QuestionRepository {
   Future<void> submitQuestionSuggestion(String text) =>
       inner.submitQuestionSuggestion(text);
 
+  /// Same story for app feedback — a pure write into the server inbox.
+  @override
+  Future<void> submitAppFeedback(String text) => inner.submitAppFeedback(text);
+
   /// Same story for smaczek suggestions — a pure write into the server inbox.
   @override
   Future<void> submitSmaczekSuggestion({

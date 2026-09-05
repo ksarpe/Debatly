@@ -6,7 +6,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../providers/session_providers.dart';
 import '../screens/auth_screen.dart';
-import 'auth_segmented_tabs.dart' show AuthMode;
 
 /// Gold accent shared with the "go Premium" upsell + auth notices.
 const Color _kGold = Color(0xFFFFC857);
@@ -15,9 +14,9 @@ const Color _kGold = Color(0xFFFFC857);
 ///
 /// A guest's entitlement rides on the anonymous Supabase identity, which is lost
 /// on reinstall or a second device (store-level restore still works, but a saved
-/// account is the friendlier, recoverable path — and registering with
-/// email/password upgrades the anonymous user in place, so the same UUID keeps
-/// the entitlement).
+/// account is the friendlier, recoverable path — and a Continue-with-Apple /
+/// Google tap links the identity onto the anonymous user in place, so the same
+/// UUID keeps the entitlement).
 ///
 /// No-ops unless the session is now premium AND still a guest.
 ///
@@ -115,10 +114,11 @@ Future<void> _showSavePrompt(BuildContext context) async {
   );
 
   if (wantsAccount == true && context.mounted) {
-    // The REGISTER tab: PRO rides on the anonymous UUID, and only registering
-    // keeps that UUID (it upgrades the user in place). Signing in would switch
-    // to another account — the opposite of "attach this purchase to something
+    // PRO rides on the anonymous UUID, and a social tap keeps that UUID (the
+    // identity links onto the guest in place). The sheet only switches
+    // accounts when the picked identity already belongs to one — and asks
+    // first, since that is the opposite of "attach this purchase to something
     // recoverable".
-    await showAuthSheet(context, initialMode: AuthMode.register);
+    await showAuthSheet(context);
   }
 }

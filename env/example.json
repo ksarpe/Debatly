@@ -6,7 +6,6 @@
   "PRIVACY_POLICY_URL": "https://debatly.app/privacy",
   "TERMS_OF_SERVICE_URL": "https://debatly.app/terms",
   "DELETE_ACCOUNT_URL": "https://debatly.app/delete-account",
-  "EMAIL_CONFIRMED_URL": "https://debatly.app/email-potwierdzony",
   "PASSWORD_RESET_REDIRECT_URL": "https://debatly.app/reset-hasla",
   "SENTRY_DSN": "https://examplePublicKey@o123456.ingest.de.sentry.io/7891011",
   "SENTRY_ENVIRONMENT": "production",

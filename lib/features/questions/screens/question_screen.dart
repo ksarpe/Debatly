@@ -18,6 +18,7 @@ import '../providers/question_providers.dart';
 import '../widgets/challenge_session_watcher.dart';
 import '../widgets/conformity_panel.dart';
 import '../widgets/daily_rollover_watcher.dart';
+import '../widgets/grace_lost_overlay.dart';
 import '../widgets/load_error.dart';
 import '../widgets/modes_showcase.dart' show modesIconKey;
 import '../widgets/offline_banner.dart';
@@ -367,6 +368,9 @@ class QuestionScreen extends ConsumerWidget {
           // The everyday "+1": flies a flame up into the streak chip whenever the
           // streak grows (and it isn't a promotion day, which the rank-up owns).
           const StreakCelebrationListener(),
+          // The other side of the streak: a heart cracks in half on the first
+          // launch after a missed day ate a grace, naming how many are left.
+          const GraceLostListener(),
         ],
       ),
     );

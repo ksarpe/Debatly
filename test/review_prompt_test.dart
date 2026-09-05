@@ -12,7 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// again past the last milestone.
 ///
 /// The controller group then pins the SIDE EFFECTS the pure function can't:
-/// every vote ticks the odometer, a due ask retires its milestone and stamps
+/// every vote ticks the odometer, a due claim retires its milestone and stamps
 /// the day in SharedPreferences (so the OS dropping the sheet — which it
 /// usually does — can't make us re-fire on the next vote), and a not-due ask
 /// writes nothing.
@@ -158,9 +158,9 @@ void main() {
       final c = await containerWith({voteCountKey: 3});
       final asked = await c
           .read(reviewPromptControllerProvider.notifier)
-          .maybePromptForReview();
+          .claimDueReviewAsk();
 
-      expect(asked, isTrue);
+      expect(asked, 3, reason: 'the claim returns the milestone it spent');
       final sp = c.read(sharedPreferencesProvider);
       expect(
         sp.getInt(lastMilestoneKey),
@@ -180,9 +180,9 @@ void main() {
         final c = await containerWith({voteCountKey: 2});
         final asked = await c
             .read(reviewPromptControllerProvider.notifier)
-            .maybePromptForReview();
+            .claimDueReviewAsk();
 
-        expect(asked, isFalse);
+        expect(asked, isNull);
         final sp = c.read(sharedPreferencesProvider);
         expect(
           sp.getInt(lastMilestoneKey),
@@ -202,9 +202,9 @@ void main() {
       });
       final asked = await c
           .read(reviewPromptControllerProvider.notifier)
-          .maybePromptForReview();
+          .claimDueReviewAsk();
 
-      expect(asked, isFalse);
+      expect(asked, isNull);
       final sp = c.read(sharedPreferencesProvider);
       expect(
         sp.getInt(lastMilestoneKey),
@@ -221,9 +221,9 @@ void main() {
       });
       final asked = await c
           .read(reviewPromptControllerProvider.notifier)
-          .maybePromptForReview();
+          .claimDueReviewAsk();
 
-      expect(asked, isTrue);
+      expect(asked, 7);
       final sp = c.read(sharedPreferencesProvider);
       expect(sp.getInt(lastMilestoneKey), 7);
     });

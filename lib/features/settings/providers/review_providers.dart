@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/locale/app_locale.dart' show sharedPreferencesProvider;
 import '../../../core/time/epoch_day.dart';
 import '../../../services/analytics.dart';
-import '../../../services/review_service.dart';
 
 /// SharedPreferences key: lifetime count of successfully cast votes on this
 /// device — the engagement odometer the review milestones ride on. Counted
@@ -56,14 +55,15 @@ int? dueReviewMilestone({
   return null;
 }
 
-/// Decides — and, when due, fires — the in-app review ask.
+/// Decides when the in-app review ask is due, and spends it.
 ///
-/// Orchestration only: the *when* lives in the pure [dueReviewMilestone], the
-/// *how* in [ReviewService]. It holds no state of its own; the three facts it
-/// needs (vote count, spent milestone, last ask date) live in
-/// SharedPreferences so they survive restarts.
+/// Timing only: the *when* lives in the pure [dueReviewMilestone]; the *how*
+/// — our pre-prompt sheet, then the OS sheet (`ReviewService`) or the
+/// feedback form — lives in `review_pre_prompt.dart`. It holds no state of
+/// its own; the three facts it needs (vote count, spent milestone, last ask
+/// date) live in SharedPreferences so they survive restarts.
 ///
-/// Two call sites share it:
+/// Two call sites share it (through `maybePromptForReview`):
 ///   * DailyVotePanel counts every successful vote ([recordVote]) and, on a
 ///     non-promotion day, immediately considers the ask;
 ///   * RankCelebrationListener considers it right after the rank-up
@@ -82,14 +82,17 @@ class ReviewPromptController extends Notifier<void> {
     return count;
   }
 
-  /// Fires the OS review sheet if a vote milestone is due; no-ops otherwise.
-  /// Returns whether an ask was spent, so the caller can keep the
-  /// one-dialog-per-vote rule.
+  /// Claims the review ask if a vote milestone is due: returns the milestone
+  /// (and spends it) or null when nothing is due. The UI that follows — the
+  /// pre-prompt, then the OS sheet or the feedback form — lives in
+  /// `maybePromptForReview` (review_pre_prompt.dart); this method only owns
+  /// the timing, so it stays testable without a widget tree.
   ///
-  /// Records the attempt BEFORE requesting, so a request the OS silently drops
-  /// (it usually does — the sheet is quota-limited) still retires the
-  /// milestone instead of re-firing on the very next vote.
-  Future<bool> maybePromptForReview() async {
+  /// Records the claim BEFORE any UI shows, so a dismissed pre-prompt or a
+  /// request the OS silently drops (it usually does — the sheet is
+  /// quota-limited) still retires the milestone instead of re-firing on the
+  /// very next vote.
+  Future<int?> claimDueReviewAsk() async {
     final prefs = ref.read(sharedPreferencesProvider);
     final votes = prefs.getInt(_kVoteCountKey) ?? 0;
     final milestone = dueReviewMilestone(
@@ -98,16 +101,12 @@ class ReviewPromptController extends Notifier<void> {
       lastPromptedDay: prefs.getInt(_kLastPromptedDayKey),
       todayDay: _todayEpochDay(),
     );
-    if (milestone == null) return false;
+    if (milestone == null) return null;
 
     await prefs.setInt(_kLastMilestoneKey, milestone);
     await prefs.setInt(_kLastPromptedDayKey, _todayEpochDay());
-    Analytics.log('review_prompt_requested', {
-      'milestone': milestone,
-      'votes': votes,
-    });
-    await ReviewService.requestReview();
-    return true;
+    Analytics.log('review_ask_due', {'milestone': milestone, 'votes': votes});
+    return milestone;
   }
 
   /// DEV tools: the current odometer, for display in the DEV screen.

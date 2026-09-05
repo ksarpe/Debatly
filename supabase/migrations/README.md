@@ -250,3 +250,54 @@ catastrophe. Do not "fix" it by flattening the folders back.
   batch lands on a fenced catalog. Verified live in a rolled-back block: an
   Intimacy insert into `daily_picks` raises `QUESTION_EXCLUDED`, the fallback
   draw never returns one. Idempotent.
+- `20260905120000_admin_top_users_and_freemium_floor.sql` — **superseded the
+  same hour** by the next entry; kept as the record of what was applied.
+  `admin_dashboard_stats` clamped every window to a "freemium floor"
+  (2026-08-18 00:00 Europe/Warsaw), the `velocity[]` rows gained `pick_date` /
+  `is_recent_pick` (today's + yesterday's `daily_picks` row always present,
+  limit 10 → 40), and the new read-only `admin_top_users(p_include_internal,
+  p_limit)` leaderboard RPC was born on the same floor — applied to prod
+  2026-09-05 via MCP as `admin_top_users_and_freemium_floor`, then
+  `admin_dashboard_stats_velocity_order` (velocity rows past the two picks
+  ordered by votes). The owner asked for the floor to go the same hour.
+- `20260905130000_admin_stats_all_time_again.sql` (the floor is gone:
+  `admin_dashboard_stats` is the 20260903120000 text again + only the
+  pick-aware `velocity[]` from the entry above; `admin_top_users` redefined
+  all-time — per-board top N (live streak via `decayed_streak` on the UTC
+  clock + rank name, longest streak, PRO votes cast while PRO, free votes,
+  gates moved, qualifying gates) plus a population summary, same internal
+  filter as /stats) — **applied to prod 2026-09-05** via MCP as
+  `admin_stats_all_time_again`, then once more as
+  `admin_stats_all_time_again_fix_order` (the `jsonb_agg` ORDER BY now
+  mirrors the subquery's — the first cut re-sorted the folded velocity rows
+  by their future pick dates; the file is the final shape). Verified live with the approver's JWT claims
+  set: "od początku" totals include the pre-2026-08-18 votes again, the
+  chart starts 30 days back, velocity leads with today's and yesterday's
+  pick. Idempotent.
+- `20260905150000_admin_user_history.sql` ("who just bought?": the internal
+  `admin_user_history_core(uuid)` — one account's story split at its FIRST
+  real purchase: account, purchase + subscription row, `before` (minutes
+  from first launch to the purchase, votes, active days, paywall / wall
+  hits, gates, the run of consecutive UTC vote days ending at the purchase),
+  all-time totals with the live streak + rank, `days[]` per Warsaw day and
+  the last 80 raw `app_events`; the admin wrapper `admin_user_history(text)`
+  takes a full UUID or a ≥6-char prefix, admin_require inside; and
+  `billing_event_telegram_notify()` now appends the account line + a verdict
+  — "🆕 Nowy — kupił 12 min po pierwszym uruchomieniu, 1 głosów wcześniej"
+  (bought on the first day seen) or "🎮 Grał wcześniej — 7 głosów w 9 dni,
+  streak 4, paywall 3×" — inside its own exception block, so a failure
+  leaves the ping as it was) — **applied to prod 2026-09-05** via MCP as
+  `admin_user_history`, then the trigger re-applied via `execute_sql` with
+  the final "new = first day" rule (the file is the final shape). Verified
+  live on the three latest buyers: the core returns the split, the panel's
+  `/users?u=<id>` renders it. Read-only, idempotent.
+- `20260905160000_app_feedback.sql` (the review pre-prompt's "mogłoby być
+  lepiej" branch: `question_suggestions.kind` now also allows `'feedback'`
+  (constraint dropped + re-added by its auto name
+  `question_suggestions_kind_check`), and `submit_app_feedback(text, text)`
+  — security definer, 10–500 chars, control characters rejected except
+  tab/CR/LF, the shared 10-per-day cap with question/smaczek suggestions,
+  kind='feedback'; `admin_list_question_suggestions` already returns `kind`,
+  the panel badges the row "Opinia") — **applied to prod 2026-09-05** via
+  MCP as `app_feedback`. Verified: the RPC exists and raises
+  NOT_AUTHENTICATED without a session. Idempotent.

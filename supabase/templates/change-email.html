@@ -3,11 +3,12 @@
   Wklej do: Supabase Dashboard → Authentication → Emails → Change email address → Body (Source)
   Subject: Potwierdź nowy adres e-mail · Confirm your new email
 
-  WAŻNE dla Debatly: ten szablon leci także przy „upgrade gościa" —
-  registerWithPasswordOn() robi updateUser() na anonimowym userze
-  (lib/services/supabase_service.dart:277), a to jest zmiana e-maila, nie signUp.
+  WAŻNE dla Debatly: ten szablon leciał także przy „upgrade gościa" —
+  buildy sprzed 2.4 (rejestracja mailem, usunięta 2026-09-05) robiły
+  updateUser() na anonimowym userze, a to jest zmiana e-maila, nie signUp.
   Dlatego treść jest napisana neutralnie: działa i dla zmiany adresu, i dla
-  gościa zakładającego pierwsze konto.
+  gościa zakładającego pierwsze konto. Aktualna apka tego maila nie wywołuje,
+  stare buildy wciąż tak — nie kasować.
 
   Zmienne: {{ .ConfirmationURL }} {{ .Email }} (stary) {{ .NewEmail }} (nowy) {{ .Token }}
 -->

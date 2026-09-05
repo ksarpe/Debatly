@@ -10,15 +10,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// The auth flows that guard a user's progress and their way out:
 ///
-///  * `registerWithPassword` — an anonymous session is upgraded IN PLACE
-///    (`updateUser`, same UUID → the guest's streak/votes/reveals survive);
-///    only with no anonymous session does `signUp` mint a separate account.
-///    Losing this branch silently orphans every guest who registers.
-///  * `signInWithIdToken` (social) — the same rule for the Google/Apple
-///    buttons: an anonymous session LINKS the identity in place
-///    (`linkIdentityWithIdToken`, same UUID); only an identity that already
-///    belongs to another account falls back to a plain sign-in, switching to
-///    that account.
+///  * `signInWithIdToken` (social) — the Google/Apple buttons, which since the
+///    sheet went social-only (2026-09-05) are also how an account is CREATED:
+///    an anonymous session LINKS the identity in place
+///    (`linkIdentityWithIdToken`, same UUID → the guest's streak/votes/PRO
+///    survive); only an identity that already belongs to another account
+///    falls back to a plain sign-in, switching to that account. Losing the
+///    link branch silently orphans every guest who "registers".
+///  * `linkIdentityWithIdTokenOn` — Settings' "link Apple / Google" for the
+///    legacy email/password accounts: the same in-place link onto a
+///    signed-in, NON-anonymous user, with NO sign-in fallback — a refused link
+///    must never quietly switch an account holder onto someone else's account.
 ///  * `signOut` — the global sign-out revokes the refresh token server-side,
 ///    which needs the network; when that fails the LOCAL fallback must still
 ///    log the user out without throwing (sign-out has to work offline).
@@ -90,286 +92,6 @@ void main() {
     addTearDown(client.dispose);
     return client;
   }
-
-  group('registerWithPassword', () {
-    test(
-      'an anonymous session upgrades in place — same UUID, no signUp',
-      () async {
-        final anon = userJson(id: 'anon-1', anonymous: true);
-        final upgraded = userJson(
-          id: 'anon-1',
-          email: 'user@example.com',
-          anonymous: false,
-        );
-        final log = <http.Request>[];
-        final client = buildClient(log, (request) {
-          if (request.url.path.endsWith('/auth/v1/signup')) {
-            return http.Response(
-              sessionJson(anon),
-              200,
-              request: request,
-              headers: jsonHeaders,
-            );
-          }
-          if (request.url.path.endsWith('/auth/v1/user')) {
-            return http.Response(
-              jsonEncode(upgraded),
-              200,
-              request: request,
-              headers: jsonHeaders,
-            );
-          }
-          return null;
-        });
-
-        await client.auth.signInAnonymously();
-        expect(client.auth.currentUser?.isAnonymous, isTrue);
-
-        final user = await SupabaseService.registerWithPasswordOn(
-          client.auth,
-          email: '  user@example.com  ',
-          password: 'secret123',
-          locale: 'pl',
-        );
-
-        final update = log.last;
-        expect(update.method, 'PUT');
-        expect(update.url.path, endsWith('/auth/v1/user'));
-        final body = jsonDecode(update.body) as Map<String, dynamic>;
-        expect(body['email'], 'user@example.com', reason: 'email is trimmed');
-        expect(body['password'], 'secret123');
-        expect(
-          (body['data'] as Map<String, dynamic>)['locale'],
-          'pl',
-          reason: 'the send-auth-email hook reads this to pick the language',
-        );
-
-        expect(
-          user?.id,
-          'anon-1',
-          reason: 'the UUID must not change — it carries the guest\'s progress',
-        );
-        expect(
-          log.where((r) => r.url.path.endsWith('/auth/v1/signup')).length,
-          1,
-          reason: 'only the anonymous sign-in hit /signup — no second account',
-        );
-      },
-    );
-
-    test(
-      'a same_password retry redoes just the email half instead of failing',
-      () async {
-        final anon = userJson(
-          id: 'anon-1',
-          email: 'user@example.com',
-          anonymous: true,
-        );
-        final upgraded = userJson(
-          id: 'anon-1',
-          email: 'user@example.com',
-          anonymous: true,
-        );
-        final log = <http.Request>[];
-        final client = buildClient(log, (request) {
-          if (request.url.path.endsWith('/auth/v1/signup')) {
-            return http.Response(
-              sessionJson(anon),
-              200,
-              request: request,
-              headers: jsonHeaders,
-            );
-          }
-          if (request.url.path.endsWith('/auth/v1/user')) {
-            final body = jsonDecode(request.body) as Map<String, dynamic>;
-            // The registration already succeeded once this session, so GoTrue
-            // refuses to "change" the password to its current value.
-            if (body.containsKey('password')) {
-              return http.Response(
-                jsonEncode({
-                  'error_code': 'same_password',
-                  'msg':
-                      'New password should be different from '
-                      'the old password.',
-                }),
-                422,
-                request: request,
-                headers: jsonHeaders,
-              );
-            }
-            return http.Response(
-              jsonEncode(upgraded),
-              200,
-              request: request,
-              headers: jsonHeaders,
-            );
-          }
-          return null;
-        });
-
-        await client.auth.signInAnonymously();
-
-        final user = await SupabaseService.registerWithPasswordOn(
-          client.auth,
-          email: 'user@example.com',
-          password: 'secret123',
-          locale: 'pl',
-        );
-
-        expect(user?.id, 'anon-1');
-        final updates = log
-            .where((r) => r.url.path.endsWith('/auth/v1/user'))
-            .toList();
-        expect(updates, hasLength(2), reason: 'full attempt, then email-only');
-        final retryBody = jsonDecode(updates.last.body) as Map<String, dynamic>;
-        expect(
-          retryBody.containsKey('password'),
-          isFalse,
-          reason: 'the password is already set — the retry must not resend it',
-        );
-        expect(retryBody['email'], 'user@example.com');
-      },
-    );
-
-    test(
-      'with no anonymous session a fresh signUp creates the account',
-      () async {
-        final fresh = userJson(
-          id: 'new-1',
-          email: 'user@example.com',
-          anonymous: false,
-        );
-        final log = <http.Request>[];
-        final client = buildClient(log, (request) {
-          if (request.url.path.endsWith('/auth/v1/signup')) {
-            return http.Response(
-              sessionJson(fresh),
-              200,
-              request: request,
-              headers: jsonHeaders,
-            );
-          }
-          return null;
-        });
-
-        final user = await SupabaseService.registerWithPasswordOn(
-          client.auth,
-          email: 'user@example.com',
-          password: 'secret123',
-          locale: 'en',
-        );
-
-        expect(log, hasLength(1));
-        expect(log.single.method, 'POST');
-        expect(log.single.url.path, endsWith('/auth/v1/signup'));
-        final body = jsonDecode(log.single.body) as Map<String, dynamic>;
-        expect(body['email'], 'user@example.com');
-        expect(
-          (body['data'] as Map<String, dynamic>)['locale'],
-          'en',
-          reason: 'the send-auth-email hook reads this to pick the language',
-        );
-        expect(user?.id, 'new-1');
-      },
-    );
-  });
-
-  group('registerPrecheck', () {
-    User user({String? email, required bool anonymous}) =>
-        User.fromJson(userJson(id: 'u-1', email: email, anonymous: anonymous))!;
-
-    test('a fresh guest may register', () {
-      expect(
-        SupabaseService.registerPrecheckFor(null, 'user@example.com'),
-        RegisterPrecheck.ok,
-      );
-      expect(
-        SupabaseService.registerPrecheckFor(
-          user(anonymous: true),
-          'user@example.com',
-        ),
-        RegisterPrecheck.ok,
-      );
-    });
-
-    test('retrying the same address is allowed (case/space-insensitive)', () {
-      expect(
-        SupabaseService.registerPrecheckFor(
-          user(email: 'user@example.com', anonymous: true),
-          '  User@Example.COM ',
-        ),
-        RegisterPrecheck.ok,
-      );
-    });
-
-    test('a guest who already registered may not re-point the account at '
-        'a different address', () {
-      expect(
-        SupabaseService.registerPrecheckFor(
-          user(email: 'first@example.com', anonymous: true),
-          'other@example.com',
-        ),
-        RegisterPrecheck.pendingOtherEmail,
-      );
-    });
-
-    test('a signed-in account holder may not register at all', () {
-      expect(
-        SupabaseService.registerPrecheckFor(
-          user(email: 'user@example.com', anonymous: false),
-          'user@example.com',
-        ),
-        RegisterPrecheck.alreadySignedIn,
-      );
-      expect(
-        SupabaseService.registerPrecheckFor(
-          user(email: 'user@example.com', anonymous: false),
-          'other@example.com',
-        ),
-        RegisterPrecheck.alreadySignedIn,
-      );
-    });
-  });
-
-  group('hasPendingRegistration', () {
-    User user({String? email, required bool anonymous}) =>
-        User.fromJson(userJson(id: 'u-1', email: email, anonymous: anonymous))!;
-
-    test('an anonymous user carrying an address is mid-registration', () {
-      // GoTrue's email_change path: the address lands on the user straight
-      // away, `is_anonymous` only flips when the mailed link is clicked — in a
-      // browser, with no way back into the app. This is the window the resume
-      // check exists for.
-      expect(
-        SupabaseService.hasPendingRegistrationFor(
-          user(email: 'user@example.com', anonymous: true),
-        ),
-        isTrue,
-      );
-    });
-
-    test('a fresh guest, a finished account and no session are not', () {
-      expect(
-        SupabaseService.hasPendingRegistrationFor(user(anonymous: true)),
-        isFalse,
-      );
-      expect(
-        SupabaseService.hasPendingRegistrationFor(
-          user(email: '  ', anonymous: true),
-        ),
-        isFalse,
-      );
-      // Already confirmed — there is nothing left to converge on, and every
-      // resume would otherwise spend a token refresh on it.
-      expect(
-        SupabaseService.hasPendingRegistrationFor(
-          user(email: 'user@example.com', anonymous: false),
-        ),
-        isFalse,
-      );
-      expect(SupabaseService.hasPendingRegistrationFor(null), isFalse);
-    });
-  });
 
   group('signInWithIdToken (social)', () {
     /// Requests to the id-token grant endpoint, split by intent: linking
@@ -528,6 +250,150 @@ void main() {
         expect(isLink(grants.single), isFalse);
       },
     );
+  });
+
+  group('linkIdentityWithIdTokenOn (Settings: link Apple / Google)', () {
+    bool isIdTokenGrant(http.Request r) =>
+        r.url.path.endsWith('/auth/v1/token') &&
+        r.url.queryParameters['grant_type'] == 'id_token';
+    bool isLink(http.Request r) =>
+        isIdTokenGrant(r) &&
+        (jsonDecode(r.body) as Map<String, dynamic>)['link_identity'] == true;
+    bool isPasswordGrant(http.Request r) =>
+        r.url.path.endsWith('/auth/v1/token') &&
+        r.url.queryParameters['grant_type'] == 'password';
+
+    test('a signed-in email account gains the identity in place — same UUID, '
+        'never a plain sign-in', () async {
+      final owner = userJson(
+        id: 'owner-1',
+        email: 'user@gmail.com',
+        anonymous: false,
+      );
+      final linked = userJson(
+        id: 'owner-1',
+        email: 'user@gmail.com',
+        anonymous: false,
+      );
+      final log = <http.Request>[];
+      final client = buildClient(log, (request) {
+        if (isPasswordGrant(request)) {
+          return http.Response(
+            sessionJson(owner),
+            200,
+            request: request,
+            headers: jsonHeaders,
+          );
+        }
+        if (isLink(request)) {
+          return http.Response(
+            sessionJson(linked),
+            200,
+            request: request,
+            headers: jsonHeaders,
+          );
+        }
+        return null;
+      });
+
+      await client.auth.signInWithPassword(
+        email: 'user@gmail.com',
+        password: 'secret123',
+      );
+      expect(client.auth.currentUser?.isAnonymous, isFalse);
+
+      final user = await SupabaseService.linkIdentityWithIdTokenOn(
+        client.auth,
+        provider: OAuthProvider.google,
+        idToken: 'google-id-token',
+      );
+
+      expect(user?.id, 'owner-1', reason: 'the account is kept, not swapped');
+      final grants = log.where(isIdTokenGrant).toList();
+      expect(grants, hasLength(1));
+      expect(isLink(grants.single), isTrue);
+    });
+
+    test(
+      'an identity owned by another account is REFUSED — no sign-in fallback',
+      () async {
+        final owner = userJson(
+          id: 'owner-1',
+          email: 'user@outlook.com',
+          anonymous: false,
+        );
+        final log = <http.Request>[];
+        final client = buildClient(log, (request) {
+          if (isPasswordGrant(request)) {
+            return http.Response(
+              sessionJson(owner),
+              200,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          if (isLink(request)) {
+            return http.Response(
+              jsonEncode({
+                'error_code': 'identity_already_exists',
+                'msg': 'Identity is already linked to another user',
+              }),
+              422,
+              request: request,
+              headers: jsonHeaders,
+            );
+          }
+          return null;
+        });
+
+        await client.auth.signInWithPassword(
+          email: 'user@outlook.com',
+          password: 'secret123',
+        );
+
+        Object? thrown;
+        try {
+          await SupabaseService.linkIdentityWithIdTokenOn(
+            client.auth,
+            provider: OAuthProvider.google,
+            idToken: 'google-id-token',
+          );
+        } catch (e) {
+          thrown = e;
+        }
+
+        expect(thrown, isA<AuthException>());
+        expect(
+          SupabaseService.isIdentityAlreadyLinked(thrown!),
+          isTrue,
+          reason: 'the sheet explains this one specifically',
+        );
+        expect(
+          client.auth.currentUser?.id,
+          'owner-1',
+          reason: 'the account holder stays on their own account',
+        );
+        final grants = log.where(isIdTokenGrant).toList();
+        expect(
+          grants,
+          hasLength(1),
+          reason: 'the link attempt and nothing else',
+        );
+        expect(isLink(grants.single), isTrue);
+      },
+    );
+
+    test('with no session there is nothing to link into', () async {
+      final client = buildClient(<http.Request>[], (_) => null);
+      expect(
+        () => SupabaseService.linkIdentityWithIdTokenOn(
+          client.auth,
+          provider: OAuthProvider.apple,
+          idToken: 'apple-id-token',
+        ),
+        throwsStateError,
+      );
+    });
   });
 
   group('signOut', () {

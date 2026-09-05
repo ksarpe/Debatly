@@ -299,15 +299,116 @@ class SupabaseService {
   /// First sign-in creates the account, so this covers both login and
   /// registration — and for an anonymous guest the "create" half upgrades
   /// their existing user in place (see [signInWithIdTokenOn]).
+  static Future<User?> signInWithGoogle({
+    Future<bool> Function()? confirmSwitch,
+  }) async {
+    final credential = await _googleCredential();
+    if (credential == null) return null;
+    return signInWithIdTokenOn(
+      client.auth,
+      confirmSwitch: confirmSwitch,
+      provider: OAuthProvider.google,
+      idToken: credential.idToken,
+      accessToken: credential.accessToken,
+      nonce: credential.rawNonce,
+    );
+  }
+
+  /// Signs in with Apple via the native iOS/macOS sheet, then exchanges Apple's
+  /// identity token for a Supabase session. Returns null if the user cancels.
+  ///
+  /// First sign-in creates the account, so this covers both login and
+  /// registration — for an anonymous guest via an in-place upgrade, see
+  /// [signInWithIdTokenOn].
+  ///
+  /// Only offered on Apple platforms (the UI hides it elsewhere); on Android it
+  /// would need a web redirect + Service ID we deliberately don't set up.
+  static Future<User?> signInWithApple({
+    Future<bool> Function()? confirmSwitch,
+  }) async {
+    final credential = await _appleCredential();
+    if (credential == null) return null;
+    return signInWithIdTokenOn(
+      client.auth,
+      confirmSwitch: confirmSwitch,
+      provider: OAuthProvider.apple,
+      idToken: credential.idToken,
+      nonce: credential.rawNonce,
+    );
+  }
+
+  /// Adds a Google / Apple identity to the account the user is ALREADY signed
+  /// into, keeping the UUID — the migration path for the email/password
+  /// accounts that predate the social-only sheet (2026-09-05). Once linked,
+  /// the social button reaches this same account on a fresh install, so the
+  /// password stops being the only key to it.
+  ///
+  /// Runs the same native sheet as the sign-in buttons and returns null when
+  /// it is dismissed. Unlike [signInWithIdTokenOn] there is NO fallback to a
+  /// plain sign-in: this is offered to a signed-in account holder, and
+  /// switching them onto whatever account the picked identity belongs to
+  /// would be the exact opposite of what the row promised. A refused link
+  /// ([isIdentityAlreadyLinked]) is rethrown for the caller to explain.
+  static Future<User?> linkSocialIdentity(OAuthProvider provider) async {
+    final credential = switch (provider) {
+      OAuthProvider.google => await _googleCredential(),
+      OAuthProvider.apple => await _appleCredential(),
+      _ => throw ArgumentError.value(
+        provider,
+        'provider',
+        'Only Google and Apple are wired up natively.',
+      ),
+    };
+    if (credential == null) return null;
+    return linkIdentityWithIdTokenOn(
+      client.auth,
+      provider: provider,
+      idToken: credential.idToken,
+      accessToken: credential.accessToken,
+      nonce: credential.rawNonce,
+    );
+  }
+
+  /// The link itself, on an injectable auth client so the "same UUID, never a
+  /// sign-in" rule is pinned by a unit test. Requires a session to link INTO —
+  /// without one there is nothing this could mean.
+  @visibleForTesting
+  static Future<User?> linkIdentityWithIdTokenOn(
+    GoTrueClient auth, {
+    required OAuthProvider provider,
+    required String idToken,
+    String? accessToken,
+    String? nonce,
+  }) async {
+    if (auth.currentUser == null) {
+      throw StateError('No signed-in user to link the identity to.');
+    }
+    final response = await auth
+        .linkIdentityWithIdToken(
+          provider: provider,
+          idToken: idToken,
+          accessToken: accessToken,
+          nonce: nonce,
+        )
+        .withNetworkTimeout();
+    return response.user;
+  }
+
+  /// Whether [error] is GoTrue refusing a link because that Google / Apple
+  /// identity already belongs to ANOTHER Supabase account — the one outcome of
+  /// [linkSocialIdentity] that deserves its own explanation.
+  static bool isIdentityAlreadyLinked(Object error) =>
+      error is AuthException && error.code == _kIdentityAlreadyExists;
+
+  /// Runs the native Google account picker and returns what GoTrue's id-token
+  /// grant needs, or null when the user dismissed it.
   ///
   /// Uses the google_sign_in v7 API: a singleton initialised once with the
   /// "Web" OAuth client id (so Google mints an ID token Supabase will accept),
   /// then [GoogleSignIn.authenticate] for the native picker. Supabase only needs
   /// the ID token; the access token is fetched best-effort and passed when
   /// available.
-  static Future<User?> signInWithGoogle({
-    Future<bool> Function()? confirmSwitch,
-  }) async {
+  static Future<_SocialCredential?> _googleCredential() async {
     if (!_initialised) {
       throw StateError('Supabase is not configured.');
     }
@@ -354,30 +455,20 @@ class SupabaseService {
     final authorization = await account.authorizationClient
         .authorizationForScopes(const ['email']);
 
-    return signInWithIdTokenOn(
-      client.auth,
-      confirmSwitch: confirmSwitch,
-      provider: OAuthProvider.google,
+    return _SocialCredential(
       idToken: idToken,
       accessToken: authorization?.accessToken,
-      nonce: rawNonce,
+      rawNonce: rawNonce,
     );
   }
 
-  /// Signs in with Apple via the native iOS/macOS sheet, then exchanges Apple's
-  /// identity token for a Supabase session. Returns null if the user cancels.
+  /// Runs the native Sign in with Apple sheet and returns what GoTrue's
+  /// id-token grant needs, or null when the user dismissed it.
   ///
-  /// First sign-in creates the account, so this covers both login and
-  /// registration — for an anonymous guest via an in-place upgrade, see
-  /// [signInWithIdTokenOn]. A cryptographic nonce ties Apple's token to this request:
-  /// we hand Apple the SHA-256 hash and Supabase the raw value, which it
-  /// re-hashes and compares to reject replayed tokens.
-  ///
-  /// Only offered on Apple platforms (the UI hides it elsewhere); on Android it
-  /// would need a web redirect + Service ID we deliberately don't set up.
-  static Future<User?> signInWithApple({
-    Future<bool> Function()? confirmSwitch,
-  }) async {
+  /// A cryptographic nonce ties Apple's token to this request: we hand Apple
+  /// the SHA-256 hash and Supabase the raw value, which it re-hashes and
+  /// compares to reject replayed tokens.
+  static Future<_SocialCredential?> _appleCredential() async {
     if (!_initialised) {
       throw StateError('Supabase is not configured.');
     }
@@ -405,13 +496,7 @@ class SupabaseService {
       throw const AuthException('Apple did not return an identity token.');
     }
 
-    return signInWithIdTokenOn(
-      client.auth,
-      confirmSwitch: confirmSwitch,
-      provider: OAuthProvider.apple,
-      idToken: idToken,
-      nonce: rawNonce,
-    );
+    return _SocialCredential(idToken: idToken, rawNonce: rawNonce);
   }
 
   /// GoTrue's error code for "this Google/Apple identity is already linked to
@@ -421,8 +506,9 @@ class SupabaseService {
 
   /// The id-token exchange itself, on an injectable auth client: an anonymous
   /// CURRENT user links the identity IN PLACE (`linkIdentityWithIdToken` keeps
-  /// the same UUID, so the guest's streak, votes and favourites survive — the
-  /// social twin of [registerWithPasswordOn]). Only when that identity already
+  /// the same UUID, so the guest's streak, votes and favourites survive — this
+  /// is what "creating an account" means since the sheet went social-only).
+  /// Only when that identity already
   /// belongs to another Supabase account does it fall back to
   /// `signInWithIdToken` and switch to that account — a genuine "sign back
   /// in", where abandoning the throwaway guest is what the user asked for.
@@ -538,166 +624,6 @@ class SupabaseService {
     await client.auth
         .updateUser(UserAttributes(password: password))
         .withNetworkTimeout();
-  }
-
-  /// Decides what submitting the register form would actually DO to the
-  /// current session, so the UI can refuse the surprising cases up front.
-  ///
-  /// Because registration upgrades the current user in place, the form is only
-  /// a "create account" for a fresh guest. For anyone else `updateUser` would
-  /// quietly rewrite the account they already have: a signed-in user
-  /// "registering" again gets `same_password` errors, and typing a different
-  /// email would silently re-point their existing account at it (a pending
-  /// email change) instead of creating anything.
-  static RegisterPrecheck registerPrecheck(String email) =>
-      registerPrecheckFor(currentUser, email);
-
-  /// The decision itself, on injectable state so a unit test can pin it.
-  @visibleForTesting
-  static RegisterPrecheck registerPrecheckFor(User? current, String email) {
-    if (current != null && !current.isAnonymous) {
-      return RegisterPrecheck.alreadySignedIn;
-    }
-    final attached = current?.email?.trim() ?? '';
-    if (attached.isEmpty) return RegisterPrecheck.ok;
-    final sameEmail = attached.toLowerCase() == email.trim().toLowerCase();
-    // Same address = a retry of the registration that already happened
-    // (resend the mail, or set the password they meant) — allowed.
-    return sameEmail ? RegisterPrecheck.ok : RegisterPrecheck.pendingOtherEmail;
-  }
-
-  /// Creates a permanent email/password account.
-  ///
-  /// When the current user is anonymous we update that same Supabase user
-  /// instead of creating a separate account, preserving any progress attached to
-  /// their anonymous UUID.
-  ///
-  /// [locale] is the app's current language code; it rides along as user
-  /// metadata so the `send-auth-email` hook can write the confirmation mail in
-  /// the right language. It has to travel with THIS call — the mail goes out the
-  /// moment the account exists, long before anything else could record a
-  /// preference server-side.
-  static Future<User?> registerWithPassword({
-    required String email,
-    required String password,
-    required String locale,
-  }) async {
-    if (!_initialised) {
-      throw StateError('Supabase is not configured.');
-    }
-    return registerWithPasswordOn(
-      client.auth,
-      email: email,
-      password: password,
-      locale: locale,
-    );
-  }
-
-  /// The branch itself, on an injectable auth client: an anonymous CURRENT user
-  /// is upgraded in place (`updateUser` keeps the same UUID, so their streak,
-  /// votes and reveals survive); only with no anonymous session does a fresh
-  /// `signUp` mint a separate account. Extracted so the "don't lose a guest's
-  /// progress" rule is pinned by a unit test.
-  @visibleForTesting
-  static Future<User?> registerWithPasswordOn(
-    GoTrueClient auth, {
-    required String email,
-    required String password,
-    required String locale,
-  }) async {
-    final data = {'locale': locale};
-    final current = auth.currentUser;
-    if (current?.isAnonymous == true) {
-      // `emailRedirectTo` is a method argument here, not a `UserAttributes`
-      // field — it steers the confirmation link to the "email confirmed" page
-      // instead of the project's bare Site URL.
-      try {
-        final response = await auth
-            .updateUser(
-              UserAttributes(
-                email: email.trim(),
-                password: password,
-                data: data,
-              ),
-              emailRedirectTo: AppConfig.emailConfirmedUrl,
-            )
-            .withNetworkTimeout();
-        return response.user;
-      } on AuthException catch (error) {
-        // A registration retry: the upgrade already succeeded earlier in this
-        // session, and GoTrue refuses to "change" a password to the value it
-        // already has. The password half is therefore already done — redo just
-        // the email half so the retry still lands (and resends the
-        // confirmation) instead of dying on an error about a password the
-        // user never asked to change.
-        if (error.code != 'same_password') rethrow;
-        final response = await auth
-            .updateUser(
-              UserAttributes(email: email.trim(), data: data),
-              emailRedirectTo: AppConfig.emailConfirmedUrl,
-            )
-            .withNetworkTimeout();
-        return response.user;
-      }
-    }
-
-    final response = await auth
-        .signUp(
-          email: email.trim(),
-          password: password,
-          data: data,
-          emailRedirectTo: AppConfig.emailConfirmedUrl,
-        )
-        .withNetworkTimeout();
-    return response.user;
-  }
-
-  /// Whether the current user is a guest whose registration is still waiting on
-  /// the confirmation link.
-  ///
-  /// Registering upgrades the anonymous user IN PLACE, and GoTrue routes that
-  /// through its `email_change` path: the address is recorded on the user the
-  /// moment the call returns, but `is_anonymous` only flips when the link in
-  /// the mail is clicked — in a browser, outside the app, with no deep link
-  /// back. So this is exactly the window in which the identity can change
-  /// behind the running app's back, and the only one worth spending a network
-  /// call on at every resume (see [reloadIdentity]).
-  static bool get hasPendingRegistration =>
-      hasPendingRegistrationFor(currentUser);
-
-  /// The rule itself, on an injectable user so it is pinned by a unit test.
-  @visibleForTesting
-  static bool hasPendingRegistrationFor(User? user) {
-    if (user == null || !user.isAnonymous) return false;
-    final pending = user.newEmail?.trim() ?? user.email?.trim() ?? '';
-    return pending.isNotEmpty;
-  }
-
-  /// Re-reads WHO this session belongs to from the server and returns the
-  /// refreshed user (null when there is nothing to refresh or the call failed).
-  ///
-  /// `getUser()` would answer the question but leave the client's own session
-  /// untouched, so `currentUser.isAnonymous` would keep reading the stale claim;
-  /// `refreshSession` mints a new access token from the current database row,
-  /// which is what actually makes the flip visible to everything downstream. It
-  /// emits `tokenRefreshed`, deliberately NOT an identity-changing event (see
-  /// `isIdentityChangingAuthEvent`) — the caller owns the reload.
-  ///
-  /// Best-effort and silent: a failure here just means the app keeps rendering
-  /// the identity it already had, which is the state it was in anyway.
-  static Future<User?> reloadIdentity() async {
-    if (!_initialised || client.auth.currentSession == null) return null;
-    try {
-      final response = await client.auth.refreshSession().withNetworkTimeout();
-      return response.user;
-    } catch (e) {
-      debugPrint('SupabaseService.reloadIdentity failed: $e');
-      Monitoring.addBreadcrumb(
-        'Identity reload failed; the app keeps the identity it had',
-        category: 'auth',
-      );
-      return null;
-    }
   }
 
   /// Records the app's language on the user's profile so the auth emails
@@ -964,25 +890,21 @@ class SupabaseService {
   }
 
   static User? get currentUser => _initialised ? client.auth.currentUser : null;
-
-  static bool get currentUserHasAccount {
-    final user = currentUser;
-    return user != null && !user.isAnonymous;
-  }
 }
 
-/// Outcome of [SupabaseService.registerPrecheck]: whether submitting the
-/// register form would create/retry a registration ([ok]) or quietly rewrite
-/// an account that already exists (the other two — the UI refuses those).
-enum RegisterPrecheck {
-  ok,
+/// What a native Google / Apple sheet hands back, in the shape GoTrue's
+/// id-token grant wants: the ID token, the optional access token, and the RAW
+/// nonce whose SHA-256 the provider echoed into the token.
+class _SocialCredential {
+  const _SocialCredential({
+    required this.idToken,
+    this.accessToken,
+    required this.rawNonce,
+  });
 
-  /// The current user already has a full (non-anonymous) account.
-  alreadySignedIn,
-
-  /// The current guest already registered with a DIFFERENT address (still
-  /// awaiting confirmation); proceeding would re-point that registration.
-  pendingOtherEmail,
+  final String idToken;
+  final String? accessToken;
+  final String rawNonce;
 }
 
 /// A configured Supabase client that never came up.
