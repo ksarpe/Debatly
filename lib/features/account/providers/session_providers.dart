@@ -12,7 +12,8 @@ import '../../../services/supabase_service.dart';
 
 /// Whether [event] is an OUT-OF-BAND identity change the session must converge
 /// on by reloading. A silent sign-out (a refresh-token failure / server-side
-/// revocation) and an anonymous→email upgrade (`userUpdated`) both change who we
+/// revocation) and an in-place identity link (`userUpdated` — a guest becoming
+/// an account, or an account gaining a social identity) both change who we
 /// are; the initial session, a plain `signedIn`, and a token refresh carry no
 /// identity change to act on and are deliberately ignored.
 ///
@@ -33,11 +34,11 @@ bool isIdentityChangingAuthEvent(AuthChangeEvent event) =>
 /// the user just signed into.
 ///
 /// True only when a PREMIUM session moved to a DIFFERENT Supabase uid. The
-/// flows that upgrade the anonymous user in place (registering, linking a
-/// social identity) keep the same uid, so PRO follows on its own and this is a
-/// no-op; the flows that swap identity — signing in with email/password, and a
-/// social sign-in onto an account that already exists — land on a uid
-/// RevenueCat has never seen, where the entitlement would silently read false.
+/// flow that upgrades the anonymous user in place (linking a social identity)
+/// keeps the same uid, so PRO follows on its own and this is a no-op; the
+/// flows that swap identity — the legacy email/password sign-in, and a social
+/// sign-in onto an account that already exists — land on a uid RevenueCat has
+/// never seen, where the entitlement would silently read false.
 ///
 /// Lives here, not inside the auth screen, so the rule is stated once and
 /// pinned by a unit test — having it inline in one branch is how the other
@@ -121,6 +122,7 @@ class SessionState {
     this.createdAt,
     this.isAnonymous,
     this.isPremium = false,
+    this.linkedProviders = const [],
   });
 
   final String? userId;
@@ -136,8 +138,22 @@ class SessionState {
   final bool? isAnonymous;
   final bool isPremium;
 
+  /// GoTrue identity providers on this user (`email`, `google`, `apple`), as
+  /// reported by `User.identities`. Empty for a guest and in mock mode.
+  final List<String> linkedProviders;
+
   bool get isSignedIn => userId != null;
   bool get hasAccount => isSignedIn && isAnonymous != true;
+
+  /// Whether this account can still be reached WITHOUT its password: a Google
+  /// or Apple identity is linked. False for the email/password accounts that
+  /// predate the social-only sheet — the ones Settings offers "link Apple /
+  /// Google" to, because on a fresh install the password is their only key.
+  bool get hasSocialIdentity => linkedProviders.any((p) => p != 'email');
+
+  /// The Settings row's rule: a real account (guests get the secure-account
+  /// CTA instead) with no social identity yet.
+  bool get canLinkSocial => hasAccount && !hasSocialIdentity;
 
   SessionState copyWith({
     String? userId,
@@ -146,6 +162,7 @@ class SessionState {
     DateTime? createdAt,
     bool? isAnonymous,
     bool? isPremium,
+    List<String>? linkedProviders,
   }) => SessionState(
     userId: userId ?? this.userId,
     email: email ?? this.email,
@@ -153,6 +170,7 @@ class SessionState {
     createdAt: createdAt ?? this.createdAt,
     isAnonymous: isAnonymous ?? this.isAnonymous,
     isPremium: isPremium ?? this.isPremium,
+    linkedProviders: linkedProviders ?? this.linkedProviders,
   );
 }
 
@@ -170,10 +188,11 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
   /// converged by the listener.
   bool _selfDrivenSignOut = false;
 
-  /// True while an in-app auth flow (email/password register, social identity
-  /// link) drives its own reload via [runAuthFlowAndReload], so the auth
-  /// listener ignores the `userUpdated` the flow emits mid-way. The
-  /// `userUpdated` twin of [_selfDrivenSignOut].
+  /// True while an in-app auth flow (a social identity link — onto a guest from
+  /// the auth sheet, or onto an email account from Settings) drives its own
+  /// reload via [runAuthFlowAndReload], so the auth listener ignores the
+  /// `userUpdated` the flow emits mid-way. The `userUpdated` twin of
+  /// [_selfDrivenSignOut].
   bool _selfDrivenUserUpdate = false;
 
   @override
@@ -273,9 +292,10 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
     }
   }
 
-  /// Runs an in-app auth flow that emits `userUpdated` mid-way — the
-  /// email/password register, a social identity link — and reloads the session
-  /// exactly once afterwards, iff [flow] reports an identity change (`true`).
+  /// Runs an in-app auth flow that emits `userUpdated` mid-way — a social
+  /// identity link, onto a guest or onto an existing account — and reloads the
+  /// session exactly once afterwards, iff [flow] reports an identity change
+  /// (`true`).
   ///
   /// Without this the reload ran TWICE, concurrently: once from the auth
   /// listener answering the flow's `userUpdated`, once from the flow's own
@@ -378,6 +398,10 @@ class SessionNotifier extends AsyncNotifier<SessionState> {
       createdAt: createdAt,
       isAnonymous: user?.isAnonymous ?? false,
       isPremium: isPremium,
+      linkedProviders: [
+        for (final identity in user?.identities ?? const <UserIdentity>[])
+          identity.provider,
+      ],
     );
   }
 

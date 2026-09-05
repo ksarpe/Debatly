@@ -90,13 +90,8 @@ export default function AuthGate({ children }) {
   );
 }
 
-// Strony z szeroką tabelą (dziennik marketingowy ma 14 kolumn) dostają całą
-// szerokość okna — inaczej nie da się ich obejrzeć bez poziomego scrolla.
-const WIDE_ROUTES = new Set(['/marketing']);
-
 function Wrap({ children }) {
-  const path = usePathname();
-  return <div className={WIDE_ROUTES.has(path) ? 'wrap wide' : 'wrap'}>{children}</div>;
+  return <div className="wrap">{children}</div>;
 }
 
 function Nav({ email, role }) {
@@ -109,8 +104,8 @@ function Nav({ email, role }) {
       <Link href="/bulk" className={is('/bulk')}>Hurtowo</Link>
       <Link href="/daily" className={is('/daily')}>Pytania dnia</Link>
       <Link href="/stats" className={is('/stats')}>Statystyki</Link>
+      <Link href="/users" className={is('/users')}>Top userzy</Link>
       <Link href="/live" className={is('/live')}>Live 💰</Link>
-      <Link href="/marketing" className={is('/marketing')}>Marketing</Link>
       <Link href="/suggestions" className={is('/suggestions')}>Propozycje</Link>
       <Link href="/q/new" className={is('/q/new')}>+ Nowe pytanie</Link>
       <div className="spacer" />

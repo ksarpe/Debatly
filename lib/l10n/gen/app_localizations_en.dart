@@ -64,20 +64,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signIn => 'Sign in';
 
   @override
-  String get authCreateAccount => 'Create account';
+  String get authSheetTitle => 'Your account';
 
   @override
-  String get authWelcomeBackTitle => 'Good to see you again';
+  String get authSheetSubtitleApple =>
+      'One tap: Apple or Google. Your streak, votes and PRO follow you to any phone.';
 
   @override
-  String get authWelcomeBackSubtitle => 'Sign in to get back to your debates.';
+  String get authSheetSubtitleGoogle =>
+      'One tap: Google. Your streak, votes and PRO follow you to any phone.';
 
   @override
-  String get authRegisterTitle => 'Join Debatly';
-
-  @override
-  String get authRegisterSubtitle =>
-      'Create an account and take a side in the debate.';
+  String get authLegacyEmailLink => 'I have a password';
 
   @override
   String get authEmailLabel => 'EMAIL';
@@ -98,12 +96,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authForgotPassword => 'Forgot your password?';
 
   @override
-  String get authTabSignIn => 'SIGN IN';
-
-  @override
-  String get authTabSignUp => 'SIGN UP';
-
-  @override
   String get authEnterEmail => 'Enter your email.';
 
   @override
@@ -117,12 +109,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authPasswordsMismatch => 'Passwords don\'t match.';
-
-  @override
-  String get authAccountCreated => 'Account created.';
-
-  @override
-  String get authConfirmEmail => 'Check your email and confirm your account.';
 
   @override
   String get authContinueWithApple => 'Continue with Apple';
@@ -174,24 +160,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'GOOGLE_SERVER_CLIENT_ID is missing, so Google is temporarily disabled.';
 
   @override
-  String get authAlreadySignedIn =>
-      'You\'re already signed in to your account — no need to register again.';
-
-  @override
-  String authRegisteredPendingConfirm(String email) {
-    return 'Your account is already registered to $email. Tap the link in that email to confirm it.';
-  }
-
-  @override
   String get authErrorInvalidCredentials => 'Incorrect email or password.';
 
   @override
   String get authErrorEmailNotConfirmed =>
       'Confirm your email first — check your inbox.';
-
-  @override
-  String get authErrorEmailExists =>
-      'An account with this email already exists. Sign in instead.';
 
   @override
   String get authErrorSamePassword => 'That\'s already your current password.';
@@ -212,16 +185,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authSwitchAccountBody =>
-      'Signing in swaps this device over to that account. Your streak, votes and favourites live on this guest profile and won\'t come along. Want to keep them? Create an account instead — that keeps everything.';
+      'Signing in swaps this device over to that account. Your streak, votes and favourites live on this guest profile and won\'t come along.';
 
   @override
   String get authSwitchAccountConfirm => 'Sign in anyway';
+
+  @override
+  String get linkSocialTitle => 'Link your account';
+
+  @override
+  String get linkSocialBodyApple =>
+      'Add Apple or Google to this account and you\'ll sign in without a password — to this same account, with your streak, votes and PRO.';
+
+  @override
+  String get linkSocialBodyGoogle =>
+      'Add Google to this account and you\'ll sign in without a password — to this same account, with your streak, votes and PRO.';
+
+  @override
+  String get linkSocialDone =>
+      'Linked. You can sign in without a password from now on.';
+
+  @override
+  String linkSocialAlreadyLinked(String provider) {
+    return 'That $provider account is already linked to another Debatly account.';
+  }
 
   @override
   String get settingsSectionApp => 'APP SETTINGS';
 
   @override
   String get settingsSectionAccount => 'ACCOUNT';
+
+  @override
+  String get settingsLinkSocialTitle => 'Sign in without a password';
+
+  @override
+  String get settingsLinkSocialSubtitleApple =>
+      'Link Apple or Google to this account';
+
+  @override
+  String get settingsLinkSocialSubtitleGoogle => 'Link Google to this account';
 
   @override
   String get settingsReminders => 'Reminders';
@@ -804,6 +807,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareCardHook => 'You? Yes or no?';
 
   @override
+  String get streakCoolingTooltip =>
+      'No vote yet today — your streak is cooling';
+
+  @override
+  String get graceLostTitle => 'A grace is gone';
+
+  @override
+  String graceLostBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count graces left',
+      one: '$count grace left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get graceLostHint => 'Vote today to keep your rank.';
+
+  @override
   String get streakTooltip => 'Your streak';
 
   @override
@@ -1150,7 +1174,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savePromptBody =>
-      'Your PRO is currently tied to a guest account. Create an account (email or Google) so you don\'t lose access after reinstalling or on another device — your progress will be kept.';
+      'Your PRO is currently tied to a guest account. Secure it with an account so you don\'t lose access after reinstalling or on another device — your progress will be kept.';
 
   @override
   String get createAccount => 'Create account';
@@ -1160,8 +1184,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String secureStreakBody(int streak) {
-    return 'You\'re on a $streak-day streak — but it only lives on this phone. Create an account (email or Google) and it will survive a reinstall or a new device.';
+    return 'You\'re on a $streak-day streak — but it only lives on this phone. Secure it with an account and it will survive a reinstall or a new device.';
   }
+
+  @override
+  String get reviewPrePromptTitle => 'How\'s Debatly treating you?';
+
+  @override
+  String get reviewPrePromptBody =>
+      'A few votes in, so time for an honest answer. It helps us more than you\'d think.';
+
+  @override
+  String get reviewPrePromptLoving => 'Loving it';
+
+  @override
+  String get reviewPrePromptCouldBeBetter => 'Could be better';
+
+  @override
+  String get appFeedbackTitle => 'What should we fix?';
+
+  @override
+  String get appFeedbackIntro =>
+      'Tell us what grates or what\'s missing. We read every message, and plenty of them end up in the next version.';
+
+  @override
+  String get appFeedbackHint =>
+      'e.g. too few questions, too hard, something\'s broken…';
+
+  @override
+  String get appFeedbackSend => 'Send feedback';
+
+  @override
+  String get appFeedbackThanks => 'Thanks! Your feedback just reached us.';
+
+  @override
+  String get appFeedbackRateLimited =>
+      'That\'s enough for today — thanks for all the notes.';
 
   @override
   String get suggestQuestionTitle => 'Suggest a question';

@@ -8,9 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/feedback/app_toast.dart';
 import '../../../core/layout/content_width.dart';
-import '../../../core/locale/app_locale.dart';
 import '../../../core/locale/l10n_extension.dart';
-import '../../../core/network/network_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../services/purchases_service.dart';
@@ -19,31 +17,32 @@ import '../providers/session_providers.dart';
 import '../providers/stats_providers.dart';
 import '../widgets/auth_brand_glyph.dart';
 import '../widgets/auth_circle_icon_button.dart';
+import '../widgets/auth_error_text.dart';
 import '../widgets/auth_field.dart';
 import '../widgets/auth_legal_consent_text.dart';
 import '../widgets/auth_notice.dart';
 import '../widgets/auth_or_divider.dart';
 import '../widgets/auth_primary_button.dart';
-import '../widgets/auth_segmented_tabs.dart';
 import '../widgets/auth_social_button.dart';
 
-/// Presents the sign-in / register form as a modal bottom sheet that slides up
-/// from the bottom of the screen.
+/// Presents the account sheet — "Continue with Apple / Google" — as a modal
+/// bottom sheet that slides up from the bottom of the screen.
 ///
-/// [initialMode] decides which tab opens. It matters more than it looks: the
-/// two prompts that ASK for an account — "save your PRO" and "secure your
-/// streak" — are pitched at guests whose progress rides on the anonymous UUID,
-/// and only REGISTERING keeps that UUID (it upgrades the user in place). Signing
-/// in replaces the session with another account's and leaves the guest's streak,
-/// votes and favourites behind, so opening those prompts on the sign-in tab
-/// pointed the user at the one action that destroys what they were told to
-/// protect. Settings' "secure account" button is the same pitch and opens the
-/// register tab too. Entry points that genuinely mean "sign back in" (the
-/// restore chooser, the paywall footer) keep the default.
-Future<void> showAuthSheet(
-  BuildContext context, {
-  AuthMode initialMode = AuthMode.password,
-}) {
+/// Social-only since 2026-09-05. One button covers both "create" and "sign
+/// back in": for a guest the picked identity is linked onto their anonymous
+/// user IN PLACE (same UUID — streak, votes, favourites and PRO all kept), and
+/// only when that identity already belongs to another account does the flow
+/// switch to it, after asking (see `SupabaseService.signInWithIdTokenOn`). So
+/// there is no register/sign-in split for the UI to get wrong any more — every
+/// entry point (the save-PRO and secure-streak prompts, Settings, the paywall
+/// footer, the restore chooser) opens the same sheet.
+///
+/// The email/password form is LEGACY: it only signs in, never registers, and
+/// hides behind the "I have a password" link. It exists for the accounts made
+/// before the switch — the PRO buyers among them have no other key to their
+/// history — and goes once they have linked a social identity from Settings or
+/// gone quiet (stage 2, see CLAUDE.md).
+Future<void> showAuthSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
     backgroundColor: context.colors.cardSurface,
@@ -57,33 +56,26 @@ Future<void> showAuthSheet(
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    builder: (_) => _AuthCard(initialMode: initialMode),
+    builder: (_) => const _AuthCard(),
   );
 }
 
 /// Full-screen fallback so the auth flow can still be pushed as a route (and
 /// rendered in isolation by tests). Reuses the exact same card.
 class AuthScreen extends StatelessWidget {
-  const AuthScreen({super.key, this.initialMode = AuthMode.password});
-
-  /// Which tab opens — see [showAuthSheet].
-  final AuthMode initialMode;
+  const AuthScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.background,
-      body: SafeArea(
-        child: Center(child: _AuthCard(initialMode: initialMode)),
-      ),
+      body: const SafeArea(child: Center(child: _AuthCard())),
     );
   }
 }
 
 class _AuthCard extends ConsumerStatefulWidget {
-  const _AuthCard({this.initialMode = AuthMode.password});
-
-  final AuthMode initialMode;
+  const _AuthCard();
 
   @override
   ConsumerState<_AuthCard> createState() => _AuthCardState();
@@ -93,38 +85,27 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
 
-  late AuthMode _mode = widget.initialMode;
   bool _isSubmitting = false;
   bool _obscurePassword = true;
+
+  /// Whether the legacy email/password form is unfolded. Off by default: the
+  /// sheet opens on the social buttons alone, and the form is one deliberate
+  /// tap away for the accounts that still need it.
+  bool _showPasswordForm = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
-
-  bool get _isLogin => _mode == AuthMode.password;
 
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
     final isConfigured = SupabaseService.isInitialised;
 
-    // Registration is open to everyone, free players included: an account
-    // never gates content (identity does — see the session model), it only
-    // SECURES what the user already has. For PRO that's the purchase
-    // (`promptSaveProAccount`), for a free player it's the streak, votes and
-    // favourites riding on the anonymous UUID (`maybePromptSecureStreak`).
-    // Email/password registration and the social buttons alike upgrade that
-    // anonymous user in place — same UUID, nothing lost (`updateUser` and
-    // `linkIdentityWithIdToken` respectively; see
-    // `SupabaseService.signInWithIdTokenOn`). Only when the picked Google/Apple
-    // identity already belongs to another Supabase account does the social flow
-    // switch to that account instead — a genuine "sign back in".
     final canUseGoogle = isConfigured && AppConfig.hasGoogleSignIn;
     // Apple platforms get BOTH social buttons, Apple first; Android gets Google
     // alone. See `_buildSocialButtons` for why.
@@ -153,10 +134,10 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                 // `useSafeArea: true` on the sheet is `SafeArea(bottom: false)`
                 // — Flutter lets the sheet background reach the bottom edge and
                 // leaves the bottom system inset to us. `media.padding.bottom`
-                // (the gesture nav-bar height) keeps the last controls (Continue
-                // with Google, legal consent) off the navigation bar on
-                // edge-to-edge devices. It collapses to 0 while the keyboard is
-                // up, where the spacer below the scroll view takes over.
+                // (the gesture nav-bar height) keeps the last controls off the
+                // navigation bar on edge-to-edge devices. It collapses to 0
+                // while the keyboard is up, where the spacer below the scroll
+                // view takes over.
                 padding: EdgeInsets.fromLTRB(
                   20,
                   4,
@@ -170,14 +151,11 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _buildCloseRow(context),
-                      _buildBrandHeader(context),
-                      const SizedBox(height: 20),
-                      AuthSegmentedTabs(
-                        mode: _mode,
-                        enabled: !_isSubmitting,
-                        onChanged: _changeMode,
+                      _buildBrandHeader(
+                        context,
+                        isApplePlatform: isApplePlatform,
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 22),
                       if (!isConfigured) ...[
                         AuthNotice(
                           icon: Icons.info_outline,
@@ -197,145 +175,29 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
                         ),
                         const SizedBox(height: 14),
                       ],
-                      authFieldLabel(context, context.l10n.authEmailLabel),
-                      TextFormField(
-                        controller: _emailController,
-                        enabled: !_isSubmitting,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        autofillHints: const [AutofillHints.email],
-                        style: AppTypography.body(
-                          fontSize: 15,
-                        ).copyWith(color: context.colors.ink),
-                        decoration: authFieldDecoration(
-                          context,
-                          hint: 'you@example.com',
-                        ),
-                        validator: _validateEmail,
-                      ),
-                      const SizedBox(height: 14),
-                      authFieldLabel(context, context.l10n.authPasswordLabel),
-                      TextFormField(
-                        controller: _passwordController,
-                        enabled: !_isSubmitting,
-                        obscureText: _obscurePassword,
-                        textInputAction: _isLogin
-                            ? TextInputAction.done
-                            : TextInputAction.next,
-                        autofillHints: _isLogin
-                            ? const [AutofillHints.password]
-                            : const [AutofillHints.newPassword],
-                        style: AppTypography.body(
-                          fontSize: 15,
-                        ).copyWith(color: context.colors.ink),
-                        decoration: authFieldDecoration(
-                          context,
-                          hint: '••••••••',
-                          suffixIcon: IconButton(
-                            tooltip: _obscurePassword
-                                ? context.l10n.authShowPassword
-                                : context.l10n.authHidePassword,
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                              color: context.colors.subtle,
-                              size: 20,
-                            ),
-                            onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            ),
-                          ),
-                        ),
-                        validator: _validatePassword,
-                        onFieldSubmitted: (_) {
-                          if (_isLogin) _submit();
-                        },
-                      ),
-                      if (!_isLogin) ...[
-                        const SizedBox(height: 14),
-                        authFieldLabel(
-                          context,
-                          context.l10n.authConfirmPasswordLabel,
-                        ),
-                        TextFormField(
-                          controller: _confirmPasswordController,
-                          enabled: !_isSubmitting,
-                          obscureText: _obscurePassword,
-                          textInputAction: TextInputAction.done,
-                          autofillHints: const [AutofillHints.newPassword],
-                          style: AppTypography.body(
-                            fontSize: 15,
-                          ).copyWith(color: context.colors.ink),
-                          decoration: authFieldDecoration(
-                            context,
-                            hint: '••••••••',
-                          ),
-                          validator: _validateConfirmPassword,
-                          onFieldSubmitted: (_) => _submit(),
-                        ),
-                      ],
-                      if (_isLogin) ...[
-                        // The button below carries its own 14px of vertical
-                        // padding (the touch target), so the gap above it is
-                        // only what's left of the old 10px rhythm.
-                        const SizedBox(height: 2),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          // A TextButton, not a bare GestureDetector around the
-                          // Text: that gave the link a hit area exactly the size
-                          // of its glyphs (265x19), well under Apple's 44pt and
-                          // Material's 48dp minimum, so the tap regularly missed.
-                          child: TextButton(
-                            onPressed: (_isSubmitting || !isConfigured)
-                                ? null
-                                : _forgotPassword,
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppTheme.spark,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 14,
-                              ),
-                              minimumSize: const Size(
-                                kMinTouchTarget,
-                                kMinTouchTarget,
-                              ),
-                              textStyle: AppTypography.action(fontSize: 12.5),
-                            ),
-                            child: Text(
-                              context.l10n.authForgotPassword.toUpperCase(),
-                            ),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 14),
-                      AuthPrimaryButton(
-                        label: _isLogin
-                            ? context.l10n.signIn
-                            : context.l10n.authCreateAccount,
-                        loading: _isSubmitting,
-                        onPressed: isConfigured ? _submit : null,
-                      ),
-                      const SizedBox(height: 16),
-                      const AuthOrDivider(),
-                      const SizedBox(height: 14),
                       ..._buildSocialButtons(
                         isApplePlatform: isApplePlatform,
                         isConfigured: isConfigured,
                         canUseGoogle: canUseGoogle,
                       ),
-                      // Terms/privacy consent shown at the account-creation
-                      // point (register tab). Sign-in is an existing user, so
-                      // it doesn't need the line.
-                      if (!_isLogin) ...[
-                        const SizedBox(height: 16),
-                        AuthLegalConsentText(
-                          onTapTerms: () =>
-                              _openLegalUrl(AppConfig.termsOfServiceUrl),
-                          onTapPrivacy: () =>
-                              _openLegalUrl(AppConfig.privacyPolicyUrl),
+                      // Terms/privacy consent under the buttons that can CREATE
+                      // the account — with social-only auth that is every tap
+                      // here, so the line is always on.
+                      const SizedBox(height: 16),
+                      AuthLegalConsentText(
+                        onTapTerms: () =>
+                            _openLegalUrl(AppConfig.termsOfServiceUrl),
+                        onTapPrivacy: () =>
+                            _openLegalUrl(AppConfig.privacyPolicyUrl),
+                      ),
+                      const SizedBox(height: 12),
+                      if (!_showPasswordForm)
+                        _buildLegacyLink(context)
+                      else
+                        ..._buildPasswordForm(
+                          context,
+                          isConfigured: isConfigured,
                         ),
-                      ],
                     ],
                   ),
                 ),
@@ -394,6 +256,115 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     ];
   }
 
+  /// The one-line door to the legacy email/password sign-in. A TextButton, not
+  /// bare text, for the same reason as "forgot password?": a hit area the size
+  /// of the glyphs misses under Apple's 44pt and Material's 48dp minimum.
+  /// Unfolding is harmless, so it stays tappable even in a keyless build — the
+  /// form's own controls are what a missing backend disables.
+  Widget _buildLegacyLink(BuildContext context) {
+    return Center(
+      child: TextButton(
+        onPressed: _isSubmitting
+            ? null
+            : () => setState(() => _showPasswordForm = true),
+        style: TextButton.styleFrom(
+          foregroundColor: context.colors.subtle,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          minimumSize: const Size(kMinTouchTarget, kMinTouchTarget),
+          textStyle: AppTypography.action(fontSize: 12.5),
+        ),
+        child: Text(context.l10n.authLegacyEmailLink.toUpperCase()),
+      ),
+    );
+  }
+
+  /// The unfolded legacy form: email, password, "forgot password?", sign in.
+  /// Sign-in ONLY — there is no register path here any more, so no confirm
+  /// field and no minimum-length rule (that belongs to setting a password).
+  List<Widget> _buildPasswordForm(
+    BuildContext context, {
+    required bool isConfigured,
+  }) {
+    return [
+      const AuthOrDivider(),
+      const SizedBox(height: 14),
+      authFieldLabel(context, context.l10n.authEmailLabel),
+      TextFormField(
+        controller: _emailController,
+        enabled: !_isSubmitting,
+        // The user just asked for this form; put the caret where they need it.
+        autofocus: true,
+        keyboardType: TextInputType.emailAddress,
+        textInputAction: TextInputAction.next,
+        autofillHints: const [AutofillHints.email],
+        style: AppTypography.body(
+          fontSize: 15,
+        ).copyWith(color: context.colors.ink),
+        decoration: authFieldDecoration(context, hint: 'you@example.com'),
+        validator: _validateEmail,
+      ),
+      const SizedBox(height: 14),
+      authFieldLabel(context, context.l10n.authPasswordLabel),
+      TextFormField(
+        controller: _passwordController,
+        enabled: !_isSubmitting,
+        obscureText: _obscurePassword,
+        textInputAction: TextInputAction.done,
+        autofillHints: const [AutofillHints.password],
+        style: AppTypography.body(
+          fontSize: 15,
+        ).copyWith(color: context.colors.ink),
+        decoration: authFieldDecoration(
+          context,
+          hint: '••••••••',
+          suffixIcon: IconButton(
+            tooltip: _obscurePassword
+                ? context.l10n.authShowPassword
+                : context.l10n.authHidePassword,
+            icon: Icon(
+              _obscurePassword
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+              color: context.colors.subtle,
+              size: 20,
+            ),
+            onPressed: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
+          ),
+        ),
+        validator: _validatePassword,
+        onFieldSubmitted: (_) => _submit(),
+      ),
+      // The button below carries its own 14px of vertical padding (the touch
+      // target), so the gap above it is only what's left of the old 10px
+      // rhythm.
+      const SizedBox(height: 2),
+      Align(
+        alignment: Alignment.centerRight,
+        // A TextButton, not a bare GestureDetector around the Text: that gave
+        // the link a hit area exactly the size of its glyphs (265x19), well
+        // under Apple's 44pt and Material's 48dp minimum, so the tap regularly
+        // missed.
+        child: TextButton(
+          onPressed: (_isSubmitting || !isConfigured) ? null : _forgotPassword,
+          style: TextButton.styleFrom(
+            foregroundColor: AppTheme.spark,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            minimumSize: const Size(kMinTouchTarget, kMinTouchTarget),
+            textStyle: AppTypography.action(fontSize: 12.5),
+          ),
+          child: Text(context.l10n.authForgotPassword.toUpperCase()),
+        ),
+      ),
+      const SizedBox(height: 14),
+      AuthPrimaryButton(
+        label: context.l10n.signIn,
+        loading: _isSubmitting,
+        onPressed: isConfigured ? _submit : null,
+      ),
+    ];
+  }
+
   Widget _buildCloseRow(BuildContext context) {
     return Align(
       alignment: Alignment.centerRight,
@@ -404,17 +375,18 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     );
   }
 
-  /// Brand header shown above the sign-in / sign-up tabs: the app icon in a
-  /// softly glowing rounded tile, with a greeting headline and a one-line
-  /// subtitle underneath. It gives the sheet an identity instead of opening
-  /// cold on a form. The copy follows the active tab (sign-in vs register).
-  Widget _buildBrandHeader(BuildContext context) {
-    final title = _isLogin
-        ? context.l10n.authWelcomeBackTitle
-        : context.l10n.authRegisterTitle;
-    final subtitle = _isLogin
-        ? context.l10n.authWelcomeBackSubtitle
-        : context.l10n.authRegisterSubtitle;
+  /// Brand header above the buttons: the app icon in a softly glowing rounded
+  /// tile, a headline and a one-line subtitle. One copy for every entry point
+  /// — with a single button covering "create" and "sign back in" there is no
+  /// mode for it to follow. The subtitle names only the providers this platform
+  /// actually shows.
+  Widget _buildBrandHeader(
+    BuildContext context, {
+    required bool isApplePlatform,
+  }) {
+    final subtitle = isApplePlatform
+        ? context.l10n.authSheetSubtitleApple
+        : context.l10n.authSheetSubtitleGoogle;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -444,7 +416,7 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
         ),
         const SizedBox(height: 18),
         Text(
-          title.toUpperCase(),
+          context.l10n.authSheetTitle.toUpperCase(),
           textAlign: TextAlign.center,
           style: AppTypography.title(
             fontSize: 30,
@@ -462,14 +434,6 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     );
   }
 
-  void _changeMode(AuthMode mode) {
-    if (_isSubmitting || mode == _mode) return;
-    setState(() {
-      _mode = mode;
-      _formKey.currentState?.reset();
-    });
-  }
-
   String? _validateEmail(String? value) {
     final email = value?.trim() ?? '';
     if (email.isEmpty) return context.l10n.authEnterEmail;
@@ -480,21 +444,13 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
   }
 
   String? _validatePassword(String? value) {
-    final password = value ?? '';
-    if (password.isEmpty) return context.l10n.authEnterPassword;
-    if (_mode == AuthMode.register && password.length < 6) {
-      return context.l10n.authMinPassword;
-    }
+    if ((value ?? '').isEmpty) return context.l10n.authEnterPassword;
     return null;
   }
 
-  String? _validateConfirmPassword(String? value) {
-    if (value != _passwordController.text) {
-      return context.l10n.authPasswordsMismatch;
-    }
-    return null;
-  }
-
+  /// The legacy email/password SIGN-IN. Always an identity switch: it replaces
+  /// the session with the target account's, unlike the social buttons, which
+  /// upgrade a guest in place.
   Future<void> _submit() async {
     if (_isSubmitting || !(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -508,100 +464,46 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     final session = ref.read(sessionProvider.notifier);
     final previous = ref.read(sessionProvider).value;
     try {
-      final email = _emailController.text.trim();
-      final password = _passwordController.text;
-
-      switch (_mode) {
-        case AuthMode.password:
-          // Signing in ABANDONS the guest profile this device is on. Say so
-          // first when there is something on it to lose — the streak nudge
-          // pitches "your streak lives only on this phone" and hands the user
-          // straight here, so without this the obvious next tap is the one
-          // that destroys what they were just told to protect.
-          if (!await _confirmAbandoningGuestProgress()) return;
-          await SupabaseService.signInWithPassword(
-            email: email,
-            password: password,
-          );
-          // Signing in REPLACES the session with the target account's, so this
-          // is always a switch of identity — unlike registering, which upgrades
-          // the current user in place. A guest who just bought PRO and then
-          // signs into their old account would otherwise land on a uid
-          // RevenueCat has never seen. Carry the receipt over BEFORE the
-          // reload, which is what re-reads the entitlement.
-          await _carryEntitlementToNewIdentity(
-            previous: previous,
-            next: SupabaseService.currentUser?.id,
-          );
-          await session.refresh();
-          if (!mounted) return;
-          Navigator.of(context).maybePop();
-        case AuthMode.register:
-          // Registration upgrades the CURRENT user in place, so for anyone who
-          // isn't a fresh guest the form wouldn't create an account — it would
-          // rewrite the one they already have (at worst silently re-pointing
-          // it at a different email). Refuse those cases with a plain answer.
-          switch (SupabaseService.registerPrecheck(email)) {
-            case RegisterPrecheck.alreadySignedIn:
-              _showMessage(context.l10n.authAlreadySignedIn);
-              return;
-            case RegisterPrecheck.pendingOtherEmail:
-              _showMessage(
-                context.l10n.authRegisteredPendingConfirm(
-                  SupabaseService.currentUser?.email ?? '',
-                ),
-              );
-              return;
-            case RegisterPrecheck.ok:
-              break;
-          }
-          // The session reload is owned by [runAuthFlowAndReload], which also
-          // suppresses the auth listener's duplicate — one registration costs
-          // ONE entitlement reconcile, not two concurrent ones.
-          await session.runAuthFlowAndReload(() async {
-            await SupabaseService.registerWithPassword(
-              email: email,
-              password: password,
-              locale: ref.read(localeControllerProvider).languageCode,
-            );
-            // Surface the outcome BEFORE the session reload: the confirmation
-            // mail is already on its way the moment the register call returns,
-            // while the reload reconciles the entitlement over the network and
-            // can take seconds. Holding the message hostage to it left the
-            // user staring at a spinner with no idea a mail had been sent —
-            // and if they closed the sheet meanwhile, no message at all.
-            if (mounted) {
-              final created = SupabaseService.currentUserHasAccount;
-              _showMessage(
-                created
-                    ? context.l10n.authAccountCreated
-                    : context.l10n.authConfirmEmail,
-                type: created ? ToastType.success : ToastType.info,
-              );
-              if (created) Navigator.of(context).maybePop();
-            }
-            return true;
-          });
-      }
+      // Signing in ABANDONS the guest profile this device is on. Say so first
+      // when there is something on it to lose — the streak nudge pitches "your
+      // streak lives only on this phone" and hands the user straight here.
+      if (!await _confirmAbandoningGuestProgress()) return;
+      await SupabaseService.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      // A guest who just bought PRO and then signs into their old account
+      // would otherwise land on a uid RevenueCat has never seen. Carry the
+      // receipt over BEFORE the reload, which is what re-reads the entitlement.
+      await _carryEntitlementToNewIdentity(
+        previous: previous,
+        next: SupabaseService.currentUser?.id,
+      );
+      await session.refresh();
+      if (!mounted) return;
+      Navigator.of(context).maybePop();
     } catch (error) {
       // One handler: a timed-out / disconnected call arrives as a
       // TimeoutException or a transport-wrapped AuthException, and both have to
       // read as "no connection" rather than as a raw dump.
-      if (mounted) _showMessage(_authErrorText(error), type: ToastType.error);
+      if (mounted) {
+        _showMessage(authErrorText(context, error), type: ToastType.error);
+      }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
   /// Confirms an identity-switching sign-in when this device carries a guest's
-  /// progress. Returns whether [_submit] should go ahead.
+  /// progress. Returns whether the flow should go ahead.
   ///
-  /// REGISTERING upgrades the anonymous user in place — same UUID, streak,
-  /// votes and favourites all kept. Signing IN does the opposite: it replaces
-  /// the session with the target account's and leaves the guest profile (and
-  /// everything on it) behind, with no warning and no way back. Silent for an
-  /// account holder, who has already left any guest behind, and for a fresh
-  /// guest with nothing on the line.
+  /// The social buttons normally upgrade the anonymous user in place — same
+  /// UUID, streak, votes and favourites all kept — and only switch accounts
+  /// when the picked identity already belongs to one. The legacy password
+  /// sign-in ALWAYS switches. Either way the guest profile (and everything on
+  /// it) is left behind with no way back, so it is said out loud first. Silent
+  /// for an account holder, who has already left any guest behind, and for a
+  /// fresh guest with nothing on the line.
   Future<bool> _confirmAbandoningGuestProgress() async {
     final session = ref.read(sessionProvider).value;
     if (session == null || session.hasAccount) return true;
@@ -615,7 +517,6 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     final stats = ref.read(userStatsProvider);
     if (stats.hasValue && stats.value!.longestStreak <= 0) return true;
 
-    // true = sign in anyway, false = register instead, null = dismissed.
     final proceed = await showDialog<bool>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.62),
@@ -644,57 +545,21 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
             ),
             child: Text(context.l10n.authSwitchAccountConfirm.toUpperCase()),
           ),
+          // Keeping the guest profile is the safe answer, so it wears the
+          // accent.
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
             style: TextButton.styleFrom(
               foregroundColor: AppTheme.spark,
               textStyle: AppTypography.action(),
             ),
-            child: Text(context.l10n.createAccount.toUpperCase()),
+            child: Text(context.l10n.cancel.toUpperCase()),
           ),
         ],
       ),
     );
 
-    if (proceed == true) return true;
-    // Took the offer: land them on the tab that keeps the guest profile. Set
-    // directly rather than through [_changeMode], which refuses while a submit
-    // is in flight — and this one is.
-    if (proceed == false && mounted) {
-      // Deliberately NOT resetting the form: they typed an email to sign in
-      // with, the dialog just told them to register instead, and handing them
-      // an empty field for their trouble is the opposite of taking the offer.
-      setState(() => _mode = AuthMode.register);
-    }
-    return false;
-  }
-
-  /// Localises what this sheet can realistically get back from GoTrue.
-  ///
-  /// Offline is checked FIRST: gotrue wraps a dropped connection in an
-  /// `AuthException` subclass whose message is a raw `SocketException` /
-  /// "Failed host lookup" dump, so without this an airplane-mode tap showed a
-  /// Polish user an English stack-trace fragment. An unrecognised code still
-  /// falls back to the server's message — more actionable than a mute failure.
-  String _authErrorText(Object error) {
-    final l10n = context.l10n;
-    if (isOfflineError(error)) return l10n.noConnection;
-    // Not from GoTrue at all — a GoogleSignInException, a
-    // SignInWithAppleAuthorizationException, a StateError from a build with no
-    // keys. Their `toString()` is developer text ("Bad state: ...") and used to
-    // go straight into a Polish user's toast.
-    if (error is! AuthException) return l10n.authErrorGeneric;
-    return switch (error.code) {
-      'invalid_credentials' => l10n.authErrorInvalidCredentials,
-      'email_not_confirmed' => l10n.authErrorEmailNotConfirmed,
-      'email_exists' || 'user_already_exists' => l10n.authErrorEmailExists,
-      'same_password' => l10n.authErrorSamePassword,
-      'weak_password' => l10n.authErrorWeakPassword,
-      'validation_failed' => l10n.authEnterValidEmail,
-      'over_request_rate_limit' ||
-      'over_email_send_rate_limit' => l10n.authErrorTooManyRequests,
-      _ => error.message,
-    };
+    return proceed == true;
   }
 
   // [_confirmAbandoningGuestProgress] is handed DOWN rather than run up front:
@@ -726,9 +591,9 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
     final session = ref.read(sessionProvider.notifier);
     final previous = ref.read(sessionProvider).value;
     try {
-      // As with registration, [runAuthFlowAndReload] owns the reload and
-      // suppresses the auth listener's duplicate `userUpdated` reload (the
-      // in-place identity link emits one mid-flow).
+      // [runAuthFlowAndReload] owns the reload and suppresses the auth
+      // listener's duplicate `userUpdated` reload (the in-place identity link
+      // emits one mid-flow) — one sign-in costs ONE entitlement reconcile.
       var signedIn = false;
       await session.runAuthFlowAndReload(() async {
         final user = await signIn();
@@ -743,7 +608,9 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
       // One handler: a timed-out / disconnected call arrives as a
       // TimeoutException or a transport-wrapped AuthException, and both have to
       // read as "no connection" rather than as a raw dump.
-      if (mounted) _showMessage(_authErrorText(error), type: ToastType.error);
+      if (mounted) {
+        _showMessage(authErrorText(context, error), type: ToastType.error);
+      }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -751,14 +618,14 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
 
   /// Moves a just-bought entitlement onto the account the user signed into.
   ///
-  /// REGISTERING with email/password and the social buttons both UPGRADE the
-  /// anonymous user in place (`updateUser` / `linkIdentityWithIdToken`, same
-  /// UUID), so PRO follows on its own and the same-uid guard below makes this a
-  /// no-op. Two flows genuinely switch identity, and RevenueCat does not move
-  /// purchases between two identified app user ids on `logIn` alone:
+  /// A social tap on a guest UPGRADES the anonymous user in place
+  /// (`linkIdentityWithIdToken`, same UUID), so PRO follows on its own and the
+  /// same-uid guard below makes this a no-op. Two flows genuinely switch
+  /// identity, and RevenueCat does not move purchases between two identified
+  /// app user ids on `logIn` alone:
   ///
-  ///  * signing IN with email/password — always, since it replaces the session
-  ///    with the target account's;
+  ///  * the legacy email/password sign-in — always, since it replaces the
+  ///    session with the target account's;
   ///  * a social sign-in whose Google/Apple identity already belongs to ANOTHER
   ///    Supabase account (a reinstall / new phone signing back in).
   ///
@@ -803,10 +670,9 @@ class _AuthCardState extends ConsumerState<_AuthCard> {
       if (!mounted) return;
       _showMessage(context.l10n.authPasswordResetSent, type: ToastType.success);
     } catch (error) {
-      // One handler: a timed-out / disconnected call arrives as a
-      // TimeoutException or a transport-wrapped AuthException, and both have to
-      // read as "no connection" rather than as a raw dump.
-      if (mounted) _showMessage(_authErrorText(error), type: ToastType.error);
+      if (mounted) {
+        _showMessage(authErrorText(context, error), type: ToastType.error);
+      }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

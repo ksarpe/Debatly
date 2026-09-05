@@ -200,35 +200,29 @@ abstract class AppLocalizations {
   /// **'Sign in'**
   String get signIn;
 
-  /// No description provided for @authCreateAccount.
+  /// Headline of the social-only account sheet. One copy for every entry point: a Continue-with button both creates the account (a guest is upgraded in place) and signs a returning user back in.
   ///
   /// In en, this message translates to:
-  /// **'Create account'**
-  String get authCreateAccount;
+  /// **'Your account'**
+  String get authSheetTitle;
 
-  /// No description provided for @authWelcomeBackTitle.
+  /// Subtitle of the account sheet on Apple platforms, where both social buttons show.
   ///
   /// In en, this message translates to:
-  /// **'Good to see you again'**
-  String get authWelcomeBackTitle;
+  /// **'One tap: Apple or Google. Your streak, votes and PRO follow you to any phone.'**
+  String get authSheetSubtitleApple;
 
-  /// No description provided for @authWelcomeBackSubtitle.
+  /// Subtitle of the account sheet on Android, where only Google shows.
   ///
   /// In en, this message translates to:
-  /// **'Sign in to get back to your debates.'**
-  String get authWelcomeBackSubtitle;
+  /// **'One tap: Google. Your streak, votes and PRO follow you to any phone.'**
+  String get authSheetSubtitleGoogle;
 
-  /// No description provided for @authRegisterTitle.
+  /// Small link at the foot of the account sheet that unfolds the legacy email/password SIGN-IN form (no registration) for accounts made before the sheet went social-only.
   ///
   /// In en, this message translates to:
-  /// **'Join Debatly'**
-  String get authRegisterTitle;
-
-  /// No description provided for @authRegisterSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Create an account and take a side in the debate.'**
-  String get authRegisterSubtitle;
+  /// **'I have a password'**
+  String get authLegacyEmailLink;
 
   /// No description provided for @authEmailLabel.
   ///
@@ -266,18 +260,6 @@ abstract class AppLocalizations {
   /// **'Forgot your password?'**
   String get authForgotPassword;
 
-  /// No description provided for @authTabSignIn.
-  ///
-  /// In en, this message translates to:
-  /// **'SIGN IN'**
-  String get authTabSignIn;
-
-  /// No description provided for @authTabSignUp.
-  ///
-  /// In en, this message translates to:
-  /// **'SIGN UP'**
-  String get authTabSignUp;
-
   /// No description provided for @authEnterEmail.
   ///
   /// In en, this message translates to:
@@ -307,18 +289,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Passwords don\'t match.'**
   String get authPasswordsMismatch;
-
-  /// No description provided for @authAccountCreated.
-  ///
-  /// In en, this message translates to:
-  /// **'Account created.'**
-  String get authAccountCreated;
-
-  /// No description provided for @authConfirmEmail.
-  ///
-  /// In en, this message translates to:
-  /// **'Check your email and confirm your account.'**
-  String get authConfirmEmail;
 
   /// No description provided for @authContinueWithApple.
   ///
@@ -404,18 +374,6 @@ abstract class AppLocalizations {
   /// **'GOOGLE_SERVER_CLIENT_ID is missing, so Google is temporarily disabled.'**
   String get authMissingGoogleConfig;
 
-  /// No description provided for @authAlreadySignedIn.
-  ///
-  /// In en, this message translates to:
-  /// **'You\'re already signed in to your account — no need to register again.'**
-  String get authAlreadySignedIn;
-
-  /// No description provided for @authRegisteredPendingConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Your account is already registered to {email}. Tap the link in that email to confirm it.'**
-  String authRegisteredPendingConfirm(String email);
-
   /// No description provided for @authErrorInvalidCredentials.
   ///
   /// In en, this message translates to:
@@ -427,12 +385,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm your email first — check your inbox.'**
   String get authErrorEmailNotConfirmed;
-
-  /// No description provided for @authErrorEmailExists.
-  ///
-  /// In en, this message translates to:
-  /// **'An account with this email already exists. Sign in instead.'**
-  String get authErrorEmailExists;
 
   /// No description provided for @authErrorSamePassword.
   ///
@@ -464,10 +416,10 @@ abstract class AppLocalizations {
   /// **'Sign in to another account?'**
   String get authSwitchAccountTitle;
 
-  /// Body of the guest sign-in confirmation — explains that signing in abandons the guest profile, and that registering does not.
+  /// Body of the guest sign-in confirmation — explains that signing in to an existing account abandons the guest profile. Cancel keeps the guest.
   ///
   /// In en, this message translates to:
-  /// **'Signing in swaps this device over to that account. Your streak, votes and favourites live on this guest profile and won\'t come along. Want to keep them? Create an account instead — that keeps everything.'**
+  /// **'Signing in swaps this device over to that account. Your streak, votes and favourites live on this guest profile and won\'t come along.'**
   String get authSwitchAccountBody;
 
   /// Action that proceeds with the identity-switching sign-in despite the warning.
@@ -475,6 +427,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign in anyway'**
   String get authSwitchAccountConfirm;
+
+  /// Headline of the sheet where a password-only account adds a Google / Apple identity (same account, passwordless sign-in from then on).
+  ///
+  /// In en, this message translates to:
+  /// **'Link your account'**
+  String get linkSocialTitle;
+
+  /// No description provided for @linkSocialBodyApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Apple or Google to this account and you\'ll sign in without a password — to this same account, with your streak, votes and PRO.'**
+  String get linkSocialBodyApple;
+
+  /// No description provided for @linkSocialBodyGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Google to this account and you\'ll sign in without a password — to this same account, with your streak, votes and PRO.'**
+  String get linkSocialBodyGoogle;
+
+  /// No description provided for @linkSocialDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked. You can sign in without a password from now on.'**
+  String get linkSocialDone;
+
+  /// Error when the picked Google / Apple identity already belongs to a different Supabase user, so it cannot be added to this one. {provider} is the proper noun Apple or Google.
+  ///
+  /// In en, this message translates to:
+  /// **'That {provider} account is already linked to another Debatly account.'**
+  String linkSocialAlreadyLinked(String provider);
 
   /// No description provided for @settingsSectionApp.
   ///
@@ -487,6 +469,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'ACCOUNT'**
   String get settingsSectionAccount;
+
+  /// Settings row shown only to an email/password account with no social identity yet; opens the link-Apple/Google sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in without a password'**
+  String get settingsLinkSocialTitle;
+
+  /// No description provided for @settingsLinkSocialSubtitleApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Link Apple or Google to this account'**
+  String get settingsLinkSocialSubtitleApple;
+
+  /// No description provided for @settingsLinkSocialSubtitleGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Link Google to this account'**
+  String get settingsLinkSocialSubtitleGoogle;
 
   /// No description provided for @settingsReminders.
   ///
@@ -1466,6 +1466,30 @@ abstract class AppLocalizations {
   /// **'You? Yes or no?'**
   String get shareCardHook;
 
+  /// Streak chip tooltip while the flame is blue: there is a streak but today's vote is still missing.
+  ///
+  /// In en, this message translates to:
+  /// **'No vote yet today — your streak is cooling'**
+  String get streakCoolingTooltip;
+
+  /// Headline of the cracking-heart moment shown on the first launch after a missed day spent one of the streak's graces.
+  ///
+  /// In en, this message translates to:
+  /// **'A grace is gone'**
+  String get graceLostTitle;
+
+  /// Under the cracked heart: how many graces remain before the rank drops a tier.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{{count} grace left} other{{count} graces left}}'**
+  String graceLostBody(int count);
+
+  /// The way out, under the grace-lost message.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote today to keep your rank.'**
+  String get graceLostHint;
+
   /// No description provided for @streakTooltip.
   ///
   /// In en, this message translates to:
@@ -2033,7 +2057,7 @@ abstract class AppLocalizations {
   /// No description provided for @savePromptBody.
   ///
   /// In en, this message translates to:
-  /// **'Your PRO is currently tied to a guest account. Create an account (email or Google) so you don\'t lose access after reinstalling or on another device — your progress will be kept.'**
+  /// **'Your PRO is currently tied to a guest account. Secure it with an account so you don\'t lose access after reinstalling or on another device — your progress will be kept.'**
   String get savePromptBody;
 
   /// No description provided for @createAccount.
@@ -2051,8 +2075,68 @@ abstract class AppLocalizations {
   /// No description provided for @secureStreakBody.
   ///
   /// In en, this message translates to:
-  /// **'You\'re on a {streak}-day streak — but it only lives on this phone. Create an account (email or Google) and it will survive a reinstall or a new device.'**
+  /// **'You\'re on a {streak}-day streak — but it only lives on this phone. Secure it with an account and it will survive a reinstall or a new device.'**
   String secureStreakBody(int streak);
+
+  /// No description provided for @reviewPrePromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How\'s Debatly treating you?'**
+  String get reviewPrePromptTitle;
+
+  /// No description provided for @reviewPrePromptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A few votes in, so time for an honest answer. It helps us more than you\'d think.'**
+  String get reviewPrePromptBody;
+
+  /// No description provided for @reviewPrePromptLoving.
+  ///
+  /// In en, this message translates to:
+  /// **'Loving it'**
+  String get reviewPrePromptLoving;
+
+  /// No description provided for @reviewPrePromptCouldBeBetter.
+  ///
+  /// In en, this message translates to:
+  /// **'Could be better'**
+  String get reviewPrePromptCouldBeBetter;
+
+  /// No description provided for @appFeedbackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What should we fix?'**
+  String get appFeedbackTitle;
+
+  /// No description provided for @appFeedbackIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what grates or what\'s missing. We read every message, and plenty of them end up in the next version.'**
+  String get appFeedbackIntro;
+
+  /// No description provided for @appFeedbackHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. too few questions, too hard, something\'s broken…'**
+  String get appFeedbackHint;
+
+  /// No description provided for @appFeedbackSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send feedback'**
+  String get appFeedbackSend;
+
+  /// No description provided for @appFeedbackThanks.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks! Your feedback just reached us.'**
+  String get appFeedbackThanks;
+
+  /// No description provided for @appFeedbackRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s enough for today — thanks for all the notes.'**
+  String get appFeedbackRateLimited;
 
   /// No description provided for @suggestQuestionTitle.
   ///

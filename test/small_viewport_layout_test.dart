@@ -388,6 +388,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      // The legacy email/password form is folded behind a link since the
+      // sheet went social-only.
+      await tester.tap(find.text('MAM KONTO Z HASŁEM'));
+      await tester.pumpAndSettle();
 
       final link = find.ancestor(
         of: find.text('NIE PAMIĘTASZ HASŁA?'),

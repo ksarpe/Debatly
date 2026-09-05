@@ -330,6 +330,9 @@ class _FakeRepo implements QuestionRepository {
       throw UnimplementedError();
 
   @override
+  Future<void> submitAppFeedback(String text) => throw UnimplementedError();
+
+  @override
   Future<void> submitSmaczekSuggestion({
     required String questionId,
     required String text,

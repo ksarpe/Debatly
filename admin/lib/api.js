@@ -68,6 +68,15 @@ export const api = {
   dashboardStats: (days = null, includeInternal = false) =>
     rpc('admin_dashboard_stats', { p_days: days, p_include_internal: includeInternal }),
 
+  // Ranking użytkowników /users: top N (domyślnie 3) wg żywego streaka, rekordu
+  // streaka, głosów PRO, głosów free, przewróconych bram i odpowiedzianych bram
+  // + podsumowanie populacji. All-time, te same konta wewnętrzne wycięte co
+  // w /stats — patrz admin_top_users w 20260905130000.
+  topUsers: (includeInternal = false, limit = 3) =>
+    rpc('admin_top_users', { p_include_internal: includeInternal, p_limit: limit }),
+  /** One account by full UUID or a ≥6-char prefix — history split at its first purchase. */
+  userHistory: (query) => rpc('admin_user_history', { p_user: query }),
+
   listQuestions: ({ search = null, onlyActive = true, onlyEnReview = false, onlyFavorites = false, onlyUnverified = false, onlyNeedsReview = false, onlyUntagged = false, limit = 50, offset = 0 } = {}) =>
     rpc('admin_list_questions', {
       p_search: search,
@@ -164,24 +173,6 @@ export const api = {
   // resztę na kolejne dni. Warto odpalić PRZED przypięciem dnia reklamowego,
   // żeby przesunięcie dat wydarzyło się teraz, a nie w nocy.
   compactDailyPicks: () => rpc('admin_compact_daily_picks'),
-
-  // Dziennik marketingowy: wiersz = dzień. Zwraca { tracking_since, rows } —
-  // pola ręczne (filmik, wejścia, pobrania) + policzone przez bazę
-  // installs_tracked / purchases / revenue_pln, także dla dni bez wpisu.
-  // Upsert nadpisuje cały wiersz (NULL = pole wyczyszczone), ostatni zapis wygrywa.
-  listMarketing: () => rpc('admin_list_marketing_stats'),
-  upsertMarketingDay: ({ day, video, videoViews, storeVisitsGoogle, storeVisitsAppstore, downloadsGoogle, downloadsAppstore, notes }) =>
-    rpc('admin_upsert_marketing_day', {
-      p_day: day,
-      p_video: video,
-      p_video_views: videoViews,
-      p_store_visits_google: storeVisitsGoogle,
-      p_store_visits_appstore: storeVisitsAppstore,
-      p_downloads_google: downloadsGoogle,
-      p_downloads_appstore: downloadsAppstore,
-      p_notes: notes,
-    }),
-  deleteMarketingDay: (day) => rpc('admin_delete_marketing_day', { p_day: day }),
 
   // Propozycje pytań od użytkowników ("Zaproponuj pytanie" w aplikacji).
   // Skrzynka wejściowa — przyjęcie propozycji niczego nie publikuje; przyjęty

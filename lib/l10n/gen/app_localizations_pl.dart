@@ -64,20 +64,18 @@ class AppLocalizationsPl extends AppLocalizations {
   String get signIn => 'Zaloguj się';
 
   @override
-  String get authCreateAccount => 'Utwórz konto';
+  String get authSheetTitle => 'Twoje konto';
 
   @override
-  String get authWelcomeBackTitle => 'Miło Cię znów widzieć';
+  String get authSheetSubtitleApple =>
+      'Jedno dotknięcie: Apple albo Google. Passa, głosy i PRO zostają z Tobą na każdym telefonie.';
 
   @override
-  String get authWelcomeBackSubtitle =>
-      'Zaloguj się, żeby wrócić do swoich debat.';
+  String get authSheetSubtitleGoogle =>
+      'Jedno dotknięcie: Google. Passa, głosy i PRO zostają z Tobą na każdym telefonie.';
 
   @override
-  String get authRegisterTitle => 'Dołącz do Debatly';
-
-  @override
-  String get authRegisterSubtitle => 'Załóż konto i zabierz głos w debacie.';
+  String get authLegacyEmailLink => 'Mam konto z hasłem';
 
   @override
   String get authEmailLabel => 'EMAIL';
@@ -98,12 +96,6 @@ class AppLocalizationsPl extends AppLocalizations {
   String get authForgotPassword => 'Nie pamiętasz hasła?';
 
   @override
-  String get authTabSignIn => 'ZALOGUJ SIĘ';
-
-  @override
-  String get authTabSignUp => 'ZAŁÓŻ KONTO';
-
-  @override
   String get authEnterEmail => 'Podaj email.';
 
   @override
@@ -117,12 +109,6 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get authPasswordsMismatch => 'Hasła nie są takie same.';
-
-  @override
-  String get authAccountCreated => 'Konto utworzone.';
-
-  @override
-  String get authConfirmEmail => 'Sprawdź email i potwierdź konto.';
 
   @override
   String get authContinueWithApple => 'Kontynuuj z Apple';
@@ -174,24 +160,11 @@ class AppLocalizationsPl extends AppLocalizations {
       'Brakuje GOOGLE_SERVER_CLIENT_ID, więc Google jest chwilowo wyłączone.';
 
   @override
-  String get authAlreadySignedIn =>
-      'Twoje konto jest już założone i zalogowane — nie musisz rejestrować się ponownie.';
-
-  @override
-  String authRegisteredPendingConfirm(String email) {
-    return 'Konto jest już zarejestrowane na adres $email. Kliknij link z maila, aby je potwierdzić.';
-  }
-
-  @override
   String get authErrorInvalidCredentials => 'Nieprawidłowy email lub hasło.';
 
   @override
   String get authErrorEmailNotConfirmed =>
       'Najpierw potwierdź email — sprawdź skrzynkę.';
-
-  @override
-  String get authErrorEmailExists =>
-      'Konto z tym adresem już istnieje. Zaloguj się.';
 
   @override
   String get authErrorSamePassword =>
@@ -212,16 +185,46 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get authSwitchAccountBody =>
-      'Logowanie przełączy to urządzenie na tamto konto. Twoja passa, głosy i ulubione są zapisane na profilu gościa i nie przeniosą się. Chcesz je zachować? Załóż konto — wtedy wszystko zostaje.';
+      'Logowanie przełączy to urządzenie na tamto konto. Twoja passa, głosy i ulubione są zapisane na profilu gościa i nie przeniosą się.';
 
   @override
   String get authSwitchAccountConfirm => 'Zaloguj mimo to';
+
+  @override
+  String get linkSocialTitle => 'Połącz konto';
+
+  @override
+  String get linkSocialBodyApple =>
+      'Dodaj Apple albo Google do tego konta, a zalogujesz się bez hasła — na to samo konto, z passą, głosami i PRO.';
+
+  @override
+  String get linkSocialBodyGoogle =>
+      'Dodaj Google do tego konta, a zalogujesz się bez hasła — na to samo konto, z passą, głosami i PRO.';
+
+  @override
+  String get linkSocialDone =>
+      'Połączono. Od teraz możesz logować się bez hasła.';
+
+  @override
+  String linkSocialAlreadyLinked(String provider) {
+    return 'To konto $provider jest już połączone z innym kontem Debatly.';
+  }
 
   @override
   String get settingsSectionApp => 'USTAWIENIA APLIKACJI';
 
   @override
   String get settingsSectionAccount => 'KONTO';
+
+  @override
+  String get settingsLinkSocialTitle => 'Logowanie bez hasła';
+
+  @override
+  String get settingsLinkSocialSubtitleApple =>
+      'Połącz konto z Apple lub Google';
+
+  @override
+  String get settingsLinkSocialSubtitleGoogle => 'Połącz konto z Google';
 
   @override
   String get settingsReminders => 'Przypomnienia';
@@ -811,6 +814,28 @@ class AppLocalizationsPl extends AppLocalizations {
   String get shareCardHook => 'A Ty? TAK czy NIE?';
 
   @override
+  String get streakCoolingTooltip => 'Dziś jeszcze bez głosu — seria stygnie';
+
+  @override
+  String get graceLostTitle => 'Łaska przepadła';
+
+  @override
+  String graceLostBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zostało Ci jeszcze $count łaski',
+      many: 'Zostało Ci jeszcze $count łask',
+      few: 'Zostały Ci jeszcze $count łaski',
+      one: 'Została Ci jeszcze $count łaska',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get graceLostHint => 'Zagłosuj dziś, żeby ranga nie spadła.';
+
+  @override
   String get streakTooltip => 'Twoja seria';
 
   @override
@@ -1165,7 +1190,7 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get savePromptBody =>
-      'Twoje PRO jest na razie przypisane do konta-gościa. Załóż konto (e-mail lub Google), aby nie stracić dostępu po reinstalacji albo na innym urządzeniu — Twój postęp zostanie zachowany.';
+      'Twoje PRO jest na razie przypisane do konta-gościa. Zabezpiecz je kontem, aby nie stracić dostępu po reinstalacji albo na innym urządzeniu — Twój postęp zostanie zachowany.';
 
   @override
   String get createAccount => 'Załóż konto';
@@ -1175,8 +1200,42 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String secureStreakBody(int streak) {
-    return 'Masz już $streak-dniową passę — ale żyje ona tylko na tym telefonie. Załóż konto (e-mail lub Google), a przetrwa reinstalację i zmianę urządzenia.';
+    return 'Masz już $streak-dniową passę — ale żyje ona tylko na tym telefonie. Zabezpiecz ją kontem, a przetrwa reinstalację i zmianę urządzenia.';
   }
+
+  @override
+  String get reviewPrePromptTitle => 'Jak Ci się gra w Debatly?';
+
+  @override
+  String get reviewPrePromptBody =>
+      'Masz już kilka głosów za sobą, więc czas na szczerą odpowiedź. Pomaga nam bardziej, niż myślisz.';
+
+  @override
+  String get reviewPrePromptLoving => 'Świetnie, gram dalej';
+
+  @override
+  String get reviewPrePromptCouldBeBetter => 'Mogłoby być lepiej';
+
+  @override
+  String get appFeedbackTitle => 'Co poprawić?';
+
+  @override
+  String get appFeedbackIntro =>
+      'Napisz, co Cię drażni albo czego brakuje. Czytamy każdą wiadomość, a sporo z nich ląduje w kolejnej wersji.';
+
+  @override
+  String get appFeedbackHint => 'Np. za mało pytań, za trudne, coś nie działa…';
+
+  @override
+  String get appFeedbackSend => 'Wyślij opinię';
+
+  @override
+  String get appFeedbackThanks =>
+      'Dzięki! Twoja opinia właśnie do nas dotarła.';
+
+  @override
+  String get appFeedbackRateLimited =>
+      'Na dziś wystarczy — dzięki za wszystkie uwagi.';
 
   @override
   String get suggestQuestionTitle => 'Zaproponuj pytanie';

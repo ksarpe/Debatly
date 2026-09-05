@@ -152,13 +152,12 @@ void main() {
       await tester.tap(find.text('ZAŁÓŻ KONTO'));
       await tester.pumpAndSettle();
 
-      // The sign-in sheet opened (its email/password fields are on screen).
-      // The prompt call is still awaiting the sheet, so `shown` resolves only
-      // once it closes.
-      expect(find.byType(TextField), findsWidgets);
-      final navigator = Navigator.of(
-        tester.element(find.byType(TextField).first),
-      );
+      // The social-only account sheet opened (its Continue-with button is on
+      // screen; tests report as Android, so it is Google). The prompt call is
+      // still awaiting the sheet, so `shown` resolves only once it closes.
+      final socialButton = find.text('KONTYNUUJ Z GOOGLE');
+      expect(socialButton, findsOneWidget);
+      final navigator = Navigator.of(tester.element(socialButton));
       navigator.pop();
       await tester.pumpAndSettle();
 

@@ -25,6 +25,16 @@ Color flameColor(BuildContext context) =>
 /// the rank sheet's grace warning.
 const Color kGrace = Color(0xFF38BDF8);
 
+/// Deeper sky-blue for the cooling flame on light themes — the bright [kGrace]
+/// washes out against the off-white canvas the same way [kFlame] does.
+const Color kGraceLight = Color(0xFF0284C7);
+
+/// The grace / cooling colour for the current theme — bright [kGrace] on
+/// dark, the deeper [kGraceLight] on light. Use for the cooling flame, its
+/// count and the grace surfaces so they stay readable on either canvas.
+Color graceColor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.light ? kGraceLight : kGrace;
+
 /// The streak flame, brought to life.
 ///
 /// On a live streak it layers four cheap effects, all intensifying with the
@@ -37,12 +47,17 @@ const Color kGrace = Color(0xFF38BDF8);
 /// It falls back to a still, softly-lit flame when there is no streak
 /// ([streak] == 0) or the platform asks for reduced motion, so it costs nothing
 /// when there's nothing to celebrate.
+///
+/// [cooling] swaps the warm palette for the grace blue: the streak is alive
+/// but today's vote is still missing, so the flame reads as going cold — the
+/// same effects, a colder colour and a calmer flicker. A vote warms it back up.
 class AnimatedFlameIcon extends StatefulWidget {
   const AnimatedFlameIcon({
     super.key,
     required this.streak,
     required this.rankTier,
     this.size = 20,
+    this.cooling = false,
   });
 
   /// A flame that is simply alight — near full heat, no streak or rank
@@ -50,7 +65,8 @@ class AnimatedFlameIcon extends StatefulWidget {
   /// screen's ember row) rather than as the streak indicator.
   const AnimatedFlameIcon.lit({super.key, this.size = 20})
     : streak = 30,
-      rankTier = 0;
+      rankTier = 0,
+      cooling = false;
 
   /// Current streak length. 0 renders the muted, static flame.
   final int streak;
@@ -59,6 +75,9 @@ class AnimatedFlameIcon extends StatefulWidget {
   final int rankTier;
 
   final double size;
+
+  /// True while the streak is unprotected today (no vote yet): blue palette.
+  final bool cooling;
 
   bool get active => streak > 0;
 
@@ -131,7 +150,11 @@ class _AnimatedFlameIconState extends State<AnimatedFlameIcon>
   @override
   Widget build(BuildContext context) {
     if (!widget.active || _reduceMotion) {
-      return _StillFlame(size: widget.size, active: widget.active);
+      return _StillFlame(
+        size: widget.size,
+        active: widget.active,
+        cooling: widget.cooling,
+      );
     }
 
     final heat = _heat;
@@ -142,6 +165,7 @@ class _AnimatedFlameIconState extends State<AnimatedFlameIcon>
     // but on light themes hold the tips and burst at saturated amber/orange so
     // the flame stays clearly visible against the off-white background.
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final cooling = widget.cooling;
 
     return AnimatedBuilder(
       animation: Listenable.merge([_loop, _burst]),
@@ -160,8 +184,10 @@ class _AnimatedFlameIconState extends State<AnimatedFlameIcon>
         final breath = 0.5 + 0.5 * math.sin(twoPi * p);
 
         // Scale: subtle flicker jitter (a little stronger as it heats up) times
-        // a celebratory pop that peaks mid-burst.
-        final flickerScale = 1 + flick * (0.015 + 0.02 * heat);
+        // a celebratory pop that peaks mid-burst. A cooling flame flickers at
+        // half strength — it is dying down, not dancing.
+        final flickerScale =
+            1 + flick * (0.015 + 0.02 * heat) * (cooling ? 0.5 : 1.0);
         final burstScale = 1 + math.sin(math.pi * burst) * 0.28;
         final scale = flickerScale * burstScale;
 
@@ -175,23 +201,49 @@ class _AnimatedFlameIconState extends State<AnimatedFlameIcon>
         // and bright tips as it heats. A burst momentarily blows it brighter.
         // The hot tip and burst target stay saturated on light themes (where
         // near-white would vanish) and reach toward white on dark themes.
-        final tip = isLight
-            ? Color.lerp(
-                const Color(0xFFFB923C),
-                const Color(0xFFFBBF24),
-                heat,
-              )!
-            : Color.lerp(
-                const Color(0xFFFFD27D),
-                const Color(0xFFFFF3C4),
-                heat,
-              )!;
-        final flare = isLight ? const Color(0xFFFDE047) : Colors.white;
-        var cool = Color.lerp(
-          isLight ? kFlameLight : kFlame,
-          const Color(0xFFEA580C),
-          heat,
-        )!;
+        // The cooling palette mirrors the warm one stop for stop, in sky-blue:
+        // a deeper base, pale tips, and an icy flare.
+        final Color tip;
+        final Color flare;
+        final Color base;
+        if (cooling) {
+          tip = isLight
+              ? Color.lerp(
+                  const Color(0xFF38BDF8),
+                  const Color(0xFF7DD3FC),
+                  heat,
+                )!
+              : Color.lerp(
+                  const Color(0xFF7DD3FC),
+                  const Color(0xFFE0F2FE),
+                  heat,
+                )!;
+          flare = isLight ? const Color(0xFF7DD3FC) : Colors.white;
+          base = Color.lerp(
+            isLight ? kGraceLight : kGrace,
+            const Color(0xFF0369A1),
+            heat,
+          )!;
+        } else {
+          tip = isLight
+              ? Color.lerp(
+                  const Color(0xFFFB923C),
+                  const Color(0xFFFBBF24),
+                  heat,
+                )!
+              : Color.lerp(
+                  const Color(0xFFFFD27D),
+                  const Color(0xFFFFF3C4),
+                  heat,
+                )!;
+          flare = isLight ? const Color(0xFFFDE047) : Colors.white;
+          base = Color.lerp(
+            isLight ? kFlameLight : kFlame,
+            const Color(0xFFEA580C),
+            heat,
+          )!;
+        }
+        var cool = base;
         var hot = tip;
         if (burst > 0) {
           cool = Color.lerp(cool, flare, 0.5 * burst)!;
@@ -242,17 +294,26 @@ class _GradientShift extends GradientTransform {
       Matrix4.translationValues(0, bounds.height * dy, 0);
 }
 
-/// The non-animated flame: muted grey at streak 0, warm amber with a soft fixed
-/// halo when there's a streak but motion is disabled.
+/// The non-animated flame: muted grey at streak 0, warm amber (or the cooling
+/// blue) with a soft fixed halo when there's a streak but motion is disabled.
 class _StillFlame extends StatelessWidget {
-  const _StillFlame({required this.size, required this.active});
+  const _StillFlame({
+    required this.size,
+    required this.active,
+    required this.cooling,
+  });
 
   final double size;
   final bool active;
+  final bool cooling;
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? flameColor(context) : context.colors.subtle;
+    final color = !active
+        ? context.colors.subtle
+        : cooling
+        ? graceColor(context)
+        : flameColor(context);
     return Icon(
       Icons.local_fire_department_rounded,
       size: size,

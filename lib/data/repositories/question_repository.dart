@@ -202,6 +202,15 @@ abstract class QuestionRepository {
   /// the failure into the right toast.
   Future<void> submitQuestionSuggestion(String text);
 
+  /// Sends free-text app feedback — the "could be better" branch of the
+  /// review pre-prompt (`showReviewPrePrompt`) — to the same review inbox as
+  /// question suggestions (`question_suggestions`, kind = 'feedback').
+  ///
+  /// Server-side the RPC validates length (10–500 chars), rejects control
+  /// characters and shares the suggestion daily cap; violations and offline
+  /// both throw, and the feedback sheet turns the failure into the right toast.
+  Future<void> submitAppFeedback(String text);
+
   /// Sends the user's own smaczek idea for [questionId] ("Zaproponuj własny"
   /// in the Arguments panel) to the same review inbox as question suggestions
   /// (`question_suggestions`, kind = 'smaczek').
@@ -554,6 +563,12 @@ class MockQuestionRepository implements QuestionRepository {
   Future<void> submitQuestionSuggestion(String text) async {
     // Offline preview: accept and drop — there is no backend inbox to keep, and
     // the sheet only needs the success path to be exercisable in dev/tests.
+    await Future.delayed(const Duration(milliseconds: 250));
+  }
+
+  @override
+  Future<void> submitAppFeedback(String text) async {
+    // Offline preview: accept and drop, same as question suggestions above.
     await Future.delayed(const Duration(milliseconds: 250));
   }
 
@@ -1026,6 +1041,19 @@ class SupabaseQuestionRepository implements QuestionRepository {
     await _db
         .rpc(
           'submit_question_suggestion',
+          params: {'p_text': text, 'p_locale': locale},
+        )
+        .withNetworkTimeout();
+  }
+
+  @override
+  Future<void> submitAppFeedback(String text) async {
+    // SECURITY DEFINER RPC into the same inbox, kind = 'feedback'; length +
+    // the shared per-day cap are enforced server-side (TOO_SHORT / TOO_LONG /
+    // RATE_LIMITED).
+    await _db
+        .rpc(
+          'submit_app_feedback',
           params: {'p_text': text, 'p_locale': locale},
         )
         .withNetworkTimeout();

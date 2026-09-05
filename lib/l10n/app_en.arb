@@ -17,26 +17,33 @@
   "restoreOnThisDevice": "Restore on this device",
   "goPro": "Go PRO",
   "signIn": "Sign in",
-  "authCreateAccount": "Create account",
-  "authWelcomeBackTitle": "Good to see you again",
-  "authWelcomeBackSubtitle": "Sign in to get back to your debates.",
-  "authRegisterTitle": "Join Debatly",
-  "authRegisterSubtitle": "Create an account and take a side in the debate.",
+  "authSheetTitle": "Your account",
+  "@authSheetTitle": {
+    "description": "Headline of the social-only account sheet. One copy for every entry point: a Continue-with button both creates the account (a guest is upgraded in place) and signs a returning user back in."
+  },
+  "authSheetSubtitleApple": "One tap: Apple or Google. Your streak, votes and PRO follow you to any phone.",
+  "@authSheetSubtitleApple": {
+    "description": "Subtitle of the account sheet on Apple platforms, where both social buttons show."
+  },
+  "authSheetSubtitleGoogle": "One tap: Google. Your streak, votes and PRO follow you to any phone.",
+  "@authSheetSubtitleGoogle": {
+    "description": "Subtitle of the account sheet on Android, where only Google shows."
+  },
+  "authLegacyEmailLink": "I have a password",
+  "@authLegacyEmailLink": {
+    "description": "Small link at the foot of the account sheet that unfolds the legacy email/password SIGN-IN form (no registration) for accounts made before the sheet went social-only."
+  },
   "authEmailLabel": "EMAIL",
   "authPasswordLabel": "PASSWORD",
   "authConfirmPasswordLabel": "REPEAT PASSWORD",
   "authShowPassword": "Show password",
   "authHidePassword": "Hide password",
   "authForgotPassword": "Forgot your password?",
-  "authTabSignIn": "SIGN IN",
-  "authTabSignUp": "SIGN UP",
   "authEnterEmail": "Enter your email.",
   "authEnterValidEmail": "Enter a valid email.",
   "authEnterPassword": "Enter your password.",
   "authMinPassword": "At least 6 characters.",
   "authPasswordsMismatch": "Passwords don't match.",
-  "authAccountCreated": "Account created.",
-  "authConfirmEmail": "Check your email and confirm your account.",
   "authContinueWithApple": "Continue with Apple",
   "authContinueWithGoogle": "Continue with Google",
   "authLegalConsent": "By continuing, you agree to our {terms} and {privacy}.",
@@ -57,14 +64,8 @@
   "authRecoveryLinkInvalid": "That reset link has expired or was already used. Request a new one.",
   "authMissingSupabaseConfig": "Supabase configuration is missing. Run the app with SUPABASE_URL and SUPABASE_ANON_KEY.",
   "authMissingGoogleConfig": "GOOGLE_SERVER_CLIENT_ID is missing, so Google is temporarily disabled.",
-  "authAlreadySignedIn": "You're already signed in to your account — no need to register again.",
-  "authRegisteredPendingConfirm": "Your account is already registered to {email}. Tap the link in that email to confirm it.",
-  "@authRegisteredPendingConfirm": {
-    "placeholders": { "email": { "type": "String" } }
-  },
   "authErrorInvalidCredentials": "Incorrect email or password.",
   "authErrorEmailNotConfirmed": "Confirm your email first — check your inbox.",
-  "authErrorEmailExists": "An account with this email already exists. Sign in instead.",
   "authErrorSamePassword": "That's already your current password.",
   "authErrorWeakPassword": "That password is too weak. Try a longer one.",
   "authErrorTooManyRequests": "Too many attempts. Wait a moment and try again.",
@@ -76,16 +77,34 @@
   "@authSwitchAccountTitle": {
     "description": "Title of the confirmation shown when a guest with progress is about to sign in to an existing account, which switches identity and leaves that progress behind."
   },
-  "authSwitchAccountBody": "Signing in swaps this device over to that account. Your streak, votes and favourites live on this guest profile and won't come along. Want to keep them? Create an account instead — that keeps everything.",
+  "authSwitchAccountBody": "Signing in swaps this device over to that account. Your streak, votes and favourites live on this guest profile and won't come along.",
   "@authSwitchAccountBody": {
-    "description": "Body of the guest sign-in confirmation — explains that signing in abandons the guest profile, and that registering does not."
+    "description": "Body of the guest sign-in confirmation — explains that signing in to an existing account abandons the guest profile. Cancel keeps the guest."
   },
   "authSwitchAccountConfirm": "Sign in anyway",
   "@authSwitchAccountConfirm": {
     "description": "Action that proceeds with the identity-switching sign-in despite the warning."
   },
+  "linkSocialTitle": "Link your account",
+  "@linkSocialTitle": {
+    "description": "Headline of the sheet where a password-only account adds a Google / Apple identity (same account, passwordless sign-in from then on)."
+  },
+  "linkSocialBodyApple": "Add Apple or Google to this account and you'll sign in without a password — to this same account, with your streak, votes and PRO.",
+  "linkSocialBodyGoogle": "Add Google to this account and you'll sign in without a password — to this same account, with your streak, votes and PRO.",
+  "linkSocialDone": "Linked. You can sign in without a password from now on.",
+  "linkSocialAlreadyLinked": "That {provider} account is already linked to another Debatly account.",
+  "@linkSocialAlreadyLinked": {
+    "description": "Error when the picked Google / Apple identity already belongs to a different Supabase user, so it cannot be added to this one. {provider} is the proper noun Apple or Google.",
+    "placeholders": { "provider": { "type": "String" } }
+  },
   "settingsSectionApp": "APP SETTINGS",
   "settingsSectionAccount": "ACCOUNT",
+  "settingsLinkSocialTitle": "Sign in without a password",
+  "@settingsLinkSocialTitle": {
+    "description": "Settings row shown only to an email/password account with no social identity yet; opens the link-Apple/Google sheet."
+  },
+  "settingsLinkSocialSubtitleApple": "Link Apple or Google to this account",
+  "settingsLinkSocialSubtitleGoogle": "Link Google to this account",
   "settingsReminders": "Reminders",
   "settingsRemindersSubtitle": "A daily reminder to vote",
   "settingsReminderTime": "Reminder time",
@@ -332,6 +351,27 @@
   "@shareCardHook": {
     "description": "Punchy call-to-action on the shareable question image card, shown above the debatly.app URL. Mirrors the app's YES/NO vote buttons to nudge the recipient to answer."
   },
+  "streakCoolingTooltip": "No vote yet today — your streak is cooling",
+  "@streakCoolingTooltip": {
+    "description": "Streak chip tooltip while the flame is blue: there is a streak but today's vote is still missing."
+  },
+  "graceLostTitle": "A grace is gone",
+  "@graceLostTitle": {
+    "description": "Headline of the cracking-heart moment shown on the first launch after a missed day spent one of the streak's graces."
+  },
+  "graceLostBody": "{count, plural, one{{count} grace left} other{{count} graces left}}",
+  "@graceLostBody": {
+    "description": "Under the cracked heart: how many graces remain before the rank drops a tier.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "graceLostHint": "Vote today to keep your rank.",
+  "@graceLostHint": {
+    "description": "The way out, under the grace-lost message."
+  },
   "streakTooltip": "Your streak",
   "conformityTooltip": "Your conformity axis",
   "@conformityTooltip": {
@@ -549,13 +589,23 @@
   "updateRequiredBody": "This version of Debatly is too old to talk to the server. Grab the update and get back to voting.",
   "updateRequiredCta": "Update",
   "proActiveTitle": "PRO active 🎉",
-  "savePromptBody": "Your PRO is currently tied to a guest account. Create an account (email or Google) so you don't lose access after reinstalling or on another device — your progress will be kept.",
+  "savePromptBody": "Your PRO is currently tied to a guest account. Secure it with an account so you don't lose access after reinstalling or on another device — your progress will be kept.",
   "createAccount": "Create account",
   "secureStreakTitle": "Secure your streak 🔥",
-  "secureStreakBody": "You're on a {streak}-day streak — but it only lives on this phone. Create an account (email or Google) and it will survive a reinstall or a new device.",
+  "secureStreakBody": "You're on a {streak}-day streak — but it only lives on this phone. Secure it with an account and it will survive a reinstall or a new device.",
   "@secureStreakBody": {
     "placeholders": { "streak": { "type": "int" } }
   },
+  "reviewPrePromptTitle": "How's Debatly treating you?",
+  "reviewPrePromptBody": "A few votes in, so time for an honest answer. It helps us more than you'd think.",
+  "reviewPrePromptLoving": "Loving it",
+  "reviewPrePromptCouldBeBetter": "Could be better",
+  "appFeedbackTitle": "What should we fix?",
+  "appFeedbackIntro": "Tell us what grates or what's missing. We read every message, and plenty of them end up in the next version.",
+  "appFeedbackHint": "e.g. too few questions, too hard, something's broken…",
+  "appFeedbackSend": "Send feedback",
+  "appFeedbackThanks": "Thanks! Your feedback just reached us.",
+  "appFeedbackRateLimited": "That's enough for today — thanks for all the notes.",
   "suggestQuestionTitle": "Suggest a question",
   "suggestQuestionSettingsSubtitle": "Got an idea that will split the room? Send it in",
   "suggestQuestionIntro": "The best questions start with \"Should…\", have no comfortable answer and split the room in half. Rough ideas welcome — we'll polish it.",

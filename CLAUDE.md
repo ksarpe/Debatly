@@ -160,7 +160,19 @@ surface.
   ask is unconditional; the OS quota shields users who already rated). Max one
   ask per local day; on a promotion day it rides right behind the rank-up
   celebration (`RankCelebrationListener`) instead of on top of it; never
-  again past the last milestone.
+  again past the last milestone. **Since 2026-09-05 our own pre-prompt sits
+  in front of the OS sheet** (`showReviewPrePrompt` / `runReviewPrePromptFlow`,
+  `review_pre_prompt.dart`): "Jak Ci się gra w Debatly?" — "Świetnie" →
+  `ReviewService.requestReview()` (the native sheet, still quota-limited and
+  silent), "Mogłoby być lepiej" → the feedback sheet (`AppFeedbackSheet` →
+  `submit_app_feedback`, lands in `question_suggestions` kind='feedback',
+  admin /suggestions "Opinia"), "Później"/back → nothing. The milestone is
+  claimed BEFORE the sheet opens (`claimDueReviewAsk`), so a dismissal still
+  spends it. **No stars of our own and no reward on either branch** — a
+  custom rating widget is what Apple rejects, both stores forbid incentivised
+  reviews, and nothing could verify one anyway; do not add "rate us for a
+  bonus question". DEV tools replay the whole flow without touching the
+  counters.
 - **Reminders are LOCAL and earn each fire.** No FCM/APNs, no server cron —
   `flutter_local_notifications` bakes the text at SCHEDULE time, so nothing
   runs when a notification actually fires and every "personalisation" must
@@ -199,8 +211,23 @@ surface.
   indefinitely. An account exists only to make progress survive a reinstall
   or a new phone — the purchase for PRO (pitched AFTER the buy,
   `promptSaveProAccount`), the streak for free players
-  (`maybePromptSecureStreak`). The register tab is open to everyone;
-  registering upgrades the anonymous user in place (same UUID). **Account
+  (`maybePromptSecureStreak`). **The account sheet is social-only since
+  2026-09-05** (`showAuthSheet`, no modes): "Kontynuuj z Apple / Google" is
+  both register and sign-in — a guest's identity is linked onto the anonymous
+  user in place (same UUID, `linkIdentityWithIdToken`); only an identity that
+  already belongs to another account switches to it, after a confirm. **Email
+  REGISTRATION is gone from the client**; email SIGN-IN survives behind the
+  sheet's "Mam konto z hasłem" link for the 12 accounts that predate the
+  switch (5 of them PRO buyers whose password is the only key to their
+  history), plus the password-reset flow it needs. Settings shows a
+  "Logowanie bez hasła" row to a password-only account (`canLinkSocial`) that
+  links Apple/Google onto the SAME uid (`linkSocialIdentity`, never a
+  sign-in). Stage 2 — dropping the legacy link, `PasswordRecoveryListener`,
+  the reset deep links and `site/reset-hasla` — waits until every active
+  email-only account has linked or gone quiet. **Never disable the Email
+  provider or the Send Email hook in the Supabase dashboard**: the admin panel
+  signs in with a magic link / password, and pre-2.4 builds still register
+  with email. **Account
   DELETION is open to everyone too** — a guest holds votes, a streak and a
   profile, which is exactly the personal data App Review 5.1.1(v) and Play
   require an in-app way to erase, and `delete-account` works off the JWT. Do
@@ -235,6 +262,19 @@ surface.
   `update app_update_gate set min_version='2.1.0', updated_at=now() where platform in ('android','ios');`
   Builds older than v2.1.0 have no gate code and can never be forced — that is
   why the daily/vote RPCs keep their old contracts working.
+- **Graces are visible (2026-09-05).** The streak's three forgiven days
+  (`grace_days_left`, `decayed_streak`) have three client surfaces: the
+  rank sheet's blue band (old), the app-bar flame turning grace-BLUE while
+  a live streak has no vote stamped for the local day
+  (`streakAtRiskProvider` — the `reminder_last_vote_date` stamp, reactive
+  via `votedTodayLocalProvider`, flips back at local midnight through
+  `dailyFetchDayProvider`), and the **cracking heart** (`GraceLostListener`
+  / `showGraceLostOverlay`): on the first stats sync that shows the countdown
+  LOWER than this device last saw (`grace_seen_left`; a first sight below 3
+  counts, a reset to 3 is a tier drop and stays silent) the feed dims, a
+  heart splits along a seam with a heavy haptic, "Łaska przepadła / Zostały
+  Ci jeszcze X łaski", tap or ~3.7 s closes it. DEV tools → ŁASKI previews
+  it and forgets the baseline.
 - **Two clocks on purpose:** the daily rolls over at the user's *local*
   midnight (countdown + `DailyRolloverWatcher` handle it in-session); the
   streak counts *UTC* days. Don't "fix" one to match the other.
@@ -279,6 +319,28 @@ surface.
   (Server-side the dismissal still claims the vote row's challenge slot
   permanently — no client path can re-offer that gate, so a dismissed daily
   still costs a day of profile progress. Open.)
+- **Community arguments, step 0 (2026-09-05 — a MEASUREMENT, not a
+  feature).** The "Zaproponuj własny" composer lives in the smaczki sheet:
+  a BUTTON pinned under the list, after the last card, wearing the shared
+  accent-CTA look (`AppTheme.ctaGradient` / `ctaGlow` / `ctaForeground`,
+  pencil glyph, uppercase label — the same pill as "go deeper" and the
+  paywall CTA; announced as a button). Not a numbered card: a fourth card
+  read as a fourth smaczek, and the owner wants a button. Tappable on BOTH
+  tiers — a free user WRITES, the lock is only on reading — and there even
+  on a question with no smaczki. A tap unfolds the one-line composer in its
+  place (`SmaczekComposer`, autofocus, 5–80 chars); a send folds it back
+  with the thanks toast. Nothing changed server-side:
+  `submit_smaczek_suggestion` → `question_suggestions` kind='smaczek'
+  (shared 10/day cap), admin /suggestions "Smaczek", NOTHING is published,
+  the vote gate / profile are untouched. Not on the DEV pin (no server row).
+  Funnel events, all with `question_id`: `smaczek_composer_shown` (button
+  rendered) → `_opened` (tapped) → `_sent` / `_failed {reason}`. Owner's
+  call over an under-the-bars variant (built and dropped the same day): the
+  sheet stays the home of everything argument-shaped, and the vote →
+  argument → split loop keeps its screen. Decision after ~two weeks live:
+  sent ÷ `daily_vote_cast` (distinct installs) ≥ ~3 % AND ≥ half of it
+  publishable → design v1 (daily-only, free writes / PRO reads all, 100 %
+  premoderation, cascade on account deletion); below that, raise DAU first.
 - **The debate profile is an extension of the conformity axis, not a screen.**
   Under the axis panel sits a 2×2 grid (conformity × resilience): FILAR /
   PŁYNIE Z PRĄDEM / SAMOTNY WILK / POSZUKIWACZ — all four names equal in

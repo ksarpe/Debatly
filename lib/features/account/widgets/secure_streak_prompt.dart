@@ -9,7 +9,6 @@ import '../../../core/time/epoch_day.dart';
 import '../../questions/widgets/animated_flame_icon.dart' show flameColor;
 import '../providers/session_providers.dart';
 import '../screens/auth_screen.dart';
-import 'auth_segmented_tabs.dart' show AuthMode;
 
 /// SharedPreferences key: the local "epoch day" we last showed the
 /// secure-your-streak nudge. Absent until the first ask; stored as a day index
@@ -152,11 +151,11 @@ Future<bool> maybePromptSecureStreak(
   );
 
   if (wantsAccount == true && context.mounted) {
-    // The REGISTER tab, not the default sign-in one. This dialog's whole pitch
-    // is "your streak lives only on this phone" — and signing in is the one
-    // action that abandons the guest profile the streak sits on. Registering
-    // upgrades that same user in place, which is what was just promised.
-    await showAuthSheet(context, initialMode: AuthMode.register);
+    // This dialog's whole pitch is "your streak lives only on this phone", and
+    // a social tap on the sheet keeps it: the identity links onto the guest in
+    // place, same UUID. The one path that abandons the guest profile — an
+    // existing account elsewhere — asks before it does.
+    await showAuthSheet(context);
   }
   return true;
 }

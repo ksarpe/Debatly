@@ -245,6 +245,9 @@ class _FakeRepo implements QuestionRepository {
   Future<void> submitQuestionSuggestion(String text) async {}
 
   @override
+  Future<void> submitAppFeedback(String text) async {}
+
+  @override
   Future<void> submitSmaczekSuggestion({
     required String questionId,
     required String text,

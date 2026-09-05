@@ -7,11 +7,15 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/sub_screen_chrome.dart';
 import '../../../data/models/question.dart';
 import '../../../services/review_service.dart';
+import '../../account/providers/grace_providers.dart';
 import '../../onboarding/providers/onboarding_providers.dart';
 import '../../onboarding/screens/onboarding_screen.dart';
 import '../../questions/providers/question_providers.dart';
 import '../../questions/providers/swipe_hint_providers.dart';
+import '../../questions/widgets/grace_lost_overlay.dart';
 import '../providers/review_providers.dart';
+import '../widgets/app_feedback_sheet.dart';
+import '../widgets/review_pre_prompt.dart';
 import '../widgets/settings_nav_row.dart';
 import '../widgets/settings_primitives.dart';
 
@@ -166,6 +170,10 @@ class DevToolsScreen extends ConsumerWidget {
                       const SettingsSectionLabel('PROŚBA O OCENĘ'),
                       const SizedBox(height: 12),
                       const _ReviewDevSection(),
+                      const SizedBox(height: 28),
+                      const SettingsSectionLabel('ŁASKI'),
+                      const SizedBox(height: 12),
+                      const _GraceDevSection(),
                       const SizedBox(height: 16),
                       Text(
                         'Sekcja widoczna tylko w buildach debug / DEV_TOOLS '
@@ -187,9 +195,11 @@ class DevToolsScreen extends ConsumerWidget {
   }
 }
 
-/// Tester tools for the store-review flow: fire the native sheet on demand and
-/// reset the vote-milestone odometer so the 3rd/7th-vote asks can be replayed.
-/// Stateful so the odometer subtitle refreshes right after a reset.
+/// Tester tools for the store-review flow: replay the pre-prompt exactly as a
+/// user sees it (full flow, counters untouched), open the feedback form on
+/// its own, fire the native sheet on demand and reset the vote-milestone
+/// odometer so the 3rd/7th-vote asks can be replayed. Stateful so the
+/// odometer subtitle refreshes right after a reset.
 class _ReviewDevSection extends ConsumerStatefulWidget {
   const _ReviewDevSection();
 
@@ -198,6 +208,19 @@ class _ReviewDevSection extends ConsumerStatefulWidget {
 }
 
 class _ReviewDevSectionState extends ConsumerState<_ReviewDevSection> {
+  Future<void> _previewPrePrompt() async {
+    final overlay = AppToast.capture(context);
+    final answer = await runReviewPrePromptFlow(context);
+    AppToast.showOn(overlay, switch (answer) {
+      ReviewPrePromptAnswer.loving =>
+        'Odpowiedź: „świetnie” → poproszono system o arkusz oceny '
+            '(w debug zwykle się nie pokaże)',
+      ReviewPrePromptAnswer.couldBeBetter =>
+        'Odpowiedź: „mogłoby być lepiej” → formularz opinii',
+      null => 'Zamknięte bez odpowiedzi',
+    }, type: ToastType.info);
+  }
+
   Future<void> _requestNow() async {
     final overlay = AppToast.capture(context);
     await ReviewService.requestReview();
@@ -228,9 +251,25 @@ class _ReviewDevSectionState extends ConsumerState<_ReviewDevSection> {
     return SettingsCard(
       children: [
         SettingsNavRow(
+          icon: Icons.thumbs_up_down_rounded,
+          title: 'Podgląd pytania wstępnego',
+          subtitle:
+              'Pełny przebieg jak u użytkownika: karta → arkusz systemu '
+              'albo formularz opinii. Liczniki bez zmian',
+          onTap: _previewPrePrompt,
+        ),
+        const SettingsRowDivider(),
+        SettingsNavRow(
+          icon: Icons.build_rounded,
+          title: 'Formularz opinii',
+          subtitle: 'Sam arkusz „Co poprawić?” — wysyłka trafia do panelu',
+          onTap: () => showAppFeedbackSheet(context),
+        ),
+        const SettingsRowDivider(),
+        SettingsNavRow(
           icon: Icons.star_rate_rounded,
           title: 'Pokaż arkusz oceny teraz',
-          subtitle: 'Natywna prośba systemu, bez zmiany liczników',
+          subtitle: 'Natywna prośba systemu, bez pytania wstępnego i liczników',
           onTap: _requestNow,
         ),
         const SettingsRowDivider(),
@@ -241,6 +280,57 @@ class _ReviewDevSectionState extends ConsumerState<_ReviewDevSection> {
               'Głosy: ${state.votes} · zużyty próg: '
               '${state.lastMilestone == 0 ? 'brak' : state.lastMilestone} '
               '(progi: ${kReviewVoteMilestones.join(', ')})',
+          onTap: _reset,
+        ),
+      ],
+    );
+  }
+}
+
+/// Tester tools for the streak's graces: play the cracking-heart moment on
+/// demand (pure UI — no counters change) and forget the "last seen countdown"
+/// so the next stats sync re-evaluates from scratch. Stateful so the baseline
+/// subtitle refreshes right after a reset.
+class _GraceDevSection extends ConsumerStatefulWidget {
+  const _GraceDevSection();
+
+  @override
+  ConsumerState<_GraceDevSection> createState() => _GraceDevSectionState();
+}
+
+class _GraceDevSectionState extends ConsumerState<_GraceDevSection> {
+  Future<void> _reset() async {
+    final overlay = AppToast.capture(context);
+    await ref.read(graceLostControllerProvider.notifier).debugReset();
+    if (mounted) setState(() {});
+    AppToast.showOn(
+      overlay,
+      'Zapomniano ostatni licznik łask — następna synchronizacja statystyk '
+      'oceni od nowa',
+      type: ToastType.success,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final lastSeen = ref
+        .read(graceLostControllerProvider.notifier)
+        .debugLastSeen();
+    return SettingsCard(
+      children: [
+        SettingsNavRow(
+          icon: Icons.heart_broken_rounded,
+          title: 'Podgląd utraty łaski',
+          subtitle: 'Pękające serce + haptyka, „zostały 2 łaski"',
+          onTap: () => showGraceLostOverlay(context, gracesLeft: 2),
+        ),
+        const SettingsRowDivider(),
+        SettingsNavRow(
+          icon: Icons.restart_alt_rounded,
+          title: 'Zresetuj pamięć łask',
+          subtitle:
+              'Ostatnio widziany licznik: '
+              '${lastSeen ?? 'brak (seria nietknięta)'}',
           onTap: _reset,
         ),
       ],

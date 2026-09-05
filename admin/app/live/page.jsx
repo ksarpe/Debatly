@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { api } from '../../lib/api';
 
 /**
@@ -257,7 +258,14 @@ export default function LivePage() {
                         <td className={`num ${isMoney(e) && e.price > 0 ? 'ok-cell' : ''}`}>{money(e)}</td>
                         <td>{e.country || '—'}</td>
                         <td className="muted">{store(e.store)}</td>
-                        <td>{e.user_id ? <code className="uid">{e.user_id.slice(0, 8)}</code> : '—'}</td>
+                        <td>
+                          {e.user_id
+                            ? <Link href={`/users?u=${e.user_id}`}
+                                    title="historia konta — grał wcześniej czy kupił od razu?">
+                                <code className="uid">{e.user_id.slice(0, 8)}</code>
+                              </Link>
+                            : '—'}
+                        </td>
                       </tr>
                     );
                   })}
@@ -269,7 +277,8 @@ export default function LivePage() {
                 ? '„Sandbox” = zakup testowy ze sklepu, „promo” = grant z dashboardu RevenueCat — '
                   + 'widoczne tylko w tym podglądzie, nieliczone w kafelkach i bez dźwięku.'
                 : 'Widać wyłącznie prawdziwe zakupy, odnowienia i anulowania. Sandbox, testy '
-                  + 'z dashboardu i ręczne granty promo są ukryte — „Pokaż testowe”, żeby zajrzeć.'}
+                  + 'z dashboardu i ręczne granty promo są ukryte — „Pokaż testowe”, żeby zajrzeć. '
+                  + 'Kliknij konto, żeby zobaczyć, co robiło przed zakupem.'}
             </p>
           </div>
         </>

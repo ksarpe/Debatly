@@ -22,10 +22,20 @@ class FakeSession extends SessionNotifier {
 SessionState guestSession({bool isPremium = false}) =>
     SessionState(userId: 'guest-1', isAnonymous: true, isPremium: isPremium);
 
-/// A signed-in account holder.
-SessionState accountSession({bool isPremium = false}) => SessionState(
+/// A signed-in account holder — with a social identity, so Settings has no
+/// "link Apple / Google" row to offer them.
+SessionState accountSession({
+  bool isPremium = false,
+  List<String> linkedProviders = const ['google'],
+}) => SessionState(
   userId: 'user-1',
   email: 'user@example.com',
   isAnonymous: false,
   isPremium: isPremium,
+  linkedProviders: linkedProviders,
 );
+
+/// A legacy email/password account: signed in, no Google / Apple identity.
+/// The one `SessionState.canLinkSocial` holds for.
+SessionState passwordOnlyAccountSession({bool isPremium = false}) =>
+    accountSession(isPremium: isPremium, linkedProviders: const ['email']);

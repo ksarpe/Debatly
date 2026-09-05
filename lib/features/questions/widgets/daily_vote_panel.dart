@@ -22,6 +22,7 @@ import '../../account/providers/stats_providers.dart';
 import '../../account/widgets/secure_streak_prompt.dart';
 import '../../settings/providers/reminder_providers.dart';
 import '../../settings/providers/review_providers.dart';
+import '../../settings/widgets/review_pre_prompt.dart';
 import '../providers/challenge_providers.dart';
 import '../providers/question_providers.dart';
 import 'modes_showcase.dart';
@@ -540,8 +541,9 @@ class _DailyVotePanelState extends ConsumerState<DailyVotePanel> {
 
       // On a promotion day the celebration owns the moment and the review ask
       // rides right behind it instead (RankCelebrationListener); otherwise a
-      // due milestone claims this vote's single prompt slot here.
-      if (!isPromotionDay && await review.maybePromptForReview()) return;
+      // due milestone claims this vote's single prompt slot here — our
+      // pre-prompt first, then the OS sheet or the feedback form.
+      if (!isPromotionDay && await maybePromptForReview(context, ref)) return;
       if (!mounted) return;
 
       final nudged = await maybePromptSecureStreak(
