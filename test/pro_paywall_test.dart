@@ -102,7 +102,7 @@ void main() {
   }
 
   testWidgets('renders the brand label, feature list in spec order and '
-      'live prices — monthly preselected, no badge', (tester) async {
+      'live prices — lifetime preselected, no badge', (tester) async {
     await pumpSheet(tester, loadPackages: () async => [lifetime, monthly]);
 
     // The brand label anchors the top-left of the sheet.
@@ -149,7 +149,7 @@ void main() {
     expect(find.text(r'$5.49/MIES.'), findsOneWidget);
     expect(find.textContaining('tygodniowo'), findsOneWidget);
 
-    // The monthly plan is preselected (exactly one filled radio) so the CTA
+    // The lifetime plan is preselected (exactly one filled radio) so the CTA
     // is armed on open; still no "best value" badge steering the pick.
     expect(find.text('NAJLEPSZA OFERTA'), findsNothing);
     expect(find.byIcon(Icons.radio_button_checked), findsOneWidget);
@@ -341,22 +341,20 @@ void main() {
   testWidgets('the reassurance note follows the selected plan', (tester) async {
     await pumpSheet(tester, loadPackages: () async => [lifetime, monthly]);
 
-    // Monthly preselected → the auto-renewal note (App Store guideline 3.1.2
-    // wants renewal terms on the purchase screen itself).
+    // Lifetime preselected → the one-payment note.
+    expect(find.text('Jedna płatność — na zawsze'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('MIESIĘCZNIE'));
+    await tester.tap(find.text('MIESIĘCZNIE'));
+    await tester.pumpAndSettle();
+
+    // And the subscription carries its auto-renewal note (App Store guideline
+    // 3.1.2 wants renewal terms on the purchase screen itself).
     expect(
       find.text('Odnawia się automatycznie — anulujesz w każdej chwili'),
       findsOneWidget,
     );
-
-    await tester.ensureVisible(find.text('DOŻYWOTNI'));
-    await tester.tap(find.text('DOŻYWOTNI'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Jedna płatność — na zawsze'), findsOneWidget);
-    expect(
-      find.text('Odnawia się automatycznie — anulujesz w każdej chwili'),
-      findsNothing,
-    );
+    expect(find.text('Jedna płatność — na zawsze'), findsNothing);
   });
 
   testWidgets('CTA purchases the selected package and pops with true', (
@@ -410,14 +408,39 @@ void main() {
   });
 
   testWidgets(
-    'the monthly plan is preselected — a straight CTA tap buys monthly',
+    'the lifetime plan is preselected — a straight CTA tap buys lifetime',
     (tester) async {
       // The CTA is armed the moment the offer loads: a user who never touches
-      // the plan stack buys the preselected monthly plan.
+      // the plan stack buys the preselected LIFETIME plan (2026-09-18; it was
+      // monthly until the first 15 payers showed PRO is bought as a one-off
+      // unlock — 8 of them killed auto-renew, usually the same day).
       Package? bought;
       await pumpSheet(
         tester,
         loadPackages: () async => [lifetime, monthly],
+        buy: (p) async {
+          bought = p;
+          return PurchaseOutcome.cancelled;
+        },
+      );
+
+      await tester.ensureVisible(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
+      await tester.tap(find.text('ODBLOKUJ PEŁNY DOSTĘP'));
+      await tester.pumpAndSettle();
+      expect(bought, lifetime);
+    },
+  );
+
+  testWidgets(
+    'an offering with no lifetime falls back to preselecting monthly',
+    (tester) async {
+      // A partially-approved storefront (or a region where the one-off product
+      // is still in review) must still open with an armed CTA rather than a
+      // dimmed one.
+      Package? bought;
+      await pumpSheet(
+        tester,
+        loadPackages: () async => [monthly],
         buy: (p) async {
           bought = p;
           return PurchaseOutcome.cancelled;
@@ -535,10 +558,10 @@ void main() {
       buy: (_) async => PurchaseOutcome.failed,
     );
 
-    // Switch to the lifetime plan (monthly comes preselected) — the failure
+    // Switch to the monthly plan (lifetime comes preselected) — the failure
     // path should not depend on the default pick.
-    await tester.ensureVisible(find.text('DOŻYWOTNI'));
-    await tester.tap(find.text('DOŻYWOTNI'));
+    await tester.ensureVisible(find.text('MIESIĘCZNIE'));
+    await tester.tap(find.text('MIESIĘCZNIE'));
     await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.text('ODBLOKUJ PEŁNY DOSTĘP'));

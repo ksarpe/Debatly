@@ -144,6 +144,19 @@ surface.
   decline is final for the wall — Settings keep the toggle. Events:
   `wall_notify_shown` / `wall_notify_enabled {granted}` /
   `wall_notify_declined`.
+- **A purchase gets its own reminder ask** (`promptProReminder`,
+  `pro_reminder_asked`, 2026-09-18) — the wall is a FREE surface, so before
+  this the one group that had paid was the one group never asked for the
+  notification permission at all, and the local reminder is the only channel
+  that can bring anyone back (of the first 15 payers, 10 were active on at
+  most two days after buying). A dialog, once per install, on the resolved
+  free→premium flip (`HomeGate`) and on the onboarding bridge's own purchase
+  path, in both cases AFTER `promptSaveProAccount` — that one is about not
+  losing what they just paid for, this one about coming back tomorrow. Same
+  priming pattern and the same denied-toast recovery as the wall; its own
+  pref key, so a buyer who skipped the wall's ask minutes earlier is still
+  asked once. Events: `pro_notify_shown` / `pro_notify_enabled {granted}` /
+  `pro_notify_declined`.
 - **Paywall:** fullscreen dialog, identical copy for EVERY entry point — the
   fixed slogan headline ("Bez limitu. / Bez końca. / Globalnie.") + catalog
   subline; no streak escalation, no per-feature headlines (`PaywallSource`
@@ -151,10 +164,15 @@ surface.
   debate profile's locked rows pass the portrait headline "{n} głosów.
   Zobacz, co mówią o Tobie." (`paywallProfileHeadline` via
   `showProPaywall(headline:)`). Do not add further variants without the
-  owner's sign-off. Monthly plan preselected, with a weekly-equivalent
-  price subline ("To ok. X zł tygodniowo"); no "best value" badge. Offering
-  live from RevenueCat: monthly 19,99 zł / lifetime 69,99 zł (PL) — no
-  weekly, no annual, no trial.
+  owner's sign-off. **Lifetime preselected since 2026-09-18** (was monthly;
+  falls back to monthly, then to the first package, so a storefront missing
+  the one-off product still opens with an armed CTA) — PRO is bought as a
+  one-off unlock, not a subscription: 8 of the first 15 payers killed
+  auto-renew, usually the same day, and the whole history holds ONE
+  production renewal, so a monthly sale is a single 19,99. The monthly card
+  keeps its weekly-equivalent subline ("To ok. X zł tygodniowo"); still no
+  "best value" badge. Offering live from RevenueCat: monthly 19,99 zł /
+  lifetime 69,99 zł (PL) — no weekly, no annual, no trial.
 - **Review ask:** on the vote milestones — after the 3rd vote ever cast, and
   once more after the 7th (no "did they review?" signal exists, so the second
   ask is unconditional; the OS quota shields users who already rated). Max one

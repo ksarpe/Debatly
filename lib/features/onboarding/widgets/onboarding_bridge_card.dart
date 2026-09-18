@@ -8,6 +8,7 @@ import '../../../core/widgets/fit_or_scroll.dart';
 import '../../../services/analytics.dart';
 import '../../account/widgets/save_pro_prompt.dart';
 import '../../monetization/widgets/pro_paywall_screen.dart';
+import '../../monetization/widgets/pro_reminder_prompt.dart';
 import '../../monetization/widgets/purchase_settlement.dart';
 
 /// The bridge card right after the taste votes — the screen that replaced the
@@ -57,6 +58,10 @@ class OnboardingBridgeCard extends ConsumerWidget {
     await settleProPurchase(context, ref);
     if (!context.mounted) return;
     await promptSaveProAccount(context, ref);
+    if (!context.mounted) return;
+    // And the reminder ask, for the same reason: this buyer will never see the
+    // day wall, which is where every other opt-in ask lives.
+    await promptProReminder(context, ref);
     onContinue();
   }
 
