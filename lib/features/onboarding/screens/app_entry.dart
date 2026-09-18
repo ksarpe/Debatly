@@ -9,6 +9,7 @@ import '../../../services/supabase_service.dart';
 import '../../account/providers/session_providers.dart';
 import '../../account/widgets/password_recovery_listener.dart';
 import '../../account/widgets/save_pro_prompt.dart';
+import '../../monetization/widgets/pro_reminder_prompt.dart';
 import '../../questions/screens/question_screen.dart';
 import '../../questions/widgets/load_error.dart';
 import '../../update/providers/update_gate_providers.dart';
@@ -180,11 +181,22 @@ class _HomeGateState extends ConsumerState<HomeGate> {
     }
   }
 
+  /// The two post-purchase asks, in order: secure the purchase (guests only),
+  /// then the daily reminder. Sequential on purpose — they are two dialogs, and
+  /// firing them together would put both on the navigator at once.
+  Future<void> _promptAfterPurchase() async {
+    await promptSaveProAccount(context, ref);
+    if (!mounted) return;
+    await promptProReminder(context, ref);
+  }
+
   @override
   Widget build(BuildContext context) {
     // A guest's fresh entitlement (bought or restored) should be attached to a
-    // recoverable account; the prompt no-ops for account holders. Trigger only
-    // on a RESOLVED free→premium flip: the launch resolution
+    // recoverable account; the prompt no-ops for account holders. Then the
+    // reminder ask — a PRO user never sees the day wall, where every other
+    // opt-in ask lives, so this is the only place they are asked at all.
+    // Trigger only on a RESOLVED free→premium flip: the launch resolution
     // (loading→premium for an already-entitled user) must not re-prompt on
     // every open.
     ref.listen(sessionProvider, (prev, next) {
@@ -195,7 +207,7 @@ class _HomeGateState extends ConsumerState<HomeGate> {
         // paywall that is still on screen, and pushing a dialog into the middle
         // of that route's own exit put the two in a race for the navigator.
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) unawaited(promptSaveProAccount(context, ref));
+          if (mounted) unawaited(_promptAfterPurchase());
         });
       }
     });

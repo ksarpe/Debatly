@@ -1674,6 +1674,17 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
+  String get proRemindTitle => 'Do jutra?';
+
+  @override
+  String proRemindBody(String time) {
+    return 'Nowe pytanie dnia czeka codziennie, a katalog masz już otwarty. Przypomnę Ci o $time, żeby seria nie przepadła.';
+  }
+
+  @override
+  String get proRemindCta => 'Przypominaj mi';
+
+  @override
   String get paywallBrand => 'DEBATLY PRO';
 
   @override

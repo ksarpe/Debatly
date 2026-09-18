@@ -1639,6 +1639,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get proRemindTitle => 'See you tomorrow?';
+
+  @override
+  String proRemindBody(String time) {
+    return 'A new daily question lands every day, and the whole catalogue is open now. I\'ll nudge you at $time so your streak survives.';
+  }
+
+  @override
+  String get proRemindCta => 'Remind me';
+
+  @override
   String get paywallBrand => 'DEBATLY PRO';
 
   @override

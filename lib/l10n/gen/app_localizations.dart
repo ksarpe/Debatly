@@ -2732,6 +2732,24 @@ abstract class AppLocalizations {
   /// **'I\'ll remind you tomorrow at {time}. Change the time in settings.'**
   String wallRemindConfirmed(String time);
 
+  /// Title of the one-per-install dialog that asks a fresh PRO buyer to switch reminders on, right after the purchase settles. PRO never sees the day wall, which is where every other reminder ask lives, so without this a paying user is never asked at all — and the local reminder is the only way the app can bring them back.
+  ///
+  /// In en, this message translates to:
+  /// **'See you tomorrow?'**
+  String get proRemindTitle;
+
+  /// Body of the post-purchase reminder dialog. Names the reminder time (HH:MM, 24h) and the streak, which PRO keeps like everyone else.
+  ///
+  /// In en, this message translates to:
+  /// **'A new daily question lands every day, and the whole catalogue is open now. I\'ll nudge you at {time} so your streak survives.'**
+  String proRemindBody(String time);
+
+  /// Confirm button on the post-purchase reminder dialog. Tapping it is what triggers the OS permission prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Remind me'**
+  String get proRemindCta;
+
   /// Small uppercase brand label at the top of the paywall sheet. A brand mark — identical in every locale.
   ///
   /// In en, this message translates to:

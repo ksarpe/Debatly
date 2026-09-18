@@ -87,10 +87,10 @@ enum PaywallSource {
 /// together with the restore/legal footer, so the buy button stays on screen
 /// while the user scrolls.
 ///
-/// The monthly plan comes preselected (the CTA is armed as soon as the offer
+/// The lifetime plan comes preselected (the CTA is armed as soon as the offer
 /// loads); no "best value" badge on top of that. Should the offering ever
-/// arrive without a monthly package, nothing is selected and the CTA stays
-/// disabled until a plan is tapped.
+/// arrive empty, nothing is selected and the CTA stays disabled until a plan
+/// is tapped.
 ///
 /// The owner provides the chrome and decides what happens once the user is
 /// entitled ([onEntitled] — pop the sheet). [loadPackages]/[buy] exist for
@@ -173,9 +173,9 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
   List<Package>? _packages;
   bool _loadFailed = false;
 
-  /// The armed package: the monthly plan as soon as the offer loads
+  /// The armed package: the lifetime plan as soon as the offer loads
   /// (preselected), then whatever the user taps. Null only while the offer is
-  /// loading or when the offering carries no monthly package.
+  /// loading or when the offering carries nothing at all.
   Package? _selected;
 
   /// Blocks every interaction while a purchase or restore is in flight.
@@ -325,21 +325,38 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
         });
       }
       if (!mounted || generation != _loadGeneration) return;
-      // The monthly plan comes preselected so the CTA is armed on open; a
-      // lifetime buyer makes one extra tap. `paywall_plan_selected` still only
-      // fires on real taps, so the analytics keep telling picks from defaults.
+      // The LIFETIME plan comes preselected (2026-09-18, was monthly) so the
+      // CTA is armed on open; a monthly buyer makes one extra tap.
+      // `paywall_plan_selected` still only fires on real taps, so the analytics
+      // keep telling picks from defaults.
       //
-      // Falling back to the first package matters more than it looks: without
-      // it, an offering with no monthly in it — a lifetime-only storefront, a
-      // partially-approved one, a region where the sub product is still in
+      // Why lifetime: PRO is bought as a one-off unlock, not as a
+      // subscription. Of the first 15 payers, 8 switched auto-renew off —
+      // usually the same day — and the whole history holds ONE production
+      // renewal, so a monthly sale is a 19,99 sale. Per purchase intent the
+      // lifetime plan was already worth more despite closing worse in the
+      // store sheet (3 of 17 intents vs 14 of 32, i.e. 12,3 zł vs 8,8 zł), and
+      // every intent it converts is worth ~3,5 monthlies.
+      //
+      // Falling back to monthly, then to the first package, matters more than
+      // it looks: without it, an offering with no lifetime in it — a
+      // partially-approved storefront, a region where the product is still in
       // review — opened the paywall with NOTHING selected, which means a
       // dimmed CTA that does nothing on tap. The list arrives sorted, so the
-      // first entry is the sane default.
+      // first entry is the sane last resort.
       Package? preselected;
       for (final package in packages) {
-        if (package.packageType == PackageType.monthly) {
+        if (package.packageType == PackageType.lifetime) {
           preselected = package;
           break;
+        }
+      }
+      if (preselected == null) {
+        for (final package in packages) {
+          if (package.packageType == PackageType.monthly) {
+            preselected = package;
+            break;
+          }
         }
       }
       preselected ??= packages.isEmpty ? null : packages.first;
@@ -644,9 +661,9 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
           busy: _busy,
           stamp: supportStamp,
           // No CTA without a loaded offer (the body shows the retry state).
-          // The monthly plan is preselected on load, so the CTA is usually
+          // The lifetime plan is preselected on load, so the CTA is usually
           // armed immediately; the DISABLED variant only shows for an
-          // offering with no monthly package to preselect.
+          // offering with no package to preselect at all.
           onBuy: hasOffer && _selected != null ? _buy : null,
           showDisabledCta: hasOffer && _selected == null,
           note: _selected?.packageType == PackageType.lifetime
@@ -694,7 +711,7 @@ class _ProPaywallContentState extends ConsumerState<ProPaywallContent>
     }
     return PaywallOfferSection(
       packages: packages,
-      // The monthly plan on load, then whatever the user taps.
+      // The lifetime plan on load, then whatever the user taps.
       selected: _selected,
       busy: _busy,
       onSelect: _selectPackage,

@@ -862,6 +862,23 @@
       }
     }
   },
+  "proRemindTitle": "See you tomorrow?",
+  "@proRemindTitle": {
+    "description": "Title of the one-per-install dialog that asks a fresh PRO buyer to switch reminders on, right after the purchase settles. PRO never sees the day wall, which is where every other reminder ask lives, so without this a paying user is never asked at all — and the local reminder is the only way the app can bring them back."
+  },
+  "proRemindBody": "A new daily question lands every day, and the whole catalogue is open now. I'll nudge you at {time} so your streak survives.",
+  "@proRemindBody": {
+    "description": "Body of the post-purchase reminder dialog. Names the reminder time (HH:MM, 24h) and the streak, which PRO keeps like everyone else.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "proRemindCta": "Remind me",
+  "@proRemindCta": {
+    "description": "Confirm button on the post-purchase reminder dialog. Tapping it is what triggers the OS permission prompt."
+  },
   "paywallBrand": "DEBATLY PRO",
   "@paywallBrand": {
     "description": "Small uppercase brand label at the top of the paywall sheet. A brand mark — identical in every locale."
